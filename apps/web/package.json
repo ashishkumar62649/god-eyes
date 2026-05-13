@@ -9,16 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "cesium": "^1.117.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "cesium": "1.141.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.4.5",
-    "vite": "^5.2.11",
-    "vite-plugin-cesium": "^1.2.22"
+    "@types/react": "18.3.28",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vite-plugin-cesium": "1.2.23"
   }
 }
