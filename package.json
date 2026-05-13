@@ -1,0 +1,12 @@
+{
+  "name": "god-eyes",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
