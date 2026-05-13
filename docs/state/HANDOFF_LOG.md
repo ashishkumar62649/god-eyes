@@ -63,3 +63,18 @@ All agents must append to this file after completing work.
 - Required fix: Gemini must update package.json to exact versions and regenerate pnpm-lock.yaml
 - Review document: docs/state/INTEGRATION_REVIEW_WO-001.md
 - Next action: Gemini to fix version pinning, then Kiro will push branch to origin
+
+### 2026-05-14 Gemini CLI — WO-004 Layer 0 UI Shell Polish
+- What was done: Added SpaceX-style transparent UI shell around the working Cesium globe with always-visible search bar and collapsible panels.
+- Files created/modified: apps/web/src/App.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/styles/index.css, apps/web/src/styles/shell.css, apps/web/src/components/Shell.tsx, apps/web/src/components/Header.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/DetailPanel.tsx, apps/web/src/components/StatusPanel.tsx, docs/state/HANDOFF_LOG.md
+- UI sections added: Top Header (Search + Status), Left Panel (Layers), Right Panel (Details), Bottom Panel (System Status).
+- Cesium config touched: no (only moved the token missing UI warning position).
+- Dependencies added: no.
+- Search status: Visual placeholder only.
+- Panel collapse status: Fully functional via React local state.
+- Build result: Success.
+- Dev/browser verification: Build passes; dev server starts.
+- Browser console errors: None expected (build is clean).
+- Known issues: None.
+- Forbidden folders touched: no.
+- Next safe frontend task: Implement layer selection logic or connect search to geocoder.
