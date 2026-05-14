@@ -9,8 +9,10 @@ import {
   ScreenSpaceEventHandler, 
   ScreenSpaceEventType,
   VerticalOrigin,
+  HorizontalOrigin,
   LabelStyle,
-  NearFarScalar
+  NearFarScalar,
+  CustomDataSource
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { fetchAirports } from './lib/api';
@@ -18,23 +20,30 @@ import { fetchAirports } from './lib/api';
 interface CesiumGlobeProps {
   aviationLayerActive: boolean;
   onObjectSelect: (obj: unknown) => void;
+  onAviationStatsChange?: (stats: { loaded: number; visible: number; clustersActive: boolean }) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({ 
   aviationLayerActive, 
-  onObjectSelect 
+  onObjectSelect,
+  onAviationStatsChange
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
-  const airportEntitiesRef = useRef<Entity[]>([]);
+  const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
+  const onStatsChangeRef = useRef(onAviationStatsChange);
 
-  // Update ref when prop changes
+  // Update refs when props change
   useEffect(() => {
     onObjectSelectRef.current = onObjectSelect;
   }, [onObjectSelect]);
+
+  useEffect(() => {
+    onStatsChangeRef.current = onAviationStatsChange;
+  }, [onAviationStatsChange]);
 
   // Initialize Viewer
   useEffect(() => {
@@ -70,14 +79,59 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       viewer.scene.globe.depthTestAgainstTerrain = true;
       viewerRef.current = viewer;
 
+      // Initialize Data Source for Aviation
+      const dataSource = new CustomDataSource('aviation');
+      dataSource.clustering.enabled = true;
+      dataSource.clustering.pixelRange = 45;
+      dataSource.clustering.minimumClusterSize = 2;
+      
+      // Premium Cluster Styling
+      dataSource.clustering.clusterEvent.addEventListener((clusteredEntities, cluster) => {
+        cluster.label.show = true;
+        cluster.label.text = clusteredEntities.length.toString();
+        cluster.label.font = 'bold 12px JetBrains Mono, monospace';
+        cluster.label.fillColor = Color.WHITE;
+        cluster.label.outlineColor = Color.BLACK;
+        cluster.label.outlineWidth = 3;
+        cluster.label.style = LabelStyle.FILL_AND_OUTLINE;
+        cluster.label.verticalOrigin = VerticalOrigin.CENTER;
+        cluster.label.horizontalOrigin = HorizontalOrigin.CENTER;
+        cluster.label.pixelOffset = new Cartesian2(0, 0);
+        
+        cluster.point.show = true;
+        cluster.point.pixelSize = 24;
+        cluster.point.color = Color.fromCssColorString('#00d2ff').withAlpha(0.6);
+        cluster.point.outlineColor = Color.WHITE.withAlpha(0.4);
+        cluster.point.outlineWidth = 2;
+      });
+
+      aviationDataSourceRef.current = dataSource;
+
       // Handle Clicks
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
+        
         if (pickedObject && pickedObject.id instanceof Entity) {
           const entity = pickedObject.id;
           if (entity.properties && entity.properties.rawData) {
             onObjectSelectRef.current(entity.properties.rawData.getValue());
+          }
+        } else if (pickedObject && pickedObject.primitive && pickedObject.primitive.clustering) {
+          // It's a cluster. Zoom in slightly toward it.
+          const camera = viewer!.camera;
+          const cartesian = viewer!.scene.pickPosition(click.position) || 
+                            viewer!.camera.pickEllipsoid(click.position);
+          
+          if (cartesian) {
+            camera.flyTo({
+              destination: Cartesian3.fromElements(
+                cartesian.x,
+                cartesian.y,
+                cartesian.z + camera.positionCartographic.height * 0.5
+              ),
+              duration: 1.0
+            });
           }
         } else {
           onObjectSelectRef.current(null);
@@ -95,27 +149,42 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewerRef.current = null;
       }
     };
-  }, []); // Empty dependency array means this runs once
+  }, []);
 
-  // Handle Aviation Layer
+  // Handle Aviation Layer Data
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer) return;
+    const dataSource = aviationDataSourceRef.current;
+    
+    if (!viewer || !dataSource) return;
+
+    // Capture in local variables to help TypeScript narrowing in the async closure
+    const activeViewer = viewer;
+    const activeDataSource = dataSource;
 
     async function updateAviationLayer() {
-      // Clean up existing
-      airportEntitiesRef.current.forEach(entity => viewer!.entities.remove(entity));
-      airportEntitiesRef.current = [];
+      // Clear existing
+      activeDataSource.entities.removeAll();
 
-      if (!aviationLayerActive) return;
+      if (!aviationLayerActive) {
+        if (activeViewer.dataSources.contains(activeDataSource)) {
+          activeViewer.dataSources.remove(activeDataSource, false);
+        }
+        onStatsChangeRef.current?.({ loaded: 0, visible: 0, clustersActive: false });
+        return;
+      }
+
+      if (!activeViewer.dataSources.contains(activeDataSource)) {
+        activeViewer.dataSources.add(activeDataSource);
+      }
 
       try {
         const airports = await fetchAirports(500);
         
-        const entities = airports.map(airport => {
-          if (!airport.position.latitude || !airport.position.longitude) return null;
+        airports.forEach(airport => {
+          if (!airport.position.latitude || !airport.position.longitude) return;
 
-          return viewer!.entities.add({
+          activeDataSource.entities.add({
             id: `airport-${airport.id}`,
             position: Cartesian3.fromDegrees(
               airport.position.longitude, 
@@ -143,9 +212,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               rawData: airport
             }
           });
-        }).filter(e => e !== null) as Entity[];
+        });
 
-        airportEntitiesRef.current = entities;
+        onStatsChangeRef.current?.({ 
+          loaded: airports.length, 
+          visible: airports.length, 
+          clustersActive: true 
+        });
       } catch (err) {
         console.error('Failed to render aviation layer:', err);
       }
@@ -153,6 +226,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     updateAviationLayer();
   }, [aviationLayerActive]);
+
 
   if (error) {
     return (

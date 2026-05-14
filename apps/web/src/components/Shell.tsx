@@ -10,12 +10,14 @@ interface ShellProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
   selectedObject: AirportObject | null;
+  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
 }
 
 const Shell: React.FC<ShellProps> = ({ 
   aviationLayerActive, 
   setAviationLayerActive, 
-  selectedObject 
+  selectedObject,
+  aviationStats
 }) => {
   return (
     <div className="shell-container">
@@ -25,11 +27,15 @@ const Shell: React.FC<ShellProps> = ({
         <LayerPanel 
           aviationLayerActive={aviationLayerActive}
           setAviationLayerActive={setAviationLayerActive}
+          aviationStats={aviationStats}
         />
         <DetailPanel selectedObject={selectedObject} />
       </main>
       
-      <StatusPanel aviationLayerActive={aviationLayerActive} />
+      <StatusPanel 
+        aviationLayerActive={aviationLayerActive} 
+        aviationStats={aviationStats}
+      />
     </div>
   );
 };
