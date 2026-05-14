@@ -38,6 +38,14 @@ interface ObjectsParams {
   layerId: string;
 }
 
+// Limit policy (documented):
+// - Default limit: 500
+// - General list max: 500 (production safety guard from WO-012)
+// - Viewport/query max (bbox present): 1000 (WO-008 spatial queries may need more)
+const MAX_LIST_LIMIT = 500;
+const MAX_VIEWPORT_LIMIT = 1000;
+const DEFAULT_LIMIT = 500;
+
 interface ObjectDetailParams {
   layerId: string;
   objectId: string;
@@ -130,17 +138,17 @@ function validateCategory(category: string): string | null {
   return null;
 }
 
-function validateLimit(limitStr: string | undefined): { limit: number; valid: boolean; error: string | null } {
+function validateLimit(limitStr: string | undefined, maxLimit: number = MAX_LIST_LIMIT): { limit: number; valid: boolean; error: string | null } {
   if (limitStr === undefined) {
-    return { limit: 500, valid: true, error: null };
+    return { limit: DEFAULT_LIMIT, valid: true, error: null };
   }
 
   const parsed = parseInt(limitStr, 10);
   if (isNaN(parsed) || parsed < 1) {
     return { limit: parsed, valid: false, error: 'limit must be a positive integer' };
   }
-  if (parsed > 1000) {
-    return { limit: 1000, valid: true, error: null }; // clamp to max
+  if (parsed > maxLimit) {
+    return { limit: maxLimit, valid: true, error: null }; // clamp to max
   }
   return { limit: parsed, valid: true, error: null };
 }
@@ -279,6 +287,12 @@ export async function objectRoutes(fastify: FastifyInstance) {
 
     // ---- Basic validation ----
 
+    // Validate required parameter (WO-012 production hardening)
+    if (!objectType) {
+      reply.code(400);
+      return makeErrorResponse(ErrorCodes.INVALID_QUERY, 'objectType is required.', {});
+    }
+
     // Only layer_01_aviation is supported
     if (layerId !== 'layer_01_aviation') {
       reply.code(404);
@@ -356,8 +370,9 @@ export async function objectRoutes(fastify: FastifyInstance) {
       );
     }
 
-    // Validate limit/offset
-    const limitResult = validateLimit(limitStr);
+    // Validate limit/offset — viewport queries (bbox) allow up to 1000, general list max 500
+    const effectiveMaxLimit = parsedBBox !== null ? MAX_VIEWPORT_LIMIT : MAX_LIST_LIMIT;
+    const limitResult = validateLimit(limitStr, effectiveMaxLimit);
     if (!limitResult.valid) {
       reply.code(400);
       return makeErrorResponse(ErrorCodes.INVALID_LIMIT, limitResult.error!, { received: limitStr });
@@ -457,6 +472,11 @@ export async function objectRoutes(fastify: FastifyInstance) {
             total: validatedItems.length,
           },
           mode: 'clusters' as const,
+          metadata: {
+            mode: 'standard',
+            bboxApplied: true,
+            generatedAt: new Date().toISOString(),
+          },
         });
       } catch (error) {
         // Table might not exist or query error
@@ -488,23 +508,33 @@ export async function objectRoutes(fastify: FastifyInstance) {
       paramIndex += 2;
     }
 
+    const filtersApplied: Record<string, unknown> = {};
+    if (parsedBBox !== null) {
+      filtersApplied.bbox = true;
+    }
+
     if (country) {
       sql += ` AND iso_country = $${paramIndex}`;
       params.push(country.toUpperCase());
       paramIndex++;
+      filtersApplied.country = country.toUpperCase();
     }
 
     if (category) {
       sql += ` AND category_normalized = $${paramIndex}`;
       params.push(category);
       paramIndex++;
+      filtersApplied.category = category;
     }
 
     if (search) {
       sql += ` AND (name ILIKE $${paramIndex} OR ident ILIKE $${paramIndex} OR iata_code ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
+      filtersApplied.search = search;
     }
+
+    const metadataMode = search ? 'search' : 'standard';
 
     // Get total count (without pagination)
     const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
@@ -528,6 +558,12 @@ export async function objectRoutes(fastify: FastifyInstance) {
           total: totalCount,
         },
         mode: 'points' as const,
+        metadata: {
+          mode: metadataMode,
+          filtersApplied: Object.keys(filtersApplied).length > 0 ? filtersApplied : undefined,
+          bboxApplied: parsedBBox !== null ? true : undefined,
+          generatedAt: new Date().toISOString(),
+        },
       });
     } catch (error) {
       reply.code(503);

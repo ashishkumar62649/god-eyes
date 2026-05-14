@@ -11,9 +11,11 @@ const fastify = Fastify({
 
 async function start() {
   try {
-    // Register CORS
+    // Register CORS - restricted to localhost for production safety
+    // Frontend runs on localhost:5174 (Vite default)
     await fastify.register(cors, {
-      origin: true,
+      origin: ['http://localhost:5173', 'http://localhost:5174'],
+      credentials: true,
     });
 
     // Register routes

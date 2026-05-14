@@ -25,8 +25,17 @@ export const LayerInfoSchema = z.object({
   objectTypes: z.array(z.string()),
 });
 
+export const LayerListMetadataSchema = z.object({
+  mode: z.string(),
+  returnedCount: z.number(),
+  generatedAt: z.string().datetime(),
+});
+
+export type LayerListMetadata = z.infer<typeof LayerListMetadataSchema>;
+
 export const LayersListResponseSchema = z.object({
   layers: z.array(LayerInfoSchema),
+  metadata: LayerListMetadataSchema.optional(),
 });
 
 export type LayerInfo = z.infer<typeof LayerInfoSchema>;
@@ -63,6 +72,17 @@ export const PaginationSchema = z.object({
 });
 
 export type Pagination = z.infer<typeof PaginationSchema>;
+
+// ==================== List Metadata ====================
+
+export const ObjectListMetadataSchema = z.object({
+  mode: z.enum(['standard', 'search']),
+  filtersApplied: z.record(z.unknown()).optional(),
+  bboxApplied: z.boolean().optional(),
+  generatedAt: z.string().datetime(),
+});
+
+export type ObjectListMetadata = z.infer<typeof ObjectListMetadataSchema>;
 
 // ==================== Airport Object ====================
 
@@ -128,6 +148,7 @@ export const LayerObjectsListResponseSchema = z.object({
   items: z.union([z.array(AirportObjectSchema), z.array(AirportClusterObjectSchema)]),
   pagination: PaginationSchema,
   mode: z.enum(['points', 'clusters']).optional(),
+  metadata: ObjectListMetadataSchema.optional(),
 });
 
 export type LayerObjectsListResponse = z.infer<typeof LayerObjectsListResponseSchema>;
