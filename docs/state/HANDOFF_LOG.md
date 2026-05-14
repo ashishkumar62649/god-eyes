@@ -314,3 +314,24 @@ All agents must append to this file after completing work.
 - Coordinates: ✅ Correct order (longitude, latitude), heliport offset documented as source data limitation
 - Remaining risks: None
 - Next step: Await code review and merge approval. Next task: Search/geocoding or next layer.
+
+### 2026-05-15T02:45:00Z Claude Code CLI — WO-008 Aviation viewport query and cluster-ready API support
+
+- Work order: WO-008
+- Agent: Claude Code CLI
+- LLM model: not reported
+- Tool/CLI used: Claude Code CLI tool
+- Branch: agent/claude-airport-query-cluster-api
+- Start time UTC: 2026-05-15T02:30:00Z
+- End time UTC: 2026-05-15T02:45:00Z
+- Commit hash: [local only]
+- Push status: local only (awaiting review)
+- What was done: Extended aviation airport API to support viewport-aware loading and clustering. Added bbox, limit (max 1000), offset, country, category, search, mode (points/clusters), and zoom query parameters. All validated with proper error codes. Cluster mode uses simple grid aggregation with category breakdown. SQL uses parameterized queries to prevent injection. Database offline behavior remains graceful.
+- Files created/modified: apps/api/src/routes/objects.ts (validation, bbox filter, cluster SQL), apps/api/tests/objects.test.ts (31 tests), packages/contracts/src/index.ts (AirportClusterObjectSchema, error codes), docs/postman/GOD_EYES_LOCAL_API.postman_collection.json (7 new requests), docs/state/HANDOFF_LOG.md
+- Query params added: bbox, limit (default 500, max 1000), offset, country, category, search, mode (points/clusters), zoom
+- Cluster mode status: Implemented with PostGIS grid aggregation, requires bbox, zoom controls grid size
+- Commands run: pnpm install, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test
+- Tests/build result: 38 tests passed (31 new tests), build success
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Integration review, or frontend implementation of viewport-aware loading using new bbox param
