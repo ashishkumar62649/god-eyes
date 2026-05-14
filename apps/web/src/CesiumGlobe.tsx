@@ -87,22 +87,35 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       
       // Premium Cluster Styling
       dataSource.clustering.clusterEvent.addEventListener((clusteredEntities, cluster) => {
+        const count = clusteredEntities.length;
+        
+        // Cluster Label - High readability
         cluster.label.show = true;
-        cluster.label.text = clusteredEntities.length.toString();
-        cluster.label.font = 'bold 12px JetBrains Mono, monospace';
+        cluster.label.text = count.toString();
+        cluster.label.font = count > 10 ? 'bold 14px JetBrains Mono, monospace' : 'bold 12px JetBrains Mono, monospace';
         cluster.label.fillColor = Color.WHITE;
         cluster.label.outlineColor = Color.BLACK;
-        cluster.label.outlineWidth = 3;
+        cluster.label.outlineWidth = 4; // Stronger outline for contrast
         cluster.label.style = LabelStyle.FILL_AND_OUTLINE;
         cluster.label.verticalOrigin = VerticalOrigin.CENTER;
         cluster.label.horizontalOrigin = HorizontalOrigin.CENTER;
         cluster.label.pixelOffset = new Cartesian2(0, 0);
         
+        // Cluster Point - Size hierarchy and distinct glow
         cluster.point.show = true;
-        cluster.point.pixelSize = 24;
-        cluster.point.color = Color.fromCssColorString('#00d2ff').withAlpha(0.6);
-        cluster.point.outlineColor = Color.WHITE.withAlpha(0.4);
-        cluster.point.outlineWidth = 2;
+        
+        // Small hierarchy: base 22px, growing with count up to 40px
+        const baseSize = 22;
+        const growthFactor = Math.min(count * 0.8, 18);
+        cluster.point.pixelSize = baseSize + growthFactor;
+        
+        // Slightly different color/opacity for clusters to distinguish from single dots
+        cluster.point.color = Color.fromCssColorString('#00d2ff').withAlpha(0.7);
+        cluster.point.outlineColor = Color.WHITE.withAlpha(0.6);
+        cluster.point.outlineWidth = count > 20 ? 3 : 2;
+        
+        // Disable individual labels in cluster if they were showing
+        cluster.billboard.show = false;
       });
 
       aviationDataSourceRef.current = dataSource;
