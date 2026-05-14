@@ -72,7 +72,7 @@ const CesiumGlobe: React.FC = () => {
       {tokenMissing && (
         <div style={{
           position: 'absolute',
-          top: '10px',
+          top: '70px',
           left: '10px',
           background: 'rgba(255, 165, 0, 0.8)',
           color: 'black',
