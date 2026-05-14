@@ -314,3 +314,24 @@ All agents must append to this file after completing work.
 - Coordinates: ✅ Correct order (longitude, latitude), heliport offset documented as source data limitation
 - Remaining risks: None
 - Next step: Await code review and merge approval. Next task: Search/geocoding or next layer.
+
+
+### 2026-05-15T04:00:17Z Kiro CLI — WO-012 Integration Review PASS, branch pushed
+
+- Review work order: WO-012 API Production Hardening and Response Metadata
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-api-production-hardening
+- Review start time UTC: 2026-05-15T04:00:17Z
+- Review end time UTC: 2026-05-15T04:00:17Z
+- Commit(s) reviewed: cb26456 (cb264561187848d2c970e8a23e652f8199f69659)
+- Push decision: PASS
+- Branch pushed: agent/claude-api-production-hardening
+- Review result: All 11 checks passed. Response metadata added to list endpoints (/api/layers, /api/layers/:layerId/objects). CORS restricted to localhost:5173/5174. objectType required validation added (400 on missing). MAX_LIST_LIMIT constant set to 500 for production safety. 8 new production hardening tests added. 15 total tests passing. No security issues. No boundary violations. No secrets committed. Error responses avoid leaking stack traces or secrets. Postman collection updated with 4 error examples. Code organization is clean and maintainable. WO-008 integration risk documented (future limit difference between list and query endpoints is acceptable).
+- Commands run: git status, git show cb26456 --stat, git show cb26456 --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, git ls-files (security check), git rev-parse HEAD, git add docs/state/INTEGRATION_REVIEW_WO-012.md, git commit (review document), git push -u origin agent/claude-api-production-hardening
+- Security/privacy result: No .env committed, no API keys committed, no database passwords beyond safe placeholders, no node_modules committed, no raw CSVs committed, no MinIO/Postgres volumes committed, no database dumps committed, no stack traces/secrets exposed in client error responses. SQL queries use parameterized queries. Input validation on objectType, limit, offset.
+- Known risks: None. All checks passed.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-012.md
+- Commit hash (review document): 9eeaa74
+- Next recommended task: Await code review and merge approval. Next work order: WO-013 or additional layer implementation.
