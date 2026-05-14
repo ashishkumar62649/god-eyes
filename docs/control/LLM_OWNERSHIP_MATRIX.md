@@ -25,6 +25,16 @@
 | `tests/api/` | Claude Code | — |
 | `.env.example` | Claude Code | Read only |
 
+## Git Rules
+
+- Worker agents (Gemini, Codex, Claude Code) may create local commits only.
+- Worker agents must NOT push to remote.
+- Kiro CLI owns all pushes to remote after review.
+- Kiro must never push directly to main unless explicitly approved.
+- All commits must follow format: `<type>(<area>): <description>`
+- All commits must include: Agent, Work Order, Summary, Commands, Known Issues, Forbidden Folders fields.
+- See `docs/control/GIT_WORKFLOW_POLICY.md` for full Git workflow.
+
 ## Rules
 
 - An agent must not modify files outside its ownership.

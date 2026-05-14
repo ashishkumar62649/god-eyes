@@ -53,11 +53,27 @@ Satellite, maritime, weather, cyber, AI intelligence layers.
 1. Kiro creates work orders in `docs/work-orders/`.
 2. Agent picks up its work order.
 3. Agent does the work within its allowed folders only.
-4. Agent updates `docs/state/HANDOFF_LOG.md`.
-5. Kiro reviews and updates `docs/state/CURRENT_PROJECT_STATE.md`.
+4. Agent creates one local commit with proper message format.
+5. Agent updates `docs/state/HANDOFF_LOG.md`.
+6. Kiro reviews and creates `docs/state/INTEGRATION_REVIEW_[WO].md`.
+7. If PASS: Kiro pushes branch to origin.
+8. If FAIL/NEEDS REVIEW: Kiro documents issues; agent revises.
+
+## Git Workflow
+
+See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
+
+**Key Rules:**
+- Worker agents (Gemini, Codex, Claude) may create local commits only.
+- Worker agents must NOT push to remote.
+- Kiro CLI owns all pushes to remote after review.
+- Kiro must never push directly to main unless explicitly approved.
+- All commits must follow format: `<type>(<area>): <description>`
+- All commits must include Agent, Work Order, Summary, Commands, Known Issues, Forbidden Folders fields.
 
 ## Key Documents
 
+- `docs/control/GIT_WORKFLOW_POLICY.md` — Git commit and push rules
 - `docs/control/LAYER_ARCHITECTURE.md` — layer definitions and order
 - `docs/control/LAYER_ID_CONVENTIONS.md` — naming and folder conventions
 - `docs/control/LLM_OWNERSHIP_MATRIX.md` — who owns what

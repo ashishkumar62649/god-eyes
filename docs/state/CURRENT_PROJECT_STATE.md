@@ -43,4 +43,4 @@ Control layer restructured to layer-based architecture. No app code yet.
 
 ## Last Updated
 
-2026-05-14 — Kiro CLI
+2026-05-14 — Kiro CLI (Git workflow policy established)
