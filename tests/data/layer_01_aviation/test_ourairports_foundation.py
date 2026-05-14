@@ -144,6 +144,12 @@ def test_generated_geometry_uses_lon_lat_order():
     )
 
 
+def test_generated_geometry_preserves_source_coordinate_precision():
+    assert build_point_wkt(latitude_deg=29.873373, longitude_deg=-103.702656) == (
+        "SRID=4326;POINT(-103.702656 29.873373)"
+    )
+
+
 def test_idempotency_key_logic_uses_source_and_source_id():
     assert build_idempotency_key("aviation_airports", "ourairports", "2434") == (
         "aviation_airports",
