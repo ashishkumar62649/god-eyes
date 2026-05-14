@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
+services/*/.env
+services/*/.env.*
+!services/*/.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local storage / data
+raw/
+minio-data/
+data/raw/
+data/minio/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test/runtime
+playwright-report/
+test-results/
+
+# Cesium / Vite generated cache
+apps/web/dist/
+apps/web/node_modules/
+apps/web/.vite/
+
+# Local Claude Code settings
+.claude/
+

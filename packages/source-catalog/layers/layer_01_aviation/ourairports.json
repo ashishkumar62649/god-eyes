@@ -1,0 +1,123 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "ourairports",
+  "source_name": "OurAirports open aviation reference data",
+  "source_type": "aviation_reference",
+  "owner": "Codex data pipeline",
+  "license": {
+    "name": "Public Domain",
+    "attribution": "OurAirports; attribution appreciated but not required",
+    "terms_url": "https://ourairports.com/data/"
+  },
+  "source_urls": {
+    "airports.csv": "https://davidmegginson.github.io/ourairports-data/airports.csv",
+    "runways.csv": "https://davidmegginson.github.io/ourairports-data/runways.csv",
+    "navaids.csv": "https://davidmegginson.github.io/ourairports-data/navaids.csv",
+    "airport-frequencies.csv": "https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv",
+    "countries.csv": "https://davidmegginson.github.io/ourairports-data/countries.csv",
+    "regions.csv": "https://davidmegginson.github.io/ourairports-data/regions.csv"
+  },
+  "refresh_policy": {
+    "cadence": "monthly",
+    "manual_refresh_allowed": true,
+    "schedule_note": "Reference CSV snapshots are mostly static for GOD EYES use. Schedule one refresh per month; local development may trigger a manual refresh."
+  },
+  "freshness_policy": {
+    "fresh_for_days": 35,
+    "stale_after_days": 45,
+    "notes": "OurAirports publishes frequent reference updates, but this foundation intentionally treats the data as monthly reference material, not live tracking."
+  },
+  "raw_storage": {
+    "bucket": "god-eyes-raw",
+    "path_pattern": "raw/layer_01_aviation/ourairports/{yyyy}/{mm}/{dd}/{fetch_run_id}/{filename}"
+  },
+  "expected_files": [
+    {
+      "filename": "airports.csv",
+      "required_columns": [
+        "id",
+        "ident",
+        "type",
+        "name",
+        "latitude_deg",
+        "longitude_deg",
+        "iso_country",
+        "iso_region"
+      ]
+    },
+    {
+      "filename": "runways.csv",
+      "required_columns": [
+        "id",
+        "airport_ref",
+        "airport_ident"
+      ]
+    },
+    {
+      "filename": "navaids.csv",
+      "required_columns": [
+        "id",
+        "filename",
+        "ident",
+        "name",
+        "type"
+      ]
+    },
+    {
+      "filename": "airport-frequencies.csv",
+      "required_columns": [
+        "id",
+        "airport_ref",
+        "airport_ident",
+        "type"
+      ]
+    },
+    {
+      "filename": "countries.csv",
+      "required_columns": [
+        "id",
+        "code",
+        "name",
+        "continent"
+      ]
+    },
+    {
+      "filename": "regions.csv",
+      "required_columns": [
+        "id",
+        "code",
+        "local_code",
+        "name",
+        "iso_country"
+      ]
+    }
+  ],
+  "collector": {
+    "name": "ourairports_collector",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/ourairports_collector.py",
+    "manual_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/ourairports_collector.py"
+  },
+  "validator": {
+    "name": "ourairports_reference_validator",
+    "path": "packages/schemas/layers/layer_01_aviation/ourairports.py"
+  },
+  "normalizer": {
+    "name": "ourairports_normalizer",
+    "path": "services/normalizer/src/layers/layer_01_aviation/ourairports_normalizer.py",
+    "manual_command": "python services/normalizer/src/layers/layer_01_aviation/ourairports_normalizer.py --fetch-run-id <fetch_run_id>"
+  },
+  "target_tables": [
+    "aviation_airports",
+    "aviation_runways",
+    "aviation_navaids",
+    "aviation_airport_frequencies",
+    "aviation_countries",
+    "aviation_regions"
+  ],
+  "notes": [
+    "Static aviation reference data only.",
+    "Not live aircraft tracking.",
+    "No ADS-B, NOTAM, or weather integration in WO-002.",
+    "Raw data must be stored before normalization; normalizers read raw_objects metadata."
+  ]
+}
