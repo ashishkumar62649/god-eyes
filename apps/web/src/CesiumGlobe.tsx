@@ -131,10 +131,33 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       
       // Tame mouse-wheel zoom
       const cameraController = viewer.scene.screenSpaceCameraController;
-      cameraController.inertiaZoom = 0.5; // Less sliding after scroll
-      cameraController.maximumMovementRatio = 0.1; // Limit jump distance per scroll
+      cameraController.inertiaZoom = 0.1; // Almost no sliding after scroll
+      cameraController.maximumMovementRatio = 0.02; // Very small jump distance per scroll for controlled zooming
       
       viewerRef.current = viewer;
+
+      // Fast visibility update for active entities to prevent see-through during rotation
+      viewer.scene.preRender.addEventListener(() => {
+        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
+        const currentViewer = viewerRef.current;
+        const currentCamera = currentViewer.camera;
+        const currentCameraPos = currentCamera.positionWC;
+        const currentCameraDir = Cartesian3.normalize(currentCameraPos, new Cartesian3());
+        
+        const entities = aviationDataSourceRef.current.entities.values;
+        for (let i = 0; i < entities.length; i++) {
+          const entity = entities[i];
+          const position = entity.position?.getValue(currentViewer.clock.currentTime);
+          if (position) {
+            const pointDir = Cartesian3.normalize(position, new Cartesian3());
+            const dotProd = Cartesian3.dot(currentCameraDir, pointDir);
+            const isVisible = dotProd > -0.05; // Hide when going behind horizon
+            if (entity.show !== isVisible) {
+              entity.show = isVisible;
+            }
+          }
+        }
+      });
 
       // Initialize Data Source for Aviation (No Cesium clustering)
       const dataSource = new CustomDataSource('aviation');

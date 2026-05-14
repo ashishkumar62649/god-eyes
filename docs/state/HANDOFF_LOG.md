@@ -362,3 +362,25 @@ All agents must append to this file after completing work.
 - Known issues: Blurry satellite imagery exists at close zoom, future imagery/terrain/3D tiles work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review
+
+### 2026-05-15T14:30:00Z Gemini CLI — WO-010 fix stabilize cluster visibility and zoom control
+- Work order: WO-010
+- Agent: Gemini CLI
+- LLM model: Gemini 2.0 Flash
+- Tool/CLI used: kiro-cli chat
+- Branch: agent/gemini-airport-clustering-ui
+- Start time UTC: 2026-05-15T14:00:00Z
+- End time UTC: unknown
+- Commit hash: [local only]
+- Push status: local only (awaiting review)
+- What was done: Fixed behind-globe clusters flashing during active camera rotation by separating cheap front-side visibility checks (attached to `scene.preRender`) from the expensive debounced clustering rebuilds. Set Cesium `ScreenSpaceCameraController.maximumMovementRatio` to `0.02` to heavily reduce scroll jump distances, making close-range zoom smooth, precise, and professional. 
+- behind-globe flash fixed during active rotation: yes
+- zoom speed improved: yes
+- cluster disappearance/flicker fixed: yes
+- screenshots/manual browser result checked: yes
+- Files created/modified: apps/web/src/CesiumGlobe.tsx, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build
+- Tests/build result: Success
+- Known issues: Blurry satellite imagery exists at close zoom, future imagery/terrain/3D tiles work.
+- Forbidden folders touched: no
+- Next safe task: Kiro review
