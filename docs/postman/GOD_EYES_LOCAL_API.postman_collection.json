@@ -131,6 +131,66 @@
           "path": ["api", "layers", "layer_01_aviation", "objects", "{{objectId}}"]
         }
       }
+    },
+    {
+      "name": "Error: Missing objectType",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"]
+        }
+      }
+    },
+    {
+      "name": "Error: Invalid Layer",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/unknown_layer/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "unknown_layer", "status"]
+        }
+      }
+    },
+    {
+      "name": "Error: Invalid Object Type",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=unknown",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "unknown"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pagination: Max Limit Test",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&limit=9999",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "limit",
+              "value": "9999"
+            }
+          ]
+        }
+      }
     }
   ]
 }

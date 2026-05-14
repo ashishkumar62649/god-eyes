@@ -5,6 +5,7 @@ import {
   LayerObjectDetailResponseSchema,
   ErrorCodes,
   NotImplementedResponseSchema,
+  ObjectListMetadataSchema,
 } from '@god-eyes/contracts';
 
 interface ObjectsQueryParams {
@@ -20,6 +21,10 @@ interface ObjectsQueryParams {
 interface ObjectsParams {
   layerId: string;
 }
+
+// Production-safe maximum limit
+const MAX_LIST_LIMIT = 500;
+const DEFAULT_LIMIT = 100;
 
 interface ObjectDetailParams {
   layerId: string;
@@ -92,8 +97,20 @@ export async function objectRoutes(fastify: FastifyInstance) {
       search,
     } = request.query;
 
-    // Validate limit and offset
-    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 500);
+    // Validate required parameter
+    if (!objectType) {
+      reply.code(400);
+      return {
+        error: {
+          code: ErrorCodes.INVALID_QUERY,
+          message: 'objectType is required.',
+          details: {},
+        },
+      };
+    }
+
+    // Validate limit and offset - use constants for production safety
+    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || DEFAULT_LIMIT, 1), MAX_LIST_LIMIT);
     const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
     // Only layer_01_aviation is supported for now
@@ -137,23 +154,30 @@ export async function objectRoutes(fastify: FastifyInstance) {
     const params: unknown[] = [];
     let paramIndex = 1;
 
+    const filtersApplied: Record<string, unknown> = {};
+
     if (country) {
       sql += ` AND iso_country = $${paramIndex}`;
       params.push(country.toUpperCase());
       paramIndex++;
+      filtersApplied.country = country.toUpperCase();
     }
 
     if (category) {
       sql += ` AND category_normalized = $${paramIndex}`;
       params.push(category);
       paramIndex++;
+      filtersApplied.category = category;
     }
 
     if (search) {
       sql += ` AND (name ILIKE $${paramIndex} OR ident ILIKE $${paramIndex} OR iata_code ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
+      filtersApplied.search = search;
     }
+
+    const mode = search ? 'search' : 'standard';
 
     // Get total count
     const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
@@ -175,6 +199,11 @@ export async function objectRoutes(fastify: FastifyInstance) {
           offset: parsedOffset,
           returned: items.length,
           total: totalCount,
+        },
+        metadata: {
+          mode,
+          filtersApplied: Object.keys(filtersApplied).length > 0 ? filtersApplied : undefined,
+          generatedAt: new Date().toISOString(),
         },
       });
     } catch (error) {
