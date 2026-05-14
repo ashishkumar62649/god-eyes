@@ -17,13 +17,18 @@ const LayerPanel: React.FC = () => {
       ) : (
         <div className="panel-content">
           <div className="layer-item active">
-            <div>Layer 0: Globe Core</div>
-            <div className="layer-status">Active</div>
+            <div className="layer-name">Globe Core</div>
+            <div className="layer-status">Active — Primary</div>
           </div>
           
-          <div className="layer-item" style={{ opacity: 0.5 }}>
-            <div>Layer 1: Aviation</div>
+          <div className="layer-item" style={{ opacity: 0.6, cursor: 'default' }}>
+            <div className="layer-name">Aviation</div>
             <div className="layer-status">Coming Next</div>
+          </div>
+
+          <div className="layer-item" style={{ opacity: 0.3, cursor: 'default' }}>
+            <div className="layer-name">Satellite</div>
+            <div className="layer-status">Pending</div>
           </div>
         </div>
       )}

@@ -1,13 +1,19 @@
 :root {
-  --shell-bg: rgba(10, 10, 15, 0.7);
-  --shell-bg-opaque: #0a0a0f;
-  --shell-border: rgba(255, 255, 255, 0.1);
-  --shell-accent: #00aaff;
-  --shell-text: #ffffff;
-  --shell-text-dim: rgba(255, 255, 255, 0.5);
-  --shell-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --shell-bg: rgba(5, 7, 10, 0.4);
+  --shell-bg-heavy: rgba(5, 7, 10, 0.8);
+  --shell-bg-opaque: #05070a;
+  --shell-border: rgba(255, 255, 255, 0.08);
+  --shell-border-bright: rgba(255, 255, 255, 0.15);
+  --shell-accent: #00d2ff;
+  --shell-accent-dim: rgba(0, 210, 255, 0.3);
+  --shell-text: #e0e0e0;
+  --shell-text-dim: rgba(255, 255, 255, 0.4);
+  --shell-text-bright: #ffffff;
+  --shell-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --shell-font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  --shell-blur: blur(10px);
+  --shell-blur: blur(20px) saturate(180%);
+  --shell-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --panel-radius: 4px;
 }
 
 .shell-container {
@@ -22,6 +28,7 @@
   flex-direction: column;
   font-family: var(--shell-font-family);
   color: var(--shell-text);
+  background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.2) 100%);
 }
 
 .shell-interactive {
@@ -30,60 +37,86 @@
 
 /* Header Styles */
 .shell-header {
-  height: 60px;
-  background: var(--shell-bg);
+  height: 64px;
+  background: linear-gradient(to bottom, rgba(5, 7, 10, 0.8) 0%, rgba(5, 7, 10, 0.4) 100%);
   backdrop-filter: var(--shell-blur);
   border-bottom: 1px solid var(--shell-border);
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 32px;
   justify-content: space-between;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
 .shell-brand {
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-weight: 800;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  font-size: 1.2rem;
-  color: var(--shell-accent);
+  font-size: 0.9rem;
+  color: var(--shell-text-bright);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shell-brand::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background: var(--shell-accent);
+  box-shadow: 0 0 10px var(--shell-accent);
+  border-radius: 2px;
 }
 
 .shell-search-container {
-  flex: 0 1 400px;
+  flex: 0 1 500px;
   position: relative;
 }
 
 .shell-search-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--shell-border);
-  padding: 8px 15px;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 20px;
   color: white;
   font-family: var(--shell-font-family);
+  font-size: 0.85rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: var(--shell-transition);
+  text-align: center;
 }
 
 .shell-search-input:focus {
-  border-color: var(--shell-accent);
+  border-color: var(--shell-accent-dim);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.1);
 }
 
 .shell-status-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: 12px;
+  font-size: 0.7rem;
   text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
   color: var(--shell-text-dim);
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #00ff00;
-  box-shadow: 0 0 5px #00ff00;
+  background: var(--shell-accent);
+  box-shadow: 0 0 8px var(--shell-accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
 }
 
 /* Main Content Area */
@@ -91,6 +124,7 @@
   flex: 1;
   display: flex;
   justify-content: space-between;
+  padding: 20px;
   overflow: hidden;
 }
 
@@ -101,26 +135,26 @@
   border: 1px solid var(--shell-border);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
-  margin: 10px;
-  border-radius: 4px;
+  transition: var(--shell-transition);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .panel-header {
-  padding: 10px 15px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--shell-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 1px;
-  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  font-weight: 700;
   color: var(--shell-text-dim);
 }
 
 .panel-content {
-  padding: 15px;
+  padding: 16px;
   flex: 1;
   overflow-y: auto;
 }
@@ -130,87 +164,164 @@
   border: none;
   color: var(--shell-text-dim);
   cursor: pointer;
-  padding: 5px;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: var(--shell-transition);
 }
 
 .panel-toggle:hover {
-  color: var(--shell-text);
+  color: var(--shell-accent);
 }
 
 /* Side Panels */
 .shell-panel-left {
-  width: 250px;
+  width: 280px;
 }
 
 .shell-panel-left.collapsed {
-  width: 40px;
-  overflow: hidden;
+  width: 48px;
 }
 
 .shell-panel-right {
-  width: 300px;
+  width: 320px;
 }
 
 .shell-panel-right.collapsed {
-  width: 40px;
-  overflow: hidden;
+  width: 48px;
 }
 
 /* Bottom Panel */
 .shell-footer {
-  height: 150px;
-  margin: 0 10px 10px 10px;
+  height: 120px;
+  margin: 0 20px 20px 20px;
 }
 
 .shell-footer.collapsed {
-  height: 40px;
+  height: 44px;
 }
 
 /* Placeholder Items */
 .layer-item {
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--shell-border);
-  margin-bottom: 8px;
-  border-radius: 2px;
-  font-size: 0.85rem;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: var(--shell-transition);
+  cursor: pointer;
+}
+
+.layer-item:hover {
+  border-color: var(--shell-border-bright);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .layer-item.active {
-  border-color: var(--shell-accent);
-  background: rgba(0, 170, 255, 0.1);
+  border-color: var(--shell-accent-dim);
+  background: rgba(0, 210, 255, 0.05);
+  border-left: 2px solid var(--shell-accent);
+}
+
+.layer-name {
+  font-weight: 600;
+  color: var(--shell-text-bright);
+  margin-bottom: 4px;
 }
 
 .layer-status {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   color: var(--shell-text-dim);
-  margin-top: 4px;
+}
+
+.layer-item.active .layer-status {
+  color: var(--shell-accent);
 }
 
 .detail-row {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  border-left: 1px solid var(--shell-border);
+  padding-left: 12px;
 }
 
 .detail-label {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
+  letter-spacing: 1px;
   color: var(--shell-text-dim);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .detail-value {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-family: var(--shell-font-mono);
+  color: var(--shell-text-bright);
 }
 
 .collapsed-label {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-  padding: 10px 0;
+  padding: 20px 0;
   color: var(--shell-text-dim);
-  font-size: 0.75rem;
-  letter-spacing: 1px;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
+
+/* Telemetry Accents */
+.telemetry-bar {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Boot Screen */
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  background: #05070a;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 1s ease-out;
+}
+
+.boot-logo {
+  width: 40px;
+  height: 40px;
+  background: var(--shell-accent);
+  box-shadow: 0 0 30px var(--shell-accent);
+  border-radius: 4px;
+  margin-bottom: 24px;
+  animation: boot-pulse 2s infinite ease-in-out;
+}
+
+.boot-text {
+  font-family: var(--shell-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 4px;
+  color: var(--shell-accent);
+  text-transform: uppercase;
+}
+
+@keyframes boot-pulse {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+
