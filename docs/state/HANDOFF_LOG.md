@@ -280,3 +280,19 @@ All agents must append to this file after completing work.
 - Manual verification result: Verified build; port conflict prevented local dev server check but logic is sound.
 - Known issues: None
 - Next safe task: Ready for search/geocoding or next layer.
+
+### 2026-05-14 Kiro CLI — WO-007 Integration Review PASS, branch pushed to origin
+
+- What was done: Final review of Gemini aviation airport markers from API. All 10 checks passed. Pushed branch to origin.
+- Final checks: ✅ Build passes, ✅ API integration correct, ✅ Markers render correctly, ✅ Coordinates correct, ✅ No .env, ✅ No node_modules, ✅ No forbidden folders, ✅ Dependency justified, ✅ UI/UX clean, ✅ Security verified
+- Branch pushed: `agent/gemini-aviation-airport-markers`
+- Commit hash (WO-007 initial): `312397f` (312397f632578c0292dd390d86dca8496dae8cda)
+- Commit hash (WO-007 fix): `f48a434` (f48a434e9ddc70daa698cbbcb4642c5428c48299)
+- Commit hash (review document): `70132bc` (70132bc...)
+- Review document: docs/state/INTEGRATION_REVIEW_WO-007.md
+- Status: ✅ PASS
+- API integration: ✅ Correct endpoint, limit 500, error handling, offline graceful
+- Cesium markers: ✅ Render correctly, depth test prevents through-globe, click stable
+- Coordinates: ✅ Correct order (longitude, latitude), heliport offset documented as source data limitation
+- Remaining risks: None
+- Next step: Await code review and merge approval. Next task: Search/geocoding or next layer.
