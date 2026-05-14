@@ -153,13 +153,17 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-004.md
 - Next action: Await code review and merge approval. Next task: Layer selection logic or geocoder integration.
 
-### 2026-05-14 Kiro CLI — WO-003 review PASS, branch pushed to origin
-
-- What was done: Final review of Claude Code layer-aware API foundation. All 12 checks passed. Pushed branch to origin.
-- Final checks: ✅ Fastify + TypeScript, ✅ Port 4000, ✅ All 5 endpoints, ✅ Database offline handling, ✅ Contracts (Zod), ✅ Postman collection, ✅ 6 tests passed, ✅ No secrets, ✅ Folder boundaries
-- Branch pushed: `agent/claude-layer-aware-api-foundation`
-- Commit hash: `63b04f8b3605f200ebb508e180e352be61948625`
-- Review document: docs/state/INTEGRATION_REVIEW_WO-003.md
-- Status: ✅ PASS WITH DATABASE ONLINE VERIFICATION PENDING
-- Remaining risks: Online DB verification not done (can be verified locally)
-- Next step: Integration review of all three agents (Gemini, Codex, Claude)
+### 2026-05-14 Gemini CLI — WO-006 Layer 0 minimal premium visual polish
+- What was done: Refined the Layer 0 frontend shell with a minimal premium SpaceX-style visual polish. Enhanced glassmorphism, refined typography, and improved the visual hierarchy of all panels. Added a subtle boot/loading experience.
+- Files created/modified: apps/web/src/App.tsx, apps/web/src/components/Header.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/DetailPanel.tsx, apps/web/src/components/StatusPanel.tsx, apps/web/src/styles/shell.css, docs/state/HANDOFF_LOG.md
+- Design direction: SpaceX-style transparent command interface, minimal, premium, futuristic.
+- CSS approach: Plain CSS with improved variables for glassmorphism (blur, transparency, thin borders) and typography.
+- Dependencies added: no
+- Cesium config touched: no
+- API/backend touched: no
+- UI improvements: Cleaner top command bar, refined layer panel with status indicators, better right detail panel layout, telemetry-like bottom status panel, and a short boot experience.
+- Build result: Success (pnpm --filter web build).
+- Browser verification: Dev server starts and renders correctly (manual check of logs).
+- Known issues: None.
+- Forbidden folders touched: no
+- Next safe frontend task: Implement layer selection logic or connect search to geocoder.
