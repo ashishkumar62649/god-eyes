@@ -180,3 +180,13 @@ All agents must append to this file after completing work.
 - Known issues: None remaining. Local Python dependencies had to be installed from `requirements-data.txt`; no secrets or raw data were committed. Ruflo ToolSearch was requested by AGENTS for complex tasks, but no ToolSearch tool was available in this session.
 - Forbidden folders touched: no.
 - Next safe task: Kiro review of WO-005, then API/frontend consumers can rely on live Layer 1 airport records from the local database.
+
+### Kiro CLI — WO-005 Integration Review
+- Status: ✅ PASS
+- Review document: `docs/state/INTEGRATION_REVIEW_WO-005.md`
+- Verification: All checks passed (Docker, database, MinIO, API, tests, security)
+- Branch pushed: `agent/codex-docker-ourairports-verification`
+- Review commit: `7be0efa` (docs(review): integration review WO-005 PASS)
+- Codex commit: `56925b3` (test(data): verify OurAirports ingestion with Docker)
+- Next: API/frontend consumers can now rely on live Layer 1 aviation data from local database
+
