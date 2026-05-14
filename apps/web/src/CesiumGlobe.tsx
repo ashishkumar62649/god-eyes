@@ -11,7 +11,6 @@ import {
   VerticalOrigin,
   HorizontalOrigin,
   LabelStyle,
-  NearFarScalar,
   CustomDataSource
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
@@ -58,6 +57,16 @@ const createMarkerCanvas = (size: number, color: string, glow: boolean = false) 
   return canvas;
 };
 
+// Simple canvas caching to avoid recreating identical clusters
+const canvasCache = new Map<number, HTMLCanvasElement>();
+const getClusterCanvas = (size: number) => {
+  const finalSize = Math.floor(size);
+  if (!canvasCache.has(finalSize)) {
+    canvasCache.set(finalSize, createMarkerCanvas(finalSize, '#00d2ff', true));
+  }
+  return canvasCache.get(finalSize)!;
+};
+
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({ 
   aviationLayerActive, 
   onObjectSelect,
@@ -71,6 +80,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
   const aviationLayerActiveRef = useRef(aviationLayerActive);
+  const rawAirportsRef = useRef<any[]>([]);
+  const renderTimeoutRef = useRef<number | null>(null);
 
   // Update refs when props change
   useEffect(() => {
@@ -117,148 +128,198 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       
       viewer.scene.debugShowFramesPerSecond = false;
       viewer.scene.globe.depthTestAgainstTerrain = true;
+      
+      // Tame mouse-wheel zoom
+      const cameraController = viewer.scene.screenSpaceCameraController;
+      cameraController.inertiaZoom = 0.5; // Less sliding after scroll
+      cameraController.maximumMovementRatio = 0.1; // Limit jump distance per scroll
+      
       viewerRef.current = viewer;
 
-      // Initialize Data Source for Aviation
+      // Initialize Data Source for Aviation (No Cesium clustering)
       const dataSource = new CustomDataSource('aviation');
-      dataSource.clustering.enabled = true;
-      dataSource.clustering.pixelRange = 45;
-      dataSource.clustering.minimumClusterSize = 2;
-      
-      // Premium Cluster Styling
-      dataSource.clustering.clusterEvent.addEventListener((clusteredEntities, cluster) => {
-        const count = clusteredEntities.length;
-        
-        // Cluster Label - High readability
-        cluster.label.show = true;
-        cluster.label.text = count.toString();
-        cluster.label.font = count > 10 ? 'bold 14px JetBrains Mono, monospace' : 'bold 12px JetBrains Mono, monospace';
-        cluster.label.fillColor = Color.WHITE;
-        cluster.label.outlineColor = Color.BLACK;
-        cluster.label.outlineWidth = 4;
-        cluster.label.style = LabelStyle.FILL_AND_OUTLINE;
-        cluster.label.verticalOrigin = VerticalOrigin.CENTER;
-        cluster.label.horizontalOrigin = HorizontalOrigin.CENTER;
-        cluster.label.pixelOffset = new Cartesian2(0, 0);
-        cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Bypass depth test
-        
-        // Use Billboard for Cluster circle to avoid clipping
-        const baseSize = 24;
-        const growthFactor = Math.min(count * 0.8, 16);
-        const finalSize = baseSize + growthFactor;
-        
-        cluster.billboard.show = true;
-        cluster.billboard.image = createMarkerCanvas(finalSize, '#00d2ff', true) as any;
-        cluster.billboard.verticalOrigin = VerticalOrigin.CENTER;
-        cluster.billboard.horizontalOrigin = HorizontalOrigin.CENTER;
-        cluster.billboard.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Bypass depth test entirely
-
-        // Ensure Point and other graphics are off for clusters
-        cluster.point.show = false;
-      });
-
       aviationDataSourceRef.current = dataSource;
+      viewer.dataSources.add(dataSource);
 
-      // Manual camera visibility toggle to prevent through-earth rendering
-      viewer.camera.percentageChanged = 0.02; // More responsive toggle
-      const checkVisibility = () => {
-        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
+      // Icons
+      const largeIcon = createMarkerCanvas(12, '#00d2ff');
+      const smallIcon = createMarkerCanvas(8, '#00d2ff');
+
+      // Manual clustering/visibility logic
+      const updateClustering = () => {
+        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current || rawAirportsRef.current.length === 0) return;
         
         const currentViewer = viewerRef.current;
-        const cameraPos = currentViewer.camera.positionWC;
-        const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
+        const currentDataSource = aviationDataSourceRef.current;
+        const airports = rawAirportsRef.current;
         
-        const entities = aviationDataSourceRef.current.entities.values;
-        for (let i = 0; i < entities.length; i++) {
-          const entity = entities[i];
-          const position = entity.position?.getValue(currentViewer.clock.currentTime);
-          
-          if (position) {
-            const pointDir = Cartesian3.normalize(position, new Cartesian3());
-            const dotProd = Cartesian3.dot(cameraDir, pointDir);
-            
-            // If dotProd is > ~ -0.1, it's roughly on the front hemisphere.
-            // Adjust threshold for horizon margin.
-            const isVisible = dotProd > -0.05;
-            
-            if (entity.show !== isVisible) {
-              entity.show = isVisible;
-            }
+        const camera = currentViewer.camera;
+        const cameraPos = camera.positionWC;
+        const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
+        const cameraHeight = camera.positionCartographic.height;
+
+        // Grid size in degrees based on altitude. 
+        // 2,000,000m -> ~1 degree. 
+        const gridSize = Math.max(0.5, cameraHeight / 2000000);
+        const isZoomedIn = cameraHeight < 1500000;
+
+        const clusters = new Map<string, any[]>();
+
+        for (const airport of airports) {
+          if (!airport.position.latitude || !airport.position.longitude) continue;
+
+          // Manual front-side visibility (horizon margin -0.1)
+          const pos = Cartesian3.fromDegrees(airport.position.longitude, airport.position.latitude, 0);
+          const pointDir = Cartesian3.normalize(pos, new Cartesian3());
+          if (Cartesian3.dot(cameraDir, pointDir) < -0.1) continue; 
+
+          if (isZoomedIn) {
+            clusters.set(`single-${airport.id}`, [airport]);
+          } else {
+            const gridX = Math.floor(airport.position.longitude / gridSize);
+            const gridY = Math.floor(airport.position.latitude / gridSize);
+            const key = `${gridX},${gridY}`;
+            if (!clusters.has(key)) clusters.set(key, []);
+            clusters.get(key)!.push(airport);
           }
         }
+
+        currentDataSource.entities.suspendEvents();
+        currentDataSource.entities.removeAll();
+
+        let visibleCount = 0;
+        let clustersActive = false;
+
+        clusters.forEach((clusterAirports, key) => {
+          if (clusterAirports.length === 1) {
+            const airport = clusterAirports[0];
+            currentDataSource.entities.add({
+              id: `airport-${airport.id}`,
+              position: Cartesian3.fromDegrees(airport.position.longitude, airport.position.latitude, 0),
+              billboard: {
+                image: airport.category === 'large_airport' ? largeIcon : smallIcon,
+                verticalOrigin: VerticalOrigin.CENTER,
+                horizontalOrigin: HorizontalOrigin.CENTER,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY, 
+              },
+              label: {
+                text: airport.ident,
+                font: '10px JetBrains Mono, monospace',
+                style: LabelStyle.FILL_AND_OUTLINE,
+                outlineWidth: 2,
+                outlineColor: Color.BLACK,
+                verticalOrigin: VerticalOrigin.BOTTOM,
+                pixelOffset: new Cartesian2(0, -10),
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              },
+              properties: {
+                rawData: airport,
+                isCluster: false
+              }
+            });
+            visibleCount++;
+          } else {
+            clustersActive = true;
+            const count = clusterAirports.length;
+            visibleCount += count;
+            
+            let sumLon = 0;
+            let sumLat = 0;
+            for (const a of clusterAirports) {
+              sumLon += a.position.longitude;
+              sumLat += a.position.latitude;
+            }
+            const centerLon = sumLon / count;
+            const centerLat = sumLat / count;
+
+            const baseSize = 24;
+            const growthFactor = Math.min(count * 0.8, 16);
+            const finalSize = baseSize + growthFactor;
+            const clusterIcon = getClusterCanvas(finalSize);
+
+            currentDataSource.entities.add({
+              id: `cluster-${key}`,
+              position: Cartesian3.fromDegrees(centerLon, centerLat, 0),
+              billboard: {
+                image: clusterIcon as any,
+                verticalOrigin: VerticalOrigin.CENTER,
+                horizontalOrigin: HorizontalOrigin.CENTER,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              },
+              label: {
+                text: count.toString(),
+                font: count > 10 ? 'bold 14px JetBrains Mono, monospace' : 'bold 12px JetBrains Mono, monospace',
+                fillColor: Color.WHITE,
+                outlineColor: Color.BLACK,
+                outlineWidth: 4,
+                style: LabelStyle.FILL_AND_OUTLINE,
+                verticalOrigin: VerticalOrigin.CENTER,
+                horizontalOrigin: HorizontalOrigin.CENTER,
+                pixelOffset: new Cartesian2(0, 0),
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              },
+              properties: {
+                isCluster: true,
+                airports: clusterAirports
+              }
+            });
+          }
+        });
+
+        currentDataSource.entities.resumeEvents();
+
+        onStatsChangeRef.current?.({ 
+          loaded: airports.length, 
+          visible: visibleCount, 
+          clustersActive: clustersActive 
+        });
       };
 
-      viewer.camera.changed.addEventListener(checkVisibility);
+      // Debounce camera updates to prevent stutter
+      viewer.camera.percentageChanged = 0.05; 
+      viewer.camera.changed.addEventListener(() => {
+        if (renderTimeoutRef.current !== null) {
+          window.clearTimeout(renderTimeoutRef.current);
+        }
+        renderTimeoutRef.current = window.setTimeout(() => {
+          updateClustering();
+        }, 150); // 150ms debounce
+      });
 
       // Handle Clicks
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
-        if (!pickedObject) {
+        if (!pickedObject || !pickedObject.id || !(pickedObject.id instanceof Entity)) {
           onObjectSelectRef.current(null);
           return;
         }
         
-        // 1. Handle Cluster Click (pickedObject.id is an array of entities for clusters)
-        if (Array.isArray(pickedObject.id)) {
-          const entities = pickedObject.id;
-          let sumX = 0, sumY = 0, sumZ = 0;
-          let validCount = 0;
-          
-          for (const entity of entities) {
-            const pos = entity.position?.getValue(viewer!.clock.currentTime);
-            if (pos) {
-              sumX += pos.x;
-              sumY += pos.y;
-              sumZ += pos.z;
-              validCount++;
-            }
-          }
-          
-          if (validCount > 0) {
-            const center = new Cartesian3(sumX / validCount, sumY / validCount, sumZ / validCount);
-            const camera = viewer!.camera;
-            const mag = Cartesian3.magnitude(center);
-            const targetHeight = camera.positionCartographic.height * 0.4; // zoom in by 60%
-            
-            camera.flyTo({
-              destination: Cartesian3.multiplyByScalar(
-                Cartesian3.normalize(center, new Cartesian3()), 
-                mag + targetHeight, 
-                new Cartesian3()
-              ),
-              duration: 1.0
-            });
-          }
-          return;
-        } 
+        const entity = pickedObject.id;
         
-        // 2. Handle Individual Entity Click
-        if (pickedObject.id instanceof Entity) {
-          const entity = pickedObject.id;
-          if (entity.properties && entity.properties.rawData) {
-            onObjectSelectRef.current(entity.properties.rawData.getValue());
-          }
-          return;
-        }
-
-        // Just in case it's a primitive without standard entity id mappings
-        if (pickedObject.primitive && (pickedObject.primitive as any).clustering) {
-           // fallback logic if needed, but array check usually captures Cesium clusters
+        // Handle Cluster Click
+        if (entity.properties && entity.properties.isCluster?.getValue()) {
            const camera = viewer!.camera;
-           const cartesian = camera.pickEllipsoid(click.position);
-           if (cartesian) {
-             const mag = Cartesian3.magnitude(cartesian);
+           const pos = entity.position?.getValue(viewer!.clock.currentTime);
+           if (pos) {
+             const mag = Cartesian3.magnitude(pos);
+             const targetHeight = camera.positionCartographic.height * 0.4; // zoom in by 60%
+             
              camera.flyTo({
                destination: Cartesian3.multiplyByScalar(
-                 Cartesian3.normalize(cartesian, new Cartesian3()),
-                 mag + camera.positionCartographic.height * 0.4,
+                 Cartesian3.normalize(pos, new Cartesian3()), 
+                 mag + targetHeight, 
                  new Cartesian3()
                ),
                duration: 1.0
              });
            }
            return;
+        } 
+        
+        // Handle Individual Entity Click
+        if (entity.properties && entity.properties.rawData) {
+           onObjectSelectRef.current(entity.properties.rawData.getValue());
         }
       }, ScreenSpaceEventType.LEFT_CLICK);
 
@@ -272,102 +333,42 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer.destroy();
         viewerRef.current = null;
       }
+      if (renderTimeoutRef.current !== null) {
+        window.clearTimeout(renderTimeoutRef.current);
+      }
     };
   }, []);
 
-  // Handle Aviation Layer Data
+  // Handle Aviation Layer Data Fetching
   useEffect(() => {
-    const viewer = viewerRef.current;
-    const dataSource = aviationDataSourceRef.current;
-    
-    if (!viewer || !dataSource) return;
-
-    const activeViewer = viewer;
-    const activeDataSource = dataSource;
-
     async function updateAviationLayer() {
       if (!aviationLayerActive) {
-        activeDataSource.entities.removeAll();
-        if (activeViewer.dataSources.contains(activeDataSource)) {
-          activeViewer.dataSources.remove(activeDataSource, false);
+        if (aviationDataSourceRef.current) {
+          aviationDataSourceRef.current.entities.removeAll();
         }
         onStatsChangeRef.current?.({ loaded: 0, visible: 0, clustersActive: false });
         return;
       }
 
-      if (activeDataSource.entities.values.length > 0 && activeViewer.dataSources.contains(activeDataSource)) {
+      if (rawAirportsRef.current.length > 0) {
+        // Data already loaded, just re-trigger render
+        if (viewerRef.current) {
+          // Force a camera change event to re-render clusters
+          viewerRef.current.camera.changed.raiseEvent();
+        }
         return;
-      }
-
-      if (!activeViewer.dataSources.contains(activeDataSource)) {
-        activeViewer.dataSources.add(activeDataSource);
       }
 
       try {
         const airports = await fetchAirports(500);
+        rawAirportsRef.current = airports;
         
-        activeDataSource.entities.suspendEvents();
-        activeDataSource.entities.removeAll();
-        
-        // Cache canvases
-        const largeIcon = createMarkerCanvas(12, '#00d2ff');
-        const smallIcon = createMarkerCanvas(8, '#00d2ff');
-
-        const cameraPos = activeViewer.camera.positionWC;
-        const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
-
-        airports.forEach(airport => {
-          if (!airport.position.latitude || !airport.position.longitude) return;
-
-          // Grounded position (height 0)
-          const position = Cartesian3.fromDegrees(
-            airport.position.longitude, 
-            airport.position.latitude,
-            0 
-          );
-
-          // Initial visibility check
-          const pointDir = Cartesian3.normalize(position, new Cartesian3());
-          const dotProd = Cartesian3.dot(cameraDir, pointDir);
-          const isVisible = dotProd > -0.05;
-
-          activeDataSource.entities.add({
-            id: `airport-${airport.id}`,
-            position: position,
-            show: isVisible, // Set initial visibility
-            billboard: {
-              image: airport.category === 'large_airport' ? largeIcon : smallIcon,
-              verticalOrigin: VerticalOrigin.CENTER,
-              horizontalOrigin: HorizontalOrigin.CENTER,
-              scaleByDistance: new NearFarScalar(1.5e2, 1.2, 8.0e6, 0.4),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY, // Disable depth slicing
-            },
-            label: {
-              text: airport.ident,
-              font: '10px JetBrains Mono, monospace',
-              style: LabelStyle.FILL_AND_OUTLINE,
-              outlineWidth: 2,
-              outlineColor: Color.BLACK,
-              verticalOrigin: VerticalOrigin.BOTTOM,
-              pixelOffset: new Cartesian2(0, -10),
-              translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY, // Disable depth slicing
-            },
-            properties: {
-              rawData: airport
-            }
-          });
-        });
-        
-        activeDataSource.entities.resumeEvents();
-
-        onStatsChangeRef.current?.({ 
-          loaded: airports.length, 
-          visible: airports.length, 
-          clustersActive: true 
-        });
+        // Force initial render
+        if (viewerRef.current) {
+          viewerRef.current.camera.changed.raiseEvent();
+        }
       } catch (err) {
-        console.error('Failed to render aviation layer:', err);
+        console.error('Failed to fetch aviation layer:', err);
       }
     }
 

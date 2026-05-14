@@ -340,3 +340,25 @@ All agents must append to this file after completing work.
 - Known issues: Blurry satellite imagery exists at close zoom, future imagery/terrain/3D tiles work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review
+
+### 2026-05-15T14:00:00Z Gemini CLI — WO-010 fix stabilize manual aviation clustering controls
+- Work order: WO-010
+- Agent: Gemini CLI
+- LLM model: Gemini 2.0 Flash
+- Tool/CLI used: kiro-cli chat
+- Branch: agent/gemini-airport-clustering-ui
+- Start time UTC: 2026-05-15T13:30:00Z
+- End time UTC: unknown
+- Commit hash: [local only]
+- Push status: local only (awaiting review)
+- What was done: Removed Cesium `EntityCluster` and implemented simple client-side manual grid clustering to resolve cluster disappearance on globe rotation. Visibility checks are now performed cleanly against raw airport data before generating manual cluster/point entities. Added a 150ms debounce to camera change events to prevent stuttering/freezing. Tuned the Cesium `ScreenSpaceCameraController` (`inertiaZoom = 0.5`, `maximumMovementRatio = 0.1`) to tame the aggressive mouse-wheel zoom issue. 
+- cluster disappearance fixed: yes
+- scroll zoom speed improved: yes
+- stutter improved: yes
+- screenshots/manual browser result checked: yes
+- Files created/modified: apps/web/src/CesiumGlobe.tsx, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build
+- Tests/build result: Success
+- Known issues: Blurry satellite imagery exists at close zoom, future imagery/terrain/3D tiles work.
+- Forbidden folders touched: no
+- Next safe task: Kiro review
