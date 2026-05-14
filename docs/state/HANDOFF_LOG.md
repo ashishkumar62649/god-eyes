@@ -78,3 +78,19 @@ All agents must append to this file after completing work.
 - Known issues: None.
 - Forbidden folders touched: no.
 - Next safe frontend task: Implement layer selection logic or connect search to geocoder.
+
+### 2026-05-14 Kiro CLI — WO-004 review complete, branch pushed
+
+- What was done: Reviewed WO-004 Gemini Layer 0 UI Shell Polish. Verified all pre-push checks: folder boundaries, stack compliance, UI functionality, token behavior, forbidden features, security/privacy.
+- Review result: ✅ PASS
+- Pre-push checks: ✅ All passed
+- Push decision: ✅ PUSH TO ORIGIN
+- Branch pushed: agent/gemini-layer0-ui-shell
+- Commit hash: d2e5dc7a219cf349e2287ef3976739eb124995f0
+- Build verification: ✓ pnpm --filter web build (567ms, 39 modules)
+- UI verification: ✅ Cesium globe, header, layer panel, detail panel, status panel all functional
+- Token handling: ✅ Graceful degradation with warning banner
+- Forbidden features: ✅ None present (no AI, no API calls, no backend logic)
+- Security: ✅ No .env, no node_modules, no real tokens committed
+- Review document: docs/state/INTEGRATION_REVIEW_WO-004.md
+- Next action: Await code review and merge approval. Next task: Layer selection logic or geocoder integration.
