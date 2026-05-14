@@ -5,11 +5,13 @@ import { LayerStatusResponse } from '@god-eyes/contracts';
 interface LayerPanelProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
+  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
 }
 
 const LayerPanel: React.FC<LayerPanelProps> = ({ 
   aviationLayerActive, 
-  setAviationLayerActive 
+  setAviationLayerActive,
+  aviationStats
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [aviationStatus, setAviationStatus] = useState<LayerStatusResponse | null>(null);
@@ -64,7 +66,15 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               ) : loading ? (
                 'Loading...'
               ) : aviationLayerActive ? (
-                `Active — ${aviationStatus?.objectCounts.airports.toLocaleString() || 0} Records`
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span>Active — {aviationStatus?.objectCounts.airports.toLocaleString() || 0} Records</span>
+                  <span style={{ fontSize: '0.6rem', opacity: 0.8, color: 'var(--shell-accent)' }}>
+                    Loaded: {aviationStats.loaded} | Visible: {aviationStats.visible}
+                  </span>
+                  <span style={{ fontSize: '0.55rem', opacity: 0.6 }}>
+                    CLUSTERING: {aviationStats.clustersActive ? 'ENABLED' : 'DISABLED'}
+                  </span>
+                </div>
               ) : (
                 'Ready — Click to Enable'
               )}

@@ -7,6 +7,7 @@ const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
   const [aviationLayerActive, setAviationLayerActive] = useState(false);
   const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
+  const [aviationStats, setAviationStats] = useState({ loaded: 0, visible: 0, clustersActive: false });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -17,6 +18,10 @@ const App: React.FC = () => {
 
   const handleObjectSelect = useCallback((obj: unknown) => {
     setSelectedObject(obj as AirportObject);
+  }, []);
+
+  const handleAviationStatsChange = useCallback((stats: { loaded: number; visible: number; clustersActive: boolean }) => {
+    setAviationStats(stats);
   }, []);
 
   return (
@@ -31,6 +36,7 @@ const App: React.FC = () => {
       <CesiumGlobe 
         aviationLayerActive={aviationLayerActive}
         onObjectSelect={handleObjectSelect}
+        onAviationStatsChange={handleAviationStatsChange}
       />
       
       <div style={{ 
@@ -42,6 +48,7 @@ const App: React.FC = () => {
           aviationLayerActive={aviationLayerActive}
           setAviationLayerActive={setAviationLayerActive}
           selectedObject={selectedObject}
+          aviationStats={aviationStats}
         />
       </div>
     </div>

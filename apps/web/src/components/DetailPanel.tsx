@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AirportObject } from '@god-eyes/contracts';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
 }
 
-const DetailPanel: React.FC<DetailPanelProps> = ({ selectedObject }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const DetailPanel: React.FC<DetailPanelProps> = ({ 
+  selectedObject, 
+  isCollapsed, 
+  setIsCollapsed 
+}) => {
 
   return (
     <aside className={`shell-panel shell-panel-right shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>

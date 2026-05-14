@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 
 interface StatusPanelProps {
   aviationLayerActive: boolean;
+  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
 }
 
-const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive }) => {
+const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -32,9 +33,16 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive }) => {
           </div>
           
           <div className="detail-row" style={{ marginBottom: 0 }}>
+            <div className="detail-label">Mode</div>
+            <div className="detail-value" style={{ color: aviationStats.clustersActive ? 'var(--shell-accent)' : 'inherit' }}>
+              {aviationStats.clustersActive ? 'CLUSTERED' : 'POINTS'}
+            </div>
+          </div>
+          
+          <div className="detail-row" style={{ marginBottom: 0 }}>
             <div className="detail-label">Data Ingestion</div>
             <div className="detail-value" style={{ opacity: 0.6 }}>
-              {aviationLayerActive ? 'STREAMING L1' : 'AWAITING L1'}
+              {aviationLayerActive ? `STREAMING L1 [${aviationStats.loaded}]` : 'AWAITING L1'}
             </div>
           </div>
           
