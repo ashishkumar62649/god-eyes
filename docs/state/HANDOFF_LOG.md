@@ -362,3 +362,46 @@ All agents must append to this file after completing work.
 - Known risks: None
 - Folder boundaries: ✅ PASS (only apps/api/, packages/contracts/, docs/postman/, docs/state/ touched; no forbidden folders)
 - Next recommended task: Frontend implementation of viewport-aware loading using new bbox parameter, or additional layer support (Satellite, Maritime, Weather)
+
+### 2026-05-14T20:43:27Z Codex — WO-009 Aviation query performance and data quality foundation
+- Work order: WO-009
+- Agent: Codex
+- LLM model: not reported
+- Tool/CLI used: Codex desktop
+- Branch: agent/codex-aviation-query-performance
+- Start time UTC: 2026-05-14T20:34:14Z
+- End time UTC: 2026-05-14T20:43:27Z
+- Commit hash: local commit created after this handoff entry; final hash reported by Codex
+- Push status: local only (awaiting review)
+- What was done: Added aviation query performance and data quality scripts, measured live PostGIS airport query plans, documented clustering/search/index recommendations, documented aviation data quality and manual override strategy, and fixed coordinate EWKT precision so normalized `geom` matches source latitude/longitude precision.
+- Files created/modified: `scripts/aviation_query_performance.py`, `scripts/aviation_data_quality.py`, `docs/data/layer_01_aviation/AVIATION_QUERY_PERFORMANCE.md`, `docs/data/layer_01_aviation/AVIATION_DATA_QUALITY.md`, `packages/schemas/layers/layer_01_aviation/ourairports.py`, `tests/data/layer_01_aviation/test_ourairports_foundation.py`, `tests/data/layer_01_aviation/test_aviation_query_readiness.py`, `docs/state/HANDOFF_LOG.md`.
+- Commands run: `git status --short --branch`; `docker ps`; `docker compose -f infra/docker/docker-compose.yml ps`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `docker exec god-eyes-postgis psql ... SELECT COUNT(*) FROM aviation_airports`; `docker exec god-eyes-postgis psql ... pg_indexes for aviation_airports`; `python -m pytest tests/data/layer_01_aviation/test_aviation_query_readiness.py -q` red/green; `python -m pytest tests/data/layer_01_aviation/test_ourairports_foundation.py::test_generated_geometry_preserves_source_coordinate_precision -q` red/green; `python services/normalizer/src/layers/layer_01_aviation/ourairports_normalizer.py --fetch-run-id fetch_run_a011fea1694d4151850dd8a35dc256e7`; `python scripts/aviation_data_quality.py --json`; `python scripts/aviation_query_performance.py --json`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`.
+- Tests/build result: `python -m pytest tests/data/layer_01_aviation -q` passed with 32 tests; Python compile passed; Docker Compose config passed.
+- Performance findings: Existing GiST `geom`, category, country, ident, IATA, source identity, and raw object indexes are present. BBox queries used `idx_aviation_airports_geom`; category and country used existing btree indexes; combined bbox+category/country used BitmapAnd plans. Measured execution times: USA bbox 15.821 ms, Europe bbox 8.951 ms, Dubai bbox 0.170 ms, heliport filter 5.529 ms, US filter 6.083 ms, USA bbox+heliport 11.518 ms, USA bbox+US 14.708 ms. Simple `ILIKE` Dubai search returned 20 rows in 39.769 ms with a sequential scan; recommend future measured trigram/full-text work rather than adding indexes now.
+- Data quality findings: 85,377 airports; missing coordinates 0; invalid coordinate ranges 0; null geom 0; lat/lon vs geom disagreement 0 after EWKT precision fix and normalizer rerun; suspicious zero coordinates 0; duplicate ident values 0; duplicate non-empty IATA values 0; heliports 22,980; water landing sites 1,262; closed/abandoned 13,181; scheduled service yes 4,429 and no 80,948.
+- Known issues: Simple search is sequential scan; local Docker timings are not production hardware; source coordinate string precision is not separately retained after normalization; some heliport markers may still be offset from imagery due to source precision/placement and should be handled later with documented manual overrides, not direct source edits.
+- Forbidden folders touched: no.
+- Next safe task: Claude/API can use the measured bbox/filter query patterns and add threshold-based grid clustering; future data work can benchmark trigram search or design a manual coordinate override table.
+
+
+
+### 2026-05-15T02:58:00Z Kiro CLI — WO-009 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-009
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-aviation-query-performance
+- Review start time UTC: 2026-05-15T02:48:14Z
+- Review end time UTC: 2026-05-15T02:58:00Z
+- Commit(s) reviewed: a293b672f0262ecd1ad4c52aa272a88220cd9d39
+- Push decision: PASS
+- Branch pushed: agent/codex-aviation-query-performance
+- Review result: All checks passed. Query performance measured with existing indexes. Data quality verified. Coordinate precision fix validated. No secrets committed.
+- Commands run: git status, git show --stat, python -m pytest tests/data/layer_01_aviation -q (32 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git ls-files checks, python -m pytest tests/data/layer_01_aviation/test_ourairports_foundation.py::test_generated_geometry_preserves_source_coordinate_precision -v
+- Security/privacy result: No secrets, no .env, no node_modules, no raw data committed. All files in allowed folders (docs/data/, docs/state/, packages/schemas/, scripts/, tests/data/).
+- Known risks: Large USA bbox queries return tens of thousands of rows (API should cluster). Simple search uses sequential scan (future measured task). Local Docker timings not production hardware.
+- Precision fix verified: Changed `build_point_wkt` from `:g` format (6 sig digits) to full precision. Test confirms `build_point_wkt(latitude_deg=29.873373, longitude_deg=-103.702656)` returns full precision WKT. Normalizer rerun verified data quality (0 coordinate mismatches).
+- Performance findings: Existing GiST geom and btree category/country indexes sufficient. USA bbox 15.821 ms, Europe 8.951 ms, Dubai 0.170 ms. Combined queries use BitmapAnd plans. Simple search sequential scan documented as future measured task.
+- Data quality findings: 85,377 airports; 0 missing coords, 0 invalid ranges, 0 null geom, 0 lat/lon mismatches, 0 duplicate ident, 0 duplicate IATA. Heliports 22,980; closed 13,181; water sites 1,262.
+- Next recommended task: Claude/API implement bbox/category/country/search endpoints with grid clustering. Future data work: measured trigram/full-text search.

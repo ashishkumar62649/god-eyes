@@ -124,7 +124,7 @@ def normalize_airport_category(source_type: str | None) -> str:
 def build_point_wkt(latitude_deg: float | None, longitude_deg: float | None) -> str | None:
     if latitude_deg is None or longitude_deg is None:
         return None
-    return f"SRID=4326;POINT({longitude_deg:g} {latitude_deg:g})"
+    return f"SRID=4326;POINT({longitude_deg} {latitude_deg})"
 
 
 def build_idempotency_key(
