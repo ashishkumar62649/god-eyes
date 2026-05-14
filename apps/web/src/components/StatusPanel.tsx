@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
-const StatusPanel: React.FC = () => {
+interface StatusPanelProps {
+  aviationLayerActive: boolean;
+}
+
+const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -21,12 +25,17 @@ const StatusPanel: React.FC = () => {
           
           <div className="detail-row" style={{ marginBottom: 0 }}>
             <div className="detail-label">Active Layers</div>
-            <div className="detail-value">L0: GLOBE CORE</div>
+            <div className="detail-value">
+              L0: GLOBE CORE
+              {aviationLayerActive && ' / L1: AVIATION'}
+            </div>
           </div>
           
           <div className="detail-row" style={{ marginBottom: 0 }}>
             <div className="detail-label">Data Ingestion</div>
-            <div className="detail-value" style={{ opacity: 0.6 }}>AWAITING L1</div>
+            <div className="detail-value" style={{ opacity: 0.6 }}>
+              {aviationLayerActive ? 'STREAMING L1' : 'AWAITING L1'}
+            </div>
           </div>
           
           <div className="detail-row" style={{ marginBottom: 0 }}>
@@ -35,9 +44,9 @@ const StatusPanel: React.FC = () => {
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
-             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: 0.2 }}></div>
-             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: 0.5 }}></div>
-             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)' }}></div>
+             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.4 : 0.2 }}></div>
+             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.7 : 0.5 }}></div>
+             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 1.0 : 0.8 }}></div>
           </div>
         </div>
       )}
