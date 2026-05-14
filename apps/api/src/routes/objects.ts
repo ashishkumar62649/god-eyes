@@ -43,11 +43,15 @@ interface AirportRow {
   iso_region: string | null;
   municipality: string | null;
   iata_code: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: Date | string;
+  updated_at: Date | string;
 }
 
-function rowToAirportObject(row: AirportRow) {
+function toContractDateTime(value: Date | string) {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+export function rowToAirportObject(row: AirportRow) {
   return {
     id: row.id,
     layerId: row.layer_id,
@@ -67,8 +71,8 @@ function rowToAirportObject(row: AirportRow) {
       longitude: row.longitude_deg,
     },
     elevationFt: row.elevation_ft,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: toContractDateTime(row.created_at),
+    updatedAt: toContractDateTime(row.updated_at),
   };
 }
 

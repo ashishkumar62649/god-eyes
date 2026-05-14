@@ -222,3 +222,22 @@ def test_normalizer_reads_raw_objects_metadata_not_random_paths():
     assert storage.requests == [
         ("god-eyes-raw", raw_object.storage_key) for raw_object in raw_objects
     ]
+
+
+def test_normalizer_casts_postgis_ewkt_parameters_for_psycopg():
+    module_path = (
+        REPO_ROOT
+        / "services"
+        / "normalizer"
+        / "src"
+        / "layers"
+        / "layer_01_aviation"
+        / "ourairports_normalizer.py"
+    )
+    spec = importlib.util.spec_from_file_location("ourairports_normalizer", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    assert "ST_GeomFromEWKT(%(geom)s::text)" in module.AIRPORT_UPSERT_SQL
+    assert "ST_GeomFromEWKT(%(geom)s::text)" in module.NAVAID_UPSERT_SQL

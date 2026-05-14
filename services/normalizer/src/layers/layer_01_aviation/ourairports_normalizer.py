@@ -254,7 +254,7 @@ VALUES (
   %(elevation_ft)s, %(continent)s, %(iso_country)s, %(iso_region)s,
   %(municipality)s, %(scheduled_service)s, %(gps_code)s, %(iata_code)s,
   %(local_code)s, %(home_link)s, %(wikipedia_link)s, %(keywords)s,
-  CASE WHEN %(geom)s IS NULL THEN NULL ELSE ST_GeomFromEWKT(%(geom)s) END,
+  CASE WHEN %(geom)s::text IS NULL THEN NULL ELSE ST_GeomFromEWKT(%(geom)s::text) END,
   %(raw_object_id)s
 )
 ON CONFLICT (source_id, source_airport_id) DO UPDATE SET
@@ -336,7 +336,7 @@ VALUES (
   %(dme_frequency_khz)s, %(dme_channel)s, %(dme_latitude_deg)s,
   %(dme_longitude_deg)s, %(dme_elevation_ft)s, %(slaved_variation_deg)s,
   %(magnetic_variation_deg)s, %(usageType)s, %(power)s, %(associated_airport)s,
-  CASE WHEN %(geom)s IS NULL THEN NULL ELSE ST_GeomFromEWKT(%(geom)s) END,
+  CASE WHEN %(geom)s::text IS NULL THEN NULL ELSE ST_GeomFromEWKT(%(geom)s::text) END,
   %(raw_object_id)s
 )
 ON CONFLICT (source_id, source_navaid_id) DO UPDATE SET

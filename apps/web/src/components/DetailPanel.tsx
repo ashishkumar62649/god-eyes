@@ -9,40 +9,46 @@ const DetailPanel: React.FC = () => {
         <button className="panel-toggle" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? '«' : '»'}
         </button>
-        {!isCollapsed && <span>Details</span>}
+        {!isCollapsed && <span>Object Intel</span>}
       </div>
       
       {isCollapsed ? (
-        <div className="collapsed-label">DETAILS</div>
+        <div className="collapsed-label">INTEL</div>
       ) : (
         <div className="panel-content">
-          <div style={{ textAlign: 'center', color: 'var(--shell-text-dim)', marginTop: '20px' }}>
-            No object selected
+          <div style={{ 
+            textAlign: 'center', 
+            color: 'var(--shell-text-dim)', 
+            marginTop: '40px',
+            fontSize: '0.75rem',
+            letterSpacing: '1px'
+          }}>
+            NO OBJECT SELECTED
           </div>
           
-          <div style={{ marginTop: '30px' }}>
+          <div style={{ marginTop: '40px' }}>
             <div className="detail-row">
               <div className="detail-label">Identity</div>
               <div className="detail-value">—</div>
             </div>
             
             <div className="detail-row">
-              <div className="detail-label">Coordinates</div>
+              <div className="detail-label">Location / Coords</div>
               <div className="detail-value">—</div>
             </div>
             
             <div className="detail-row">
-              <div className="detail-label">Source</div>
+              <div className="detail-label">Data Source</div>
               <div className="detail-value">—</div>
             </div>
             
             <div className="detail-row">
-              <div className="detail-label">Evidence</div>
+              <div className="detail-label">Evidence Chain</div>
               <div className="detail-value">—</div>
             </div>
             
             <div className="detail-row">
-              <div className="detail-label">Status</div>
+              <div className="detail-label">Operational Status</div>
               <div className="detail-value">—</div>
             </div>
           </div>
