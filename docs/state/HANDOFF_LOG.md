@@ -314,3 +314,25 @@ All agents must append to this file after completing work.
 - Coordinates: ✅ Correct order (longitude, latitude), heliport offset documented as source data limitation
 - Remaining risks: None
 - Next step: Await code review and merge approval. Next task: Search/geocoding or next layer.
+
+### 2026-05-14T22:06:36Z Codex - WO-011 Aviation Search Performance Benchmark
+
+- Work order: WO-011
+- Agent: Codex
+- LLM model: not reported
+- Tool/CLI used: Codex desktop, PowerShell, Docker Compose, Python
+- Branch: `agent/codex-aviation-search-performance`
+- Start time UTC: 2026-05-14T22:00:21Z
+- End time UTC: 2026-05-14T22:06:36Z
+- Push status: not pushed; Kiro review/push required
+- What was done: Benchmarked aviation airport search query shapes against the local Docker PostGIS database, reviewed current search fields and indexes, added a read-only benchmark script, added safe trigram search indexes through a new migration, documented findings, and added tests for parameterization and migration safety.
+- Database state tested: `aviation_airports` with 85,377 rows in `god_eyes_dev`.
+- Baseline search result: broad `ILIKE` across name/ident/iata/municipality/country/category used parallel sequential scans, with measured local execution times from 46.916 ms to 65.004 ms for the benchmark terms.
+- Search index result: free-text trigram GIN search over `lower(name)`, `lower(ident)`, `lower(iata_code)`, and `lower(municipality)` used bitmap index scans for normal search terms; examples include `Dubai` at 0.097 ms, `London` at 0.355 ms, `New York` at 0.152 ms, and `Tokyo` at 0.580 ms.
+- Exact field result: existing btree indexes remain the right path for structured values such as `iso_country = 'KR'` and `category_normalized = 'heliport'`.
+- Known limitations: two-character contains searches such as `KR` are not a good trigram contains workload and should prefer exact country/code handling; local timings are not production hardware timings; API routes were not changed in this work order.
+- Commands run: `python scripts/aviation_search_performance.py --json`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `docker ps`; `git diff --check`; `git ls-files .env raw node_modules "*.csv"`.
+- Tests/build result: 26 pytest tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed.
+- Files created/modified: `scripts/aviation_search_performance.py`, `database/migrations/layers/layer_01_aviation/003_aviation_search_indexes.sql`, `tests/data/layer_01_aviation/test_aviation_search_performance.py`, `docs/data/layer_01_aviation/AVIATION_SEARCH_PERFORMANCE.md`, `docs/state/HANDOFF_LOG.md`.
+- Forbidden folders touched: no.
+- Next safe task: Claude/API can adopt the documented two-part search strategy that combines exact structured-field matching with trigram free-text matching, then verify endpoint behavior with the benchmark script.
