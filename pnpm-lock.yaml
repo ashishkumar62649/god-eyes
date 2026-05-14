@@ -48,6 +48,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@god-eyes/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       cesium:
         specifier: 1.141.0
         version: 1.141.0

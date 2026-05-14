@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import CesiumGlobe from './CesiumGlobe';
 import Shell from './components/Shell';
+import { AirportObject } from '@god-eyes/contracts';
 
 const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
+  const [aviationLayerActive, setAviationLayerActive] = useState(false);
+  const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -21,14 +24,21 @@ const App: React.FC = () => {
         </div>
       )}
       
-      <CesiumGlobe />
+      <CesiumGlobe 
+        aviationLayerActive={aviationLayerActive}
+        onObjectSelect={(obj) => setSelectedObject(obj as AirportObject)}
+      />
       
       <div style={{ 
         opacity: isBooting ? 0 : 1, 
         transition: 'opacity 1s ease-in',
         pointerEvents: isBooting ? 'none' : 'auto'
       }}>
-        <Shell />
+        <Shell 
+          aviationLayerActive={aviationLayerActive}
+          setAviationLayerActive={setAviationLayerActive}
+          selectedObject={selectedObject}
+        />
       </div>
     </div>
   );
