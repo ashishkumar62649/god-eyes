@@ -12,7 +12,8 @@ import {
   HorizontalOrigin,
   LabelStyle,
   NearFarScalar,
-  CustomDataSource
+  CustomDataSource,
+  HeightReference
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { fetchAirports } from './lib/api';
@@ -22,6 +23,41 @@ interface CesiumGlobeProps {
   onObjectSelect: (obj: unknown) => void;
   onAviationStatsChange?: (stats: { loaded: number; visible: number; clustersActive: boolean }) => void;
 }
+
+// Helper to create a padded circle sprite
+const createMarkerCanvas = (size: number, color: string, glow: boolean = false) => {
+  const canvas = document.createElement('canvas');
+  const padding = 4; // Prevent clipping
+  const totalSize = size + padding * 2;
+  canvas.width = totalSize;
+  canvas.height = totalSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const center = totalSize / 2;
+  const radius = size / 2;
+
+  if (glow) {
+    const gradient = ctx.createRadialGradient(center, center, radius * 0.5, center, center, center);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(center, center, center, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(center, center, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  return canvas;
+};
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({ 
   aviationLayerActive, 
@@ -100,20 +136,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         cluster.label.verticalOrigin = VerticalOrigin.CENTER;
         cluster.label.horizontalOrigin = HorizontalOrigin.CENTER;
         cluster.label.pixelOffset = new Cartesian2(0, 0);
-        cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Prevent clipping
+        cluster.label.disableDepthTestDistance = 100000; // Small bypass to prevent terrain flicker
         
-        // Cluster Point - Size hierarchy and distinct glow
-        cluster.point.show = true;
-        const baseSize = 24; // Slightly larger base to avoid clipping
+        // Use Billboard for Cluster circle to avoid clipping
+        const baseSize = 24;
         const growthFactor = Math.min(count * 0.8, 16);
-        cluster.point.pixelSize = baseSize + growthFactor;
-        cluster.point.color = Color.fromCssColorString('#00d2ff').withAlpha(0.7);
-        cluster.point.outlineColor = Color.WHITE.withAlpha(0.6);
-        cluster.point.outlineWidth = count > 20 ? 3 : 2;
-        cluster.point.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Prevent clipping
+        const finalSize = baseSize + growthFactor;
+        
+        cluster.billboard.show = true;
+        cluster.billboard.image = createMarkerCanvas(finalSize, '#00d2ff', true) as any;
+        cluster.billboard.verticalOrigin = VerticalOrigin.CENTER;
+        cluster.billboard.horizontalOrigin = HorizontalOrigin.CENTER;
+        cluster.billboard.width = finalSize + 8; // Including padding
+        cluster.billboard.height = finalSize + 8;
+        cluster.billboard.disableDepthTestDistance = 100000;
 
-        // Disable billboard to ensure only point/label show for clusters
-        cluster.billboard.show = false;
+        // Ensure Point and other graphics are off for clusters
+        cluster.point.show = false;
       });
 
       aviationDataSourceRef.current = dataSource;
@@ -133,16 +172,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         } 
         
         // 2. Handle Cluster Click
-        // Cesium's pick for clusters often returns a primitive with .primitive.clustering
         if (pickedObject && pickedObject.primitive && (pickedObject.primitive as any).clustering) {
           const camera = viewer!.camera;
-          // Get position from ellipsoid for reliable zoom center
           const cartesian = camera.pickEllipsoid(click.position);
           
           if (cartesian) {
             const mag = Cartesian3.magnitude(cartesian);
             const cameraHeight = camera.positionCartographic.height;
-            const targetHeight = cameraHeight * 0.4; // Zoom in by 60%
+            const targetHeight = cameraHeight * 0.4;
             
             camera.flyTo({
               destination: Cartesian3.multiplyByScalar(
@@ -156,7 +193,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           return;
         }
 
-        // 3. Clear selection if clicking empty space
         onObjectSelectRef.current(null);
       }, ScreenSpaceEventType.LEFT_CLICK);
 
@@ -184,7 +220,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const activeDataSource = dataSource;
 
     async function updateAviationLayer() {
-      // Avoid clearing if not needed to reduce stutter
       if (!aviationLayerActive) {
         activeDataSource.entities.removeAll();
         if (activeViewer.dataSources.contains(activeDataSource)) {
@@ -194,7 +229,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return;
       }
 
-      // If already active and has data, don't refetch/rebuild unless necessary
       if (activeDataSource.entities.values.length > 0 && activeViewer.dataSources.contains(activeDataSource)) {
         return;
       }
@@ -206,28 +240,29 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       try {
         const airports = await fetchAirports(500);
         
-        // Batch updates to entities
         activeDataSource.entities.suspendEvents();
         activeDataSource.entities.removeAll();
         
+        // Cache canvases
+        const largeIcon = createMarkerCanvas(12, '#00d2ff');
+        const smallIcon = createMarkerCanvas(8, '#00d2ff');
+
         airports.forEach(airport => {
           if (!airport.position.latitude || !airport.position.longitude) return;
 
           activeDataSource.entities.add({
             id: `airport-${airport.id}`,
-            // Use small constant height (20m) instead of elevationFt to prevent floating/clipping
             position: Cartesian3.fromDegrees(
               airport.position.longitude, 
-              airport.position.latitude, 
-              20.0 
+              airport.position.latitude
             ),
-            point: {
-              pixelSize: airport.category === 'large_airport' ? 8 : 6,
-              color: Color.fromCssColorString('#00d2ff').withAlpha(0.8),
-              outlineColor: Color.WHITE.withAlpha(0.4),
-              outlineWidth: 1,
-              scaleByDistance: new NearFarScalar(1.5e2, 1.5, 8.0e6, 0.5),
-              disableDepthTestDistance: 50000 // Prevent clipping when zoomed in
+            billboard: {
+              image: airport.category === 'large_airport' ? largeIcon : smallIcon,
+              verticalOrigin: VerticalOrigin.CENTER,
+              horizontalOrigin: HorizontalOrigin.CENTER,
+              scaleByDistance: new NearFarScalar(1.5e2, 1.2, 8.0e6, 0.4),
+              disableDepthTestDistance: 10000, // Very conservative to prevent terrain flicker but hide behind Earth
+              heightReference: HeightReference.CLAMP_TO_GROUND
             },
             label: {
               text: airport.ident,
@@ -238,7 +273,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               verticalOrigin: VerticalOrigin.BOTTOM,
               pixelOffset: new Cartesian2(0, -10),
               translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0),
-              disableDepthTestDistance: 50000
+              disableDepthTestDistance: 10000,
+              heightReference: HeightReference.CLAMP_TO_GROUND
             },
             properties: {
               rawData: airport

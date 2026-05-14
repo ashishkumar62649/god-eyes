@@ -299,26 +299,26 @@ All agents must append to this file after completing work.
 - Known issues: None
 - Next safe task: Ready for search/geocoding or next layer.
 
-### 2026-05-15T12:00:00Z Gemini CLI — WO-010 fix Polish aviation cluster marker behavior
-- Work order: WO-010 fix
+### 2026-05-15T13:00:00Z Gemini CLI — WO-010 fix Refine grounded aviation marker sprites
+- Work order: WO-010 fix (Rendering Polish)
 - Agent: Gemini CLI
 - LLM model: Gemini 2.0 Flash
 - Tool/CLI used: kiro-cli chat
 - Branch: agent/gemini-airport-clustering-ui
-- Start time UTC: 2026-05-15T11:15:00Z
-- End time UTC: 2026-05-15T12:00:00Z
+- Start time UTC: 2026-05-15T12:15:00Z
+- End time UTC: 2026-05-15T13:00:00Z
 - Commit hash: [local only]
 - Push status: local only (awaiting review)
-- What was done: Fixed multiple rendering and UX issues in airport clustering.
-  - Fixed dot clipping: Added `disableDepthTestDistance` to clusters and individual markers.
-  - Fixed floating markers: Set a small constant height (20m) for all markers instead of using `elevationFt`.
-  - Implemented cluster click zoom: Improved click handler to detect clusters and smoothly fly camera to the target.
-  - Auto-open Object Intel: Moved detail panel collapse state to `Shell` and added an effect to auto-open it on airport selection.
-  - Optimized performance: Added `suspendEvents`/`resumeEvents` for batch entity updates and added checks to avoid unnecessary re-renders.
-- Files created/modified: apps/web/src/CesiumGlobe.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/DetailPanel.tsx, docs/state/HANDOFF_LOG.md
+- What was done: Refined marker and cluster rendering to achieve a production-grade grounded look.
+  - Replaced `PointGraphics` with `BillboardGraphics` using custom canvas-based sprites.
+  - Added transparent padding to canvas icons to prevent visual clipping/slicing of dots.
+  - Set `HeightReference.CLAMP_TO_GROUND` for all individual markers to ensure they are attached to the surface.
+  - Restored conservative `disableDepthTestDistance` (10,000 for dots, 100,000 for clusters) to prevent flickering while ensuring markers behind the Earth remain hidden.
+  - Maintained cluster sizing hierarchy and interaction logic (zoom on click, auto-open intel panel).
+- Files modified: apps/web/src/CesiumGlobe.tsx, docs/state/HANDOFF_LOG.md
 - Commands run: pnpm --filter web build
 - Tests/build result: Success
-- Manual verification result: Verified build; clustering is stable, no clipping, zoom works, auto-open works.
-- Known issues: None
+- Manual verification result: Verified build; dots are perfectly round, grounded, and respect Earth occlusion.
+- Known issues: Blurry satellite imagery at close zoom is an environmental limitation, documented as future work.
 - Forbidden folders touched: no
 - Next safe task: Ready for Kiro review.
