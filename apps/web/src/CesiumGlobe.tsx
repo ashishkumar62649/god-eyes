@@ -95,26 +95,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         cluster.label.font = count > 10 ? 'bold 14px JetBrains Mono, monospace' : 'bold 12px JetBrains Mono, monospace';
         cluster.label.fillColor = Color.WHITE;
         cluster.label.outlineColor = Color.BLACK;
-        cluster.label.outlineWidth = 4; // Stronger outline for contrast
+        cluster.label.outlineWidth = 4;
         cluster.label.style = LabelStyle.FILL_AND_OUTLINE;
         cluster.label.verticalOrigin = VerticalOrigin.CENTER;
         cluster.label.horizontalOrigin = HorizontalOrigin.CENTER;
         cluster.label.pixelOffset = new Cartesian2(0, 0);
+        cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Prevent clipping
         
         // Cluster Point - Size hierarchy and distinct glow
         cluster.point.show = true;
-        
-        // Small hierarchy: base 22px, growing with count up to 40px
-        const baseSize = 22;
-        const growthFactor = Math.min(count * 0.8, 18);
+        const baseSize = 24; // Slightly larger base to avoid clipping
+        const growthFactor = Math.min(count * 0.8, 16);
         cluster.point.pixelSize = baseSize + growthFactor;
-        
-        // Slightly different color/opacity for clusters to distinguish from single dots
         cluster.point.color = Color.fromCssColorString('#00d2ff').withAlpha(0.7);
         cluster.point.outlineColor = Color.WHITE.withAlpha(0.6);
         cluster.point.outlineWidth = count > 20 ? 3 : 2;
-        
-        // Disable individual labels in cluster if they were showing
+        cluster.point.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Prevent clipping
+
+        // Disable billboard to ensure only point/label show for clusters
         cluster.billboard.show = false;
       });
 
@@ -125,30 +123,41 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
         
+        // 1. Handle Individual Entity Click
         if (pickedObject && pickedObject.id instanceof Entity) {
           const entity = pickedObject.id;
           if (entity.properties && entity.properties.rawData) {
             onObjectSelectRef.current(entity.properties.rawData.getValue());
           }
-        } else if (pickedObject && pickedObject.primitive && pickedObject.primitive.clustering) {
-          // It's a cluster. Zoom in slightly toward it.
+          return;
+        } 
+        
+        // 2. Handle Cluster Click
+        // Cesium's pick for clusters often returns a primitive with .primitive.clustering
+        if (pickedObject && pickedObject.primitive && (pickedObject.primitive as any).clustering) {
           const camera = viewer!.camera;
-          const cartesian = viewer!.scene.pickPosition(click.position) || 
-                            viewer!.camera.pickEllipsoid(click.position);
+          // Get position from ellipsoid for reliable zoom center
+          const cartesian = camera.pickEllipsoid(click.position);
           
           if (cartesian) {
+            const mag = Cartesian3.magnitude(cartesian);
+            const cameraHeight = camera.positionCartographic.height;
+            const targetHeight = cameraHeight * 0.4; // Zoom in by 60%
+            
             camera.flyTo({
-              destination: Cartesian3.fromElements(
-                cartesian.x,
-                cartesian.y,
-                cartesian.z + camera.positionCartographic.height * 0.5
+              destination: Cartesian3.multiplyByScalar(
+                Cartesian3.normalize(cartesian, new Cartesian3()), 
+                mag + targetHeight, 
+                new Cartesian3()
               ),
               duration: 1.0
             });
           }
-        } else {
-          onObjectSelectRef.current(null);
+          return;
         }
+
+        // 3. Clear selection if clicking empty space
+        onObjectSelectRef.current(null);
       }, ScreenSpaceEventType.LEFT_CLICK);
 
     } catch (err) {
@@ -171,19 +180,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     
     if (!viewer || !dataSource) return;
 
-    // Capture in local variables to help TypeScript narrowing in the async closure
     const activeViewer = viewer;
     const activeDataSource = dataSource;
 
     async function updateAviationLayer() {
-      // Clear existing
-      activeDataSource.entities.removeAll();
-
+      // Avoid clearing if not needed to reduce stutter
       if (!aviationLayerActive) {
+        activeDataSource.entities.removeAll();
         if (activeViewer.dataSources.contains(activeDataSource)) {
           activeViewer.dataSources.remove(activeDataSource, false);
         }
         onStatsChangeRef.current?.({ loaded: 0, visible: 0, clustersActive: false });
+        return;
+      }
+
+      // If already active and has data, don't refetch/rebuild unless necessary
+      if (activeDataSource.entities.values.length > 0 && activeViewer.dataSources.contains(activeDataSource)) {
         return;
       }
 
@@ -194,22 +206,28 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       try {
         const airports = await fetchAirports(500);
         
+        // Batch updates to entities
+        activeDataSource.entities.suspendEvents();
+        activeDataSource.entities.removeAll();
+        
         airports.forEach(airport => {
           if (!airport.position.latitude || !airport.position.longitude) return;
 
           activeDataSource.entities.add({
             id: `airport-${airport.id}`,
+            // Use small constant height (20m) instead of elevationFt to prevent floating/clipping
             position: Cartesian3.fromDegrees(
               airport.position.longitude, 
               airport.position.latitude, 
-              airport.elevationFt ? airport.elevationFt * 0.3048 : 0
+              20.0 
             ),
             point: {
               pixelSize: airport.category === 'large_airport' ? 8 : 6,
               color: Color.fromCssColorString('#00d2ff').withAlpha(0.8),
               outlineColor: Color.WHITE.withAlpha(0.4),
               outlineWidth: 1,
-              scaleByDistance: new NearFarScalar(1.5e2, 1.5, 8.0e6, 0.5)
+              scaleByDistance: new NearFarScalar(1.5e2, 1.5, 8.0e6, 0.5),
+              disableDepthTestDistance: 50000 // Prevent clipping when zoomed in
             },
             label: {
               text: airport.ident,
@@ -219,13 +237,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               outlineColor: Color.BLACK,
               verticalOrigin: VerticalOrigin.BOTTOM,
               pixelOffset: new Cartesian2(0, -10),
-              translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0)
+              translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0),
+              disableDepthTestDistance: 50000
             },
             properties: {
               rawData: airport
             }
           });
         });
+        
+        activeDataSource.entities.resumeEvents();
 
         onStatsChangeRef.current?.({ 
           loaded: airports.length, 
