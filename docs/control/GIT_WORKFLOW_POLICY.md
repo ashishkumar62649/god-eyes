@@ -31,6 +31,11 @@ GOD EYES uses a controlled Git workflow where worker agents (Gemini, Codex, Clau
 
 Agent: <agent name>
 Work order: <WO-NNN>
+LLM model: <model name or "not reported">
+Tool/CLI used: <tool name>
+Branch: <branch name>
+Start time UTC: <YYYY-MM-DDTHH:MM:SSZ or "unknown">
+End time UTC: <YYYY-MM-DDTHH:MM:SSZ or "unknown">
 Summary: <what was done>
 Commands run: <build, test, etc.>
 Known issues: <any blockers>
@@ -176,6 +181,11 @@ feat(web): add minimal Cesium globe foundation
 
 Agent: Gemini CLI
 Work order: WO-001
+LLM model: Gemini 2.0
+Tool/CLI used: kiro-cli chat
+Branch: agent/gemini-layer0-globe
+Start time UTC: 2026-05-14T10:00:00Z
+End time UTC: 2026-05-14T11:30:00Z
 Summary: Initialized Vite + React + CesiumJS app with token error handling and minimal UI
 Commands run: pnpm install, pnpm --filter web build, pnpm --filter web dev
 Known issues: Tailwind CSS not installed (acceptable for MVP), version pinning uses ^ (will fix)
@@ -189,6 +199,11 @@ feat(data): add OurAirports collector and airports table
 
 Agent: Codex
 Work order: WO-002
+LLM model: Claude 3.5 Sonnet
+Tool/CLI used: kiro-cli chat
+Branch: agent/codex-ourairports-collector
+Start time UTC: 2026-05-14T12:00:00Z
+End time UTC: 2026-05-14T14:15:00Z
 Summary: Python collector for OurAirports CSV, Pydantic Airport model, Alembic migration for airports table
 Commands run: pytest, alembic upgrade head
 Known issues: None
@@ -202,6 +217,11 @@ feat(api): add Fastify health endpoint and layer routes
 
 Agent: Claude Code CLI
 Work order: WO-003
+LLM model: Claude 3.5 Sonnet
+Tool/CLI used: kiro-cli chat
+Branch: agent/claude-fastify-api
+Start time UTC: 2026-05-14T15:00:00Z
+End time UTC: 2026-05-14T16:45:00Z
 Summary: Fastify server scaffold with health endpoint, layer list, and airport endpoint contracts
 Commands run: pnpm --filter api build, pnpm --filter api test
 Known issues: No real database connection (mock/stub only)
@@ -215,6 +235,14 @@ docs(kiro): review and push WO-001 Layer 0 globe foundation
 
 Agent: Kiro CLI
 Work order: WO-001
+LLM model: Claude 3.5 Sonnet
+Tool/CLI used: kiro-cli chat
+Branch: agent/gemini-layer0-globe
+Review start time UTC: 2026-05-14T17:00:00Z
+Review end time UTC: 2026-05-14T17:30:00Z
+Commit reviewed: abc1234
+Push decision: PASS
+Branch pushed: agent/gemini-layer0-globe
 Summary: Reviewed Gemini Layer 0 output, verified stack compliance, token safety, folder boundaries. Approved for push.
 Commands run: pnpm --filter web build, git status, security scan
 Known issues: Version pinning uses ^ (must fix before merge)

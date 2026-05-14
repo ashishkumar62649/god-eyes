@@ -24,7 +24,8 @@
 11. Fetchers store raw data before normalization.
 12. Real API keys must never be committed.
 13. Secrets must only appear as placeholders in `.env.example`.
-14. Every LLM must update `docs/state/HANDOFF_LOG.md` after work.
+14. Every LLM must update `docs/state/HANDOFF_LOG.md` after work with model and time metadata.
+15. Every handoff entry must include: Work order, Agent, LLM model, Tool/CLI used, Branch, Start time UTC, End time UTC, Commit hash, Push status, Files changed, Commands run, Review status if applicable.
 
 ## Agent-Specific Rules
 
@@ -69,7 +70,8 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 - Kiro CLI owns all pushes to remote after review.
 - Kiro must never push directly to main unless explicitly approved.
 - All commits must follow format: `<type>(<area>): <description>`
-- All commits must include Agent, Work Order, Summary, Commands, Known Issues, Forbidden Folders fields.
+- All commits must include: Agent, Work Order, LLM model, Tool/CLI used, Branch, Start time UTC, End time UTC, Summary, Commands, Known Issues, Forbidden Folders fields.
+- Every HANDOFF_LOG.md entry must include model and time metadata (UTC required).
 
 ## Key Documents
 

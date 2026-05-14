@@ -4,13 +4,56 @@ All agents must append to this file after completing work.
 
 ## Format
 
+### Worker Agent Entry (Gemini, Codex, Claude)
+
 ```
-### [DATE] [AGENT] — [SUMMARY]
+### [UTC_DATE_TIME] [AGENT] — [WORK_ORDER] [SUMMARY]
+- Work order:
+- Agent:
+- LLM model:
+- Tool/CLI used:
+- Branch:
+- Start time UTC:
+- End time UTC:
+- Commit hash:
+- Push status: local only (awaiting review)
 - What was done:
 - Files created/modified:
-- What is now available for other agents:
-- Blockers:
+- Commands run:
+- Tests/build result:
+- Known issues:
+- Forbidden folders touched: yes/no
+- Next safe task:
 ```
+
+### Kiro Review Entry
+
+```
+### [UTC_DATE_TIME] Kiro CLI — [WORK_ORDER] Review
+- Review work order:
+- Reviewer agent: Kiro CLI
+- LLM model:
+- Tool/CLI used:
+- Branch reviewed:
+- Review start time UTC:
+- Review end time UTC:
+- Commit(s) reviewed:
+- Push decision: PASS / FAIL / NEEDS REVIEW
+- Branch pushed: [branch name or "not pushed"]
+- Review result:
+- Commands run:
+- Security/privacy result:
+- Known risks:
+- Next recommended task:
+```
+
+### Notes
+
+- If exact start/end time is unknown, write "unknown"
+- If exact model is unknown, write "not reported"
+- Do not guess; use actual values only
+- UTC times are required (format: YYYY-MM-DDTHH:MM:SSZ)
+- Local timezone may be included as additional context but UTC is primary
 
 ---
 

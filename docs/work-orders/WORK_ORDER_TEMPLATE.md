@@ -39,7 +39,8 @@ Copy this file to create a new work order: `docs/work-orders/WO-{NNN}-{agent}-{s
 - Must follow rules in AGENTS.md
 - Must not modify files outside ownership
 - Must use layer-aware folder structure from LAYER_ID_CONVENTIONS.md
-- Must update HANDOFF_LOG.md when done
+- Must update HANDOFF_LOG.md when done with model and time metadata
+- Must include in commit: Agent, Work Order, LLM model, Tool/CLI used, Branch, Start time UTC, End time UTC, Summary, Commands, Known Issues, Forbidden Folders
 
 ## Dependencies
 
