@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CesiumGlobe from './CesiumGlobe';
 import Shell from './components/Shell';
 import { AirportObject } from '@god-eyes/contracts';
@@ -15,6 +15,10 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleObjectSelect = useCallback((obj: unknown) => {
+    setSelectedObject(obj as AirportObject);
+  }, []);
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
       {isBooting && (
@@ -26,7 +30,7 @@ const App: React.FC = () => {
       
       <CesiumGlobe 
         aviationLayerActive={aviationLayerActive}
-        onObjectSelect={(obj) => setSelectedObject(obj as AirportObject)}
+        onObjectSelect={handleObjectSelect}
       />
       
       <div style={{ 

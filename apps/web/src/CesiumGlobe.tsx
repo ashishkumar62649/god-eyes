@@ -29,6 +29,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
   const airportEntitiesRef = useRef<Entity[]>([]);
+  const onObjectSelectRef = useRef(onObjectSelect);
+
+  // Update ref when prop changes
+  useEffect(() => {
+    onObjectSelectRef.current = onObjectSelect;
+  }, [onObjectSelect]);
 
   // Initialize Viewer
   useEffect(() => {
@@ -61,6 +67,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       });
       
       viewer.scene.debugShowFramesPerSecond = false;
+      viewer.scene.globe.depthTestAgainstTerrain = true;
       viewerRef.current = viewer;
 
       // Handle Clicks
@@ -70,10 +77,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (pickedObject && pickedObject.id instanceof Entity) {
           const entity = pickedObject.id;
           if (entity.properties && entity.properties.rawData) {
-            onObjectSelect(entity.properties.rawData.getValue());
+            onObjectSelectRef.current(entity.properties.rawData.getValue());
           }
         } else {
-          onObjectSelect(null);
+          onObjectSelectRef.current(null);
         }
       }, ScreenSpaceEventType.LEFT_CLICK);
 
@@ -88,7 +95,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewerRef.current = null;
       }
     };
-  }, [onObjectSelect]);
+  }, []); // Empty dependency array means this runs once
 
   // Handle Aviation Layer
   useEffect(() => {
@@ -120,7 +127,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               color: Color.fromCssColorString('#00d2ff').withAlpha(0.8),
               outlineColor: Color.WHITE.withAlpha(0.4),
               outlineWidth: 1,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               scaleByDistance: new NearFarScalar(1.5e2, 1.5, 8.0e6, 0.5)
             },
             label: {
@@ -131,8 +137,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               outlineColor: Color.BLACK,
               verticalOrigin: VerticalOrigin.BOTTOM,
               pixelOffset: new Cartesian2(0, -10),
-              translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY
+              translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0)
             },
             properties: {
               rawData: airport
