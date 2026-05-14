@@ -322,3 +322,21 @@ All agents must append to this file after completing work.
 - Known issues: Blurry satellite imagery at close zoom is an environmental limitation, documented as future work.
 - Forbidden folders touched: no
 - Next safe task: Ready for Kiro review.
+
+### 2026-05-15T13:30:00Z Gemini CLI — WO-010 fix stabilize aviation cluster billboard visibility
+- Work order: WO-010
+- Agent: Gemini CLI
+- LLM model: Gemini 2.0 Flash
+- Tool/CLI used: kiro-cli chat
+- Branch: agent/gemini-airport-clustering-ui
+- Start time UTC: 2026-05-15T13:00:00Z
+- End time UTC: unknown
+- Commit hash: [local only]
+- Push status: local only (awaiting review)
+- What was done: Implemented screen-space billboard marker sprites with manual front-side visibility. Fixed half-moon slicing by setting disableDepthTestDistance to Number.POSITIVE_INFINITY for both clusters and points. Added a viewer camera event listener to manually toggle entity visibility using dot product against camera position, successfully hiding back-side markers without relying on Cesium depth testing. Corrected cluster click to fly to cluster center instead of ellipsoid pick.
+- Files created/modified: apps/web/src/CesiumGlobe.tsx, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build
+- Tests/build result: Success
+- Known issues: Blurry satellite imagery exists at close zoom, future imagery/terrain/3D tiles work.
+- Forbidden folders touched: no
+- Next safe task: Kiro review

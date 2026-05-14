@@ -12,8 +12,7 @@ import {
   HorizontalOrigin,
   LabelStyle,
   NearFarScalar,
-  CustomDataSource,
-  HeightReference
+  CustomDataSource
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { fetchAirports } from './lib/api';
@@ -27,7 +26,7 @@ interface CesiumGlobeProps {
 // Helper to create a padded circle sprite
 const createMarkerCanvas = (size: number, color: string, glow: boolean = false) => {
   const canvas = document.createElement('canvas');
-  const padding = 4; // Prevent clipping
+  const padding = glow ? 12 : 8; // Prevent clipping, generously padded
   const totalSize = size + padding * 2;
   canvas.width = totalSize;
   canvas.height = totalSize;
@@ -52,8 +51,8 @@ const createMarkerCanvas = (size: number, color: string, glow: boolean = false) 
   ctx.arc(center, center, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   return canvas;
@@ -71,6 +70,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
+  const aviationLayerActiveRef = useRef(aviationLayerActive);
 
   // Update refs when props change
   useEffect(() => {
@@ -80,6 +80,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   useEffect(() => {
     onStatsChangeRef.current = onAviationStatsChange;
   }, [onAviationStatsChange]);
+
+  useEffect(() => {
+    aviationLayerActiveRef.current = aviationLayerActive;
+  }, [aviationLayerActive]);
 
   // Initialize Viewer
   useEffect(() => {
@@ -136,7 +140,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         cluster.label.verticalOrigin = VerticalOrigin.CENTER;
         cluster.label.horizontalOrigin = HorizontalOrigin.CENTER;
         cluster.label.pixelOffset = new Cartesian2(0, 0);
-        cluster.label.disableDepthTestDistance = 100000; // Small bypass to prevent terrain flicker
+        cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Bypass depth test
         
         // Use Billboard for Cluster circle to avoid clipping
         const baseSize = 24;
@@ -147,9 +151,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         cluster.billboard.image = createMarkerCanvas(finalSize, '#00d2ff', true) as any;
         cluster.billboard.verticalOrigin = VerticalOrigin.CENTER;
         cluster.billboard.horizontalOrigin = HorizontalOrigin.CENTER;
-        cluster.billboard.width = finalSize + 8; // Including padding
-        cluster.billboard.height = finalSize + 8;
-        cluster.billboard.disableDepthTestDistance = 100000;
+        cluster.billboard.disableDepthTestDistance = Number.POSITIVE_INFINITY; // Bypass depth test entirely
 
         // Ensure Point and other graphics are off for clusters
         cluster.point.show = false;
@@ -157,33 +159,71 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
       aviationDataSourceRef.current = dataSource;
 
+      // Manual camera visibility toggle to prevent through-earth rendering
+      viewer.camera.percentageChanged = 0.02; // More responsive toggle
+      const checkVisibility = () => {
+        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
+        
+        const currentViewer = viewerRef.current;
+        const cameraPos = currentViewer.camera.positionWC;
+        const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
+        
+        const entities = aviationDataSourceRef.current.entities.values;
+        for (let i = 0; i < entities.length; i++) {
+          const entity = entities[i];
+          const position = entity.position?.getValue(currentViewer.clock.currentTime);
+          
+          if (position) {
+            const pointDir = Cartesian3.normalize(position, new Cartesian3());
+            const dotProd = Cartesian3.dot(cameraDir, pointDir);
+            
+            // If dotProd is > ~ -0.1, it's roughly on the front hemisphere.
+            // Adjust threshold for horizon margin.
+            const isVisible = dotProd > -0.05;
+            
+            if (entity.show !== isVisible) {
+              entity.show = isVisible;
+            }
+          }
+        }
+      };
+
+      viewer.camera.changed.addEventListener(checkVisibility);
+
       // Handle Clicks
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
-        
-        // 1. Handle Individual Entity Click
-        if (pickedObject && pickedObject.id instanceof Entity) {
-          const entity = pickedObject.id;
-          if (entity.properties && entity.properties.rawData) {
-            onObjectSelectRef.current(entity.properties.rawData.getValue());
-          }
+        if (!pickedObject) {
+          onObjectSelectRef.current(null);
           return;
-        } 
+        }
         
-        // 2. Handle Cluster Click
-        if (pickedObject && pickedObject.primitive && (pickedObject.primitive as any).clustering) {
-          const camera = viewer!.camera;
-          const cartesian = camera.pickEllipsoid(click.position);
+        // 1. Handle Cluster Click (pickedObject.id is an array of entities for clusters)
+        if (Array.isArray(pickedObject.id)) {
+          const entities = pickedObject.id;
+          let sumX = 0, sumY = 0, sumZ = 0;
+          let validCount = 0;
           
-          if (cartesian) {
-            const mag = Cartesian3.magnitude(cartesian);
-            const cameraHeight = camera.positionCartographic.height;
-            const targetHeight = cameraHeight * 0.4;
+          for (const entity of entities) {
+            const pos = entity.position?.getValue(viewer!.clock.currentTime);
+            if (pos) {
+              sumX += pos.x;
+              sumY += pos.y;
+              sumZ += pos.z;
+              validCount++;
+            }
+          }
+          
+          if (validCount > 0) {
+            const center = new Cartesian3(sumX / validCount, sumY / validCount, sumZ / validCount);
+            const camera = viewer!.camera;
+            const mag = Cartesian3.magnitude(center);
+            const targetHeight = camera.positionCartographic.height * 0.4; // zoom in by 60%
             
             camera.flyTo({
               destination: Cartesian3.multiplyByScalar(
-                Cartesian3.normalize(cartesian, new Cartesian3()), 
+                Cartesian3.normalize(center, new Cartesian3()), 
                 mag + targetHeight, 
                 new Cartesian3()
               ),
@@ -191,9 +231,35 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             });
           }
           return;
+        } 
+        
+        // 2. Handle Individual Entity Click
+        if (pickedObject.id instanceof Entity) {
+          const entity = pickedObject.id;
+          if (entity.properties && entity.properties.rawData) {
+            onObjectSelectRef.current(entity.properties.rawData.getValue());
+          }
+          return;
         }
 
-        onObjectSelectRef.current(null);
+        // Just in case it's a primitive without standard entity id mappings
+        if (pickedObject.primitive && (pickedObject.primitive as any).clustering) {
+           // fallback logic if needed, but array check usually captures Cesium clusters
+           const camera = viewer!.camera;
+           const cartesian = camera.pickEllipsoid(click.position);
+           if (cartesian) {
+             const mag = Cartesian3.magnitude(cartesian);
+             camera.flyTo({
+               destination: Cartesian3.multiplyByScalar(
+                 Cartesian3.normalize(cartesian, new Cartesian3()),
+                 mag + camera.positionCartographic.height * 0.4,
+                 new Cartesian3()
+               ),
+               duration: 1.0
+             });
+           }
+           return;
+        }
       }, ScreenSpaceEventType.LEFT_CLICK);
 
     } catch (err) {
@@ -247,22 +313,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const largeIcon = createMarkerCanvas(12, '#00d2ff');
         const smallIcon = createMarkerCanvas(8, '#00d2ff');
 
+        const cameraPos = activeViewer.camera.positionWC;
+        const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
+
         airports.forEach(airport => {
           if (!airport.position.latitude || !airport.position.longitude) return;
 
+          // Grounded position (height 0)
+          const position = Cartesian3.fromDegrees(
+            airport.position.longitude, 
+            airport.position.latitude,
+            0 
+          );
+
+          // Initial visibility check
+          const pointDir = Cartesian3.normalize(position, new Cartesian3());
+          const dotProd = Cartesian3.dot(cameraDir, pointDir);
+          const isVisible = dotProd > -0.05;
+
           activeDataSource.entities.add({
             id: `airport-${airport.id}`,
-            position: Cartesian3.fromDegrees(
-              airport.position.longitude, 
-              airport.position.latitude
-            ),
+            position: position,
+            show: isVisible, // Set initial visibility
             billboard: {
               image: airport.category === 'large_airport' ? largeIcon : smallIcon,
               verticalOrigin: VerticalOrigin.CENTER,
               horizontalOrigin: HorizontalOrigin.CENTER,
               scaleByDistance: new NearFarScalar(1.5e2, 1.2, 8.0e6, 0.4),
-              disableDepthTestDistance: 10000, // Very conservative to prevent terrain flicker but hide behind Earth
-              heightReference: HeightReference.CLAMP_TO_GROUND
+              disableDepthTestDistance: Number.POSITIVE_INFINITY, // Disable depth slicing
             },
             label: {
               text: airport.ident,
@@ -273,8 +351,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               verticalOrigin: VerticalOrigin.BOTTOM,
               pixelOffset: new Cartesian2(0, -10),
               translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0),
-              disableDepthTestDistance: 10000,
-              heightReference: HeightReference.CLAMP_TO_GROUND
+              disableDepthTestDistance: Number.POSITIVE_INFINITY, // Disable depth slicing
             },
             properties: {
               rawData: airport
