@@ -334,3 +334,26 @@ All agents must append to this file after completing work.
 - Known issues: Simple search is sequential scan; local Docker timings are not production hardware; source coordinate string precision is not separately retained after normalization; some heliport markers may still be offset from imagery due to source precision/placement and should be handled later with documented manual overrides, not direct source edits.
 - Forbidden folders touched: no.
 - Next safe task: Claude/API can use the measured bbox/filter query patterns and add threshold-based grid clustering; future data work can benchmark trigram search or design a manual coordinate override table.
+
+
+
+### 2026-05-15T02:58:00Z Kiro CLI — WO-009 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-009
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-aviation-query-performance
+- Review start time UTC: 2026-05-15T02:48:14Z
+- Review end time UTC: 2026-05-15T02:58:00Z
+- Commit(s) reviewed: a293b672f0262ecd1ad4c52aa272a88220cd9d39
+- Push decision: PASS
+- Branch pushed: agent/codex-aviation-query-performance
+- Review result: All checks passed. Query performance measured with existing indexes. Data quality verified. Coordinate precision fix validated. No secrets committed.
+- Commands run: git status, git show --stat, python -m pytest tests/data/layer_01_aviation -q (32 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git ls-files checks, python -m pytest tests/data/layer_01_aviation/test_ourairports_foundation.py::test_generated_geometry_preserves_source_coordinate_precision -v
+- Security/privacy result: No secrets, no .env, no node_modules, no raw data committed. All files in allowed folders (docs/data/, docs/state/, packages/schemas/, scripts/, tests/data/).
+- Known risks: Large USA bbox queries return tens of thousands of rows (API should cluster). Simple search uses sequential scan (future measured task). Local Docker timings not production hardware.
+- Precision fix verified: Changed `build_point_wkt` from `:g` format (6 sig digits) to full precision. Test confirms `build_point_wkt(latitude_deg=29.873373, longitude_deg=-103.702656)` returns full precision WKT. Normalizer rerun verified data quality (0 coordinate mismatches).
+- Performance findings: Existing GiST geom and btree category/country indexes sufficient. USA bbox 15.821 ms, Europe 8.951 ms, Dubai 0.170 ms. Combined queries use BitmapAnd plans. Simple search sequential scan documented as future measured task.
+- Data quality findings: 85,377 airports; 0 missing coords, 0 invalid ranges, 0 null geom, 0 lat/lon mismatches, 0 duplicate ident, 0 duplicate IATA. Heliports 22,980; closed 13,181; water sites 1,262.
+- Next recommended task: Claude/API implement bbox/category/country/search endpoints with grid clustering. Future data work: measured trigram/full-text search.
