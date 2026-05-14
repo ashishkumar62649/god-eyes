@@ -131,8 +131,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       
       // Tame mouse-wheel zoom
       const cameraController = viewer.scene.screenSpaceCameraController;
-      cameraController.inertiaZoom = 0.1; // Almost no sliding after scroll
-      cameraController.maximumMovementRatio = 0.02; // Very small jump distance per scroll for controlled zooming
+      cameraController.inertiaZoom = 0; // Disable inertia to prevent exponential velocity buildup from smooth-scroll devices
+      cameraController.maximumMovementRatio = 0.1; // Restore default step scale
+      cameraController.minimumZoomDistance = 100; // Sensible minimum (prevents zooming through ground)
+      cameraController.maximumZoomDistance = 50000000; // Sensible maximum
       
       viewerRef.current = viewer;
 
@@ -142,8 +144,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const currentViewer = viewerRef.current;
         const currentCamera = currentViewer.camera;
         const currentCameraPos = currentCamera.positionWC;
+        const cameraDist = Cartesian3.magnitude(currentCameraPos);
         const currentCameraDir = Cartesian3.normalize(currentCameraPos, new Cartesian3());
         
+        // Exact geometric horizon based on earth ellipsoid
+        const R = currentViewer.scene.globe.ellipsoid.maximumRadius;
+        const horizonDot = R / cameraDist;
+        const visibilityThreshold = horizonDot - 0.05; // margin to prevent edge flicker
+
         const entities = aviationDataSourceRef.current.entities.values;
         for (let i = 0; i < entities.length; i++) {
           const entity = entities[i];
@@ -151,7 +159,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           if (position) {
             const pointDir = Cartesian3.normalize(position, new Cartesian3());
             const dotProd = Cartesian3.dot(currentCameraDir, pointDir);
-            const isVisible = dotProd > -0.05; // Hide when going behind horizon
+            const isVisible = dotProd > visibilityThreshold;
             if (entity.show !== isVisible) {
               entity.show = isVisible;
             }
@@ -178,8 +186,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         
         const camera = currentViewer.camera;
         const cameraPos = camera.positionWC;
+        const cameraDist = Cartesian3.magnitude(cameraPos);
         const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
         const cameraHeight = camera.positionCartographic.height;
+
+        // Exact geometric horizon based on earth ellipsoid
+        const R = currentViewer.scene.globe.ellipsoid.maximumRadius;
+        const horizonDot = R / cameraDist;
+        const visibilityThreshold = horizonDot - 0.05; // match preRender logic
 
         // Grid size in degrees based on altitude. 
         // 2,000,000m -> ~1 degree. 
@@ -191,10 +205,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         for (const airport of airports) {
           if (!airport.position.latitude || !airport.position.longitude) continue;
 
-          // Manual front-side visibility (horizon margin -0.1)
+          // Manual front-side visibility (use dynamic horizon threshold)
           const pos = Cartesian3.fromDegrees(airport.position.longitude, airport.position.latitude, 0);
           const pointDir = Cartesian3.normalize(pos, new Cartesian3());
-          if (Cartesian3.dot(cameraDir, pointDir) < -0.1) continue; 
+          if (Cartesian3.dot(cameraDir, pointDir) < visibilityThreshold) continue; 
 
           if (isZoomedIn) {
             clusters.set(`single-${airport.id}`, [airport]);

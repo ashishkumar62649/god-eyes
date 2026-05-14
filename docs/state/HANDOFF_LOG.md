@@ -384,3 +384,22 @@ All agents must append to this file after completing work.
 - Known issues: Blurry satellite imagery exists at close zoom, future imagery/terrain/3D tiles work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review
+
+### [2026-05-15T00:00:00Z] Gemini CLI — WO-010 active-rotation visibility and zoom-control fix
+- Work order: WO-010
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-airport-clustering-ui
+- Start time UTC: unknown
+- End time UTC: unknown
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was done: Fixed behind-globe cluster flashing during active rotation by computing exact geometric horizon based on earth ellipsoid radius, and applied it in both preRender loop and updateClustering logic. Tuned Cesium screenSpaceCameraController (disabled inertiaZoom, adjusted maximumMovementRatio and min/max zoom distance) to fix aggressive mouse-wheel zoom and prevent jumps from street to state view on a tiny scroll.
+- Files created/modified: apps/web/src/CesiumGlobe.tsx, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build
+- Tests/build result: Build successful
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: None / pending review
+
