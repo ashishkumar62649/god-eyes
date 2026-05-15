@@ -618,3 +618,22 @@ All agents must append to this file after completing work.
 - Known issues: Without manual browser verification, pixel-perfect alignment and interaction polish (like hover states feeling right in real-time) are theoretical.
 - Forbidden folders touched: no
 - Next safe task: Kiro integration review.
+
+### [2026-05-15T16:00:00Z] Gemini CLI — WO-016 Fix: Block behind-globe aviation markers and picks
+- Work order: WO-016
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-frontend-design-polish
+- Start time UTC: 2026-05-15T15:35:00Z
+- End time UTC: 2026-05-15T16:00:00Z
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was done: Fixed critical rendering/interaction bug where aviation markers and clusters on the back side of the Earth were visible and clickable. Extracted a centralized `isPositionVisible` helper in `cesiumVisibility.ts` utilizing exact dot-product horizon calculations with a tight margin (0.001) to prevent flickering. Applied the helper both inside `scene.preRender` loop to update `entity.show` and inside the `ScreenSpaceEventHandler` to filter out invalid clicks.
+- Files modified: apps/web/src/CesiumGlobe.tsx, apps/web/src/lib/cesiumVisibility.ts, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build
+- Tests/build result: Build successful
+- Browser visual verification performed: no (unable to perform manual browser verification in this environment)
+- Known issues: Without manual browser verification, exact edge behavior at the horizon threshold cannot be perfectly confirmed, but mathematically it is strictly aligned with the Earth's radius and should eliminate back-side rendering.
+- Forbidden folders touched: no
+- Next safe task: Kiro integration review.
