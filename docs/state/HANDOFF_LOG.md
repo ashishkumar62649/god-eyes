@@ -2,6 +2,25 @@
 
 All agents must append to this file after completing work.
 
+### 2026-05-15T19:05:00Z Claude Code CLI — WO-015 API Objects Route Modularization
+
+- Work order: WO-015
+- Agent: Claude Code CLI
+- LLM model: not reported
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-api-objects-route-refactor
+- Start time UTC: 2026-05-15T18:00:00Z
+- End time UTC: 2026-05-15T19:05:00Z
+- Commit hash: 49eb20bf24df61ad77485d544ddd55ca0efdce3c
+- Push status: local only (awaiting review)
+- What was done: Split 608-line objects.ts route into 9 focused modules: constants (VALID_CATEGORIES, limits), validation (parseBBox, validateBBox, validateCategory, etc.), errors (error helpers), metadata (filtersApplied, buildListMetadata), types (AirportRow, ClusterRow interfaces), mapper (rowToAirportObject), points (points mode SQL/query), clusters (cluster mode SQL/grid size), index (route registration). Preserved all behavior including bbox filters, category filters, country filter, search, mode=points/clusters, zoom, pagination, metadata, and database offline handling.
+- Files created/modified: apps/api/src/routes/objects.ts (re-export shim), apps/api/src/routes/objects/index.ts, apps/api/src/routes/objects/constants.ts, apps/api/src/routes/objects/validation.ts, apps/api/src/routes/objects/errors.ts, apps/api/src/routes/objects/metadata.ts, apps/api/src/routes/objects/types.ts, apps/api/src/routes/objects/mapper.ts, apps/api/src/routes/objects/points.ts, apps/api/src/routes/objects/clusters.ts, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (46 tests), pnpm --filter web build
+- Tests/build result: All 46 tests passed, contracts build success, api build success, web build success
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review
+
 ## Format
 
 ### Worker Agent Entry (Gemini, Codex, Claude)
