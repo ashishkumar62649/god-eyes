@@ -80,6 +80,8 @@ export const ObjectListMetadataSchema = z.object({
   filtersApplied: z.record(z.unknown()).optional(),
   bboxApplied: z.boolean().optional(),
   generatedAt: z.string().datetime(),
+  fields: z.enum(['standard', 'marker']).optional(),
+  coordinates: z.enum(['source', 'effective']).optional(),
 });
 
 export type ObjectListMetadata = z.infer<typeof ObjectListMetadataSchema>;
@@ -114,6 +116,25 @@ export const AirportObjectSchema = z.object({
 export type AirportPosition = z.infer<typeof AirportPositionSchema>;
 export type AirportObject = z.infer<typeof AirportObjectSchema>;
 
+// ==================== Airport Marker Object (lightweight) ====================
+
+export const AirportMarkerObjectSchema = z.object({
+  id: z.string().uuid(),
+  layerId: z.string(),
+  objectType: z.literal('airport'),
+  name: z.string(),
+  ident: z.string(),
+  iataCode: z.string().nullable(),
+  category: z.string(),
+  municipality: z.string().nullable(),
+  country: z.string().nullable(),
+  position: AirportPositionSchema,
+  elevationFt: z.number().nullable().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export type AirportMarkerObject = z.infer<typeof AirportMarkerObjectSchema>;
+
 // ==================== Airport Cluster Object ====================
 
 export const AirportClusterPositionSchema = z.object({
@@ -145,7 +166,11 @@ export type AirportClusterObject = z.infer<typeof AirportClusterObjectSchema>;
 // ==================== Objects List (Points or Clusters) ====================
 
 export const LayerObjectsListResponseSchema = z.object({
-  items: z.union([z.array(AirportObjectSchema), z.array(AirportClusterObjectSchema)]),
+  items: z.union([
+    z.array(AirportObjectSchema),
+    z.array(AirportClusterObjectSchema),
+    z.array(AirportMarkerObjectSchema),
+  ]),
   pagination: PaginationSchema,
   mode: z.enum(['points', 'clusters']).optional(),
   metadata: ObjectListMetadataSchema.optional(),
@@ -191,24 +216,6 @@ export const PayloadProfiles = {
 } as const;
 
 export type PayloadProfile = typeof PayloadProfiles[keyof typeof PayloadProfiles];
-
-// Lightweight marker payload for globe rendering
-export const AirportMarkerObjectSchema = z.object({
-  id: z.string().uuid(),
-  layerId: z.string(),
-  objectType: z.literal('airport'),
-  name: z.string(),
-  ident: z.string(),
-  iataCode: z.string().nullable(),
-  category: z.string(),
-  municipality: z.string().nullable(),
-  country: z.string().nullable(),
-  position: AirportPositionSchema,
-  elevationFt: z.number().nullable().optional(),
-  updatedAt: z.string().datetime().optional(),
-});
-
-export type AirportMarkerObject = z.infer<typeof AirportMarkerObjectSchema>;
 
 // ==================== Coordinate Mode ====================
 
