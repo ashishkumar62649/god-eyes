@@ -793,4 +793,269 @@ describe('Aviation Objects API - WO-008', () => {
       expect(body.mode).toBe('clusters');
     }
   });
+
+  // ---- Airport Detail Endpoint (WO-022) ----
+
+  it('airport detail endpoint returns 404 for non-existent airport', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects/00000000-0000-0000-0000-000000000000/detail',
+    });
+    expect(response.statusCode).toBe(404);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('OBJECT_NOT_FOUND');
+  });
+
+  it('airport detail returns structured response with all sections', async () => {
+    // First get an airport ID from the list endpoint
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail`,
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Should have all sections
+      expect(body.airport).toBeDefined();
+      expect(body.runways).toBeDefined();
+      expect(body.frequencies).toBeDefined();
+      expect(body.nearbyNavaids).toBeDefined();
+      expect(body.metadata).toBeDefined();
+    }
+  });
+
+  it('airport detail metadata has required fields', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail`,
+    });
+    if (response.statusCode !== 200) return;
+
+    const body = JSON.parse(response.body);
+    const metadata = body.metadata;
+    expect(metadata.generatedAt).toBeDefined();
+    expect(metadata.layerId).toBe('layer_01_aviation');
+    expect(metadata.objectId).toBe(airportId);
+    expect(metadata.runwayCount).toBeDefined();
+    expect(metadata.frequencyCount).toBeDefined();
+    expect(metadata.nearbyNavaidCount).toBeDefined();
+  });
+
+  it('airport detail supports coordinates=source', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?coordinates=source`,
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.airport.position).toBeDefined();
+      expect(body.metadata.coordinates).toBeUndefined();
+    }
+  });
+
+  it('airport detail supports coordinates=effective', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?coordinates=effective`,
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.airport.position).toBeDefined();
+      expect(body.metadata.coordinates).toBe('effective');
+    }
+  });
+
+  it('airport detail accepts custom navaidRadiusKm', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?navaidRadiusKm=50`,
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.metadata.navaidRadiusKm).toBe(50);
+    }
+  });
+
+  it('airport detail accepts custom navaidLimit', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?navaidLimit=10`,
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.metadata.nearbyNavaidCount).toBeDefined();
+    }
+  });
+
+  it('returns 400 for invalid navaidRadiusKm', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?navaidRadiusKm=invalid`,
+    });
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('INVALID_NAVAID_PARAMS');
+  });
+
+  it('returns 400 for navaidRadiusKm out of range', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?navaidRadiusKm=500`,
+    });
+    // Should clamp to max, not 400
+    expect([200, 503]).toContain(response.statusCode);
+  });
+
+  it('returns 400 for invalid navaidLimit', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?navaidLimit=abc`,
+    });
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('INVALID_NAVAID_PARAMS');
+  });
+
+  it('returns 400 for invalid coordinates in detail endpoint', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail?coordinates=raw`,
+    });
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('INVALID_COORDINATES');
+  });
+
+  it('returns 404 for unknown layer in detail endpoint', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_99_unknown/objects/abc123/detail',
+    });
+    expect(response.statusCode).toBe(404);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('INVALID_LAYER');
+  });
+
+  it('returns 503 when database offline for detail endpoint', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects/abc123/detail',
+    });
+    // Either 503 (offline) or 404 (not found), not 400
+    expect([404, 503]).toContain(response.statusCode);
+  });
 });

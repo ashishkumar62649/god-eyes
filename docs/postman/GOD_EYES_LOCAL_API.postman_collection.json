@@ -401,6 +401,83 @@
       }
     },
     {
+      "name": "Airport Detail — Basic",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects/{airportId}/detail",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects", "{airportId}", "detail"]
+        }
+      }
+    },
+    {
+      "name": "Airport Detail — Effective Coordinates",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects/{airportId}/detail?coordinates=effective",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects", "{airportId}", "detail"],
+          "query": [
+            {
+              "key": "coordinates",
+              "value": "effective"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Airport Detail — Navaids Radius",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects/{airportId}/detail?navaidRadiusKm=50&navaidLimit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects", "{airportId}", "detail"],
+          "query": [
+            {
+              "key": "navaidRadiusKm",
+              "value": "50"
+            },
+            {
+              "key": "navaidLimit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Airport Detail — Invalid Radius",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects/{airportId}/detail?navaidRadiusKm=invalid",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects", "{airportId}", "detail"],
+          "query": [
+            {
+              "key": "navaidRadiusKm",
+              "value": "invalid"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Airport Detail — Not Found",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects/00000000-0000-0000-0000-000000000000/detail",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects", "00000000-0000-0000-0000-000000000000", "detail"]
+        }
+      }
+    },
+    {
       "name": "Aviation Airports by Country (Legacy)",
       "request": {
         "method": "GET",

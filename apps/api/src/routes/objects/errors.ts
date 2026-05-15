@@ -69,3 +69,7 @@ export function invalidFieldsError(message: string, details: Record<string, unkn
 export function invalidCoordinatesError(message: string, details: Record<string, unknown> = {}): ErrorResponse {
   return makeErrorResponse(ErrorCodes.INVALID_COORDINATES, message, details);
 }
+
+export function invalidNavaidParamsError(message: string, details: Record<string, unknown> = {}): ErrorResponse {
+  return makeErrorResponse(ErrorCodes.INVALID_NAVAID_PARAMS, message, details);
+}

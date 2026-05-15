@@ -166,15 +166,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       };
 
       // Debounce camera updates to prevent stutter and massive API calls
-      viewer.camera.percentageChanged = 0.05; 
-      viewer.camera.changed.addEventListener(() => {
+      viewer.camera.percentageChanged = 0.01; 
+
+      const triggerRefresh = () => {
         if (renderTimeoutRef.current !== null) {
           window.clearTimeout(renderTimeoutRef.current);
         }
         renderTimeoutRef.current = window.setTimeout(() => {
           fetchAndRenderData();
-        }, 250); // 250ms debounce
-      });
+        }, 200); 
+      };
+
+      viewer.camera.changed.addEventListener(triggerRefresh);
+      viewer.camera.moveEnd.addEventListener(fetchAndRenderData);
 
       // Handle Clicks
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -209,7 +213,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                  mag + targetHeight, 
                  new Cartesian3()
                ),
-               duration: 1.0
+               duration: 1.0,
+               complete: () => {
+                 fetchAndRenderData();
+               }
              });
            }
            return;

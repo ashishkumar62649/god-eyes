@@ -113,3 +113,39 @@ export function validateCoordinates(coordinatesStr: string | undefined): Validat
   }
   return { value: CoordinateModes.SOURCE, valid: false, error: "coordinates must be 'source' or 'effective'" };
 }
+
+// Default and max values for nearby navaids
+export const DEFAULT_NAVAID_RADIUS_KM = 100;
+export const MAX_NAVAID_RADIUS_KM = 250;
+export const DEFAULT_NAVAID_LIMIT = 20;
+export const MAX_NAVAID_LIMIT = 50;
+
+export function validateNavaidRadius(radiusStr: string | undefined): ValidationResult<number> {
+  if (!radiusStr) {
+    return { value: DEFAULT_NAVAID_RADIUS_KM, valid: true, error: null };
+  }
+
+  const parsed = parseInt(radiusStr, 10);
+  if (isNaN(parsed) || parsed < 1) {
+    return { value: parsed, valid: false, error: 'navaidRadiusKm must be a positive integer' };
+  }
+  if (parsed > MAX_NAVAID_RADIUS_KM) {
+    return { value: MAX_NAVAID_RADIUS_KM, valid: true, error: null }; // clamp to max
+  }
+  return { value: parsed, valid: true, error: null };
+}
+
+export function validateNavaidLimit(limitStr: string | undefined): ValidationResult<number> {
+  if (!limitStr) {
+    return { value: DEFAULT_NAVAID_LIMIT, valid: true, error: null };
+  }
+
+  const parsed = parseInt(limitStr, 10);
+  if (isNaN(parsed) || parsed < 1) {
+    return { value: parsed, valid: false, error: 'navaidLimit must be a positive integer' };
+  }
+  if (parsed > MAX_NAVAID_LIMIT) {
+    return { value: MAX_NAVAID_LIMIT, valid: true, error: null }; // clamp to max
+  }
+  return { value: parsed, valid: true, error: null };
+}

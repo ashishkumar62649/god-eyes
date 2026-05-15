@@ -39,7 +39,7 @@ const OVERRIDE_COLUMNS = `
   a.elevation_ft, a.iso_country, a.iso_region, a.municipality, a.iata_code,
   a.created_at, a.updated_at,
   o.override_latitude, o.override_longitude, o.id as override_id,
-  o.confidence as override_confidence
+  o.confidence_score as override_confidence
 `;
 
 export function buildPointsSql(params: PointsQueryParams): { sql: string; params: unknown[]; paramIndex: number } {
@@ -86,9 +86,10 @@ export function buildPointsSql(params: PointsQueryParams): { sql: string; params
     const minLat = Math.max(params.bbox.minLat, -90);
     const maxLat = Math.min(params.bbox.maxLat, 90);
 
-    // Use effective_latitude/longitude if available in query, otherwise use source
-    const latCol = isEffective ? 'COALESCE(o.override_latitude, a.latitude_deg)' : 'a.latitude_deg';
-    const lonCol = isEffective ? 'COALESCE(o.override_longitude, a.longitude_deg)' : 'a.longitude_deg';
+    // Use effective coordinates with alias "a" when isEffective=true,
+    // otherwise use source columns without table alias
+    const latCol = isEffective ? 'COALESCE(o.override_latitude, a.latitude_deg)' : 'latitude_deg';
+    const lonCol = isEffective ? 'COALESCE(o.override_longitude, a.longitude_deg)' : 'longitude_deg';
 
     sql += ` AND ${lonCol} BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
     queryParams.push(minLon, maxLon);
