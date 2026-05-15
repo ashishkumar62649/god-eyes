@@ -28,6 +28,7 @@ import {
   validateMode,
   validateZoom,
   validateFields,
+  validateCoordinates,
   getEffectiveMaxLimit,
   ParsedBBox,
   ValidationResult,
@@ -39,6 +40,7 @@ import {
   invalidModeError,
   invalidLimitError,
   invalidFieldsError,
+  invalidCoordinatesError,
   missingBBoxError,
   invalidLayerError,
   databaseOfflineError,
@@ -62,6 +64,7 @@ interface ObjectsQueryParams {
   mode?: string;
   zoom?: string;
   fields?: string;
+  coordinates?: string;
 }
 
 interface ObjectsParams {
@@ -96,6 +99,7 @@ export async function objectRoutes(fastify: FastifyInstance) {
       mode: modeStr,
       zoom: zoomStr,
       fields: fieldsStr,
+      coordinates: coordinatesStr,
     } = request.query;
 
     // ---- Basic validation ----
@@ -169,6 +173,13 @@ export async function objectRoutes(fastify: FastifyInstance) {
     }
     const fields = fieldsValidation.value;
 
+    // Validate coordinates parameter (coordinate mode)
+    const coordinatesValidation = validateCoordinates(coordinatesStr);
+    if (!coordinatesValidation.valid) {
+      return sendError(reply, 400, invalidCoordinatesError(coordinatesValidation.error!, { received: coordinatesStr }));
+    }
+    const coordinates = coordinatesValidation.value;
+
     // Clusters require bbox
     if (mode === 'clusters' && parsedBBox === null) {
       return sendError(reply, 400, missingBBoxError({ hint: 'Use bbox=minLon,minLat,maxLon,maxLat' }));
@@ -213,6 +224,7 @@ export async function objectRoutes(fastify: FastifyInstance) {
         limit,
         offset,
         fields,
+        coordinates,
       };
       return await handlePointsMode(params);
     } catch (error) {

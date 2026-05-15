@@ -65,3 +65,7 @@ export function objectNotFoundError(objectId: string): ErrorResponse {
 export function invalidFieldsError(message: string, details: Record<string, unknown> = {}): ErrorResponse {
   return makeErrorResponse(ErrorCodes.INVALID_FIELDS, message, details);
 }
+
+export function invalidCoordinatesError(message: string, details: Record<string, unknown> = {}): ErrorResponse {
+  return makeErrorResponse(ErrorCodes.INVALID_COORDINATES, message, details);
+}
