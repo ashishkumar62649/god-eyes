@@ -210,6 +210,15 @@ export const AirportMarkerObjectSchema = z.object({
 
 export type AirportMarkerObject = z.infer<typeof AirportMarkerObjectSchema>;
 
+// ==================== Coordinate Mode ====================
+
+export const CoordinateModes = {
+  SOURCE: 'source',
+  EFFECTIVE: 'effective',
+} as const;
+
+export type CoordinateMode = typeof CoordinateModes[keyof typeof CoordinateModes];
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {
@@ -226,6 +235,7 @@ export const ErrorCodes = {
   INVALID_MODE: 'INVALID_MODE',
   MISSING_BBOX: 'MISSING_BBOX',
   INVALID_FIELDS: 'INVALID_FIELDS',
+  INVALID_COORDINATES: 'INVALID_COORDINATES',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

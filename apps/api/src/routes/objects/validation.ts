@@ -1,5 +1,5 @@
 import { VALID_CATEGORIES, ValidCategory, MAX_LIST_LIMIT, MAX_VIEWPORT_LIMIT, DEFAULT_LIMIT } from './constants.js';
-import { PayloadProfiles, PayloadProfile } from '@god-eyes/contracts';
+import { PayloadProfiles, PayloadProfile, CoordinateModes, CoordinateMode } from '@god-eyes/contracts';
 
 // Bounding box parsed from string
 export interface ParsedBBox {
@@ -102,4 +102,14 @@ export function validateFields(fieldsStr: string | undefined): ValidationResult<
     return { value: PayloadProfiles.MARKER, valid: true, error: null };
   }
   return { value: PayloadProfiles.STANDARD, valid: false, error: "fields must be 'standard' or 'marker'" };
+}
+
+export function validateCoordinates(coordinatesStr: string | undefined): ValidationResult<CoordinateMode> {
+  if (!coordinatesStr || coordinatesStr === CoordinateModes.SOURCE) {
+    return { value: CoordinateModes.SOURCE, valid: true, error: null };
+  }
+  if (coordinatesStr === CoordinateModes.EFFECTIVE) {
+    return { value: CoordinateModes.EFFECTIVE, valid: true, error: null };
+  }
+  return { value: CoordinateModes.SOURCE, valid: false, error: "coordinates must be 'source' or 'effective'" };
 }

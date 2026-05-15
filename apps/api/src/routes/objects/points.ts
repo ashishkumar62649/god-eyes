@@ -8,6 +8,8 @@ import {
   ErrorCodes,
   PayloadProfile,
   PayloadProfiles,
+  CoordinateMode,
+  CoordinateModes,
   AirportMarkerObject,
   AirportObject,
 } from '@god-eyes/contracts';
@@ -21,6 +23,7 @@ export interface PointsQueryParams {
   limit: number;
   offset: number;
   fields: PayloadProfile;
+  coordinates: CoordinateMode;
 }
 
 export interface PointsResult {
@@ -29,16 +32,52 @@ export interface PointsResult {
   filtersApplied: ReturnType<typeof buildFiltersApplied>;
 }
 
-export function buildPointsSql(params: PointsQueryParams): { sql: string; params: unknown[]; paramIndex: number } {
-  // In marker mode, select only needed columns for globe rendering
-  const isMarker = params.fields === PayloadProfiles.MARKER;
-  const selectColumns = isMarker
-    ? 'id, layer_id, source_id, source_airport_id, ident, type_source, category_normalized, name, latitude_deg, longitude_deg, elevation_ft, iso_country, iso_region, municipality, iata_code, created_at, updated_at'
-    : '*';
+// SQL join to get effective coordinates with override fallback
+const OVERRIDE_COLUMNS = `
+  a.id, a.layer_id, a.source_id, a.source_airport_id, a.ident, a.type_source,
+  a.category_normalized, a.name, a.latitude_deg, a.longitude_deg,
+  a.elevation_ft, a.iso_country, a.iso_region, a.municipality, a.iata_code,
+  a.created_at, a.updated_at,
+  o.override_latitude, o.override_longitude, o.id as override_id,
+  o.confidence as override_confidence
+`;
 
-  let sql = `SELECT ${selectColumns} FROM aviation_airports WHERE 1=1`;
-  const queryParams: unknown[] = [];
+export function buildPointsSql(params: PointsQueryParams): { sql: string; params: unknown[]; paramIndex: number } {
+  const isMarker = params.fields === PayloadProfiles.MARKER;
+  const isEffective = params.coordinates === CoordinateModes.EFFECTIVE;
+
+  let sql: string;
   let paramIndex = 1;
+  const queryParams: unknown[] = [];
+
+  if (isEffective) {
+    // Join with active approved overrides - use COALESCE to prefer override, fallback to source
+    sql = `
+      SELECT ${isMarker
+        ? `a.id, a.layer_id, a.source_id, a.source_airport_id, a.ident, a.type_source,
+            a.category_normalized, a.name, a.latitude_deg, a.longitude_deg,
+            a.elevation_ft, a.iso_country, a.iso_region, a.municipality, a.iata_code,
+            a.created_at, a.updated_at,
+            COALESCE(o.override_latitude, a.latitude_deg) as effective_latitude,
+            COALESCE(o.override_longitude, a.longitude_deg) as effective_longitude,
+            o.id as override_id, o.confidence as override_confidence`
+        : OVERRIDE_COLUMNS + `,
+            COALESCE(o.override_latitude, a.latitude_deg) as effective_latitude,
+            COALESCE(o.override_longitude, a.longitude_deg) as effective_longitude`
+      }
+      FROM aviation_airports a
+      LEFT JOIN aviation_coordinate_overrides o
+        ON a.source_id = o.source_id
+        AND a.source_airport_id = o.source_object_id
+        AND o.active = true
+      WHERE 1=1`;
+  } else {
+    // Default source coordinates - no join needed
+    const selectColumns = isMarker
+      ? 'id, layer_id, source_id, source_airport_id, ident, type_source, category_normalized, name, latitude_deg, longitude_deg, elevation_ft, iso_country, iso_region, municipality, iata_code, created_at, updated_at'
+      : '*';
+    sql = `SELECT ${selectColumns} FROM aviation_airports WHERE 1=1`;
+  }
 
   // BBox filter using longitude/latitude columns
   if (params.bbox !== null) {
@@ -47,11 +86,15 @@ export function buildPointsSql(params: PointsQueryParams): { sql: string; params
     const minLat = Math.max(params.bbox.minLat, -90);
     const maxLat = Math.min(params.bbox.maxLat, 90);
 
-    sql += ` AND longitude_deg BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
+    // Use effective_latitude/longitude if available in query, otherwise use source
+    const latCol = isEffective ? 'COALESCE(o.override_latitude, a.latitude_deg)' : 'a.latitude_deg';
+    const lonCol = isEffective ? 'COALESCE(o.override_longitude, a.longitude_deg)' : 'a.longitude_deg';
+
+    sql += ` AND ${lonCol} BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
     queryParams.push(minLon, maxLon);
     paramIndex += 2;
 
-    sql += ` AND latitude_deg BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
+    sql += ` AND ${latCol} BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
     queryParams.push(minLat, maxLat);
     paramIndex += 2;
   }
@@ -77,6 +120,14 @@ export function buildPointsSql(params: PointsQueryParams): { sql: string; params
   return { sql, params: queryParams, paramIndex };
 }
 
+// Extended row type for effective coordinates
+interface AirportRowWithOverride extends AirportRow {
+  effective_latitude?: number | null;
+  effective_longitude?: number | null;
+  override_id?: string | null;
+  override_confidence?: string | null;
+}
+
 export async function executePointsQuery(params: PointsQueryParams): Promise<PointsResult> {
   const { sql: baseSql, params: baseParams, paramIndex } = buildPointsSql(params);
 
@@ -89,13 +140,26 @@ export async function executePointsQuery(params: PointsQueryParams): Promise<Poi
   const paginatedSql = `${baseSql} ORDER BY name LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
   const paginatedParams = [...baseParams, params.limit, params.offset];
 
-  const rows = await query<AirportRow>(paginatedSql, paginatedParams);
+  const isEffective = params.coordinates === CoordinateModes.EFFECTIVE;
+  const rows = isEffective
+    ? await query<AirportRowWithOverride>(paginatedSql, paginatedParams)
+    : await query<AirportRow>(paginatedSql, paginatedParams);
 
-  // Map based on profile
+  // Map based on profile and coordinate mode
   const isMarker = params.fields === PayloadProfiles.MARKER;
   const items = isMarker
-    ? rows.map(rowToAirportMarkerObject)
-    : rows.map(rowToAirportObject);
+    ? rows.map((row) => {
+        if (isEffective && 'effective_latitude' in row) {
+          return rowToAirportMarkerObject(row as AirportRowWithOverride);
+        }
+        return rowToAirportMarkerObject(row as AirportRow);
+      })
+    : rows.map((row) => {
+        if (isEffective && 'effective_latitude' in row) {
+          return rowToAirportObjectWithEffective(row as AirportRowWithOverride);
+        }
+        return rowToAirportObject(row as AirportRow);
+      });
 
   const filtersApplied = buildFiltersApplied(
     params.bbox !== null,
@@ -111,19 +175,54 @@ export async function executePointsQuery(params: PointsQueryParams): Promise<Poi
   };
 }
 
+// Mapper for effective coordinates - simpler version without contract-breaking metadata
+function rowToAirportObjectWithEffective(row: AirportRowWithOverride): AirportObject {
+  return {
+    id: row.id,
+    layerId: row.layer_id,
+    objectType: 'airport' as const,
+    sourceId: row.source_id,
+    sourceObjectId: row.source_airport_id,
+    name: row.name,
+    ident: row.ident,
+    iataCode: row.iata_code,
+    category: row.category_normalized,
+    typeSource: row.type_source,
+    country: row.iso_country,
+    region: row.iso_region,
+    municipality: row.municipality,
+    position: {
+      latitude: row.effective_latitude ?? row.latitude_deg,
+      longitude: row.effective_longitude ?? row.longitude_deg,
+    },
+    elevationFt: row.elevation_ft,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+  };
+}
+
 export function buildPointsResponse(
   result: PointsResult,
   limit: number,
   offset: number,
   fields: PayloadProfile,
+  coordinates: CoordinateMode,
   search?: string
 ) {
   const hasBBox = result.filtersApplied?.bbox === true;
   const metadata = buildListMetadata(hasBBox, result.filtersApplied, search);
 
-  // Add fields profile to metadata if marker mode
-  const metadataWithFields = fields === PayloadProfiles.MARKER
-    ? { ...metadata, fields: 'marker' }
+  // Add fields and coordinates profile to metadata
+  const metadataExtras: Record<string, unknown> = {};
+  if (fields === PayloadProfiles.MARKER) {
+    metadataExtras.fields = 'marker';
+  }
+  if (coordinates === CoordinateModes.EFFECTIVE) {
+    metadataExtras.coordinates = 'effective';
+  }
+
+  const metadataWithExtras = Object.keys(metadataExtras).length > 0
+    ? { ...metadata, ...metadataExtras }
     : metadata;
 
   return LayerObjectsListResponseSchema.parse({
@@ -135,14 +234,14 @@ export function buildPointsResponse(
       total: result.total,
     },
     mode: 'points' as const,
-    metadata: metadataWithFields,
+    metadata: metadataWithExtras,
   });
 }
 
 export async function handlePointsMode(params: PointsQueryParams) {
   try {
     const result = await executePointsQuery(params);
-    return buildPointsResponse(result, params.limit, params.offset, params.fields, params.search);
+    return buildPointsResponse(result, params.limit, params.offset, params.fields, params.coordinates, params.search);
   } catch (error) {
     throw new Error(ErrorCodes.DATABASE_OFFLINE);
   }

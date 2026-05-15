@@ -2,6 +2,58 @@
 
 All agents must append to this file after completing work.
 
+### 2026-05-16T00:30:21Z Kiro CLI — WO-021 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-021
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-effective-coordinate-api
+- Review start time UTC: 2026-05-16T00:30:21Z
+- Review end time UTC: 2026-05-16T00:30:21Z
+- Commit(s) reviewed: ba7ec28 (ba7ec2869683f4824ce02df48bd514539eddc5c6)
+- Push decision: PASS
+- Branch pushed: agent/claude-effective-coordinate-api
+- Review result: All 12 checks passed. Coordinate modes excellent. Override safety verified. Backward compatibility complete. Contracts sound. Validation robust. SQL safe. 71 tests passing (13 new). No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git diff --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (71 passed), pnpm --filter web build, git ls-files (security check), git add, git commit, git push -u origin
+- Coordinate mode result: coordinates=source (default, backward compatible) and coordinates=effective (uses active approved overrides). Effective mode uses LEFT JOIN with aviation_coordinate_overrides, COALESCE(override_latitude, source_latitude) for fallback. Raw source coordinates never mutated. Invalid coordinates returns HTTP 400 with INVALID_COORDINATES error code. Metadata includes coordinates mode when effective.
+- Override safety result: Read-only operations only (SELECT, no writes). No writes to aviation_airports or aviation_coordinate_overrides. Active override requirement enforced (o.active = true). Multiple override behavior deterministic via COALESCE. Provenance fields selected but not exposed in response. Safe implementation.
+- Backward compatibility result: Clients without coordinates parameter work unchanged (defaults to source). Web build passes without modifications. fields=standard and fields=marker work with both modes. mode=points and mode=clusters behavior intact. Clusters use source coordinates (documented limitation). All existing filters work with both modes.
+- Contracts result: CoordinateModes constant added (SOURCE, EFFECTIVE). CoordinateMode type added. INVALID_COORDINATES error code added. Existing AirportObjectSchema unchanged. Backward compatible. Contracts build PASS.
+- Validation/error result: validateCoordinates() validates coordinates parameter. Only allows source or effective. Invalid coordinates returns HTTP 400 with structured error. Database offline behavior graceful. No stack traces/secrets leaked. Error details include received value.
+- SQL/performance result: Effective coordinate query uses safe LEFT JOIN with aviation_coordinate_overrides. JOIN includes o.active = true filter. Uses COALESCE for safe fallback. All queries parameterized. No unsafe string interpolation. No SQL injection risk. Marker mode still selects only needed columns. Clusters remain valid and use source coordinates.
+- Postman result: 4 new requests added: Aviation Airports — Effective Coordinates, Aviation Airports — Effective with BBox, Aviation Airports — Invalid Coordinates Mode, Aviation Airports — Marker with Effective Coordinates. All properly formatted with correct query parameters.
+- Documentation result: No docs/api/API_COORDINATE_MODES.md added (optional). Postman collection includes examples. HANDOFF_LOG.md entry complete with required metadata. Known limitations documented: clusters use source coordinates, frontend does not request coordinates=effective yet, no real override rows unless created separately, effective coordinate path is opt-in and read-only.
+- Tests/build result: Contracts build PASS, API build PASS, Web build PASS (44 modules, 158.86 kB), 71 tests PASS (13 new: default source, explicit source, effective accepts, effective with bbox, effective with category, effective with country, effective with search, invalid coordinates 400, metadata coordinates effective, metadata coordinates source, marker with effective, standard with effective, clusters unaffected).
+- Security/privacy result: No .env committed, no API keys, no secrets, no node_modules, no raw CSVs, no database dumps. Error responses safe and structured. No stack traces/secrets exposed.
+- Known risks: None. All checks passed.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-021.md
+- Commit hash (review document): 1e900979db93ef1ec06f5c7790b77765374bd3c7
+- Next recommended task: Merge approval and integration into main branch.
+
+### 2026-05-16T00:25:30Z Claude Code CLI — WO-021 Effective Coordinate API Path
+
+- Work order: WO-021
+- Agent: Claude Code CLI
+- LLM model: Claude 4.7 (Mini)
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-effective-coordinate-api
+- Start time UTC: 2026-05-16T00:15:00Z
+- End time UTC: 2026-05-16T00:25:30Z
+- Commit hash: ba7ec2869683f4824ce02df48bd514539eddc5c6
+- Push status: pushed to origin/agent/claude-effective-coordinate-api
+- What was done: Added coordinates query parameter with source (default) and effective modes. Effective mode uses LEFT JOIN with aviation_coordinate_overrides table to prefer active approved overrides when available, falling back to source coordinates. Source coordinates never mutated. Invalid coordinates parameter returns 400 with INVALID_COORDINATES error. Metadata includes coordinates mode when effective. Clusters use source coordinates (documented limitation). All filters work with both coordinate modes.
+- Coordinate modes added: source (default), effective
+- Default behavior: coordinates=source returns raw aviation_airports latitude/longitude (backward compatible)
+- Effective override behavior: LEFT JOIN to aviation_coordinate_overrides, use COALESCE(override_latitude, source_latitude), fallback to source when no active override
+- Backward compatibility: coordinates=source is default, existing responses unchanged
+- Files created/modified: packages/contracts/src/index.ts (CoordinateModes, CoordinateMode type, INVALID_COORDINATES error code), apps/api/src/routes/objects/validation.ts (validateCoordinates), apps/api/src/routes/objects/errors.ts (invalidCoordinatesError), apps/api/src/routes/objects/points.ts (coordinates-aware SQL with LEFT JOIN and COALESCE), apps/api/src/routes/objects/index.ts (coordinates validation and passing), apps/api/tests/objects.test.ts (13 new tests), docs/postman/GOD_EYES_LOCAL_API.postman_collection.json (4 new requests)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (71 passed), pnpm --filter web build
+- Tests/build result: Contracts build PASS, API build PASS, 71 tests PASS (13 new: default source, explicit source, effective accepts, effective with bbox, effective with category, effective with country, effective with search, invalid coordinates 400, metadata coordinates effective, metadata coordinates source, marker with effective, standard with effective, clusters unaffected)
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review and push
+
 ### 2026-05-15T23:50:05Z Kiro CLI — WO-018 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-018

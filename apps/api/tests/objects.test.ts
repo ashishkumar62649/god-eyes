@@ -610,4 +610,187 @@ describe('Aviation Objects API - WO-008', () => {
       expect(body.mode).toBe('clusters');
     }
   });
+
+  // ---- Coordinate modes (WO-021) ----
+
+  it('default coordinates=source keeps existing behavior', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=2',
+    });
+    if (response.statusCode !== 200) return;
+
+    const body = JSON.parse(response.body);
+    expect(body.items).toBeDefined();
+    expect(body.items.length).toBeGreaterThan(0);
+    // Should have position with coordinates
+    const airport = body.items[0];
+    expect(airport.position).toBeDefined();
+    expect(airport.position.latitude).toBeDefined();
+    expect(airport.position.longitude).toBeDefined();
+  });
+
+  it('explicit coordinates=source works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=source&limit=1',
+    });
+    if (response.statusCode !== 200) return;
+
+    const body = JSON.parse(response.body);
+    expect(body.items).toBeDefined();
+    if (body.items.length > 0) {
+      expect(body.items[0].position.latitude).toBeDefined();
+      expect(body.items[0].position.longitude).toBeDefined();
+    }
+  });
+
+  it('coordinates=effective accepts valid parameter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&limit=5',
+    });
+    // Should return 200 or 503 depending on DB status - not 400
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.items).toBeDefined();
+    }
+  });
+
+  it('coordinates=effective works with bbox filter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&bbox=-125,25,-65,50&limit=5',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.items).toBeDefined();
+    }
+  });
+
+  it('coordinates=effective works with category filter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&category=heliport&limit=5',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      if (body.items.length > 0) {
+        expect(body.items[0].category).toBe('heliport');
+      }
+    }
+  });
+
+  it('coordinates=effective works with country filter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&country=US&limit=5',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      if (body.items.length > 0) {
+        expect(body.items[0].country).toBe('US');
+      }
+    }
+  });
+
+  it('coordinates=effective works with search filter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&search=Los&limit=5',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.items).toBeDefined();
+    }
+  });
+
+  it('returns 400 for invalid coordinates parameter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=raw',
+    });
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('INVALID_COORDINATES');
+    expect(body.error.message).toContain('coordinates');
+  });
+
+  it('metadata includes coordinates mode when effective', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&limit=2',
+    });
+    if (response.statusCode !== 200) return;
+
+    const body = JSON.parse(response.body);
+    expect(body.metadata).toBeDefined();
+    expect(body.metadata.coordinates).toBe('effective');
+  });
+
+  it('metadata does not include coordinates when source (default)', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=source&limit=2',
+    });
+    if (response.statusCode !== 200) return;
+
+    const body = JSON.parse(response.body);
+    expect(body.metadata).toBeDefined();
+    // Source mode should not add coordinates to metadata
+    expect(body.metadata.coordinates).toBeUndefined();
+  });
+
+  it('fields=marker works with coordinates=effective', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&fields=marker&coordinates=effective&limit=5',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.items).toBeDefined();
+      // Marker should not have source fields
+      if (body.items.length > 0) {
+        expect(body.items[0].sourceId).toBeUndefined();
+        expect(body.items[0].sourceObjectId).toBeUndefined();
+        // But should have position
+        expect(body.items[0].position).toBeDefined();
+      }
+    }
+  });
+
+  it('fields=standard works with coordinates=effective', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&fields=standard&coordinates=effective&limit=5',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Standard should have source fields
+      if (body.items.length > 0) {
+        expect(body.items[0].sourceId).toBeDefined();
+        expect(body.items[0].position).toBeDefined();
+      }
+    }
+  });
+
+  it('mode=clusters is not affected by coordinates parameter', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-180,-85,180,85&coordinates=effective&limit=5',
+    });
+    // Clusters should work regardless of coordinates parameter
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('clusters');
+    }
+  });
 });

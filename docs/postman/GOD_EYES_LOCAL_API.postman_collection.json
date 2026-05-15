@@ -297,6 +297,110 @@
       }
     },
     {
+      "name": "Aviation Airports — Effective Coordinates",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&limit=100",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "coordinates",
+              "value": "effective"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Effective with BBox",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=effective&bbox=-125,25,-65,50&limit=50",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "coordinates",
+              "value": "effective"
+            },
+            {
+              "key": "bbox",
+              "value": "-125,25,-65,50"
+            },
+            {
+              "key": "limit",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Invalid Coordinates Mode",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&coordinates=raw",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "coordinates",
+              "value": "raw"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Marker with Effective Coordinates",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&fields=marker&coordinates=effective&limit=50",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "fields",
+              "value": "marker"
+            },
+            {
+              "key": "coordinates",
+              "value": "effective"
+            },
+            {
+              "key": "limit",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "Aviation Airports by Country (Legacy)",
       "request": {
         "method": "GET",
