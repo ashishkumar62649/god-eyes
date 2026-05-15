@@ -15,17 +15,24 @@ import { fetchAviationLayerObjects } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
 import { isPositionVisible } from './lib/cesiumVisibility';
 import { renderAviationObjects } from './lib/aviationLayerRenderer';
+import { flyToSearchResult } from './lib/globeCamera';
 
 interface CesiumGlobeProps {
   aviationLayerActive: boolean;
   onObjectSelect: (obj: unknown) => void;
   onAviationStatsChange?: (stats: { loaded: number; visible: number; clustersActive: boolean }) => void;
+  cameraTarget?: { 
+    position: { latitude: number; longitude: number }; 
+    type: string; 
+    timestamp: number 
+  } | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({ 
   aviationLayerActive, 
   onObjectSelect,
-  onAviationStatsChange
+  onAviationStatsChange,
+  cameraTarget
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
@@ -51,6 +58,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   useEffect(() => {
     aviationLayerActiveRef.current = aviationLayerActive;
   }, [aviationLayerActive]);
+
+  // Handle camera flights from props
+  useEffect(() => {
+    if (cameraTarget && viewerRef.current) {
+      flyToSearchResult(viewerRef.current, cameraTarget.position, cameraTarget.type);
+    }
+  }, [cameraTarget]);
 
   // Initialize Viewer
   useEffect(() => {

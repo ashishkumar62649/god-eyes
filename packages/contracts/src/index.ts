@@ -183,6 +183,42 @@ export const NotImplementedResponseSchema = z.object({
 
 export type NotImplementedResponse = z.infer<typeof NotImplementedResponseSchema>;
 
+// ==================== Payload Profile ====================
+
+export const PayloadProfiles = {
+  STANDARD: 'standard',
+  MARKER: 'marker',
+} as const;
+
+export type PayloadProfile = typeof PayloadProfiles[keyof typeof PayloadProfiles];
+
+// Lightweight marker payload for globe rendering
+export const AirportMarkerObjectSchema = z.object({
+  id: z.string().uuid(),
+  layerId: z.string(),
+  objectType: z.literal('airport'),
+  name: z.string(),
+  ident: z.string(),
+  iataCode: z.string().nullable(),
+  category: z.string(),
+  municipality: z.string().nullable(),
+  country: z.string().nullable(),
+  position: AirportPositionSchema,
+  elevationFt: z.number().nullable().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export type AirportMarkerObject = z.infer<typeof AirportMarkerObjectSchema>;
+
+// ==================== Coordinate Mode ====================
+
+export const CoordinateModes = {
+  SOURCE: 'source',
+  EFFECTIVE: 'effective',
+} as const;
+
+export type CoordinateMode = typeof CoordinateModes[keyof typeof CoordinateModes];
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {
@@ -198,6 +234,8 @@ export const ErrorCodes = {
   INVALID_CATEGORY: 'INVALID_CATEGORY',
   INVALID_MODE: 'INVALID_MODE',
   MISSING_BBOX: 'MISSING_BBOX',
+  INVALID_FIELDS: 'INVALID_FIELDS',
+  INVALID_COORDINATES: 'INVALID_COORDINATES',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

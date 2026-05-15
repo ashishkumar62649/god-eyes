@@ -28,12 +28,17 @@ export async function fetchAviationLayerObjects(
   bbox: string, // format: minLon,minLat,maxLon,maxLat
   zoom?: number,
   limit: number = 1000,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  search?: string
 ): Promise<LayerObjectsListResponse> {
   const url = new URL(`${API_BASE_URL}/api/layers/layer_01_aviation/objects`);
   url.searchParams.append('objectType', 'airport');
   url.searchParams.append('mode', mode);
   url.searchParams.append('bbox', bbox);
+  
+  if (search) {
+    url.searchParams.append('search', search);
+  }
   
   if (mode === 'points') {
     url.searchParams.append('limit', limit.toString());

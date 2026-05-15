@@ -27,6 +27,8 @@ import {
   validateOffset,
   validateMode,
   validateZoom,
+  validateFields,
+  validateCoordinates,
   getEffectiveMaxLimit,
   ParsedBBox,
   ValidationResult,
@@ -37,6 +39,8 @@ import {
   invalidCategoryError,
   invalidModeError,
   invalidLimitError,
+  invalidFieldsError,
+  invalidCoordinatesError,
   missingBBoxError,
   invalidLayerError,
   databaseOfflineError,
@@ -59,6 +63,8 @@ interface ObjectsQueryParams {
   search?: string;
   mode?: string;
   zoom?: string;
+  fields?: string;
+  coordinates?: string;
 }
 
 interface ObjectsParams {
@@ -92,6 +98,8 @@ export async function objectRoutes(fastify: FastifyInstance) {
       search,
       mode: modeStr,
       zoom: zoomStr,
+      fields: fieldsStr,
+      coordinates: coordinatesStr,
     } = request.query;
 
     // ---- Basic validation ----
@@ -158,6 +166,20 @@ export async function objectRoutes(fastify: FastifyInstance) {
     }
     const zoom = zoomValidation.value;
 
+    // Validate fields parameter (payload profile)
+    const fieldsValidation = validateFields(fieldsStr);
+    if (!fieldsValidation.valid) {
+      return sendError(reply, 400, invalidFieldsError(fieldsValidation.error!, { received: fieldsStr }));
+    }
+    const fields = fieldsValidation.value;
+
+    // Validate coordinates parameter (coordinate mode)
+    const coordinatesValidation = validateCoordinates(coordinatesStr);
+    if (!coordinatesValidation.valid) {
+      return sendError(reply, 400, invalidCoordinatesError(coordinatesValidation.error!, { received: coordinatesStr }));
+    }
+    const coordinates = coordinatesValidation.value;
+
     // Clusters require bbox
     if (mode === 'clusters' && parsedBBox === null) {
       return sendError(reply, 400, missingBBoxError({ hint: 'Use bbox=minLon,minLat,maxLon,maxLat' }));
@@ -201,6 +223,8 @@ export async function objectRoutes(fastify: FastifyInstance) {
         search,
         limit,
         offset,
+        fields,
+        coordinates,
       };
       return await handlePointsMode(params);
     } catch (error) {
