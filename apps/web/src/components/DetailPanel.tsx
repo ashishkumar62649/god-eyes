@@ -1,5 +1,9 @@
 import React from 'react';
 import { AirportObject } from '@god-eyes/contracts';
+import IntelSection from './intel/IntelSection';
+import AirportOverview from './intel/AirportOverview';
+import CoordinateSourceCard from './intel/CoordinateSourceCard';
+import AviationDetailPlaceholders from './intel/AviationDetailPlaceholders';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;
@@ -35,60 +39,34 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
               height: '100%',
               color: 'var(--shell-text-dim)', 
               fontSize: '0.75rem',
-              letterSpacing: '1px'
+              letterSpacing: '1px',
+              textAlign: 'center',
+              padding: '0 20px'
             }}>
-              NO OBJECT SELECTED
+              <div style={{ opacity: 0.5, marginBottom: '16px', fontSize: '2rem' }}>⌖</div>
+              SELECT AN AIRPORT OR SEARCH TO INSPECT OBJECT INTELLIGENCE
             </div>
           ) : (
-            <div style={{ marginTop: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <IntelSection title="Overview">
+                <AirportOverview airport={selectedObject} />
+              </IntelSection>
+
+              <IntelSection title="Location & Source">
+                <CoordinateSourceCard airport={selectedObject} />
+              </IntelSection>
+
+              <AviationDetailPlaceholders />
+
               <div style={{ 
-                fontSize: '1.1rem', 
-                fontWeight: 700, 
-                color: 'var(--shell-accent)',
-                marginBottom: '20px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                paddingBottom: '12px',
-                lineHeight: 1.3
+                marginTop: '12px', 
+                borderTop: '1px solid rgba(255, 255, 255, 0.05)', 
+                paddingTop: '20px',
+                opacity: 0.3,
+                fontSize: '0.6rem',
+                fontFamily: 'var(--shell-font-mono)'
               }}>
-                {selectedObject.name}
-              </div>
-
-              <div className="detail-row">
-                <div className="detail-label">Identity / Code</div>
-                <div className="detail-value">{selectedObject.ident} {selectedObject.iataCode ? `(${selectedObject.iataCode})` : ''}</div>
-              </div>
-
-              <div className="detail-row">
-                <div className="detail-label">Category</div>
-                <div className="detail-value">{selectedObject.category}</div>
-              </div>
-              
-              <div className="detail-row">
-                <div className="detail-label">Location</div>
-                <div className="detail-value">{selectedObject.municipality ? `${selectedObject.municipality}, ` : ''}{selectedObject.region}, {selectedObject.country}</div>
-              </div>
-
-              <div className="detail-row">
-                <div className="detail-label">Coordinates</div>
-                <div className="detail-value" style={{ fontSize: '0.75rem', opacity: 0.9 }}>
-                  LAT {selectedObject.position.latitude?.toFixed(6)}<br />
-                  LON {selectedObject.position.longitude?.toFixed(6)}
-                </div>
-              </div>
-
-              <div className="detail-row">
-                <div className="detail-label">Elevation</div>
-                <div className="detail-value">{selectedObject.elevationFt !== null ? `${selectedObject.elevationFt.toLocaleString()} FT` : '—'}</div>
-              </div>
-              
-              <div className="detail-row">
-                <div className="detail-label">Source System</div>
-                <div className="detail-value">{selectedObject.sourceId}</div>
-              </div>
-
-              <div className="detail-row" style={{ border: 'none', paddingLeft: 0, marginTop: '30px' }}>
-                <div className="detail-label">Internal Reference</div>
-                <div className="detail-value" style={{ fontSize: '0.6rem', opacity: 0.4 }}>{selectedObject.id}</div>
+                SYSTEM ID: {selectedObject.id}
               </div>
             </div>
           )}
