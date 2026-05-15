@@ -784,7 +784,7 @@ All agents must append to this file after completing work.
 - Branch: agent/codex-coordinate-migration-verification
 - Start time UTC: 2026-05-15T17:34:11Z
 - End time UTC: 2026-05-15T17:37:09Z
-- Commit hash: pending local commit; final hash reported after commit creation
+- Commit hash: 7a5a79574e87871e0e4ae5ab73bb2b56d90c0598
 - Push status: not pushed; Kiro review/push required
 - What was done: Confirmed local branch/status, started Docker infrastructure, applied migration 004 to local PostGIS, verified the coordinate quality review and coordinate override tables, verified columns/constraints/indexes, tested invalid coordinate and confidence rows inside a rolled-back transaction, confirmed aviation_airports row count and coordinate sample hash were unchanged, ran the coordinate quality script after migration, and added verification documentation plus static/unit tests.
 - Migration applied: yes, using `Get-Content database\migrations\layers\layer_01_aviation\004_aviation_coordinate_quality_overrides.sql | docker exec -i god-eyes-postgis psql -v ON_ERROR_STOP=1 -U god_eyes -d god_eyes_dev`
@@ -797,3 +797,32 @@ All agents must append to this file after completing work.
 - Known issues: Local Docker is not production hardware; test inserts were rolled back; API routes do not consume overrides yet; no real manual review/override rows exist yet.
 - Forbidden folders touched: no.
 - Next safe task: API-owned opt-in effective-coordinate query path that can prefer one active approved override while preserving source coordinates and provenance for audit.
+
+### 2026-05-15T23:18:00Z Kiro CLI — WO-017 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-017
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-coordinate-migration-verification
+- Review start time UTC: 2026-05-15T23:15:29Z
+- Review end time UTC: 2026-05-15T23:18:00Z
+- Commit(s) reviewed: 7a5a79574e87871e0e4ae5ab73bb2b56d90c0598 (Codex work), f4e10ea (review document)
+- Push decision: PASS
+- Branch pushed: agent/codex-coordinate-migration-verification
+- Review result: All 11 checks passed. Migration applied successfully to local Docker PostGIS. Tables, columns, constraints, indexes verified. Source data preserved. Script works post-migration. Documentation comprehensive. Tests pass (54). No secrets committed. Folder boundaries respected.
+- Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (54 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
+- Git status result: ✅ PASS (branch agent/codex-coordinate-migration-verification, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: ✅ PASS (only docs/data/, tests/data/, docs/state/ touched; no forbidden folders)
+- Migration apply result: ✅ PASS (applied successfully via docker exec psql, no destructive SQL, aviation_airports untouched)
+- Table verification result: ✅ PASS (both tables exist, all columns present, all important fields verified)
+- Constraint verification result: ✅ PASS (all 6 invalid cases tested inside transaction and rolled back, database rejected all invalid values)
+- Index verification result: ✅ PASS (all 7 indexes exist with correct names and purposes)
+- Source preservation result: ✅ PASS (row count 85,377 unchanged, coordinate/geometry hash 760dde5c03072db19d8b66c6369e6b46 unchanged)
+- Script verification result: ✅ PASS (read-only, --json works, counts report 0 after migration, handles tables present, no file writes, no mutations)
+- Tests/build result: ✅ PASS (54 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Known risks: None. Local Docker not production hardware (expected). No real override data yet (expected). API not consuming overrides yet (future task).
+- Review document: docs/state/INTEGRATION_REVIEW_WO-017.md
+- Commit hash (review document): f4e10ea
+- Next recommended task: Push branch to origin. Design API opt-in path for active overrides. Apply migration in production environment.
