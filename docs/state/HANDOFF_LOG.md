@@ -1,3 +1,25 @@
+### 2026-05-16T02:10:00Z Claude Code CLI — WO-022 Airport Detail API v1
+
+- Work order: WO-022
+- Agent: Claude Code CLI
+- LLM model: Claude 4.7 (Mini)
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-airport-detail-api-v1
+- Start time UTC: 2026-05-16T01:55:00Z
+- End time UTC: 2026-05-16T02:10:00Z
+- Commit hash: (pending commit)
+- Push status: not pushed
+- What was done: Created read-only airport detail endpoint at GET /api/layers/:layerId/objects/:objectId/detail. Returns airport overview, runways, frequencies, and nearby navaids with bounded spatial lookup. Supports coordinates=source/effective query parameters. Validates navaidRadiusKm (default 100, max 250) and navaidLimit (default 20, max 50). Uses PostGIS geography functions for accurate distance calculation. SQL is parameterized. All existing contracts preserved.
+- Endpoint added: GET /api/layers/:layerId/objects/:objectId/detail
+- Contracts added: RunwayDetailSchema, FrequencyDetailSchema, NavaidDetailSchema, AirportDetailMetadataSchema, AirportDetailResponseSchema, INVALID_NAVAID_PARAMS error code
+- Query params: coordinates (source/effective), navaidRadiusKm, navaidLimit
+- Files created/modified: packages/contracts/src/index.ts (detail schemas, error code), apps/api/src/routes/objects/validation.ts (navaid param validation), apps/api/src/routes/objects/errors.ts (invalidNavaidParamsError), apps/api/src/routes/objects/detail.ts (new handler), apps/api/src/routes/objects/index.ts (route registration), apps/api/tests/objects.test.ts (13 new tests), docs/postman/GOD_EYES_LOCAL_API.postman_collection.json (5 new requests), docs/api/API_AIRPORT_DETAIL.md (new documentation), docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (84 passed), pnpm --filter web build
+- Tests/build result: Contracts build PASS, API build PASS, 84 tests PASS (13 new: detail returns 404, has all sections, metadata fields, coordinates source/effective, custom navaid params, invalid navaid params 400, navaidRadiusKm clamp, invalid navaidLimit 400, invalid coordinates 400, unknown layer 404, database offline 503)
+- Known issues: None (runway endpoint coordinates may be missing in source data - documented limitation)
+- Forbidden folders touched: no
+- Next safe task: Kiro review and push
+
 ### 2026-05-16T01:38:24Z Kiro CLI — WO-017 to WO-021 Integration Review PASS FOR MAIN
 
 - Review work order: WO-017 to WO-021 integration batch

@@ -219,6 +219,76 @@ export const CoordinateModes = {
 
 export type CoordinateMode = typeof CoordinateModes[keyof typeof CoordinateModes];
 
+// ==================== Airport Detail ====================
+
+export const RunwayDetailSchema = z.object({
+  id: z.string().uuid(),
+  ident: z.string(),
+  lengthFt: z.number().nullable(),
+  widthFt: z.number().nullable(),
+  surface: z.string().nullable(),
+  lighted: z.boolean().nullable(),
+  closed: z.boolean().nullable(),
+  leIdent: z.string().nullable(),
+  leLatitude: z.number().nullable(),
+  leLongitude: z.number().nullable(),
+  leElevationFt: z.number().nullable(),
+  leHeadingDeg: z.number().nullable(),
+  heIdent: z.string().nullable(),
+  heLatitude: z.number().nullable(),
+  heLongitude: z.number().nullable(),
+  heElevationFt: z.number().nullable(),
+  heHeadingDeg: z.number().nullable(),
+});
+
+export type RunwayDetail = z.infer<typeof RunwayDetailSchema>;
+
+export const FrequencyDetailSchema = z.object({
+  id: z.string().uuid(),
+  type: z.string(),
+  description: z.string().nullable(),
+  frequencyMhz: z.number().nullable(),
+});
+
+export type FrequencyDetail = z.infer<typeof FrequencyDetailSchema>;
+
+export const NavaidDetailSchema = z.object({
+  id: z.string().uuid(),
+  ident: z.string(),
+  name: z.string(),
+  type: z.string(),
+  frequencyKhz: z.number().nullable(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
+  elevationFt: z.number().nullable(),
+  distanceKm: z.number().nullable(),
+});
+
+export type NavaidDetail = z.infer<typeof NavaidDetailSchema>;
+
+export const AirportDetailMetadataSchema = z.object({
+  generatedAt: z.string().datetime(),
+  layerId: z.string(),
+  objectId: z.string(),
+  coordinates: z.enum(['source', 'effective']).optional(),
+  runwayCount: z.number(),
+  frequencyCount: z.number(),
+  nearbyNavaidCount: z.number(),
+  navaidRadiusKm: z.number().optional(),
+});
+
+export type AirportDetailMetadata = z.infer<typeof AirportDetailMetadataSchema>;
+
+export const AirportDetailResponseSchema = z.object({
+  airport: AirportObjectSchema,
+  runways: z.array(RunwayDetailSchema),
+  frequencies: z.array(FrequencyDetailSchema),
+  nearbyNavaids: z.array(NavaidDetailSchema),
+  metadata: AirportDetailMetadataSchema,
+});
+
+export type AirportDetailResponse = z.infer<typeof AirportDetailResponseSchema>;
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {
@@ -236,6 +306,7 @@ export const ErrorCodes = {
   MISSING_BBOX: 'MISSING_BBOX',
   INVALID_FIELDS: 'INVALID_FIELDS',
   INVALID_COORDINATES: 'INVALID_COORDINATES',
+  INVALID_NAVAID_PARAMS: 'INVALID_NAVAID_PARAMS',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

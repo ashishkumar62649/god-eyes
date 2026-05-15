@@ -6,6 +6,7 @@ export * from './types.js';
 export * from './mapper.js';
 export * from './points.js';
 export * from './clusters.js';
+export * from './detail.js';
 
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { checkDatabaseStatus, query } from '../../lib/db.js';
@@ -29,6 +30,8 @@ import {
   validateZoom,
   validateFields,
   validateCoordinates,
+  validateNavaidRadius,
+  validateNavaidLimit,
   getEffectiveMaxLimit,
   ParsedBBox,
   ValidationResult,
@@ -41,6 +44,7 @@ import {
   invalidLimitError,
   invalidFieldsError,
   invalidCoordinatesError,
+  invalidNavaidParamsError,
   missingBBoxError,
   invalidLayerError,
   databaseOfflineError,
@@ -52,6 +56,7 @@ import { rowToAirportObject } from './mapper.js';
 import { AirportRow } from './types.js';
 import { handlePointsMode, PointsQueryParams } from './points.js';
 import { handleClusterMode } from './clusters.js';
+import { handleAirportDetail, AirportDetailParams } from './detail.js';
 
 interface ObjectsQueryParams {
   objectType: string;
@@ -259,6 +264,62 @@ export async function objectRoutes(fastify: FastifyInstance) {
 
       return LayerObjectDetailResponseSchema.parse(rowToAirportObject(rows[0]));
     } catch (error) {
+      return sendError(reply, 503, tablesUnavailableError());
+    }
+  });
+
+  // GET /api/layers/:layerId/objects/:objectId/detail - Get detailed info for one airport
+  fastify.get<{
+    Params: ObjectDetailParams;
+    Querystring: { coordinates?: string; navaidRadiusKm?: string; navaidLimit?: string };
+  }>('/api/layers/:layerId/objects/:objectId/detail', async (request, reply) => {
+    const { layerId, objectId } = request.params;
+    const { coordinates: coordinatesStr, navaidRadiusKm: radiusStr, navaidLimit: limitStr } = request.query;
+
+    // Validate layer
+    if (layerId !== SUPPORTED_LAYER) {
+      return sendError(reply, 404, invalidLayerError(layerId));
+    }
+
+    // Validate coordinates
+    const coordinatesValidation = validateCoordinates(coordinatesStr);
+    if (!coordinatesValidation.valid) {
+      return sendError(reply, 400, invalidCoordinatesError(coordinatesValidation.error!, { received: coordinatesStr }));
+    }
+    const coordinates = coordinatesValidation.value;
+
+    // Validate navaidRadiusKm
+    const radiusValidation = validateNavaidRadius(radiusStr);
+    if (!radiusValidation.valid) {
+      return sendError(reply, 400, invalidNavaidParamsError(radiusValidation.error!, { received: radiusStr }));
+    }
+    const navaidRadiusKm = radiusValidation.value;
+
+    // Validate navaidLimit
+    const limitValidation = validateNavaidLimit(limitStr);
+    if (!limitValidation.valid) {
+      return sendError(reply, 400, invalidNavaidParamsError(limitValidation.error!, { received: limitStr }));
+    }
+    const navaidLimit = limitValidation.value;
+
+    // Database check
+    const dbStatus = await checkDatabaseStatus();
+    if (dbStatus.status === 'offline') {
+      return sendError(reply, 503, databaseOfflineError());
+    }
+
+    try {
+      const params: AirportDetailParams = {
+        objectId,
+        coordinates,
+        navaidRadiusKm,
+        navaidLimit,
+      };
+      return await handleAirportDetail(params);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'NOT_FOUND') {
+        return sendError(reply, 404, objectNotFoundError(objectId));
+      }
       return sendError(reply, 503, tablesUnavailableError());
     }
   });
