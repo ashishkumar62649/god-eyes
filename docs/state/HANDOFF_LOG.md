@@ -774,3 +774,25 @@ All agents must append to this file after completing work.
 - Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): cfe3338
 - Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or geocoder integration.
+
+### 2026-05-15T18:52:37Z Codex - WO-020 Aviation Detail Data Readiness for Object Intel
+
+- Work order: WO-020
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-aviation-detail-data-readiness
+- Start time UTC: 2026-05-15T18:43:11Z
+- End time UTC: 2026-05-15T18:52:37Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Reviewed Layer 1 aviation airport, runway, frequency, navaid, country, and region structures; added a read-only aviation detail data readiness script; analyzed runway/frequency/navaid relationship readiness for future Object Intel; documented future API/UI recommendations and limitations; added static/unit tests for script safety and documentation coverage.
+- Script added: `scripts/aviation_detail_data_readiness.py`
+- Tests added: `tests/data/layer_01_aviation/test_aviation_detail_data_readiness.py`
+- Docs added: `docs/data/layer_01_aviation/AVIATION_DETAIL_DATA_READINESS.md`
+- Commands run: `python -m pytest tests/data/layer_01_aviation/test_aviation_detail_data_readiness.py -q`; `python scripts\aviation_detail_data_readiness.py --json --limit 5`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`; `git status --short --branch`
+- Tests/build result: 53 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; live readiness script completed successfully against local Docker PostGIS.
+- Data findings: 85,377 airports; 47,911 runways; 30,275 airport frequencies; 11,010 navaids. 40,835 airports have at least one runway and 44,542 have no runway. 11,148 airports have at least one frequency and 74,229 have no frequency. Orphaned runways by airport ident: 0. Orphaned frequencies by airport ident: 0. Missing runway endpoint coordinates: 32,464; invalid runway endpoint coordinates: 0. Missing or invalid frequency MHz values: 7. Navaids should be associated spatially through airport/navaid geom rather than as a direct airport-ident join.
+- Known issues: Local Docker counts are not production hardware measurements; many airports naturally lack runway/frequency details; runway surface values are source-coded and not normalized; API endpoint and frontend Object Intel display were intentionally not implemented; no source data was mutated.
+- Forbidden folders touched: no.
+- Next safe task: Claude/API can design a read-only airport detail endpoint contract using `source_id + source_airport_id`, airport-ident joins for runways/frequencies, and bounded spatial lookup for nearby navaids; benchmark exact endpoint SQL before adding indexes.
