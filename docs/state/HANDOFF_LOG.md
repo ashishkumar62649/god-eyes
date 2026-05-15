@@ -656,3 +656,28 @@ All agents must append to this file after completing work.
 - Known issues: Without manual browser verification, exact rendering details (e.g. clipping of markers on mountains) cannot be confirmed, but relying on default Cesium depth testing resolves the architectural issue of fighting the globe engine.
 - Forbidden folders touched: no
 - Next safe task: Kiro integration review.
+
+
+### 2026-05-15T18:58:02Z Kiro CLI — WO-016 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-016
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/gemini-frontend-design-polish
+- Review start time UTC: 2026-05-15T18:58:02Z
+- Review end time UTC: 2026-05-15T18:58:02Z
+- Commit(s) reviewed: 789fbf7, 6c16981, 686e615
+- Push decision: PASS
+- Branch pushed: agent/gemini-frontend-design-polish
+- Review result: All 10 checks passed. Frontend design polish complete. UI is premium and minimal. Aviation marker depth testing fixed. Behind-globe markers no longer visible or clickable. Cluster counts readable. Airport Object Intel functional. Build passes. No secrets committed.
+- Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter web build, pnpm --filter @god-eyes/contracts build
+- Visual/UI result: ✅ PASS (premium dark glass interface, readable panels, no new features, clean hierarchy)
+- Marker depth/occlusion result: ✅ PASS (native Cesium depth testing, 100m airport altitude, 5000m cluster altitude, geometric horizon guard in click handler, behind-globe markers hidden)
+- Click behavior result: ✅ PASS (visibility guard prevents behind-globe clicks, visible cluster click zooms, visible airport click opens Intel)
+- Build result: ✅ PASS (web build 540ms, contracts build success, no errors)
+- Security/privacy result: ✅ PASS (no .env, no node_modules, no secrets, no raw data, no database dumps)
+- Known risks: None
+- Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
+- Commit hash (review document): cfe3338
+- Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or geocoder integration.
