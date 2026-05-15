@@ -19,8 +19,35 @@ export async function fetchAirports(limit: number = 500): Promise<AirportObject[
   const data: LayerObjectsListResponse = await response.json();
   
   // Type guard: filter to only airport objects (not clusters)
-  const airports = data.items.filter((item): item is AirportObject => item.objectType === 'airport');
+  const airports = data.items.filter((item: any): item is AirportObject => item.objectType === 'airport');
   return airports;
+}
+
+export async function fetchAviationLayerObjects(
+  mode: 'points' | 'clusters',
+  bbox: string, // format: minLon,minLat,maxLon,maxLat
+  zoom?: number,
+  limit: number = 1000,
+  abortSignal?: AbortSignal
+): Promise<LayerObjectsListResponse> {
+  const url = new URL(`${API_BASE_URL}/api/layers/layer_01_aviation/objects`);
+  url.searchParams.append('objectType', 'airport');
+  url.searchParams.append('mode', mode);
+  url.searchParams.append('bbox', bbox);
+  
+  if (mode === 'points') {
+    url.searchParams.append('limit', limit.toString());
+  } else if (mode === 'clusters' && zoom !== undefined) {
+    url.searchParams.append('zoom', zoom.toString());
+  }
+
+  const response = await fetch(url.toString(), { signal: abortSignal });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Failed to fetch aviation objects: ${response.status}`);
+  }
+  
+  return await response.json();
 }
 
 export async function fetchLayerStatus(layerId: string): Promise<LayerStatusResponse> {

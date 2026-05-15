@@ -385,7 +385,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review
 
-### [2026-05-15T00:00:00Z] Gemini CLI — WO-010 active-rotation visibility and zoom-control fix
+### [2026-05-15T00:00:00Z] Gemini CLI  WO-010 active-rotation visibility and zoom-control fix
 - Work order: WO-010
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -572,3 +572,30 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-012.md
 - Commit hash (review document): 9eeaa74
 - Next recommended task: Await code review and merge approval. Next work order: WO-013 or additional layer implementation.
+
+### [2026-05-15T15:00:00Z] Gemini CLI â€” WO-013 Rebuild Aviation Airport Clustering Using Server-Side Cluster API
+- Work order: WO-013
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-server-side-airport-clusters
+- Start time UTC: 2026-05-15T14:00:00Z
+- End time UTC: 2026-05-15T15:00:00Z
+- Commit hash: [local only]
+- Push status: local only (awaiting review)
+- What was done: Replaced monolithic client-side Cesium `EntityCluster` logic with server-side API clustering. Separated viewport calculation, sprite generation, rendering, and API logic into dedicated helper modules. Hooked up a debounced camera change listener that passes bounding box and zoom parameters to the server API, rendering full cluster circles with readable counts dynamically. Implemented AbortController to handle stale API responses cleanly.
+- Files created/modified: apps/web/src/CesiumGlobe.tsx, apps/web/src/lib/api.ts, apps/web/src/lib/airportViewport.ts, apps/web/src/lib/airportMarkerSprites.ts, apps/web/src/lib/cesiumVisibility.ts, apps/web/src/lib/aviationLayerRenderer.ts, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build, pnpm install, pnpm build, git status
+- Tests/build result: Build successful
+- Manual browser verification result: Could not perform interactive browser verification (simulated strictly through static analysis and type checks). Code is logically sound, uses Cesium best practices, and correctly references the bounding box and cluster mode APIs.
+- Known issues: Visual acceptance criteria regarding smooth scroll speeds, exact cluster canvas alignment, and absence of behind-globe flash rely purely on code porting from prior fixes; they could not be verified manually in a browser session.
+- server-side clusters used: yes
+- old EntityCluster removed/bypassed: yes
+- bbox endpoint used: yes
+- points endpoint used: yes
+- stale API response handling: yes
+- behind-globe flash fixed by browser test: no (could not verify manually)
+- zoom speed improved by browser test: no (could not verify manually)
+- dependencies added: no
+- forbidden folders touched: no
+- Next safe task: Ready for Kiro review.
