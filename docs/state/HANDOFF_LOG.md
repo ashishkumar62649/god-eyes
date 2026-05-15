@@ -1106,3 +1106,25 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-023.md
 - Commit hash (review document): 84374fa
 - Next recommended task: Push branch to origin. Claude/API implement Airport Detail API v1. Run endpoint EXPLAIN plans before adding indexes.
+
+### 2026-05-15T20:41:49Z Codex - WO-025 Airport Detail Data QA Samples
+
+- Work order: WO-025
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-airport-detail-qa-samples
+- Start time UTC: 2026-05-15T20:36:07Z
+- End time UTC: 2026-05-15T20:41:49Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Added a read-only airport detail QA sample selector for future Airport Detail API and Object Intel testing; documented selected local Docker samples and how Claude/API, Gemini/frontend, and Kiro/manual QA should use them; added static/unit tests for script safety, CLI flags, parameterized SQL, expected output fields, documentation, and no generated output dumps.
+- Script added: `scripts/aviation_airport_detail_qa_samples.py`
+- Tests added: `tests/data/layer_01_aviation/test_aviation_airport_detail_qa_samples.py`
+- Docs added: `docs/data/layer_01_aviation/AIRPORT_DETAIL_QA_SAMPLES.md`
+- Commands run: `python scripts\aviation_airport_detail_qa_samples.py --json --limit 10`; `python scripts\aviation_airport_detail_qa_samples.py --limit 10`; `python -m pytest tests/data/layer_01_aviation/test_aviation_airport_detail_qa_samples.py -q`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`; `git status --short --branch`
+- Tests/build result: 79 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; JSON QA sample script completed successfully against local Docker PostGIS.
+- QA sample findings: Selected 10 distinct local QA samples: `OMDB` rich major airport; `KNHU` runways with no frequencies; `KCVG` high frequency count; `00AA` sparse no runway/frequency detail; `JRA` heliport; `KNRQ` small airfield; `1OH8` many nearby navaids; `01A` zero nearby navaids within 100 km; `1LA9` missing runway endpoint coordinates; `KORD` complete runway endpoint coordinates.
+- Known issues: Samples reflect local Docker database state and may change after future source refreshes; they are QA fixtures, not production SLAs; no live operational NOTAM/METAR/TAF/aircraft data is included; API endpoint and frontend Object Intel display were intentionally not implemented; no source data was mutated.
+- Forbidden folders touched: no.
+- Next safe task: Claude/API can use `source_id + source_object_id` values from the QA sample output for Airport Detail API v1 endpoint tests; Gemini/frontend can use the same samples for Object Intel manual QA after the API contract lands.
