@@ -928,3 +928,54 @@ All agents must append to this file after completing work.
 - Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): d8835e4
 - Next recommended task: Await code review and merge approval. Next work order: Place/city/landmark search v2 or additional layer implementation.
+
+### 2026-05-15T18:52:37Z Codex - WO-020 Aviation Detail Data Readiness for Object Intel
+
+- Work order: WO-020
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-aviation-detail-data-readiness
+- Start time UTC: 2026-05-15T18:43:11Z
+- End time UTC: 2026-05-15T18:52:37Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Reviewed Layer 1 aviation airport, runway, frequency, navaid, country, and region structures; added a read-only aviation detail data readiness script; analyzed runway/frequency/navaid relationship readiness for future Object Intel; documented future API/UI recommendations and limitations; added static/unit tests for script safety and documentation coverage.
+- Script added: `scripts/aviation_detail_data_readiness.py`
+- Tests added: `tests/data/layer_01_aviation/test_aviation_detail_data_readiness.py`
+- Docs added: `docs/data/layer_01_aviation/AVIATION_DETAIL_DATA_READINESS.md`
+- Commands run: `python -m pytest tests/data/layer_01_aviation/test_aviation_detail_data_readiness.py -q`; `python scripts\aviation_detail_data_readiness.py --json --limit 5`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`; `git status --short --branch`
+- Tests/build result: 53 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; live readiness script completed successfully against local Docker PostGIS.
+- Data findings: 85,377 airports; 47,911 runways; 30,275 airport frequencies; 11,010 navaids. 40,835 airports have at least one runway and 44,542 have no runway. 11,148 airports have at least one frequency and 74,229 have no frequency. Orphaned runways by airport ident: 0. Orphaned frequencies by airport ident: 0. Missing runway endpoint coordinates: 32,464; invalid runway endpoint coordinates: 0. Missing or invalid frequency MHz values: 7. Navaids should be associated spatially through airport/navaid geom rather than as a direct airport-ident join.
+- Known issues: Local Docker counts are not production hardware measurements; many airports naturally lack runway/frequency details; runway surface values are source-coded and not normalized; API endpoint and frontend Object Intel display were intentionally not implemented; no source data was mutated.
+- Forbidden folders touched: no.
+- Next safe task: Claude/API can design a read-only airport detail endpoint contract using `source_id + source_airport_id`, airport-ident joins for runways/frequencies, and bounded spatial lookup for nearby navaids; benchmark exact endpoint SQL before adding indexes.
+
+
+### 2026-05-16T00:28:00Z Kiro CLI — WO-020 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-020
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-aviation-detail-data-readiness
+- Review start time UTC: 2026-05-16T00:26:06Z
+- Review end time UTC: 2026-05-16T00:28:00Z
+- Commit(s) reviewed: c1f47e06a3bda6e89bc6764581d5b1b0b3d49cb9 (Codex work), 745c0ac (review document)
+- Push decision: PASS
+- Branch pushed: agent/codex-aviation-detail-data-readiness
+- Review result: All 9 checks passed. Script is read-only and comprehensive. Documentation clear and actionable. Relationships verified with 0 orphans. Data quality checked. Tests pass (53). No secrets committed. Folder boundaries respected.
+- Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (53 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
+- Git status result: ✅ PASS (branch agent/codex-aviation-detail-data-readiness, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: ✅ PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
+- Script review result: ✅ PASS (read-only, --json and --limit work, all metrics reported, no file writes, no mutations)
+- Relationship/readiness result: ✅ PASS (runways join by layer_id+source_id+airport_ident, frequencies join same way, navaids spatial, stable source ids exist, data shape ready for endpoint, index recommendations documented as future work)
+- Data findings result: ✅ PASS (85,377 airports, 47,911 runways, 30,275 frequencies, 11,010 navaids, 40,835 with runways, 11,148 with frequencies, 0 orphans, 32,464 missing runway coords, 0 invalid coords, 7 invalid frequencies)
+- Documentation result: ✅ PASS (all sections present, row counts, runway/frequency/navaid readiness, relationship model, quality findings, missing data limitations, recommended API shape, Object Intel sections, known risks, next tasks)
+- Tests/build result: ✅ PASS (53 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Source safety result: ✅ PASS (no aviation_airports mutations, no aviation_runways mutations, no aviation_airport_frequencies mutations, no aviation_navaids mutations, no fake data, no raw/generated output)
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Known risks: None. Local Docker not production hardware (expected). Many airports lack detail (expected). Runway surface not normalized (expected). No API/frontend work (expected).
+- Review document: docs/state/INTEGRATION_REVIEW_WO-020.md
+- Commit hash (review document): 745c0ac
+- Next recommended task: Push branch to origin. Claude/API design airport detail endpoint contract. Benchmark SQL before adding indexes. Gemini display Object Intel sections later.
