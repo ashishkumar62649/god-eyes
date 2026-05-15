@@ -1,3 +1,24 @@
+### 2026-05-16T04:05:00Z Claude Code CLI — WO-022A Fix Aviation Marker Viewport Queries
+
+- Work order: WO-022A (CRITICAL bug fix)
+- Agent: Claude Code CLI
+- LLM model: Claude 4.7 (Mini)
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-airport-detail-api-v1
+- Commit hash: b03bdd4
+- Push status: local only (not pushed - Kiro pushes after review)
+- Root cause: Two SQL errors were caught and incorrectly reported as DATABASE_OFFLINE:
+  1. BBox filter used table alias "a" in WHERE clause but non-effective queries don't use table alias in SELECT - caused "missing FROM-clause entry for table a" error
+  2. Override columns referenced wrong column name "o.confidence" vs actual column "o.confidence_score" - caused "column o.confidence does not exist" error
+- Fix summary: Changed bbox filter to use column names without table alias when isEffective=false (source coordinates). Changed OVERRIDE_COLUMNS to use correct column name "confidence_score".
+- Commands run: pnpm --filter api test (84 passed)
+- Manual endpoint verification:
+  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&bbox=-90,30,-60,50&limit=50 → 200 OK
+  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=standard&bbox=-90,30,-60,50&limit=50 → 200 OK
+  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-90,30,-60,50&limit=50 → 200 OK
+- Known issues: None (fix verified - all viewport queries now work)
+- Next safe task: Kiro review and push
+
 ### 2026-05-16T02:10:00Z Claude Code CLI — WO-022 Airport Detail API v1
 
 - Work order: WO-022
@@ -7,8 +28,8 @@
 - Branch: agent/claude-airport-detail-api-v1
 - Start time UTC: 2026-05-16T01:55:00Z
 - End time UTC: 2026-05-16T02:10:00Z
-- Commit hash: (pending commit)
-- Push status: not pushed
+- Commit hash: fa76270
+- Push status: local only (Kiro pushes after review)
 - What was done: Created read-only airport detail endpoint at GET /api/layers/:layerId/objects/:objectId/detail. Returns airport overview, runways, frequencies, and nearby navaids with bounded spatial lookup. Supports coordinates=source/effective query parameters. Validates navaidRadiusKm (default 100, max 250) and navaidLimit (default 20, max 50). Uses PostGIS geography functions for accurate distance calculation. SQL is parameterized. All existing contracts preserved.
 - Endpoint added: GET /api/layers/:layerId/objects/:objectId/detail
 - Contracts added: RunwayDetailSchema, FrequencyDetailSchema, NavaidDetailSchema, AirportDetailMetadataSchema, AirportDetailResponseSchema, INVALID_NAVAID_PARAMS error code
