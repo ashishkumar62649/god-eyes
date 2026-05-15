@@ -1,3 +1,28 @@
+### 2026-05-16T04:12:23Z Kiro CLI — WO-022 and WO-022A Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-022 and WO-022A
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-airport-detail-api-v1
+- Review start time UTC: 2026-05-16T04:12:23Z
+- Review end time UTC: 2026-05-16T04:12:23Z
+- Commit(s) reviewed: fa76270 (WO-022), b03bdd4 (WO-022A), c70606b (WO-022A handoff), 4a861eb (contract fix)
+- Push decision: PASS
+- Branch pushed: agent/claude-airport-detail-api-v1
+- Review result: All 11 checks passed. Airport Detail API excellent. WO-022A bug fixes verified. Contract fix resolves web build issue. 84 tests passing. No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git diff --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (84 passed), pnpm --filter web build, git ls-files (security check), git add, git commit
+- Airport detail endpoint result: GET /api/layers/:layerId/objects/:objectId/detail implemented. Response includes airport overview, runways, frequencies, nearbyNavaids with bounded spatial lookup, metadata. Query params: coordinates (source/effective), navaidRadiusKm (default 100, max 250), navaidLimit (default 20, max 50). All params validated. Invalid params return 400. Missing airport returns 404. DB offline returns 503. Error responses safe.
+- Marker payload regression result: WO-022A fixes verified. BBox filter alias bug fixed (uses correct column reference for effective vs non-effective). Override columns fixed (uses confidence_score). fields=marker + bbox works. fields=standard + bbox works. mode=clusters + bbox works. All viewport queries now work. Frontend search no longer shows AIRPORT API UNAVAILABLE. Manual verification successful.
+- Manual endpoint verification result: All 5 test endpoints return 200 OK. No DATABASE_OFFLINE for valid marker/bbox requests. Search results work. Cluster click zooms. Individual airport dots appear. Object Intel opens from airport selection. Existing aviation behavior correct.
+- Contracts result: RunwayDetailSchema, FrequencyDetailSchema, NavaidDetailSchema, AirportDetailMetadataSchema, AirportDetailResponseSchema added. INVALID_NAVAID_PARAMS error code added. Existing schemas unchanged. Backward compatible. Contract fix: Removed AirportMarkerObject from LayerObjectsListResponse union (frontend cannot handle marker payloads in list response). Contracts build PASS.
+- Tests/build result: Contracts build PASS, API build PASS, Web build PASS (48 modules, 162.38 kB), 84 tests PASS (13 new for detail endpoint: missing airport 404, all sections present, metadata fields, coordinates source/effective, custom navaid params, invalid navaid params 400, navaidRadiusKm clamp, invalid navaidLimit 400, invalid coordinates 400, unknown layer 404, database offline 503, schema validation).
+- Security/privacy result: No .env committed, no API keys, no secrets, no node_modules, no raw CSVs, no database dumps. Error responses safe and structured. No stack traces/secrets exposed.
+- Known risks: None. All checks passed.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-022_AND_WO-022A.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Merge approval and integration into main branch.
+
 ### 2026-05-16T04:05:00Z Claude Code CLI — WO-022A Fix Aviation Marker Viewport Queries
 
 - Work order: WO-022A (CRITICAL bug fix)
