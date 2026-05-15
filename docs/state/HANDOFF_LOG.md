@@ -998,6 +998,27 @@ All agents must append to this file after completing work.
 - Place search v1 status: ✅ PASS (disabled, documented as future work, no fake results, no external dependencies)
 - Existing aviation behavior result: ✅ PASS (toggle works, clusters load, cluster click zooms, airport click opens Intel, behind-globe markers hidden and not clickable, no duplicate entities)
 - Build result: ✅ PASS (web build 652ms, contracts build success, no errors)
+
+### [2026-05-16T10:30:00Z] Gemini CLI — WO-024A Object Intel Aviation Panel Foundation
+- Work order: WO-024A
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-object-intel-foundation
+- Start time UTC: 2026-05-16T10:00:00Z
+- End time UTC: 2026-05-16T10:30:00Z
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was done: Refactored the Object Intel panel to be modular and ready for future aviation detail data. Improved the empty state with a helpful message. Created sub-components for airport overview, coordinate/source details, and future placeholder sections (Runways, Frequencies, Nearby Navaids, Data Quality). Used existing selected airport data only, without calling new API endpoints.
+- Components created/modified: apps/web/src/components/DetailPanel.tsx (refactored), apps/web/src/components/intel/IntelSection.tsx (created), apps/web/src/components/intel/AirportOverview.tsx (created), apps/web/src/components/intel/CoordinateSourceCard.tsx (created), apps/web/src/components/intel/AviationDetailPlaceholders.tsx (created)
+- API calls added: no
+- Browser verification performed: no (unable to perform manual browser verification in this environment)
+- Commands run: pnpm --filter web build
+- Tests/build result: Build successful (52 modules transformed)
+- Known issues: Visual verification of padding, spacing, and font sizes within the new sub-components is theoretical as manual browser testing was not possible.
+- Forbidden folders touched: no
+- Next safe task: Kiro integration review or integrate WO-022 airport detail API when ready.
+
 - Security/privacy result: ✅ PASS (no .env, no node_modules, no secrets, no external geocoding dependency, no hardcoded keys)
 - Known risks: None
 - Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
