@@ -599,3 +599,26 @@ All agents must append to this file after completing work.
 - dependencies added: no
 - forbidden folders touched: no
 - Next safe task: Ready for Kiro review.
+
+### 2026-05-15T12:38:13Z Codex - WO-014 Aviation Coordinate Quality and Manual Override Foundation
+
+- Work order: WO-014
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-coordinate-quality-foundation
+- Start time UTC: 2026-05-15T12:33:35Z
+- End time UTC: 2026-05-15T12:38:13Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Added a safe additive aviation coordinate quality review table and manual coordinate override table, preserving raw/source-derived coordinates. Added a read-only coordinate quality reporting script, tests for migration safety and script query parameterization, and documentation for review statuses, approval flow, and future API/frontend consumption.
+- Migration added: database/migrations/layers/layer_01_aviation/004_aviation_coordinate_quality_overrides.sql
+- Script added: scripts/aviation_coordinate_quality.py
+- Tests added: tests/data/layer_01_aviation/test_aviation_coordinate_quality.py
+- Docs added: docs/data/layer_01_aviation/AVIATION_COORDINATE_QUALITY_AND_OVERRIDES.md
+- Commands run: python -m pytest tests/data/layer_01_aviation/test_aviation_coordinate_quality.py -q; python -m pytest tests/data/layer_01_aviation -q; git diff --check; python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts; docker compose -f infra/docker/docker-compose.yml config --quiet; python scripts/aviation_coordinate_quality.py --json
+- Tests/build result: 46 aviation data pytest tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; optional coordinate quality script ran successfully against local PostGIS.
+- Data quality findings: total airports 85,377; heliports 22,980; closed/abandoned airports 13,181; suspicious zero coordinates 0; inferred low-coordinate-precision candidates 127; missing municipality or country candidates 4,705; quality review count null and active override count null because the new migration has not been applied to the local database.
+- Known issues: Migration was created but not applied in this work order; low coordinate precision is inferred from normalized numeric values because raw coordinate string precision is not separately retained; imagery alignment and source data can both be imperfect.
+- Forbidden folders touched: no.
+- Next safe task: Apply the migration in a controlled database environment, then have Claude/API design an opt-in query path that can prefer a single active approved override while exposing source coordinates for audit.
