@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AirportObject } from '@god-eyes/contracts';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
 }
 
-const DetailPanel: React.FC<DetailPanelProps> = ({ selectedObject }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const DetailPanel: React.FC<DetailPanelProps> = ({ 
+  selectedObject, 
+  isCollapsed, 
+  setIsCollapsed 
+}) => {
 
   return (
     <aside className={`shell-panel shell-panel-right shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -23,9 +28,12 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedObject }) => {
         <div className="panel-content">
           {!selectedObject ? (
             <div style={{ 
-              textAlign: 'center', 
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
               color: 'var(--shell-text-dim)', 
-              marginTop: '40px',
               fontSize: '0.75rem',
               letterSpacing: '1px'
             }}>
@@ -34,52 +42,53 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedObject }) => {
           ) : (
             <div style={{ marginTop: '10px' }}>
               <div style={{ 
-                fontSize: '1rem', 
-                fontWeight: 800, 
+                fontSize: '1.1rem', 
+                fontWeight: 700, 
                 color: 'var(--shell-accent)',
                 marginBottom: '20px',
-                borderBottom: '1px solid var(--shell-border)',
-                paddingBottom: '10px'
+                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                paddingBottom: '12px',
+                lineHeight: 1.3
               }}>
                 {selectedObject.name}
               </div>
 
               <div className="detail-row">
-                <div className="detail-label">Identity / Ident</div>
+                <div className="detail-label">Identity / Code</div>
                 <div className="detail-value">{selectedObject.ident} {selectedObject.iataCode ? `(${selectedObject.iataCode})` : ''}</div>
               </div>
 
               <div className="detail-row">
-                <div className="detail-label">Category / Type</div>
-                <div className="detail-value">{selectedObject.category} / {selectedObject.typeSource}</div>
+                <div className="detail-label">Category</div>
+                <div className="detail-value">{selectedObject.category}</div>
               </div>
               
               <div className="detail-row">
-                <div className="detail-label">Location / Region</div>
-                <div className="detail-value">{selectedObject.municipality || '—'}, {selectedObject.region}, {selectedObject.country}</div>
+                <div className="detail-label">Location</div>
+                <div className="detail-value">{selectedObject.municipality ? `${selectedObject.municipality}, ` : ''}{selectedObject.region}, {selectedObject.country}</div>
               </div>
 
               <div className="detail-row">
                 <div className="detail-label">Coordinates</div>
-                <div className="detail-value" style={{ fontSize: '0.75rem' }}>
-                  LAT: {selectedObject.position.latitude?.toFixed(6)}<br />
-                  LON: {selectedObject.position.longitude?.toFixed(6)}
+                <div className="detail-value" style={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                  LAT {selectedObject.position.latitude?.toFixed(6)}<br />
+                  LON {selectedObject.position.longitude?.toFixed(6)}
                 </div>
               </div>
 
               <div className="detail-row">
                 <div className="detail-label">Elevation</div>
-                <div className="detail-value">{selectedObject.elevationFt ? `${selectedObject.elevationFt.toLocaleString()} FT` : '—'}</div>
+                <div className="detail-value">{selectedObject.elevationFt !== null ? `${selectedObject.elevationFt.toLocaleString()} FT` : '—'}</div>
               </div>
               
               <div className="detail-row">
-                <div className="detail-label">Data Source</div>
+                <div className="detail-label">Source System</div>
                 <div className="detail-value">{selectedObject.sourceId}</div>
               </div>
 
-              <div className="detail-row">
-                <div className="detail-label">Internal ID</div>
-                <div className="detail-value" style={{ fontSize: '0.6rem', opacity: 0.5 }}>{selectedObject.id}</div>
+              <div className="detail-row" style={{ border: 'none', paddingLeft: 0, marginTop: '30px' }}>
+                <div className="detail-label">Internal Reference</div>
+                <div className="detail-value" style={{ fontSize: '0.6rem', opacity: 0.4 }}>{selectedObject.id}</div>
               </div>
             </div>
           )}

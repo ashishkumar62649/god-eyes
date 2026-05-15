@@ -4,6 +4,7 @@ import {
   LayersListResponseSchema,
   LayerStatusResponseSchema,
   ErrorCodes,
+  LayerListMetadataSchema,
 } from '@god-eyes/contracts';
 
 interface LayerQueryParams {
@@ -47,7 +48,14 @@ export async function layerRoutes(fastify: FastifyInstance) {
         },
       ];
 
-      return LayersListResponseSchema.parse({ layers });
+      return LayersListResponseSchema.parse({
+        layers,
+        metadata: {
+          mode: 'standard',
+          returnedCount: layers.length,
+          generatedAt: new Date().toISOString(),
+        },
+      });
     }
   );
 

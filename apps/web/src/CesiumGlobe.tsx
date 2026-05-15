@@ -4,37 +4,53 @@ import {
   Ion, 
   Cartesian2,
   Cartesian3, 
-  Color, 
   Entity, 
   ScreenSpaceEventHandler, 
   ScreenSpaceEventType,
-  VerticalOrigin,
-  LabelStyle,
-  NearFarScalar
+  CustomDataSource
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import { fetchAirports } from './lib/api';
+
+import { fetchAviationLayerObjects } from './lib/api';
+import { getViewportFromCamera } from './lib/airportViewport';
+import { isPositionVisible } from './lib/cesiumVisibility';
+import { renderAviationObjects } from './lib/aviationLayerRenderer';
 
 interface CesiumGlobeProps {
   aviationLayerActive: boolean;
   onObjectSelect: (obj: unknown) => void;
+  onAviationStatsChange?: (stats: { loaded: number; visible: number; clustersActive: boolean }) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({ 
   aviationLayerActive, 
-  onObjectSelect 
+  onObjectSelect,
+  onAviationStatsChange
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
-  const airportEntitiesRef = useRef<Entity[]>([]);
+  const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
+  const onStatsChangeRef = useRef(onAviationStatsChange);
+  const aviationLayerActiveRef = useRef(aviationLayerActive);
+  
+  const renderTimeoutRef = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Update ref when prop changes
+  // Update refs when props change
   useEffect(() => {
     onObjectSelectRef.current = onObjectSelect;
   }, [onObjectSelect]);
+
+  useEffect(() => {
+    onStatsChangeRef.current = onAviationStatsChange;
+  }, [onAviationStatsChange]);
+
+  useEffect(() => {
+    aviationLayerActiveRef.current = aviationLayerActive;
+  }, [aviationLayerActive]);
 
   // Initialize Viewer
   useEffect(() => {
@@ -68,19 +84,126 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       
       viewer.scene.debugShowFramesPerSecond = false;
       viewer.scene.globe.depthTestAgainstTerrain = true;
+      
+      // Tame mouse-wheel zoom
+      const cameraController = viewer.scene.screenSpaceCameraController;
+      cameraController.inertiaZoom = 0; // Disable inertia to prevent exponential velocity buildup from smooth-scroll devices
+      cameraController.maximumMovementRatio = 0.1; // Restore default step scale
+      cameraController.minimumZoomDistance = 100; // Sensible minimum (prevents zooming through ground)
+      cameraController.maximumZoomDistance = 50000000; // Sensible maximum
+      
       viewerRef.current = viewer;
+
+      // Initialize Data Source for Aviation
+      const dataSource = new CustomDataSource('aviation');
+      aviationDataSourceRef.current = dataSource;
+      viewer.dataSources.add(dataSource);
+
+      // Fetch Data Logic
+      const fetchAndRenderData = async () => {
+        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
+        
+        const currentViewer = viewerRef.current;
+        const currentDataSource = aviationDataSourceRef.current;
+        const camera = currentViewer.camera;
+
+        // Determine Viewport and Mode
+        const viewport = getViewportFromCamera(camera);
+        const cameraHeight = camera.positionCartographic.height;
+        const isZoomedIn = cameraHeight < 1500000;
+        const mode = isZoomedIn ? 'points' : 'clusters';
+
+        // Abort any ongoing request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        try {
+          // Fetch data from API
+          const response = await fetchAviationLayerObjects(
+            mode, 
+            viewport.bbox, 
+            viewport.zoom, 
+            1000, 
+            abortControllerRef.current.signal
+          );
+          
+          // Render entities using the helper
+          const { visibleCount, clustersActive } = renderAviationObjects(
+            currentDataSource,
+            response.items,
+            mode
+          );
+
+          onStatsChangeRef.current?.({ 
+            loaded: response.items.length, 
+            visible: visibleCount, 
+            clustersActive: clustersActive 
+          });
+
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            // Ignore abort errors
+            return;
+          }
+          console.error('Failed to fetch/render aviation data:', err);
+        }
+      };
+
+      // Debounce camera updates to prevent stutter and massive API calls
+      viewer.camera.percentageChanged = 0.05; 
+      viewer.camera.changed.addEventListener(() => {
+        if (renderTimeoutRef.current !== null) {
+          window.clearTimeout(renderTimeoutRef.current);
+        }
+        renderTimeoutRef.current = window.setTimeout(() => {
+          fetchAndRenderData();
+        }, 250); // 250ms debounce
+      });
 
       // Handle Clicks
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
-        if (pickedObject && pickedObject.id instanceof Entity) {
-          const entity = pickedObject.id;
-          if (entity.properties && entity.properties.rawData) {
-            onObjectSelectRef.current(entity.properties.rawData.getValue());
-          }
-        } else {
+        if (!pickedObject || !pickedObject.id || !(pickedObject.id instanceof Entity)) {
           onObjectSelectRef.current(null);
+          return;
+        }
+        
+        const entity = pickedObject.id;
+        
+        // CHECK VISIBILITY
+        const position = entity.position?.getValue(viewer!.clock.currentTime);
+        if (position && !isPositionVisible(viewer!, position)) {
+          // It's behind the globe, ignore click!
+          onObjectSelectRef.current(null);
+          return;
+        }
+        
+        // Handle Cluster Click
+        if (entity.properties && entity.properties.isCluster?.getValue()) {
+           const camera = viewer!.camera;
+           const pos = entity.position?.getValue(viewer!.clock.currentTime);
+           if (pos) {
+             const mag = Cartesian3.magnitude(pos);
+             const targetHeight = camera.positionCartographic.height * 0.4; // zoom in by 60%
+             
+             camera.flyTo({
+               destination: Cartesian3.multiplyByScalar(
+                 Cartesian3.normalize(pos, new Cartesian3()), 
+                 mag + targetHeight, 
+                 new Cartesian3()
+               ),
+               duration: 1.0
+             });
+           }
+           return;
+        } 
+        
+        // Handle Individual Entity Click
+        if (entity.properties && entity.properties.rawData) {
+           onObjectSelectRef.current(entity.properties.rawData.getValue());
         }
       }, ScreenSpaceEventType.LEFT_CLICK);
 
@@ -94,65 +217,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer.destroy();
         viewerRef.current = null;
       }
+      if (renderTimeoutRef.current !== null) {
+        window.clearTimeout(renderTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, []); // Empty dependency array means this runs once
+  }, []); // Run once on mount
 
-  // Handle Aviation Layer
+  // Handle Aviation Layer Toggle
   useEffect(() => {
-    const viewer = viewerRef.current;
-    if (!viewer) return;
-
-    async function updateAviationLayer() {
-      // Clean up existing
-      airportEntitiesRef.current.forEach(entity => viewer!.entities.remove(entity));
-      airportEntitiesRef.current = [];
-
-      if (!aviationLayerActive) return;
-
-      try {
-        const airports = await fetchAirports(500);
-        
-        const entities = airports.map(airport => {
-          if (!airport.position.latitude || !airport.position.longitude) return null;
-
-          return viewer!.entities.add({
-            id: `airport-${airport.id}`,
-            position: Cartesian3.fromDegrees(
-              airport.position.longitude, 
-              airport.position.latitude, 
-              airport.elevationFt ? airport.elevationFt * 0.3048 : 0
-            ),
-            point: {
-              pixelSize: airport.category === 'large_airport' ? 8 : 6,
-              color: Color.fromCssColorString('#00d2ff').withAlpha(0.8),
-              outlineColor: Color.WHITE.withAlpha(0.4),
-              outlineWidth: 1,
-              scaleByDistance: new NearFarScalar(1.5e2, 1.5, 8.0e6, 0.5)
-            },
-            label: {
-              text: airport.ident,
-              font: '10px JetBrains Mono, monospace',
-              style: LabelStyle.FILL_AND_OUTLINE,
-              outlineWidth: 2,
-              outlineColor: Color.BLACK,
-              verticalOrigin: VerticalOrigin.BOTTOM,
-              pixelOffset: new Cartesian2(0, -10),
-              translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 5.0e5, 0.0)
-            },
-            properties: {
-              rawData: airport
-            }
-          });
-        }).filter(e => e !== null) as Entity[];
-
-        airportEntitiesRef.current = entities;
-      } catch (err) {
-        console.error('Failed to render aviation layer:', err);
+    if (!aviationLayerActive) {
+      if (aviationDataSourceRef.current) {
+        aviationDataSourceRef.current.entities.removeAll();
+      }
+      onStatsChangeRef.current?.({ loaded: 0, visible: 0, clustersActive: false });
+      
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    } else {
+      // Trigger a render if enabled
+      if (viewerRef.current) {
+        viewerRef.current.camera.changed.raiseEvent();
       }
     }
-
-    updateAviationLayer();
   }, [aviationLayerActive]);
+
 
   if (error) {
     return (

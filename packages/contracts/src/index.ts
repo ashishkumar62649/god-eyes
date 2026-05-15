@@ -25,8 +25,17 @@ export const LayerInfoSchema = z.object({
   objectTypes: z.array(z.string()),
 });
 
+export const LayerListMetadataSchema = z.object({
+  mode: z.string(),
+  returnedCount: z.number(),
+  generatedAt: z.string().datetime(),
+});
+
+export type LayerListMetadata = z.infer<typeof LayerListMetadataSchema>;
+
 export const LayersListResponseSchema = z.object({
   layers: z.array(LayerInfoSchema),
+  metadata: LayerListMetadataSchema.optional(),
 });
 
 export type LayerInfo = z.infer<typeof LayerInfoSchema>;
@@ -64,6 +73,17 @@ export const PaginationSchema = z.object({
 
 export type Pagination = z.infer<typeof PaginationSchema>;
 
+// ==================== List Metadata ====================
+
+export const ObjectListMetadataSchema = z.object({
+  mode: z.enum(['standard', 'search']),
+  filtersApplied: z.record(z.unknown()).optional(),
+  bboxApplied: z.boolean().optional(),
+  generatedAt: z.string().datetime(),
+});
+
+export type ObjectListMetadata = z.infer<typeof ObjectListMetadataSchema>;
+
 // ==================== Airport Object ====================
 
 export const AirportPositionSchema = z.object({
@@ -94,11 +114,41 @@ export const AirportObjectSchema = z.object({
 export type AirportPosition = z.infer<typeof AirportPositionSchema>;
 export type AirportObject = z.infer<typeof AirportObjectSchema>;
 
-// ==================== Objects List ====================
+// ==================== Airport Cluster Object ====================
+
+export const AirportClusterPositionSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+});
+
+export const AirportClusterBBoxSchema = z.object({
+  minLongitude: z.number(),
+  minLatitude: z.number(),
+  maxLongitude: z.number(),
+  maxLatitude: z.number(),
+});
+
+export const AirportClusterObjectSchema = z.object({
+  id: z.string(),
+  layerId: z.literal('layer_01_aviation'),
+  objectType: z.literal('airport_cluster'),
+  count: z.number().int().positive(),
+  position: AirportClusterPositionSchema,
+  bbox: AirportClusterBBoxSchema,
+  categoryBreakdown: z.record(z.string(), z.number().int().nonnegative()),
+});
+
+export type AirportClusterPosition = z.infer<typeof AirportClusterPositionSchema>;
+export type AirportClusterBBox = z.infer<typeof AirportClusterBBoxSchema>;
+export type AirportClusterObject = z.infer<typeof AirportClusterObjectSchema>;
+
+// ==================== Objects List (Points or Clusters) ====================
 
 export const LayerObjectsListResponseSchema = z.object({
-  items: z.array(AirportObjectSchema),
+  items: z.union([z.array(AirportObjectSchema), z.array(AirportClusterObjectSchema)]),
   pagination: PaginationSchema,
+  mode: z.enum(['points', 'clusters']).optional(),
+  metadata: ObjectListMetadataSchema.optional(),
 });
 
 export type LayerObjectsListResponse = z.infer<typeof LayerObjectsListResponseSchema>;
@@ -143,6 +193,11 @@ export const ErrorCodes = {
   INVALID_QUERY: 'INVALID_QUERY',
   NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  INVALID_BBOX: 'INVALID_BBOX',
+  INVALID_LIMIT: 'INVALID_LIMIT',
+  INVALID_CATEGORY: 'INVALID_CATEGORY',
+  INVALID_MODE: 'INVALID_MODE',
+  MISSING_BBOX: 'MISSING_BBOX',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

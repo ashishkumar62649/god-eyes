@@ -51,11 +51,11 @@
       }
     },
     {
-      "name": "Aviation Airports",
+      "name": "Aviation Airports — Default",
       "request": {
         "method": "GET",
         "url": {
-          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&limit=50",
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&limit=500",
           "host": ["{{baseUrl}}"],
           "path": ["api", "layers", "layer_01_aviation", "objects"],
           "query": [
@@ -65,14 +65,164 @@
             },
             {
               "key": "limit",
-              "value": "50"
+              "value": "500"
             }
           ]
         }
       }
     },
     {
-      "name": "Aviation Airports by Country",
+      "name": "Aviation Airports — BBox USA",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&bbox=-125,25,-65,50&limit=500",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "bbox",
+              "value": "-125,25,-65,50"
+            },
+            {
+              "key": "limit",
+              "value": "500"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Heliports",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&category=heliport&limit=100",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "category",
+              "value": "heliport"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Country",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&country=US&limit=100",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "country",
+              "value": "US"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Search",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&search=Dubai&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "search",
+              "value": "Dubai"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airport Clusters",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-180,-85,180,85&zoom=2",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "mode",
+              "value": "clusters"
+            },
+            {
+              "key": "bbox",
+              "value": "-180,-85,180,85"
+            },
+            {
+              "key": "zoom",
+              "value": "2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports — Invalid BBox",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&bbox=bad",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "bbox",
+              "value": "bad"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Airports by Country (Legacy)",
       "request": {
         "method": "GET",
         "url": {
@@ -97,7 +247,7 @@
       }
     },
     {
-      "name": "Aviation Airport Search",
+      "name": "Aviation Airport Search (Legacy)",
       "request": {
         "method": "GET",
         "url": {
@@ -129,6 +279,66 @@
           "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects/{{objectId}}",
           "host": ["{{baseUrl}}"],
           "path": ["api", "layers", "layer_01_aviation", "objects", "{{objectId}}"]
+        }
+      }
+    },
+    {
+      "name": "Error: Missing objectType",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"]
+        }
+      }
+    },
+    {
+      "name": "Error: Invalid Layer",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/unknown_layer/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "unknown_layer", "status"]
+        }
+      }
+    },
+    {
+      "name": "Error: Invalid Object Type",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=unknown",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "unknown"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pagination: Max Limit Test",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&limit=9999",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            {
+              "key": "objectType",
+              "value": "airport"
+            },
+            {
+              "key": "limit",
+              "value": "9999"
+            }
+          ]
         }
       }
     }
