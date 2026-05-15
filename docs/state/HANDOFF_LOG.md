@@ -1075,3 +1075,22 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-020.md
 - Commit hash (review document): 745c0ac
 - Next recommended task: Push branch to origin. Claude/API design airport detail endpoint contract. Benchmark SQL before adding indexes. Gemini display Object Intel sections later.
+
+### [2026-05-16T11:20:00Z] Gemini CLI — WO-024A fix: Refresh aviation points after cluster zoom
+- Work order: WO-024A fix
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-object-intel-foundation
+- Start time UTC: 2026-05-16T11:00:00Z
+- End time UTC: 2026-05-16T11:20:00Z
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was fixed: Resolved bug where aviation clusters remained visible after zooming in fully. Added `camera.moveEnd` listener and `complete` callback to `flyTo` to ensure a final viewport refresh after flight completion. This ensures the mode switches from 'clusters' to 'points' at close range.
+- Files modified: apps/web/src/CesiumGlobe.tsx, docs/state/HANDOFF_LOG.md
+- Browser verification performed: no (unable to perform in this environment)
+- Commands run: pnpm --filter web build
+- Known issues: Refresh timing at the end of flight is improved but still depends on API response speed.
+- Forbidden folders touched: no
+- Next safe task: Kiro integration review.
+
