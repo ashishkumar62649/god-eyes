@@ -599,3 +599,22 @@ All agents must append to this file after completing work.
 - dependencies added: no
 - forbidden folders touched: no
 - Next safe task: Ready for Kiro review.
+
+### [2026-05-15T15:30:00Z] Gemini CLI — WO-016 Frontend Command UI Design Polish
+- Work order: WO-016
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-frontend-design-polish
+- Start time UTC: 2026-05-15T15:00:00Z
+- End time UTC: 2026-05-15T15:30:00Z
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was done: Polished frontend styling for a premium dark glass command interface. Simplified `DetailPanel`, `LayerPanel`, `StatusPanel`, and `Header` components. Improved visual hierarchy, clarified API offline and loading states, and adjusted `shell.css` variables for deeper blur and elegant borders. Improved `airportMarkerSprites.ts` and `aviationLayerRenderer.ts` to output minimalist markers and cleanly identifiable clusters with outer glows and readable typography.
+- Files modified: apps/web/src/styles/shell.css, apps/web/src/components/Header.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/DetailPanel.tsx, apps/web/src/components/StatusPanel.tsx, apps/web/src/lib/airportMarkerSprites.ts, apps/web/src/lib/aviationLayerRenderer.ts, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build, pnpm install && pnpm --filter contracts build && pnpm --filter web build (sequentially via PowerShell)
+- Tests/build result: Build successful
+- Browser visual verification performed: no (unable to perform manual browser verification in this environment)
+- Known issues: Without manual browser verification, pixel-perfect alignment and interaction polish (like hover states feeling right in real-time) are theoretical.
+- Forbidden folders touched: no
+- Next safe task: Kiro integration review.

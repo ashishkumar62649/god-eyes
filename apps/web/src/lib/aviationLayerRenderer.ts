@@ -59,7 +59,7 @@ export function renderAviationObjects(
       visibleCount += count;
       
       const baseSize = 24;
-      const growthFactor = Math.min(count * 0.8, 16);
+      const growthFactor = Math.min(count * 0.4, 12);
       const finalSize = baseSize + growthFactor;
       const clusterIcon = getClusterCanvas(finalSize);
 
@@ -74,11 +74,9 @@ export function renderAviationObjects(
         },
         label: {
           text: count.toString(),
-          font: count > 10 ? 'bold 14px JetBrains Mono, monospace' : 'bold 12px JetBrains Mono, monospace',
-          fillColor: Color.WHITE,
-          outlineColor: Color.BLACK,
-          outlineWidth: 4,
-          style: LabelStyle.FILL_AND_OUTLINE,
+          font: '600 12px Inter, sans-serif',
+          fillColor: Color.fromCssColorString('#00d2ff'),
+          style: LabelStyle.FILL,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
           pixelOffset: new Cartesian2(0, 0),

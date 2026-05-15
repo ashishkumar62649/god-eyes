@@ -18,43 +18,38 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
       </div>
       
       {!isCollapsed && (
-        <div className="panel-content" style={{ display: 'flex', gap: '48px', alignItems: 'center' }}>
-          <div className="detail-row" style={{ marginBottom: 0 }}>
+        <div className="panel-content" style={{ display: 'flex', gap: '32px', alignItems: 'center', padding: '16px 20px' }}>
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Node Status</div>
-            <div className="detail-value" style={{ color: 'var(--shell-accent)' }}>CONNECTED / LOCAL</div>
+            <div className="detail-value" style={{ color: 'var(--shell-accent)' }}>CONNECTED</div>
           </div>
           
-          <div className="detail-row" style={{ marginBottom: 0 }}>
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Active Layers</div>
             <div className="detail-value">
-              L0: GLOBE CORE
-              {aviationLayerActive && ' / L1: AVIATION'}
+              L0
+              {aviationLayerActive && ' / L1'}
             </div>
           </div>
           
-          <div className="detail-row" style={{ marginBottom: 0 }}>
-            <div className="detail-label">Mode</div>
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+            <div className="detail-label">Render Mode</div>
             <div className="detail-value" style={{ color: aviationStats.clustersActive ? 'var(--shell-accent)' : 'inherit' }}>
               {aviationStats.clustersActive ? 'CLUSTERED' : 'POINTS'}
             </div>
           </div>
           
-          <div className="detail-row" style={{ marginBottom: 0 }}>
-            <div className="detail-label">Data Ingestion</div>
-            <div className="detail-value" style={{ opacity: 0.6 }}>
-              {aviationLayerActive ? `STREAMING L1 [${aviationStats.loaded}]` : 'AWAITING L1'}
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+            <div className="detail-label">Data Stream</div>
+            <div className="detail-value" style={{ opacity: 0.8 }}>
+              {aviationLayerActive ? `L1 [${aviationStats.loaded}]` : 'AWAITING L1'}
             </div>
           </div>
-          
-          <div className="detail-row" style={{ marginBottom: 0 }}>
-            <div className="detail-label">Engine</div>
-            <div className="detail-value">CESIUMJS / VITE</div>
-          </div>
 
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
-             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.4 : 0.2 }}></div>
-             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.7 : 0.5 }}></div>
-             <div style={{ width: '4px', height: '16px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 1.0 : 0.8 }}></div>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+             <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.3 : 0.1 }}></div>
+             <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.6 : 0.3 }}></div>
+             <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 1.0 : 0.5 }}></div>
           </div>
         </div>
       )}

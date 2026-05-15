@@ -12,6 +12,7 @@ const Header: React.FC = () => {
           type="text" 
           className="shell-search-input" 
           placeholder="SEARCH GLOBAL INTELLIGENCE..." 
+          readOnly
         />
       </div>
       
