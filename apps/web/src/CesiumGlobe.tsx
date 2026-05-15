@@ -13,7 +13,7 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 
 import { fetchAviationLayerObjects } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
-import { setupVisibilityCulling } from './lib/cesiumVisibility';
+import { isPositionVisible } from './lib/cesiumVisibility';
 import { renderAviationObjects } from './lib/aviationLayerRenderer';
 
 interface CesiumGlobeProps {
@@ -99,13 +99,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
-      // Fast visibility update for active entities to prevent see-through during rotation
-      setupVisibilityCulling(
-        viewer, 
-        dataSource, 
-        () => aviationLayerActiveRef.current
-      );
-
       // Fetch Data Logic
       const fetchAndRenderData = async () => {
         if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
@@ -179,6 +172,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
         
         const entity = pickedObject.id;
+        
+        // CHECK VISIBILITY
+        const position = entity.position?.getValue(viewer!.clock.currentTime);
+        if (position && !isPositionVisible(viewer!, position)) {
+          // It's behind the globe, ignore click!
+          onObjectSelectRef.current(null);
+          return;
+        }
         
         // Handle Cluster Click
         if (entity.properties && entity.properties.isCluster?.getValue()) {

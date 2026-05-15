@@ -27,7 +27,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         setError(null);
       } catch (err) {
         console.error('Failed to fetch aviation status:', err);
-        setError('Aviation API offline');
+        setError('API OFFLINE');
       } finally {
         setLoading(false);
       }
@@ -39,51 +39,50 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   return (
     <aside className={`shell-panel shell-panel-left shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="panel-header">
-        {!isCollapsed && <span>Layers</span>}
+        {!isCollapsed && <span>Operations</span>}
         <button className="panel-toggle" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? '»' : '«'}
         </button>
       </div>
       
       {isCollapsed ? (
-        <div className="collapsed-label">LAYERS</div>
+        <div className="collapsed-label">OPERATIONS</div>
       ) : (
         <div className="panel-content">
-          <div className="layer-item active">
-            <div className="layer-name">Globe Core</div>
-            <div className="layer-status">Active — Primary</div>
+          <div className="layer-item active" style={{ cursor: 'default' }}>
+            <div className="layer-name">Globe Core [L0]</div>
+            <div className="layer-status" style={{ opacity: 0.8 }}>ONLINE — ACTIVE</div>
           </div>
           
           <div 
             className={`layer-item ${aviationLayerActive ? 'active' : ''}`} 
             onClick={() => !error && setAviationLayerActive(!aviationLayerActive)}
-            style={{ cursor: error ? 'not-allowed' : 'pointer' }}
+            style={{ 
+              cursor: error ? 'not-allowed' : 'pointer',
+              borderColor: error ? 'rgba(255, 77, 77, 0.3)' : undefined
+            }}
           >
-            <div className="layer-name">Aviation / Airports</div>
+            <div className="layer-name">Aviation / Airports [L1]</div>
             <div className="layer-status">
               {error ? (
-                <span style={{ color: '#ff4d4d' }}>{error}</span>
+                <span style={{ color: '#ff4d4d', fontWeight: 600 }}>{error}</span>
               ) : loading ? (
-                'Loading...'
+                <span style={{ opacity: 0.7 }}>SYNCING...</span>
               ) : aviationLayerActive ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span>Active — {aviationStatus?.objectCounts.airports.toLocaleString() || 0} Records</span>
-                  <span style={{ fontSize: '0.6rem', opacity: 0.8, color: 'var(--shell-accent)' }}>
-                    Loaded: {aviationStats.loaded} | Visible: {aviationStats.visible}
-                  </span>
-                  <span style={{ fontSize: '0.55rem', opacity: 0.6 }}>
-                    CLUSTERING: {aviationStats.clustersActive ? 'ENABLED' : 'DISABLED'}
-                  </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                  <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', opacity: 0.8 }}>
+                    <span>LOADED: {aviationStats.loaded} / {aviationStatus?.objectCounts.airports.toLocaleString() || 0}</span>
+                    <span>VISIBLE: {aviationStats.visible}</span>
+                  </div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '2px' }}>
+                    MODE: {aviationStats.clustersActive ? 'CLUSTER AGGREGATION' : 'POINT RENDER'}
+                  </div>
                 </div>
               ) : (
-                'Ready — Click to Enable'
+                <span style={{ opacity: 0.7 }}>READY — CLICK TO ENABLE</span>
               )}
             </div>
-          </div>
-
-          <div className="layer-item" style={{ opacity: 0.3, cursor: 'default' }}>
-            <div className="layer-name">Satellite</div>
-            <div className="layer-status">Pending</div>
           </div>
         </div>
       )}

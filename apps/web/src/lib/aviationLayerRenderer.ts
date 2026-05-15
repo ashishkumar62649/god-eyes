@@ -10,6 +10,9 @@ import {
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
 import { Icons, getClusterCanvas } from './airportMarkerSprites';
 
+const AIRPORT_VISUAL_HEIGHT_METERS = 100;
+const CLUSTER_VISUAL_HEIGHT_METERS = 5000;
+
 export function renderAviationObjects(
   dataSource: CustomDataSource,
   items: (AirportObject | AirportClusterObject)[],
@@ -30,12 +33,15 @@ export function renderAviationObjects(
       
       dataSource.entities.add({
         id: `airport-${airport.id}`,
-        position: Cartesian3.fromDegrees(airport.position.longitude, airport.position.latitude, 0),
+        position: Cartesian3.fromDegrees(
+          airport.position.longitude, 
+          airport.position.latitude, 
+          AIRPORT_VISUAL_HEIGHT_METERS
+        ),
         billboard: {
           image: airport.category === 'large_airport' ? Icons.largeAirport : Icons.smallAirport,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY, 
         },
         label: {
           text: airport.ident,
@@ -45,7 +51,6 @@ export function renderAviationObjects(
           outlineColor: Color.BLACK,
           verticalOrigin: VerticalOrigin.BOTTOM,
           pixelOffset: new Cartesian2(0, -10),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: {
           rawData: airport,
@@ -59,30 +64,30 @@ export function renderAviationObjects(
       visibleCount += count;
       
       const baseSize = 24;
-      const growthFactor = Math.min(count * 0.8, 16);
+      const growthFactor = Math.min(count * 0.4, 12);
       const finalSize = baseSize + growthFactor;
       const clusterIcon = getClusterCanvas(finalSize);
 
       dataSource.entities.add({
         id: `cluster-${cluster.id}`,
-        position: Cartesian3.fromDegrees(cluster.position.longitude, cluster.position.latitude, 0),
+        position: Cartesian3.fromDegrees(
+          cluster.position.longitude, 
+          cluster.position.latitude, 
+          CLUSTER_VISUAL_HEIGHT_METERS
+        ),
         billboard: {
           image: clusterIcon as any,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
           text: count.toString(),
-          font: count > 10 ? 'bold 14px JetBrains Mono, monospace' : 'bold 12px JetBrains Mono, monospace',
-          fillColor: Color.WHITE,
-          outlineColor: Color.BLACK,
-          outlineWidth: 4,
-          style: LabelStyle.FILL_AND_OUTLINE,
+          font: '600 12px Inter, sans-serif',
+          fillColor: Color.fromCssColorString('#00d2ff'),
+          style: LabelStyle.FILL,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
           pixelOffset: new Cartesian2(0, 0),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: {
           isCluster: true,
