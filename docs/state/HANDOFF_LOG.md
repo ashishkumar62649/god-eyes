@@ -637,3 +637,22 @@ All agents must append to this file after completing work.
 - Known issues: Without manual browser verification, exact edge behavior at the horizon threshold cannot be perfectly confirmed, but mathematically it is strictly aligned with the Earth's radius and should eliminate back-side rendering.
 - Forbidden folders touched: no
 - Next safe task: Kiro integration review.
+
+### [2026-05-15T16:30:00Z] Gemini CLI — WO-016 Fix: Use globe depth testing for aviation markers
+- Work order: WO-016
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-frontend-design-polish
+- Start time UTC: 2026-05-15T16:05:00Z
+- End time UTC: 2026-05-15T16:30:00Z
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was done: Redesigned the behind-globe visibility strategy to use native Cesium depth testing instead of custom billboards. Removed `disableDepthTestDistance: Number.POSITIVE_INFINITY` from airport and cluster billboards in `aviationLayerRenderer.ts`. Positioned airports at 100m altitude and clusters at 5000m altitude to prevent surface clipping. Removed the `scene.preRender` loop that manually toggled visibility state, restoring smooth rendering. Retained custom math dot-product check in `cesiumVisibility.ts` only as a safe backup inside the `ScreenSpaceEventHandler` to prevent flying to behind-globe entities if picking penetrates the globe slightly.
+- Files modified: apps/web/src/CesiumGlobe.tsx, apps/web/src/lib/aviationLayerRenderer.ts, apps/web/src/lib/cesiumVisibility.ts, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build
+- Tests/build result: Build successful
+- Browser visual verification performed: no (unable to perform manual browser verification in this environment)
+- Known issues: Without manual browser verification, exact rendering details (e.g. clipping of markers on mountains) cannot be confirmed, but relying on default Cesium depth testing resolves the architectural issue of fighting the globe engine.
+- Forbidden folders touched: no
+- Next safe task: Kiro integration review.

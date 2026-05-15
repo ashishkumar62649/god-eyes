@@ -10,6 +10,9 @@ import {
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
 import { Icons, getClusterCanvas } from './airportMarkerSprites';
 
+const AIRPORT_VISUAL_HEIGHT_METERS = 100;
+const CLUSTER_VISUAL_HEIGHT_METERS = 5000;
+
 export function renderAviationObjects(
   dataSource: CustomDataSource,
   items: (AirportObject | AirportClusterObject)[],
@@ -30,12 +33,15 @@ export function renderAviationObjects(
       
       dataSource.entities.add({
         id: `airport-${airport.id}`,
-        position: Cartesian3.fromDegrees(airport.position.longitude, airport.position.latitude, 0),
+        position: Cartesian3.fromDegrees(
+          airport.position.longitude, 
+          airport.position.latitude, 
+          AIRPORT_VISUAL_HEIGHT_METERS
+        ),
         billboard: {
           image: airport.category === 'large_airport' ? Icons.largeAirport : Icons.smallAirport,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY, 
         },
         label: {
           text: airport.ident,
@@ -45,7 +51,6 @@ export function renderAviationObjects(
           outlineColor: Color.BLACK,
           verticalOrigin: VerticalOrigin.BOTTOM,
           pixelOffset: new Cartesian2(0, -10),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: {
           rawData: airport,
@@ -65,12 +70,15 @@ export function renderAviationObjects(
 
       dataSource.entities.add({
         id: `cluster-${cluster.id}`,
-        position: Cartesian3.fromDegrees(cluster.position.longitude, cluster.position.latitude, 0),
+        position: Cartesian3.fromDegrees(
+          cluster.position.longitude, 
+          cluster.position.latitude, 
+          CLUSTER_VISUAL_HEIGHT_METERS
+        ),
         billboard: {
           image: clusterIcon as any,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
           text: count.toString(),
@@ -80,7 +88,6 @@ export function renderAviationObjects(
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
           pixelOffset: new Cartesian2(0, 0),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: {
           isCluster: true,

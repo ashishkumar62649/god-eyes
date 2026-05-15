@@ -13,7 +13,7 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 
 import { fetchAviationLayerObjects } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
-import { setupVisibilityCulling, isPositionVisible } from './lib/cesiumVisibility';
+import { isPositionVisible } from './lib/cesiumVisibility';
 import { renderAviationObjects } from './lib/aviationLayerRenderer';
 
 interface CesiumGlobeProps {
@@ -98,13 +98,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       const dataSource = new CustomDataSource('aviation');
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
-
-      // Fast visibility update for active entities to prevent see-through during rotation
-      setupVisibilityCulling(
-        viewer, 
-        dataSource, 
-        () => aviationLayerActiveRef.current
-      );
 
       // Fetch Data Logic
       const fetchAndRenderData = async () => {
