@@ -5,19 +5,22 @@ import DetailPanel from './DetailPanel';
 import StatusPanel from './StatusPanel';
 import '../styles/shell.css';
 import { AirportObject } from '@god-eyes/contracts';
+import { SearchResult } from '../lib/searchTypes';
 
 interface ShellProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
   selectedObject: AirportObject | null;
   aviationStats: { loaded: number; visible: number; clustersActive: boolean };
+  onSearchResultSelect: (result: SearchResult) => void;
 }
 
 const Shell: React.FC<ShellProps> = ({ 
   aviationLayerActive, 
   setAviationLayerActive, 
   selectedObject,
-  aviationStats
+  aviationStats,
+  onSearchResultSelect
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -30,7 +33,7 @@ const Shell: React.FC<ShellProps> = ({
 
   return (
     <div className="shell-container">
-      <Header />
+      <Header onSearchResultSelect={onSearchResultSelect} />
       
       <main className="shell-main">
         <LayerPanel 
