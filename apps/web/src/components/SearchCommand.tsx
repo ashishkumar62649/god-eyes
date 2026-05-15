@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SearchResult } from '../lib/searchTypes';
 import { parseCoordinates } from '../lib/searchParser';
-import { searchAirports, searchPlaces } from '../lib/searchProviders';
+import { searchAirports } from '../lib/searchProviders';
 
 interface SearchCommandProps {
   onResultSelect: (result: SearchResult) => void;
@@ -11,6 +11,7 @@ const SearchCommand: React.FC<SearchCommandProps> = ({ onResultSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiOffline, setApiOffline] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   
@@ -21,24 +22,29 @@ const SearchCommand: React.FC<SearchCommandProps> = ({ onResultSelect }) => {
     if (!searchQuery.trim()) {
       setResults([]);
       setIsLoading(false);
+      setApiOffline(false);
       return;
     }
 
     setIsLoading(true);
+    setApiOffline(false);
     
-    // 1. Check for coordinates
+    // 1. Check for coordinates (LOCAL)
     const coordResult = parseCoordinates(searchQuery);
     
-    // 2. Parallel search for airports and places
-    const [airportResults, placeResults] = await Promise.all([
-      searchAirports(searchQuery),
-      searchPlaces(searchQuery)
-    ]);
+    // 2. Search for airports (API)
+    let airportResults: SearchResult[] = [];
+    try {
+      airportResults = await searchAirports(searchQuery);
+    } catch (err) {
+      console.error('Airport search API offline:', err);
+      setApiOffline(true);
+    }
 
     const combinedResults: SearchResult[] = [];
+    // Show coordinates first if valid
     if (coordResult) combinedResults.push(coordResult);
     combinedResults.push(...airportResults);
-    combinedResults.push(...placeResults);
 
     setResults(combinedResults);
     setIsLoading(false);
@@ -57,6 +63,7 @@ const SearchCommand: React.FC<SearchCommandProps> = ({ onResultSelect }) => {
     } else {
       setResults([]);
       setIsLoading(false);
+      setApiOffline(false);
     }
 
     return () => {
@@ -78,10 +85,14 @@ const SearchCommand: React.FC<SearchCommandProps> = ({ onResultSelect }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex(prev => (prev + 1) % results.length);
+      if (results.length > 0) {
+        setSelectedIndex(prev => (prev + 1) % results.length);
+      }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex(prev => (prev - 1 + results.length) % results.length);
+      if (results.length > 0) {
+        setSelectedIndex(prev => (prev - 1 + results.length) % results.length);
+      }
     } else if (e.key === 'Enter') {
       if (results[selectedIndex]) {
         handleSelect(results[selectedIndex]);
@@ -96,6 +107,7 @@ const SearchCommand: React.FC<SearchCommandProps> = ({ onResultSelect }) => {
     setQuery('');
     setShowDropdown(false);
     setResults([]);
+    setApiOffline(false);
   };
 
   return (
@@ -117,7 +129,11 @@ const SearchCommand: React.FC<SearchCommandProps> = ({ onResultSelect }) => {
         <div className="shell-search-results">
           {isLoading && <div className="search-status-msg">SYNCHRONIZING...</div>}
           
-          {!isLoading && results.length === 0 && (
+          {!isLoading && apiOffline && (
+            <div className="search-status-msg" style={{ color: '#ff4d4d', opacity: 0.8 }}>AIRPORT API UNAVAILABLE</div>
+          )}
+
+          {!isLoading && results.length === 0 && !apiOffline && (
             <div className="search-status-msg">NO RESULTS FOUND</div>
           )}
           

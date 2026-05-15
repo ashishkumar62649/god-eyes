@@ -778,3 +778,25 @@ All agents must append to this file after completing work.
 - Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): cfe3338
 - Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or geocoder integration.
+
+### [2026-05-15T20:00:00Z] Gemini CLI — WO-019 fix Unified Search v1 cleanup and offline behavior
+- Work order: WO-019 fix
+- Agent: Gemini CLI
+- LLM model: gemini-2.5-pro
+- Tool/CLI used: Gemini CLI
+- Branch: agent/gemini-unified-globe-search
+- Start time UTC: 2026-05-15T19:30:00Z
+- End time UTC: 2026-05-15T20:00:00Z
+- Commit hash: uncommitted
+- Push status: local only (awaiting review)
+- What was fixed: Disabled the unreliable place search (IonGeocoderService) and documented it as future work. Robustified `SearchCommand.tsx` to ensure coordinate search works independently of the airport API status. Added an `apiOffline` state to the search dropdown to show a clean "AIRPORT API UNAVAILABLE" message instead of crashing or feeling broken when the backend is unreachable. Cleaned up unused imports and properly prioritized local coordinate results.
+- Airport search kept: yes
+- Coordinate offline search works: yes
+- Broken place search disabled/documented: yes
+- Browser verification performed: no (unable to perform manual browser verification in this environment)
+- Commands run: pnpm --filter web build
+- Tests/build result: Build successful (48 modules transformed)
+- Known issues: Without manual browser verification, exact visual alignment of the offline message in the dropdown is theoretical. Environment-related Ion token warning in `CesiumGlobe.tsx` is maintained as a graceful non-fatal warning.
+- Forbidden folders touched: no
+- Next safe task: Kiro integration review.
+
