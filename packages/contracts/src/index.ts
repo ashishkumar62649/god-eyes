@@ -169,7 +169,6 @@ export const LayerObjectsListResponseSchema = z.object({
   items: z.union([
     z.array(AirportObjectSchema),
     z.array(AirportClusterObjectSchema),
-    z.array(AirportMarkerObjectSchema),
   ]),
   pagination: PaginationSchema,
   mode: z.enum(['points', 'clusters']).optional(),
