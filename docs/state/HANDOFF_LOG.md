@@ -1240,3 +1240,53 @@ All agents must append to this file after completing work.
 - Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): 5fb5483
 - Next recommended task: Await code review and merge approval. Next work order: Airport Detail API integration (Runways, Frequencies, Navaids, Data Quality).
+
+### 2026-05-15T20:41:49Z Codex - WO-025 Airport Detail Data QA Samples
+
+- Work order: WO-025
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-airport-detail-qa-samples
+- Start time UTC: 2026-05-15T20:36:07Z
+- End time UTC: 2026-05-15T20:41:49Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Added a read-only airport detail QA sample selector for future Airport Detail API and Object Intel testing; documented selected local Docker samples and how Claude/API, Gemini/frontend, and Kiro/manual QA should use them; added static/unit tests for script safety, CLI flags, parameterized SQL, expected output fields, documentation, and no generated output dumps.
+- Script added: `scripts/aviation_airport_detail_qa_samples.py`
+- Tests added: `tests/data/layer_01_aviation/test_aviation_airport_detail_qa_samples.py`
+- Docs added: `docs/data/layer_01_aviation/AIRPORT_DETAIL_QA_SAMPLES.md`
+- Commands run: `python scripts\aviation_airport_detail_qa_samples.py --json --limit 10`; `python scripts\aviation_airport_detail_qa_samples.py --limit 10`; `python -m pytest tests/data/layer_01_aviation/test_aviation_airport_detail_qa_samples.py -q`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`; `git status --short --branch`
+- Tests/build result: 79 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; JSON QA sample script completed successfully against local Docker PostGIS.
+- QA sample findings: Selected 10 distinct local QA samples: `OMDB` rich major airport; `KNHU` runways with no frequencies; `KCVG` high frequency count; `00AA` sparse no runway/frequency detail; `JRA` heliport; `KNRQ` small airfield; `1OH8` many nearby navaids; `01A` zero nearby navaids within 100 km; `1LA9` missing runway endpoint coordinates; `KORD` complete runway endpoint coordinates.
+- Known issues: Samples reflect local Docker database state and may change after future source refreshes; they are QA fixtures, not production SLAs; no live operational NOTAM/METAR/TAF/aircraft data is included; API endpoint and frontend Object Intel display were intentionally not implemented; no source data was mutated.
+- Forbidden folders touched: no.
+- Next safe task: Claude/API can use `source_id + source_object_id` values from the QA sample output for Airport Detail API v1 endpoint tests; Gemini/frontend can use the same samples for Object Intel manual QA after the API contract lands.
+
+
+### 2026-05-16T02:30:00Z Kiro CLI — WO-025 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-025
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-airport-detail-qa-samples
+- Review start time UTC: 2026-05-16T02:28:02Z
+- Review end time UTC: 2026-05-16T02:30:00Z
+- Commit(s) reviewed: 9b69259c0213323ca744fe09421b8249e3608808 (Codex work), ac23014 (review document)
+- Push decision: PASS
+- Branch pushed: agent/codex-airport-detail-qa-samples
+- Review result: All 9 checks passed. Script is read-only and comprehensive. SQL is safe and parameterized. Sample coverage complete. Documentation clear and actionable. Tests pass (79). No secrets committed. Folder boundaries respected.
+- Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (79 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
+- Git status result: ✅ PASS (branch agent/codex-airport-detail-qa-samples, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: ✅ PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
+- Script review result: ✅ PASS (read-only, --json/--limit work, parameterized SQL, no file writes, no mutations, functions focused)
+- QA sample coverage result: ✅ PASS (10 samples cover rich detail, sparse detail, heliport, small airfield, dense/no frequencies, many/few navaids, missing/complete runway coords)
+- SQL safety result: ✅ PASS (all inputs parameterized, no string interpolation, no destructive SQL, no mutations, no fake data, no JSON dumps)
+- Documentation result: ✅ PASS (all sections present, purpose, samples, what each tests, Claude/API/Gemini/Kiro usage, limitations, refresh process)
+- Tests/build result: ✅ PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Known risks: None. Local Docker state (expected). Not production SLAs (expected). No live data (expected). API/frontend out of scope (expected).
+- Review document: docs/state/INTEGRATION_REVIEW_WO-025.md
+- Commit hash (review document): ac23014
+- Next recommended task: Push branch to origin. Claude/API use samples for endpoint QA. Gemini/frontend use samples for Object Intel QA.
