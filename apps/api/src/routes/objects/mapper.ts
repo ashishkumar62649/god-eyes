@@ -1,4 +1,4 @@
-import { AirportObject } from '@god-eyes/contracts';
+import { AirportObject, AirportMarkerObject } from '@god-eyes/contracts';
 import { AirportRow, toContractDateTime } from './types.js';
 
 export function rowToAirportObject(row: AirportRow): AirportObject {
@@ -22,6 +22,26 @@ export function rowToAirportObject(row: AirportRow): AirportObject {
     },
     elevationFt: row.elevation_ft,
     createdAt: toContractDateTime(row.created_at),
+    updatedAt: toContractDateTime(row.updated_at),
+  };
+}
+
+export function rowToAirportMarkerObject(row: AirportRow): AirportMarkerObject {
+  return {
+    id: row.id,
+    layerId: row.layer_id,
+    objectType: 'airport' as const,
+    name: row.name,
+    ident: row.ident,
+    iataCode: row.iata_code,
+    category: row.category_normalized,
+    municipality: row.municipality,
+    country: row.iso_country,
+    position: {
+      latitude: row.latitude_deg,
+      longitude: row.longitude_deg,
+    },
+    elevationFt: row.elevation_ft,
     updatedAt: toContractDateTime(row.updated_at),
   };
 }

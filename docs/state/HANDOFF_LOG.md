@@ -2,6 +2,27 @@
 
 All agents must append to this file after completing work.
 
+### 2026-05-15T23:35:00Z Claude Code CLI — WO-018 Lightweight Aviation API Payload Profiles
+
+- Work order: WO-018
+- Agent: Claude Code CLI
+- LLM model: Claude 4.7 (Mini)
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-lightweight-api-payloads
+- Start time UTC: 2026-05-15T23:20:00Z
+- End time UTC: 2026-05-15T23:35:00Z
+- Commit hash: (pending commit)
+- Push status: not pushed
+- What was done: Added lightweight payload profiles for aviation object list endpoints. Implemented fields=standard (default, backward compatible) and fields=marker (lightweight for globe marker rendering). Marker mode returns only essential fields (id, layerId, objectType, name, ident, iataCode, category, municipality, country, position, elevationFt, updatedAt) without source/internal fields. Added SQL column selection optimization in marker mode. Invalid fields parameter returns 400 with INVALID_FIELDS error code. Metadata includes fields profile in marker mode.
+- Payload profiles added: standard (default), marker (lightweight)
+- Backward compatibility: fields=standard is default, existing responses unchanged
+- Files created/modified: packages/contracts/src/index.ts (PayloadProfiles, AirportMarkerObjectSchema, INVALID_FIELDS error code), apps/api/src/routes/objects/validation.ts (validateFields), apps/api/src/routes/objects/errors.ts (invalidFieldsError), apps/api/src/routes/objects/mapper.ts (rowToAirportMarkerObject), apps/api/src/routes/objects/points.ts (fields-aware query and mapping), apps/api/src/routes/objects/index.ts (fields validation and passing), apps/api/tests/objects.test.ts (12 new tests), docs/postman/GOD_EYES_LOCAL_API.postman_collection.json (3 new requests)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (58 passed), pnpm --filter web build
+- Tests/build result: Contracts build PASS, API build PASS, 58 tests PASS (12 new: default standard, explicit standard, marker payload, marker optional fields, marker with bbox, marker with category, marker with country, marker with search, invalid fields 400, metadata fields marker, metadata fields standard, clusters unaffected)
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review and push
+
 ### 2026-05-15T22:37:45Z Kiro CLI — WO-015 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-015
