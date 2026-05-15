@@ -774,3 +774,26 @@ All agents must append to this file after completing work.
 - Folder boundaries: ✅ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): cfe3338
 - Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or geocoder integration.
+
+### 2026-05-15T17:37:09Z Codex - WO-017 Apply and Verify Aviation Coordinate Quality Migration
+
+- Work order: WO-017
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Docker Compose, Docker exec psql, Python
+- Branch: agent/codex-coordinate-migration-verification
+- Start time UTC: 2026-05-15T17:34:11Z
+- End time UTC: 2026-05-15T17:37:09Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Confirmed local branch/status, started Docker infrastructure, applied migration 004 to local PostGIS, verified the coordinate quality review and coordinate override tables, verified columns/constraints/indexes, tested invalid coordinate and confidence rows inside a rolled-back transaction, confirmed aviation_airports row count and coordinate sample hash were unchanged, ran the coordinate quality script after migration, and added verification documentation plus static/unit tests.
+- Migration applied: yes, using `Get-Content database\migrations\layers\layer_01_aviation\004_aviation_coordinate_quality_overrides.sql | docker exec -i god-eyes-postgis psql -v ON_ERROR_STOP=1 -U god_eyes -d god_eyes_dev`
+- Tables verified: `aviation_coordinate_quality_reviews`, `aviation_coordinate_overrides`
+- Constraints verified: invalid latitude below -90, latitude above 90, longitude below -180, longitude above 180, confidence_score below 0, and confidence_score above 1 were all rejected; verification transaction rolled back.
+- Indexes verified: source identity, airport ident, review status, active override, and one-active-override-per-source indexes exist.
+- Source coordinates untouched: yes. `aviation_airports` row count stayed 85,377 and deterministic coordinate/geometry sample hash stayed `760dde5c03072db19d8b66c6369e6b46`.
+- Commands run: `git branch --show-current`; `git status`; `docker compose -f infra/docker/docker-compose.yml up -d`; `docker compose -f infra/docker/docker-compose.yml ps`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; migration apply command above; information_schema/pg_constraint/pg_indexes verification queries; rollback constraint verification SQL; `python scripts\aviation_coordinate_quality.py --json`; `python -m pytest tests/data/layer_01_aviation/test_aviation_coordinate_migration_verification.py -q`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `git diff --check`; `git status --short --branch`
+- Tests/build result: 54 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; coordinate quality script ran after migration and reported review count 0 and active override count 0.
+- Known issues: Local Docker is not production hardware; test inserts were rolled back; API routes do not consume overrides yet; no real manual review/override rows exist yet.
+- Forbidden folders touched: no.
+- Next safe task: API-owned opt-in effective-coordinate query path that can prefer one active approved override while preserving source coordinates and provenance for audit.
