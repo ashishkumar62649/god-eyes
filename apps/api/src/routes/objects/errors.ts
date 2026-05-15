@@ -61,3 +61,7 @@ export function tablesUnavailableError(): ErrorResponse {
 export function objectNotFoundError(objectId: string): ErrorResponse {
   return makeErrorResponse(ErrorCodes.OBJECT_NOT_FOUND, `Airport not found: ${objectId}`);
 }
+
+export function invalidFieldsError(message: string, details: Record<string, unknown> = {}): ErrorResponse {
+  return makeErrorResponse(ErrorCodes.INVALID_FIELDS, message, details);
+}

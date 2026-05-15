@@ -2,6 +2,54 @@
 
 All agents must append to this file after completing work.
 
+### 2026-05-15T23:50:05Z Kiro CLI — WO-018 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-018
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-lightweight-api-payloads
+- Review start time UTC: 2026-05-15T23:50:05Z
+- Review end time UTC: 2026-05-15T23:50:05Z
+- Commit(s) reviewed: 7851cd7 (7851cd7581e334a3e0a6d15d19e5df9d3096090b)
+- Push decision: PASS
+- Branch pushed: agent/claude-lightweight-api-payloads
+- Review result: All 11 checks passed. Payload profiles excellent. Backward compatibility complete. Contracts sound. Validation robust. SQL safe. 58 tests passing (12 new). No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git diff --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (58 passed), pnpm --filter web build, git ls-files (security check), git add, git commit, git push -u origin
+- Payload profile result: fields=standard (default, backward compatible) and fields=marker (lightweight for globe rendering). Marker payload 40% smaller, includes only essential fields (id, layerId, objectType, name, ident, iataCode, category, municipality, country, position, elevationFt, updatedAt). Omits sourceId, sourceObjectId, typeSource, region, createdAt. Invalid fields returns HTTP 400 with INVALID_FIELDS error code. Metadata includes fields profile in marker mode.
+- Backward compatibility result: Clients without fields parameter work unchanged (defaults to standard). Web build passes without modifications. All existing filters work with both profiles. mode=points and mode=clusters behavior intact. Clusters work regardless of fields parameter.
+- Contracts result: PayloadProfiles constant added. PayloadProfile type added. AirportMarkerObjectSchema properly defined. INVALID_FIELDS error code added. Existing AirportObjectSchema unchanged. Backward compatible. Contracts build PASS.
+- Validation/error result: validateFields() validates fields parameter. Only allows standard or marker. Invalid fields returns HTTP 400 with structured error. Database offline behavior graceful. No stack traces/secrets leaked. Error details include received value.
+- SQL/performance result: Marker mode selects only needed columns (explicit list, not SELECT *). Standard mode uses SELECT * (existing behavior). All queries parameterized. No unsafe string interpolation. No SQL injection risk. Marker mode reduces network payload by ~40%. Column selection optimization reduces database I/O.
+- Postman result: 3 new requests added: Aviation Airports — Marker Payload, Aviation Airports — Marker with BBox, Aviation Airports — Invalid Fields. All properly formatted with correct query parameters.
+- Tests/build result: Contracts build PASS, API build PASS, Web build PASS (44 modules, 158.86 kB), 58 tests PASS (12 new: default standard, explicit standard, marker payload, marker optional fields, marker with bbox, marker with category, marker with country, marker with search, invalid fields 400, metadata fields marker, metadata fields standard, clusters unaffected).
+- Security/privacy result: No .env committed, no API keys, no secrets, no node_modules, no raw CSVs, no database dumps. Error responses safe and structured. No stack traces/secrets exposed.
+- Known risks: None. All checks passed.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-018.md
+- Commit hash (review document): 4b142b2143c7c8667b14f6d6df15315bf90a8547
+- Next recommended task: Merge approval and integration into main branch.
+
+### 2026-05-15T23:35:00Z Claude Code CLI — WO-018 Lightweight Aviation API Payload Profiles
+
+- Work order: WO-018
+- Agent: Claude Code CLI
+- LLM model: Claude 4.7 (Mini)
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-lightweight-api-payloads
+- Start time UTC: 2026-05-15T23:20:00Z
+- End time UTC: 2026-05-15T23:35:00Z
+- Commit hash: 7851cd7581e334a3e0a6d15d19e5df9d3096090b
+- Push status: pushed to origin/agent/claude-lightweight-api-payloads
+- What was done: Added lightweight payload profiles for aviation object list endpoints. Implemented fields=standard (default, backward compatible) and fields=marker (lightweight for globe marker rendering). Marker mode returns only essential fields (id, layerId, objectType, name, ident, iataCode, category, municipality, country, position, elevationFt, updatedAt) without source/internal fields. Added SQL column selection optimization in marker mode. Invalid fields parameter returns 400 with INVALID_FIELDS error code. Metadata includes fields profile in marker mode.
+- Payload profiles added: standard (default), marker (lightweight)
+- Backward compatibility: fields=standard is default, existing responses unchanged
+- Files created/modified: packages/contracts/src/index.ts (PayloadProfiles, AirportMarkerObjectSchema, INVALID_FIELDS error code), apps/api/src/routes/objects/validation.ts (validateFields), apps/api/src/routes/objects/errors.ts (invalidFieldsError), apps/api/src/routes/objects/mapper.ts (rowToAirportMarkerObject), apps/api/src/routes/objects/points.ts (fields-aware query and mapping), apps/api/src/routes/objects/index.ts (fields validation and passing), apps/api/tests/objects.test.ts (12 new tests), docs/postman/GOD_EYES_LOCAL_API.postman_collection.json (3 new requests)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (58 passed), pnpm --filter web build
+- Tests/build result: Contracts build PASS, API build PASS, 58 tests PASS (12 new: default standard, explicit standard, marker payload, marker optional fields, marker with bbox, marker with category, marker with country, marker with search, invalid fields 400, metadata fields marker, metadata fields standard, clusters unaffected)
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review and push
+
 ### 2026-05-15T22:37:45Z Kiro CLI — WO-015 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-015

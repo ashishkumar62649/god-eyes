@@ -1,11 +1,15 @@
 import { query } from '../../lib/db.js';
 import { AirportRow } from './types.js';
-import { rowToAirportObject } from './mapper.js';
+import { rowToAirportObject, rowToAirportMarkerObject } from './mapper.js';
 import { buildFiltersApplied, buildListMetadata } from './metadata.js';
 import { ParsedBBox } from './validation.js';
 import {
   LayerObjectsListResponseSchema,
   ErrorCodes,
+  PayloadProfile,
+  PayloadProfiles,
+  AirportMarkerObject,
+  AirportObject,
 } from '@god-eyes/contracts';
 import { tablesUnavailableError } from './errors.js';
 
@@ -16,16 +20,23 @@ export interface PointsQueryParams {
   search?: string;
   limit: number;
   offset: number;
+  fields: PayloadProfile;
 }
 
 export interface PointsResult {
-  items: ReturnType<typeof rowToAirportObject>[];
+  items: AirportObject[] | AirportMarkerObject[];
   total: number;
   filtersApplied: ReturnType<typeof buildFiltersApplied>;
 }
 
 export function buildPointsSql(params: PointsQueryParams): { sql: string; params: unknown[]; paramIndex: number } {
-  let sql = 'SELECT * FROM aviation_airports WHERE 1=1';
+  // In marker mode, select only needed columns for globe rendering
+  const isMarker = params.fields === PayloadProfiles.MARKER;
+  const selectColumns = isMarker
+    ? 'id, layer_id, source_id, source_airport_id, ident, type_source, category_normalized, name, latitude_deg, longitude_deg, elevation_ft, iso_country, iso_region, municipality, iata_code, created_at, updated_at'
+    : '*';
+
+  let sql = `SELECT ${selectColumns} FROM aviation_airports WHERE 1=1`;
   const queryParams: unknown[] = [];
   let paramIndex = 1;
 
@@ -70,7 +81,7 @@ export async function executePointsQuery(params: PointsQueryParams): Promise<Poi
   const { sql: baseSql, params: baseParams, paramIndex } = buildPointsSql(params);
 
   // Get total count (without pagination)
-  const countSql = baseSql.replace('SELECT *', 'SELECT COUNT(*) as count');
+  const countSql = baseSql.replace(/SELECT .+ FROM/, 'SELECT COUNT(*) as count FROM');
   const countResult = await query<{ count: string }>(countSql, baseParams);
   const totalCount = parseInt(countResult[0]?.count || '0', 10);
 
@@ -79,7 +90,12 @@ export async function executePointsQuery(params: PointsQueryParams): Promise<Poi
   const paginatedParams = [...baseParams, params.limit, params.offset];
 
   const rows = await query<AirportRow>(paginatedSql, paginatedParams);
-  const items = rows.map(rowToAirportObject);
+
+  // Map based on profile
+  const isMarker = params.fields === PayloadProfiles.MARKER;
+  const items = isMarker
+    ? rows.map(rowToAirportMarkerObject)
+    : rows.map(rowToAirportObject);
 
   const filtersApplied = buildFiltersApplied(
     params.bbox !== null,
@@ -99,10 +115,16 @@ export function buildPointsResponse(
   result: PointsResult,
   limit: number,
   offset: number,
+  fields: PayloadProfile,
   search?: string
 ) {
   const hasBBox = result.filtersApplied?.bbox === true;
   const metadata = buildListMetadata(hasBBox, result.filtersApplied, search);
+
+  // Add fields profile to metadata if marker mode
+  const metadataWithFields = fields === PayloadProfiles.MARKER
+    ? { ...metadata, fields: 'marker' }
+    : metadata;
 
   return LayerObjectsListResponseSchema.parse({
     items: result.items,
@@ -113,14 +135,14 @@ export function buildPointsResponse(
       total: result.total,
     },
     mode: 'points' as const,
-    metadata,
+    metadata: metadataWithFields,
   });
 }
 
 export async function handlePointsMode(params: PointsQueryParams) {
   try {
     const result = await executePointsQuery(params);
-    return buildPointsResponse(result, params.limit, params.offset, params.search);
+    return buildPointsResponse(result, params.limit, params.offset, params.fields, params.search);
   } catch (error) {
     throw new Error(ErrorCodes.DATABASE_OFFLINE);
   }

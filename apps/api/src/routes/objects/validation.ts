@@ -1,4 +1,5 @@
 import { VALID_CATEGORIES, ValidCategory, MAX_LIST_LIMIT, MAX_VIEWPORT_LIMIT, DEFAULT_LIMIT } from './constants.js';
+import { PayloadProfiles, PayloadProfile } from '@god-eyes/contracts';
 
 // Bounding box parsed from string
 export interface ParsedBBox {
@@ -91,4 +92,14 @@ export function clampBBoxToWorld(bbox: ParsedBBox): { minLon: number; maxLon: nu
     minLat: Math.max(bbox.minLat, -90),
     maxLat: Math.min(bbox.maxLat, 90),
   };
+}
+
+export function validateFields(fieldsStr: string | undefined): ValidationResult<PayloadProfile> {
+  if (!fieldsStr || fieldsStr === PayloadProfiles.STANDARD) {
+    return { value: PayloadProfiles.STANDARD, valid: true, error: null };
+  }
+  if (fieldsStr === PayloadProfiles.MARKER) {
+    return { value: PayloadProfiles.MARKER, valid: true, error: null };
+  }
+  return { value: PayloadProfiles.STANDARD, valid: false, error: "fields must be 'standard' or 'marker'" };
 }

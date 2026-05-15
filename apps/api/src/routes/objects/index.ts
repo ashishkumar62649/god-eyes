@@ -27,6 +27,7 @@ import {
   validateOffset,
   validateMode,
   validateZoom,
+  validateFields,
   getEffectiveMaxLimit,
   ParsedBBox,
   ValidationResult,
@@ -37,6 +38,7 @@ import {
   invalidCategoryError,
   invalidModeError,
   invalidLimitError,
+  invalidFieldsError,
   missingBBoxError,
   invalidLayerError,
   databaseOfflineError,
@@ -59,6 +61,7 @@ interface ObjectsQueryParams {
   search?: string;
   mode?: string;
   zoom?: string;
+  fields?: string;
 }
 
 interface ObjectsParams {
@@ -92,6 +95,7 @@ export async function objectRoutes(fastify: FastifyInstance) {
       search,
       mode: modeStr,
       zoom: zoomStr,
+      fields: fieldsStr,
     } = request.query;
 
     // ---- Basic validation ----
@@ -158,6 +162,13 @@ export async function objectRoutes(fastify: FastifyInstance) {
     }
     const zoom = zoomValidation.value;
 
+    // Validate fields parameter (payload profile)
+    const fieldsValidation = validateFields(fieldsStr);
+    if (!fieldsValidation.valid) {
+      return sendError(reply, 400, invalidFieldsError(fieldsValidation.error!, { received: fieldsStr }));
+    }
+    const fields = fieldsValidation.value;
+
     // Clusters require bbox
     if (mode === 'clusters' && parsedBBox === null) {
       return sendError(reply, 400, missingBBoxError({ hint: 'Use bbox=minLon,minLat,maxLon,maxLat' }));
@@ -201,6 +212,7 @@ export async function objectRoutes(fastify: FastifyInstance) {
         search,
         limit,
         offset,
+        fields,
       };
       return await handlePointsMode(params);
     } catch (error) {
