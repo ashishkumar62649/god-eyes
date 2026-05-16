@@ -1,3 +1,30 @@
+### 2026-05-17T01:56:27Z Kiro CLI — HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
+
+- Review work order: HOTFIX airport detail API runtime failure
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-airport-detail-runtime-hotfix
+- Review start time UTC: 2026-05-17T01:56:27Z
+- Review end time UTC: 2026-05-17T01:56:27Z
+- Commit(s) reviewed: 5562cd2 (fix: correct runway heading column names in detail endpoint)
+- Push decision: PASS
+- Branch pushed: agent/claude-airport-detail-runtime-hotfix
+- Review result: All 11 checks passed. Airport Detail API runtime hotfix complete. Database column name mismatch corrected (le_heading_deg/he_heading_deg → le_heading_degT/he_heading_degT). All detail endpoints return 200 OK. All builds pass. All tests pass (84). No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git diff --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (84 passed), pnpm --filter web build, git ls-files (security check)
+- Root cause result: ✅ PASS (Database column name mismatch: code used le_heading_deg/he_heading_deg but actual DB columns are le_heading_degT/he_heading_degT with "T" suffix. This caused Zod validation failure during runway mapping, incorrectly surfaced as DATABASE_OFFLINE.)
+- Fix result: ✅ PASS (RunwayRow interface updated to use le_heading_degT and he_heading_degT. mapRunway function correctly maps heading values. No incorrect column references remain.)
+- Manual endpoint verification result: ✅ PASS (VOMM detail: 200 OK with airport/runways/frequencies/nearbyNavaids/metadata. OMDB detail: 200 OK. KORD detail: 200 OK. Missing airport returns 404. Existing list/search/marker endpoints still work.)
+- Regression endpoint result: ✅ PASS (Standard search works, marker search works, marker bbox works, clusters work. All existing endpoints remain functional.)
+- Contracts result: ✅ PASS (RunwayDetailSchema, FrequencyDetailSchema, NavaidDetailSchema, AirportDetailResponseSchema all present with correct fields. No breaking changes. Contracts build PASS.)
+- Builds/tests result: ✅ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (84 tests))
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Known risks: This hotfix is required before WO-026 Object Intel detail integration because frontend depends on Airport Detail API returning real detail data.
+- Review document: docs/state/INTEGRATION_REVIEW_HOTFIX_AIRPORT_DETAIL_RUNTIME.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Merge approval and integration into main branch. Proceed with WO-026 Object Intel detail integration.
+
+
 ### 2026-05-17T01:07:36Z Kiro CLI — HOTFIX Marker Payload Main Runtime Fix PASS, branch pushed to origin
 
 - Review work order: HOTFIX marker payload main runtime fix
