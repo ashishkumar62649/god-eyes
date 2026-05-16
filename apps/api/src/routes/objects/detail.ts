@@ -28,12 +28,12 @@ interface RunwayRow {
   le_latitude_deg: number | null;
   le_longitude_deg: number | null;
   le_elevation_ft: number | null;
-  le_heading_deg: number | null;
+  le_heading_degT: number | null;
   he_ident: string | null;
   he_latitude_deg: number | null;
   he_longitude_deg: number | null;
   he_elevation_ft: number | null;
-  he_heading_deg: number | null;
+  he_heading_degT: number | null;
 }
 
 interface FrequencyRow {
@@ -85,12 +85,12 @@ function mapRunway(row: RunwayRow) {
     leLatitude: row.le_latitude_deg,
     leLongitude: row.le_longitude_deg,
     leElevationFt: row.le_elevation_ft,
-    leHeadingDeg: row.le_heading_deg,
+    leHeadingDeg: row.le_heading_degT,
     heIdent: row.he_ident,
     heLatitude: row.he_latitude_deg,
     heLongitude: row.he_longitude_deg,
     heElevationFt: row.he_elevation_ft,
-    heHeadingDeg: row.he_heading_deg,
+    heHeadingDeg: row.he_heading_degT,
   });
 }
 
