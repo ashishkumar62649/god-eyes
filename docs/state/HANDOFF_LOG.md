@@ -1,3 +1,31 @@
+### 2026-05-17T01:07:36Z Kiro CLI — HOTFIX Marker Payload Main Runtime Fix PASS, branch pushed to origin
+
+- Review work order: HOTFIX marker payload main runtime fix
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-marker-main-hotfix
+- Review start time UTC: 2026-05-17T01:07:36Z
+- Review end time UTC: 2026-05-17T01:07:36Z
+- Commit(s) reviewed: 0544914 (fix: correct marker override confidence column), 68eed35 (fix: preserve marker contract compatibility), 93053f1 (docs: update hotfix entry)
+- Push decision: PASS
+- Branch pushed: agent/claude-marker-main-hotfix
+- Review result: All 9 checks passed. Marker payload hotfix complete. SQL column reference corrected (o.confidence → o.confidence_score). Contract compatibility preserved (separate AirportMarkerObjectsListResponseSchema). All marker endpoints return 200 OK. All builds pass. All tests pass (84). No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git diff --name-only, Select-String (SQL verification), pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (84 passed), pnpm --filter web build, git ls-files (security check)
+- Root cause result: ✅ PASS (SQL: o.confidence → o.confidence_score; Contract: separate marker schema created, default schema unchanged)
+- SQL hotfix result: ✅ PASS (no incorrect o.confidence references remain, only o.confidence_score used, all queries parameterized, no unsafe interpolation, no database writes)
+- Contract compatibility result: ✅ PASS (LayerObjectsListResponseSchema backward compatible, AirportMarkerObjectsListResponseSchema separate, marker endpoint uses marker schema, default endpoint uses default schema, frontend imports unbroken)
+- Manual endpoint verification result: ✅ PASS (all 4 marker endpoints return 200 OK: search, bbox, baseline, standard search still works)
+- Regression checks result: ✅ PASS (fields=standard works, search works, bbox works, marker+search works, marker+bbox works, existing airport list backward compatible, mode=clusters unaffected, coordinates=source/effective unaffected)
+- Builds/tests result: ✅ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (84 tests))
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Documentation result: ✅ PASS (HANDOFF_LOG.md updated with root cause, SQL fix, contract fix, commands, manual verification, tests/build result, push status)
+- Known risks: This hotfix is required before WO-024B Object Intel detail integration because frontend marker/viewport calls rely on fields=marker working correctly.
+- Review document: docs/state/INTEGRATION_REVIEW_HOTFIX_MARKER_PAYLOAD_MAIN.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Merge approval and integration into main branch. Proceed with WO-024B Object Intel detail integration.
+
+
 ### 2026-05-16T04:26:04Z Kiro CLI — WO-022 to WO-025 Integration Review PASS FOR MAIN
 
 - Review work order: WO-022 to WO-025 integration batch
