@@ -2,6 +2,7 @@
 import type { 
   LayerObjectsListResponse, 
   AirportObject,
+  AirportDetailResponse,
   LayerStatusResponse 
 } from '@god-eyes/contracts';
 
@@ -63,5 +64,20 @@ export async function fetchLayerStatus(layerId: string): Promise<LayerStatusResp
     throw new Error(`Failed to fetch layer status: ${response.status}`);
   }
   
+  return response.json();
+}
+
+export async function fetchAirportDetail(
+  objectId: string,
+  abortSignal?: AbortSignal
+): Promise<AirportDetailResponse> {
+  const url = `${API_BASE_URL}/api/layers/layer_01_aviation/objects/${objectId}/detail`;
+
+  const response = await fetch(url, { signal: abortSignal });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Failed to fetch airport detail: ${response.status}`);
+  }
+
   return response.json();
 }
