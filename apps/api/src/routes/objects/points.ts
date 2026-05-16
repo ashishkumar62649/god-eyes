@@ -5,6 +5,7 @@ import { buildFiltersApplied, buildListMetadata } from './metadata.js';
 import { ParsedBBox } from './validation.js';
 import {
   LayerObjectsListResponseSchema,
+  AirportMarkerObjectsListResponseSchema,
   ErrorCodes,
   PayloadProfile,
   PayloadProfiles,
@@ -226,7 +227,7 @@ export function buildPointsResponse(
     ? { ...metadata, ...metadataExtras }
     : metadata;
 
-  return LayerObjectsListResponseSchema.parse({
+  const responseData = {
     items: result.items,
     pagination: {
       limit,
@@ -236,7 +237,13 @@ export function buildPointsResponse(
     },
     mode: 'points' as const,
     metadata: metadataWithExtras,
-  });
+  };
+
+  // Use marker-specific schema for marker profile, default schema otherwise
+  if (fields === PayloadProfiles.MARKER) {
+    return AirportMarkerObjectsListResponseSchema.parse(responseData);
+  }
+  return LayerObjectsListResponseSchema.parse(responseData);
 }
 
 export async function handlePointsMode(params: PointsQueryParams) {
