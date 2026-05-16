@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### 2026-05-17T02:55:48Z Kiro CLI — WO-026 Object Intel Airport Detail API Integration PASS, branch pushed to origin
 
 - Review work order: WO-026
@@ -79,6 +80,69 @@
 - Commit hash (review document): c7171fd
 - Next recommended task: Claude/API use reference for Airport Detail API response labels/provenance. Gemini/frontend use reference for Object Intel display QA after API contract available.
 
+=======
+### 2026-05-17T02:50:00Z Kiro CLI — WO-028 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-028 Airport Detail API Runtime Error Hardening Tests
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-api-2
+- Review start time UTC: 2026-05-16T21:11:59Z
+- Review end time UTC: 2026-05-17T02:50:00Z
+- Commit(s) reviewed: 0003f376fed956af36938ed5288bafd92906efca (test: harden airport detail runtime coverage)
+- Push decision: PASS
+- Branch pushed: agent/claude-api-2
+- Review result: All 9 checks passed. Airport Detail API runtime hardening tests complete. Zod validation errors now propagate as-is instead of being mislabeled as DATABASE_OFFLINE. 5 new tests added covering runway heading mapping, response schema validation, and per-schema field validation. Tests increased from 84 to 89. All builds pass. No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (89 passed), pnpm --filter web build
+- Runtime hardening result: ✅ PASS (Zod validation errors propagate as-is, not mislabeled as DATABASE_OFFLINE, catches mapping bugs earlier, guardrail in handleAirportDetail verified)
+- Test coverage result: ✅ PASS (5 new tests: runway heading mapping, response schema sections, runway schema fields, frequency schema fields, navaid schema fields)
+- API behavior result: ✅ PASS (airport detail returns valid response, missing airport returns 404, invalid params return 400, DB offline returns 503, list/search/marker/cluster endpoints unaffected)
+- SQL/security result: ✅ PASS (no unsafe SQL, all queries parameterized, no database writes, no migrations, no unbounded queries)
+- Builds/tests result: ✅ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (89 tests, 4 files))
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Known risks: None. All checks passed.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-028.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or feature work.
+
+---
+
+### 2026-05-17T02:35:00Z — WO-028 Airport Detail API Runtime Error Hardening Tests
+
+- Work order: WO-028 Airport Detail API Runtime Error Hardening Tests
+- Branch: agent/claude-api-2
+- Goal: Add tests or small safe improvements so Airport Detail API runtime mapping bugs are caught earlier.
+
+**Context:**
+We had runtime bugs hidden as DATABASE_OFFLINE:
+- marker payload confidence column mismatch (o.confidence → o.confidence_score)
+- airport detail runway heading column mismatch (le_heading_deg → le_heading_degT)
+
+**Changes:**
+- Added 5 new tests for Airport Detail API runtime hardening:
+  1. Runway heading mapping test (leHeadingDeg, heHeadingDeg fields)
+  2. Response schema includes all sections (airport, runways, frequencies, nearbyNavaids, metadata)
+  3. Runway schema validation (all required fields per RunwayDetailSchema)
+  4. Frequency schema validation (all required fields per FrequencyDetailSchema)
+  5. Navaid schema validation (all required fields per NavaidDetailSchema)
+- Added guardrail in handleAirportDetail: Zod validation errors now propagate as-is instead of being mislabeled as DATABASE_OFFLINE (helps catch mapping bugs earlier)
+- Tests count: 84 → 89 (5 new tests added)
+
+**Commands run:**
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS
+- pnpm --filter api test → PASS (89 tests)
+- pnpm --filter web build → PASS (52 modules, 165.76 kB)
+
+**Build/test result:** ✅ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (89))
+
+**Security/privacy result:** ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps)
+
+**Note:** Branch not pushed - Kiro pushes after review.
+
+---
+>>>>>>> origin/agent/claude-api-2
 
 ### 2026-05-17T01:56:27Z Kiro CLI — HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
 

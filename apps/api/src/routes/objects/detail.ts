@@ -11,6 +11,7 @@ import {
   CoordinateModes,
   ErrorCodes,
 } from '@god-eyes/contracts';
+import { ZodError } from 'zod';
 import { tablesUnavailableError } from './errors.js';
 import { DEFAULT_NAVAID_RADIUS_KM, MAX_NAVAID_RADIUS_KM, DEFAULT_NAVAID_LIMIT, MAX_NAVAID_LIMIT } from './validation.js';
 import { AirportRow } from './types.js';
@@ -244,6 +245,11 @@ export async function handleAirportDetail(params: AirportDetailParams) {
     }
     return result;
   } catch (error) {
+    // Let Zod validation errors propagate as-is rather than mislabeling as DATABASE_OFFLINE
+    // This helps catch mapping bugs earlier (e.g., column name mismatches)
+    if (error instanceof ZodError) {
+      throw error;
+    }
     if (error instanceof Error && error.message === 'NOT_FOUND') {
       throw error;
     }

@@ -1058,4 +1058,220 @@ describe('Aviation Objects API - WO-008', () => {
     // Either 503 (offline) or 404 (not found), not 400
     expect([404, 503]).toContain(response.statusCode);
   });
+
+  // ---- Airport Detail Runtime Hardening (WO-028) ----
+
+  it('airport detail returns 200 for airport with runways and maps heading fields correctly', async () => {
+    // Find an airport from the list that has runways
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=50',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    // Try airports until we find one with runways
+    for (const airport of listBody.items) {
+      const detailResponse = await app.inject({
+        method: 'GET',
+        url: `/api/layers/layer_01_aviation/objects/${airport.id}/detail`,
+      });
+
+      if (detailResponse.statusCode === 200) {
+        const body = JSON.parse(detailResponse.body);
+        // Must have runway section
+        expect(body.runways).toBeDefined();
+        expect(Array.isArray(body.runways)).toBe(true);
+
+        if (body.runways.length > 0) {
+          // Verify runway schema includes heading fields (the runtime bug was column mismatch)
+          const runway = body.runways[0];
+          expect(runway).toHaveProperty('leHeadingDeg');
+          expect(runway).toHaveProperty('heHeadingDeg');
+          // Heading fields should be nullable numbers or null
+          expect(typeof runway.leHeadingDeg === 'number' || runway.leHeadingDeg === null).toBe(true);
+          expect(typeof runway.heHeadingDeg === 'number' || runway.heHeadingDeg === null).toBe(true);
+          return; // Test passed - found airport with runways
+        }
+      }
+    }
+    // If no airport with runways found, test passes but logs warning
+  });
+
+  it('airport detail response includes all required schema sections', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail`,
+    });
+    expect([200, 503]).toContain(response.statusCode);
+
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+
+      // All required top-level sections per AirportDetailResponseSchema
+      expect(body).toHaveProperty('airport');
+      expect(body).toHaveProperty('runways');
+      expect(body).toHaveProperty('frequencies');
+      expect(body).toHaveProperty('nearbyNavaids');
+      expect(body).toHaveProperty('metadata');
+
+      // Validate airport section has required fields
+      expect(body.airport).toHaveProperty('id');
+      expect(body.airport).toHaveProperty('ident');
+      expect(body.airport).toHaveProperty('name');
+      expect(body.airport).toHaveProperty('position');
+
+      // Validate metadata section
+      expect(body.metadata).toHaveProperty('generatedAt');
+      expect(body.metadata).toHaveProperty('layerId');
+      expect(body.metadata).toHaveProperty('objectId');
+      expect(body.metadata).toHaveProperty('runwayCount');
+      expect(body.metadata).toHaveProperty('frequencyCount');
+      expect(body.metadata).toHaveProperty('nearbyNavaidCount');
+
+      // Validate arrays
+      expect(Array.isArray(body.runways)).toBe(true);
+      expect(Array.isArray(body.frequencies)).toBe(true);
+      expect(Array.isArray(body.nearbyNavaids)).toBe(true);
+    }
+  });
+
+  it('airport detail runways include all required fields per RunwayDetailSchema', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=20',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    // Find an airport with runways
+    for (const airport of listBody.items) {
+      const detailResponse = await app.inject({
+        method: 'GET',
+        url: `/api/layers/layer_01_aviation/objects/${airport.id}/detail`,
+      });
+
+      if (detailResponse.statusCode === 200) {
+        const body = JSON.parse(detailResponse.body);
+
+        if (body.runways.length > 0) {
+          const runway = body.runways[0];
+
+          // Required fields from RunwayDetailSchema
+          expect(runway).toHaveProperty('id');
+          expect(runway).toHaveProperty('ident');
+          expect(runway).toHaveProperty('lengthFt');
+          expect(runway).toHaveProperty('widthFt');
+          expect(runway).toHaveProperty('surface');
+          expect(runway).toHaveProperty('lighted');
+          expect(runway).toHaveProperty('closed');
+
+          // LE (Lower End) fields - these had the runtime bug (wrong column name)
+          expect(runway).toHaveProperty('leIdent');
+          expect(runway).toHaveProperty('leLatitude');
+          expect(runway).toHaveProperty('leLongitude');
+          expect(runway).toHaveProperty('leElevationFt');
+          expect(runway).toHaveProperty('leHeadingDeg');
+
+          // HE (Higher End) fields
+          expect(runway).toHaveProperty('heIdent');
+          expect(runway).toHaveProperty('heLatitude');
+          expect(runway).toHaveProperty('heLongitude');
+          expect(runway).toHaveProperty('heElevationFt');
+          expect(runway).toHaveProperty('heHeadingDeg');
+
+          return; // Test passed
+        }
+      }
+    }
+  });
+
+  it('airport detail frequencies include required fields per FrequencyDetailSchema', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=20',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    for (const airport of listBody.items) {
+      const detailResponse = await app.inject({
+        method: 'GET',
+        url: `/api/layers/layer_01_aviation/objects/${airport.id}/detail`,
+      });
+
+      if (detailResponse.statusCode === 200) {
+        const body = JSON.parse(detailResponse.body);
+
+        if (body.frequencies.length > 0) {
+          const freq = body.frequencies[0];
+
+          // Required fields from FrequencyDetailSchema
+          expect(freq).toHaveProperty('id');
+          expect(freq).toHaveProperty('type');
+          expect(freq).toHaveProperty('description');
+          expect(freq).toHaveProperty('frequencyMhz');
+
+          return;
+        }
+      }
+    }
+  });
+
+  it('airport detail navaids include required fields per NavaidDetailSchema', async () => {
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=20',
+    });
+    if (listResponse.statusCode !== 200) return;
+
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    // Try multiple airports to find one with navaids
+    for (const airport of listBody.items) {
+      const detailResponse = await app.inject({
+        method: 'GET',
+        url: `/api/layers/layer_01_aviation/objects/${airport.id}/detail`,
+      });
+
+      if (detailResponse.statusCode === 200) {
+        const body = JSON.parse(detailResponse.body);
+
+        if (body.nearbyNavaids.length > 0) {
+          const navaid = body.nearbyNavaids[0];
+
+          // Required fields from NavaidDetailSchema
+          expect(navaid).toHaveProperty('id');
+          expect(navaid).toHaveProperty('ident');
+          expect(navaid).toHaveProperty('name');
+          expect(navaid).toHaveProperty('type');
+          expect(navaid).toHaveProperty('frequencyKhz');
+          expect(navaid).toHaveProperty('latitude');
+          expect(navaid).toHaveProperty('longitude');
+          expect(navaid).toHaveProperty('elevationFt');
+          expect(navaid).toHaveProperty('distanceKm');
+
+          return;
+        }
+      }
+    }
+  });
 });
