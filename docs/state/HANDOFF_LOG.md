@@ -1371,3 +1371,31 @@ All agents must append to this file after completing work.
   - Web build: SUCCESS (backward compatible)
 - Push status: Not pushed (per task requirements - Kiro pushes after review)
 - Known issues: None - all builds pass, all marker endpoints return 200 OK
+
+### 2026-05-17T01:50:00Z Claude Code — HOTFIX Airport Detail API Runtime Failure
+
+- Hotfix name: Airport Detail API Runtime Failure
+- Agent: Claude Code
+- LLM model: Claude 4.7 Opus
+- Branch: agent/claude-airport-detail-runtime-hotfix
+- Root cause: Database column name mismatch in detail.ts - code used `le_heading_deg` and `he_heading_deg` but actual database columns are `le_heading_degT` and `he_heading_degT` (with "T" suffix). This caused Zod validation to fail when mapping runway data.
+- Fix summary: Fixed RunwayRow interface and mapRunway function in apps/api/src/routes/objects/detail.ts to use correct column names: le_heading_degT and he_heading_degT.
+- Manual endpoint verification:
+  - GET /api/layers/layer_01_aviation/objects/VOMM/detail => 200 OK (airport, runways, frequencies, nearbyNavaids, metadata)
+  - GET /api/layers/layer_01_aviation/objects/OMDB/detail => 200 OK
+  - GET /api/layers/layer_01_aviation/objects/KORD/detail => 200 OK
+  - Missing airport returns 404 as expected
+  - Existing list/search/marker endpoints still work
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build
+  - pnpm --filter api build
+  - pnpm --filter api test (84 tests passed)
+  - pnpm --filter web build
+  - Manual curl tests for VOMM, OMDB, KORD detail endpoints
+- Tests/build result:
+  - API tests: 84 passed
+  - Contracts build: success
+  - API build: success
+  - Web build: success
+- Push status: Not pushed (per task requirements - Kiro pushes after review)
+- Known issues: None
