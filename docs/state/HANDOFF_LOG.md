@@ -1,3 +1,29 @@
+### 2026-05-17T02:35:04Z Kiro CLI — WO-027 Aviation Object Intel Display Reference PASS, branch pushed to origin
+
+- Review work order: WO-027 Aviation Object Intel Display Reference
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-data-next
+- Review start time UTC: 2026-05-17T02:35:04Z
+- Review end time UTC: 2026-05-17T02:35:04Z
+- Commit(s) reviewed: 306f3585a7528b7bd30113ca1620a1692e433303 (docs: add aviation object intel display reference)
+- Push decision: PASS
+- Branch pushed: agent/codex-data-next
+- Review result: All 8 checks passed. Aviation Object Intel display reference complete. Documentation is comprehensive, practical, and ready for frontend/API implementation. User-first airport fields documented. Technical/source fields marked for collapse. Category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, and known limitations all included. No code changes. No database mutations. No API changes. No frontend changes. All tests pass (79). No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git show, git diff --check, git diff --cached --check, python -m pytest tests/data/layer_01_aviation -q (79 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose -f infra/docker/docker-compose.yml config --quiet, git ls-files (security check)
+- Git status result: ✅ PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: ✅ PASS (only docs/data/layer_01_aviation/ and docs/state/HANDOFF_LOG.md touched; no forbidden folders)
+- Documentation review result: ✅ PASS (user-first fields, collapsed technical fields, category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, known limitations all present and comprehensive)
+- Production/readiness result: ✅ PASS (practical for frontend implementation, no fake data, raw IDs not primary, null/empty handling documented, dense sections collapsible, premium design supported, no unsupported live data claims)
+- Security/privacy result: ✅ PASS (no secrets, no .env, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no private tokens)
+- Tests/build result: ✅ PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Known risks: None. Documentation-only work order with no code/database/API/frontend changes.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-027.md
+- Commit hash (review document): c7171fd
+- Next recommended task: Claude/API use reference for Airport Detail API response labels/provenance. Gemini/frontend use reference for Object Intel display QA after API contract available.
+
+
 ### 2026-05-17T01:56:27Z Kiro CLI — HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
 
 - Review work order: HOTFIX airport detail API runtime failure
