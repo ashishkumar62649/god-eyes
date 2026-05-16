@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ### 2026-05-17T02:55:48Z Kiro CLI — WO-026 Object Intel Airport Detail API Integration PASS, branch pushed to origin
 
 - Review work order: WO-026
@@ -80,7 +79,7 @@
 - Commit hash (review document): c7171fd
 - Next recommended task: Claude/API use reference for Airport Detail API response labels/provenance. Gemini/frontend use reference for Object Intel display QA after API contract available.
 
-=======
+
 ### 2026-05-17T02:50:00Z Kiro CLI — WO-028 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-028 Airport Detail API Runtime Error Hardening Tests
@@ -142,7 +141,6 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 **Note:** Branch not pushed - Kiro pushes after review.
 
 ---
->>>>>>> origin/agent/claude-api-2
 
 ### 2026-05-17T01:56:27Z Kiro CLI — HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
 
