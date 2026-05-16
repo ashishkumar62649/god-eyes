@@ -54,6 +54,32 @@
 - Commit hash (review document): (pending commit after manual verification)
 - Next recommended task: Perform manual browser verification (14 test cases). If all pass, create local commit for review document, update HANDOFF_LOG.md with push status, push branch agent/opencode-web-1 to origin.
 
+### 2026-05-17T02:35:04Z Kiro CLI — WO-027 Aviation Object Intel Display Reference PASS, branch pushed to origin
+
+- Review work order: WO-027 Aviation Object Intel Display Reference
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/codex-data-next
+- Review start time UTC: 2026-05-17T02:35:04Z
+- Review end time UTC: 2026-05-17T02:35:04Z
+- Commit(s) reviewed: 306f3585a7528b7bd30113ca1620a1692e433303 (docs: add aviation object intel display reference)
+- Push decision: PASS
+- Branch pushed: agent/codex-data-next
+- Review result: All 8 checks passed. Aviation Object Intel display reference complete. Documentation is comprehensive, practical, and ready for frontend/API implementation. User-first airport fields documented. Technical/source fields marked for collapse. Category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, and known limitations all included. No code changes. No database mutations. No API changes. No frontend changes. All tests pass (79). No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git show, git diff --check, git diff --cached --check, python -m pytest tests/data/layer_01_aviation -q (79 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose -f infra/docker/docker-compose.yml config --quiet, git ls-files (security check)
+- Git status result: ✅ PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: ✅ PASS (only docs/data/layer_01_aviation/ and docs/state/HANDOFF_LOG.md touched; no forbidden folders)
+- Documentation review result: ✅ PASS (user-first fields, collapsed technical fields, category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, known limitations all present and comprehensive)
+- Production/readiness result: ✅ PASS (practical for frontend implementation, no fake data, raw IDs not primary, null/empty handling documented, dense sections collapsible, premium design supported, no unsupported live data claims)
+- Security/privacy result: ✅ PASS (no secrets, no .env, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no private tokens)
+- Tests/build result: ✅ PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Known risks: None. Documentation-only work order with no code/database/API/frontend changes.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-027.md
+- Commit hash (review document): c7171fd
+- Next recommended task: Claude/API use reference for Airport Detail API response labels/provenance. Gemini/frontend use reference for Object Intel display QA after API contract available.
+
+
 ### 2026-05-17T01:56:27Z Kiro CLI — HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
 
 - Review work order: HOTFIX airport detail API runtime failure
@@ -1520,3 +1546,26 @@ All agents must append to this file after completing work.
   - Web build: success
 - Push status: Not pushed (per task requirements - Kiro pushes after review)
 - Known issues: None
+
+### 2026-05-16T20:59:33Z Codex - WO-027 Aviation Object Intel Display Reference
+
+- Work order: WO-027
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-data-next
+- Start time UTC: 2026-05-16T20:57:45Z
+- End time UTC: 2026-05-16T20:59:33Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- What was done: Added a practical aviation Object Intel display reference for airport overview priority fields, collapsed technical/source fields, human-readable category labels, runway/frequency/navaid formatting, data quality and provenance display, empty states, WO-025 QA sample expectations, and known limitations.
+- Docs added: `docs/data/layer_01_aviation/AVIATION_OBJECT_INTEL_DISPLAY_REFERENCE.md`
+- Files changed: `docs/data/layer_01_aviation/AVIATION_OBJECT_INTEL_DISPLAY_REFERENCE.md`; `docs/state/HANDOFF_LOG.md`
+- Commands run: `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`; `git status --short --branch`
+- Tests/build result: 79 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed.
+- Display reference findings: Users should see name, ident, IATA when present, category label, location, coordinates, elevation, scheduled service, and detail counts first. Technical/source identity and raw lineage remain collapsed. Runways and frequencies should display source values plainly, while nearby navaids should be labeled as bounded spatial proximity rather than official airport ownership.
+- QA sample guidance: Included all WO-025 samples (`OMDB`, `KNHU`, `KCVG`, `00AA`, `JRA`, `KNRQ`, `1OH8`, `01A`, `1LA9`, `KORD`) and the display behavior each should verify.
+- Known issues: Reference is documentation only and does not define an API contract; OurAirports data is not live operational data; no NOTAM, METAR, TAF, airport delay, airport closure, or live aircraft data is included; sample counts may change after future source refreshes; no frontend, API, migrations, scripts, tests, or database source data were modified.
+- Forbidden folders touched: no.
+- Review status: awaiting Kiro review.
+- Next safe task: Claude/API can use this reference while shaping Airport Detail API response labels/provenance; Gemini/frontend can use it later for Object Intel display QA after the API contract is available.
