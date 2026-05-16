@@ -1663,3 +1663,36 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Review status: awaiting Kiro review.
 - Next safe task: Claude/API can use this reference while shaping Airport Detail API response labels/provenance; Gemini/frontend can use it later for Object Intel display QA after the API contract is available.
+
+
+### 2026-05-17T08:30:00Z OpenCode Web 1 — WO-029A Aviation Marker Categories + Filters Foundation
+
+- Work order: WO-029A
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: opencode-cli
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-17T08:00:00Z
+- End time UTC: 2026-05-17T08:30:00Z
+- Commit hash: 4121ade
+- Push status: not pushed; Kiro review/push required
+- What was done: Added aviation marker category model (`aviationCategories.ts`), category-aware marker sprites (circle/rounded-square/diamond per category), client-side filter state with 4 toggles (Airports, Heliports, Seaplane Bases, Closed/Historical), closed airports hidden by default, aviation legend in left panel, friendly category labels in Object Intel, cached item re-render on filter change without extra API calls. No backend, database, contracts, or cluster changes.
+- Files changed:
+  - `apps/web/src/lib/aviationCategories.ts` (new)
+  - `apps/web/src/lib/airportMarkerSprites.ts` (modified)
+  - `apps/web/src/lib/aviationLayerRenderer.ts` (modified)
+  - `apps/web/src/CesiumGlobe.tsx` (modified)
+  - `apps/web/src/App.tsx` (modified)
+  - `apps/web/src/components/Shell.tsx` (modified)
+  - `apps/web/src/components/LayerPanel.tsx` (modified)
+  - `apps/web/src/components/intel/AirportOverview.tsx` (modified)
+  - `apps/web/src/styles/shell.css` (modified)
+  - `docs/work-orders/WO-029A-opencode-aviation-marker-categories-filters.md` (new)
+  - `docs/state/HANDOFF_LOG.md` (modified)
+- Commands run: `git status`, `git log --oneline -5`, `git branch --show-current`, `git diff --stat`, `pnpm --filter @god-eyes/contracts build`, `pnpm --filter web build`
+- Build result: Contracts build PASS. Web build PASS (56 modules, 179.12 kB).
+- Manual browser verification: (pending — Kiro to verify)
+- Security/privacy result: PASS — no .env, no API keys, no secrets, no new dependencies, no backend changes.
+- Forbidden folders touched: no.
+- Known issues: None. Clusters are not filtered (preserved as-is per spec). Category filtering is client-side only (no backend filter params sent). Re-render on filter toggle uses cached last-fetched items, not a fresh API call.
+- Next safe task: Implement full density renderer, remove cluster fallback, add backend filter support.

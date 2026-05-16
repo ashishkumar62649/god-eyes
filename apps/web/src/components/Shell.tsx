@@ -6,6 +6,7 @@ import StatusPanel from './StatusPanel';
 import '../styles/shell.css';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
+import { AviationFilters } from '../lib/aviationCategories';
 
 interface ShellProps {
   aviationLayerActive: boolean;
@@ -16,17 +17,21 @@ interface ShellProps {
   detailError: string | null;
   aviationStats: { loaded: number; visible: number; clustersActive: boolean };
   onSearchResultSelect: (result: SearchResult) => void;
+  aviationFilters: AviationFilters;
+  onFiltersChange: (filters: AviationFilters) => void;
 }
 
-const Shell: React.FC<ShellProps> = ({ 
-  aviationLayerActive, 
-  setAviationLayerActive, 
+const Shell: React.FC<ShellProps> = ({
+  aviationLayerActive,
+  setAviationLayerActive,
   selectedObject,
   airportDetail,
   detailLoading,
   detailError,
   aviationStats,
-  onSearchResultSelect
+  onSearchResultSelect,
+  aviationFilters,
+  onFiltersChange,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -39,15 +44,17 @@ const Shell: React.FC<ShellProps> = ({
   return (
     <div className="shell-container">
       <Header onSearchResultSelect={onSearchResultSelect} />
-      
+
       <main className="shell-main">
-        <LayerPanel 
+        <LayerPanel
           aviationLayerActive={aviationLayerActive}
           setAviationLayerActive={setAviationLayerActive}
           aviationStats={aviationStats}
+          aviationFilters={aviationFilters}
+          onFiltersChange={onFiltersChange}
         />
-        <DetailPanel 
-          selectedObject={selectedObject} 
+        <DetailPanel
+          selectedObject={selectedObject}
           airportDetail={airportDetail}
           detailLoading={detailLoading}
           detailError={detailError}
@@ -55,9 +62,9 @@ const Shell: React.FC<ShellProps> = ({
           setIsCollapsed={setDetailPanelCollapsed}
         />
       </main>
-      
-      <StatusPanel 
-        aviationLayerActive={aviationLayerActive} 
+
+      <StatusPanel
+        aviationLayerActive={aviationLayerActive}
         aviationStats={aviationStats}
       />
     </div>
