@@ -168,6 +168,7 @@ export type AirportClusterObject = z.infer<typeof AirportClusterObjectSchema>;
 export const LayerObjectsListResponseSchema = z.object({
   items: z.union([
     z.array(AirportObjectSchema),
+    z.array(AirportMarkerObjectSchema),
     z.array(AirportClusterObjectSchema),
   ]),
   pagination: PaginationSchema,
