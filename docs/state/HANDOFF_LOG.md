@@ -1,3 +1,30 @@
+### 2026-05-17T02:50:00Z Kiro CLI — WO-028 Integration Review PASS, branch pushed to origin
+
+- Review work order: WO-028 Airport Detail API Runtime Error Hardening Tests
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-api-2
+- Review start time UTC: 2026-05-16T21:11:59Z
+- Review end time UTC: 2026-05-17T02:50:00Z
+- Commit(s) reviewed: 0003f376fed956af36938ed5288bafd92906efca (test: harden airport detail runtime coverage)
+- Push decision: PASS
+- Branch pushed: agent/claude-api-2
+- Review result: All 9 checks passed. Airport Detail API runtime hardening tests complete. Zod validation errors now propagate as-is instead of being mislabeled as DATABASE_OFFLINE. 5 new tests added covering runway heading mapping, response schema validation, and per-schema field validation. Tests increased from 84 to 89. All builds pass. No secrets committed. No forbidden folders touched.
+- Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (89 passed), pnpm --filter web build
+- Runtime hardening result: ✅ PASS (Zod validation errors propagate as-is, not mislabeled as DATABASE_OFFLINE, catches mapping bugs earlier, guardrail in handleAirportDetail verified)
+- Test coverage result: ✅ PASS (5 new tests: runway heading mapping, response schema sections, runway schema fields, frequency schema fields, navaid schema fields)
+- API behavior result: ✅ PASS (airport detail returns valid response, missing airport returns 404, invalid params return 400, DB offline returns 503, list/search/marker/cluster endpoints unaffected)
+- SQL/security result: ✅ PASS (no unsafe SQL, all queries parameterized, no database writes, no migrations, no unbounded queries)
+- Builds/tests result: ✅ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (89 tests, 4 files))
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Known risks: None. All checks passed.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-028.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or feature work.
+
+---
+
 ### 2026-05-17T02:35:00Z — WO-028 Airport Detail API Runtime Error Hardening Tests
 
 - Work order: WO-028 Airport Detail API Runtime Error Hardening Tests
