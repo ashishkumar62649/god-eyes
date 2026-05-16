@@ -1757,3 +1757,30 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Known issues: None. Clusters are not filtered (preserved as-is per spec). Category filtering is client-side only (no backend filter params sent). Re-render on filter toggle uses cached last-fetched items, not a fresh API call.
 - Next safe task: Implement full density renderer, remove cluster fallback, add backend filter support.
+
+### 2026-05-16T22:52:12Z Codex - WO-029B-DATA Aviation Density View Data Distribution Reference
+
+- Work order: WO-029B-DATA
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-data-next
+- Start time UTC: 2026-05-16T22:44:00Z
+- End time UTC: 2026-05-16T22:52:12Z
+- Commit hash: local commit created; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- Preflight: confirmed working directory `E:\god-eyes-codex-data`; branch `agent/codex-data-next`; worktree clean; fetched `origin/main`; fast-forwarded branch to `origin/main`; confirmed `HEAD...origin/main` count `0 0`.
+- What was done: Added a read-only aviation density distribution report script, focused static tests, and a density view data reference for total airport count, category counts, operational versus closed/historical counts, special category counts, top countries, densest 5 degree grid cells, frontend QA regions, density-mode limit guidance, global all-point rendering warnings, and known limitations.
+- Script added: `scripts/aviation_density_view_data_reference.py`
+- Tests added: `tests/data/layer_01_aviation/test_aviation_density_view_data_reference.py`
+- Docs added: `docs/data/layer_01_aviation/AVIATION_DENSITY_VIEW_DATA_REFERENCE.md`
+- Files changed: `scripts/aviation_density_view_data_reference.py`; `tests/data/layer_01_aviation/test_aviation_density_view_data_reference.py`; `docs/data/layer_01_aviation/AVIATION_DENSITY_VIEW_DATA_REFERENCE.md`; `docs/state/HANDOFF_LOG.md`
+- Commands run: `Get-Location`; `git branch --show-current`; `git status --short --branch`; `git fetch origin main`; `git rev-list --left-right --count HEAD...origin/main`; `git merge --ff-only origin/main`; `python scripts\aviation_density_view_data_reference.py --json --country-limit 20 --grid-limit 15 --cell-size-degrees 5`; `python -m pytest tests/data/layer_01_aviation/test_aviation_density_view_data_reference.py -q`; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`
+- Tests/build result: 91 aviation data tests passed; targeted density reference tests passed (12); Python compileall passed; Docker Compose config validation passed; diff whitespace check passed.
+- Distribution findings: total airport records 85,377; operational reference 72,196; closed/historical 13,181; top categories are `small_airfield` 42,616, `heliport` 22,980, and `closed_or_abandoned` 13,181; special counts are `heliport` 22,980, `water_landing_site` 1,262, `balloonport` 61, `unknown` 0; top countries include `US` 32,495, `BR` 7,913, `JP` 3,747, `CA` 3,313, `AU` 2,789, and `MX` 2,694.
+- Density QA findings: densest measured 5 degree cell is `-100,30` to `-95,35` with 1,865 airports; recommended frontend QA regions include contiguous US (34,276), core Europe (10,621), Brazil (9,839), Japan/Korea (5,239), Northeast US (4,624), California/Nevada (3,177), and Dubai/UAE (222).
+- Security/privacy result: no `.env`, API keys, secrets, raw CSVs, generated JSON dumps, database dumps, or node_modules committed; script is read-only and uses SELECT-only parameterized queries.
+- Known issues: Counts reflect local Docker database state and may change after future source refreshes; OurAirports is reference data, not live operational data; operational reference means not normalized as closed, not verified open; 5 degree grid is a planning approximation, not a final clustering algorithm; browser-safe thresholds require frontend measurement.
+- Forbidden folders touched: no.
+- Review status: awaiting Kiro review.
+- Next safe task: Claude/API can use the density distribution and QA regions when shaping density endpoint limits; Gemini/frontend can use the same regions for density-rendering stress tests.
