@@ -1,14 +1,18 @@
-import { 
-  CustomDataSource, 
-  Cartesian3, 
-  Cartesian2, 
-  VerticalOrigin, 
-  HorizontalOrigin, 
-  LabelStyle, 
-  Color 
+import {
+  CustomDataSource,
+  Cartesian3,
+  Cartesian2,
+  VerticalOrigin,
+  HorizontalOrigin,
+  LabelStyle,
+  Color,
 } from 'cesium';
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
-import { Icons, getClusterCanvas } from './airportMarkerSprites';
+import { CategoryIcons, getClusterCanvas } from './airportMarkerSprites';
+import {
+  getAviationDisplayCategory,
+  AviationFilters,
+} from './aviationCategories';
 
 const AIRPORT_VISUAL_HEIGHT_METERS = 100;
 const CLUSTER_VISUAL_HEIGHT_METERS = 5000;
@@ -16,11 +20,11 @@ const CLUSTER_VISUAL_HEIGHT_METERS = 5000;
 export function renderAviationObjects(
   dataSource: CustomDataSource,
   items: (AirportObject | AirportClusterObject)[],
-  mode: 'points' | 'clusters'
-): { visibleCount: number, clustersActive: boolean } {
+  mode: 'points' | 'clusters',
+  filters?: AviationFilters | null
+): { visibleCount: number; clustersActive: boolean } {
   dataSource.entities.suspendEvents();
-  
-  // Remove existing entities
+
   dataSource.entities.removeAll();
 
   let visibleCount = 0;
@@ -30,16 +34,27 @@ export function renderAviationObjects(
     if (item.objectType === 'airport') {
       const airport = item as AirportObject;
       if (airport.position.latitude === null || airport.position.longitude === null) continue;
-      
+
+      const displayCat = getAviationDisplayCategory(airport);
+
+      if (filters) {
+        if (displayCat === 'closed' && !filters.closed) continue;
+        if (displayCat === 'heliport' && !filters.heliports) continue;
+        if (displayCat === 'seaplane_base' && !filters.seaplaneBases) continue;
+        if (displayCat === 'airport' && !filters.airports) continue;
+      }
+
+      const icon = CategoryIcons[displayCat];
+
       dataSource.entities.add({
         id: `airport-${airport.id}`,
         position: Cartesian3.fromDegrees(
-          airport.position.longitude, 
-          airport.position.latitude, 
+          airport.position.longitude,
+          airport.position.latitude,
           AIRPORT_VISUAL_HEIGHT_METERS
         ),
         billboard: {
-          image: airport.category === 'large_airport' ? Icons.largeAirport : Icons.smallAirport,
+          image: icon,
           verticalOrigin: VerticalOrigin.CENTER,
           horizontalOrigin: HorizontalOrigin.CENTER,
         },
@@ -54,15 +69,16 @@ export function renderAviationObjects(
         },
         properties: {
           rawData: airport,
-          isCluster: false
-        }
+          isCluster: false,
+          displayCategory: displayCat,
+        },
       });
       visibleCount++;
     } else if (item.objectType === 'airport_cluster') {
       const cluster = item as AirportClusterObject;
       const count = cluster.count;
       visibleCount += count;
-      
+
       const baseSize = 24;
       const growthFactor = Math.min(count * 0.4, 12);
       const finalSize = baseSize + growthFactor;
@@ -71,8 +87,8 @@ export function renderAviationObjects(
       dataSource.entities.add({
         id: `cluster-${cluster.id}`,
         position: Cartesian3.fromDegrees(
-          cluster.position.longitude, 
-          cluster.position.latitude, 
+          cluster.position.longitude,
+          cluster.position.latitude,
           CLUSTER_VISUAL_HEIGHT_METERS
         ),
         billboard: {
@@ -91,8 +107,8 @@ export function renderAviationObjects(
         },
         properties: {
           isCluster: true,
-          clusterData: cluster
-        }
+          clusterData: cluster,
+        },
       });
     }
   }

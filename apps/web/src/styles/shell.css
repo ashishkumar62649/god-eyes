@@ -405,3 +405,139 @@
   100% { transform: scale(0.95); opacity: 0.5; }
 }
 
+/* ── Marker Filters ── */
+
+.filter-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.filter-section-header {
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--shell-text-dim);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--shell-transition);
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.01);
+  user-select: none;
+}
+
+.filter-toggle:hover {
+  border-color: var(--shell-border-bright);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.filter-toggle.active {
+  border-color: var(--shell-accent-dim);
+  background: rgba(0, 210, 255, 0.04);
+}
+
+.filter-toggle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: var(--shell-transition);
+}
+
+.filter-toggle-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--shell-text-bright);
+}
+
+.filter-toggle.active .filter-toggle-label {
+  color: var(--shell-text-bright);
+}
+
+/* ── Marker Legend ── */
+
+.legend-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.legend-section-header {
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--shell-text-dim);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.legend-marker {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-marker-airport {
+  background: #00d2ff;
+  border-radius: 50%;
+}
+
+.legend-marker-heliport {
+  background: #00e676;
+  border-radius: 2px;
+}
+
+.legend-marker-seaplane_base {
+  background: #ffab00;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  margin: 2px;
+}
+
+.legend-marker-closed {
+  background: #666;
+  border-radius: 50%;
+  position: relative;
+}
+
+.legend-marker-closed::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: linear-gradient(45deg, transparent 42%, #ff4d4d 42%, #ff4d4d 58%, transparent 58%),
+              linear-gradient(-45deg, transparent 42%, #ff4d4d 42%, #ff4d4d 58%, transparent 58%);
+  border-radius: 50%;
+}
+
+.legend-marker-unknown {
+  border: 1.5px solid #999;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.legend-label {
+  font-size: 0.7rem;
+  color: var(--shell-text);
+}
+

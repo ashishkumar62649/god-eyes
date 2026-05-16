@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { fetchLayerStatus } from '../lib/api';
 import { LayerStatusResponse } from '@god-eyes/contracts';
+import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
 
 interface LayerPanelProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
   aviationStats: { loaded: number; visible: number; clustersActive: boolean };
+  aviationFilters: AviationFilters;
+  onFiltersChange: (filters: AviationFilters) => void;
 }
 
-const LayerPanel: React.FC<LayerPanelProps> = ({ 
-  aviationLayerActive, 
+const FILTER_KEYS: (keyof AviationFilters)[] = [
+  'airports',
+  'heliports',
+  'seaplaneBases',
+  'closed',
+];
+
+const FILTER_CATEGORY_MAP: Record<keyof AviationFilters, keyof typeof AVIATION_CATEGORIES> = {
+  airports: 'airport',
+  heliports: 'heliport',
+  seaplaneBases: 'seaplane_base',
+  closed: 'closed',
+};
+
+const LayerPanel: React.FC<LayerPanelProps> = ({
+  aviationLayerActive,
   setAviationLayerActive,
-  aviationStats
+  aviationStats,
+  aviationFilters,
+  onFiltersChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [aviationStatus, setAviationStatus] = useState<LayerStatusResponse | null>(null);
@@ -36,6 +55,19 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     loadStatus();
   }, []);
 
+  const toggleFilter = (key: keyof AviationFilters) => {
+    const next = { ...aviationFilters, [key]: !aviationFilters[key] };
+    onFiltersChange(next);
+  };
+
+  const legendItems = [
+    { label: 'Airport / Airfield', cat: 'airport' as const },
+    { label: 'Heliport', cat: 'heliport' as const },
+    { label: 'Seaplane Base', cat: 'seaplane_base' as const },
+    { label: 'Closed (dimmed)', cat: 'closed' as const },
+    { label: 'Other', cat: 'unknown' as const },
+  ];
+
   return (
     <aside className={`shell-panel shell-panel-left shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="panel-header">
@@ -44,7 +76,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           {isCollapsed ? '»' : '«'}
         </button>
       </div>
-      
+
       {isCollapsed ? (
         <div className="collapsed-label">OPERATIONS</div>
       ) : (
@@ -53,13 +85,13 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
             <div className="layer-name">Globe Core [L0]</div>
             <div className="layer-status" style={{ opacity: 0.8 }}>ONLINE — ACTIVE</div>
           </div>
-          
-          <div 
-            className={`layer-item ${aviationLayerActive ? 'active' : ''}`} 
+
+          <div
+            className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
             onClick={() => !error && setAviationLayerActive(!aviationLayerActive)}
-            style={{ 
+            style={{
               cursor: error ? 'not-allowed' : 'pointer',
-              borderColor: error ? 'rgba(255, 77, 77, 0.3)' : undefined
+              borderColor: error ? 'rgba(255, 77, 77, 0.3)' : undefined,
             }}
           >
             <div className="layer-name">Aviation / Airports [L1]</div>
@@ -84,6 +116,47 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               )}
             </div>
           </div>
+
+          {aviationLayerActive && (
+            <>
+              <div className="filter-section">
+                <div className="filter-section-header">MARKER FILTERS</div>
+                {FILTER_KEYS.map((key) => {
+                  const catKey = FILTER_CATEGORY_MAP[key];
+                  const info = AVIATION_CATEGORIES[catKey];
+                  const active = aviationFilters[key];
+                  return (
+                    <div
+                      key={key}
+                      className={`filter-toggle ${active ? 'active' : ''}`}
+                      onClick={() => toggleFilter(key)}
+                    >
+                      <span
+                        className="filter-toggle-dot"
+                        style={{
+                          background: active ? info.markerColor : info.dimColor,
+                          opacity: active ? 1 : 0.4,
+                        }}
+                      />
+                      <span className="filter-toggle-label">{info.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="legend-section">
+                <div className="legend-section-header">MARKER LEGEND</div>
+                {legendItems.map((item) => {
+                  return (
+                    <div key={item.cat} className="legend-item">
+                      <span className={`legend-marker legend-marker-${item.cat}`} />
+                      <span className="legend-label">{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
     </aside>

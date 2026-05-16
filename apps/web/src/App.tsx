@@ -4,6 +4,7 @@ import Shell from './components/Shell';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from './lib/searchTypes';
 import { fetchAirportDetail } from './lib/api';
+import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategories';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -20,11 +21,12 @@ const App: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [aviationStats, setAviationStats] = useState({ loaded: 0, visible: 0, clustersActive: false });
-  const [cameraTarget, setCameraTarget] = useState<{ 
-    position: { latitude: number; longitude: number }; 
-    type: string; 
-    timestamp: number 
+  const [cameraTarget, setCameraTarget] = useState<{
+    position: { latitude: number; longitude: number };
+    type: string;
+    timestamp: number;
   } | null>(null);
+  const [aviationFilters, setAviationFilters] = useState<AviationFilters>(DEFAULT_AVIATION_FILTERS);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
@@ -103,8 +105,12 @@ const App: React.FC = () => {
     setCameraTarget({
       position: result.position,
       type: result.type,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
+  }, []);
+
+  const handleFiltersChange = useCallback((filters: AviationFilters) => {
+    setAviationFilters(filters);
   }, []);
 
   return (
@@ -116,19 +122,20 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <CesiumGlobe 
+      <CesiumGlobe
         aviationLayerActive={aviationLayerActive}
         onObjectSelect={handleObjectSelect}
         onAviationStatsChange={handleAviationStatsChange}
         cameraTarget={cameraTarget}
+        aviationFilters={aviationFilters}
       />
 
-      <div style={{ 
-        opacity: isBooting ? 0 : 1, 
+      <div style={{
+        opacity: isBooting ? 0 : 1,
         transition: 'opacity 1s ease-in',
-        pointerEvents: isBooting ? 'none' : 'auto'
+        pointerEvents: isBooting ? 'none' : 'auto',
       }}>
-        <Shell 
+        <Shell
           aviationLayerActive={aviationLayerActive}
           setAviationLayerActive={setAviationLayerActive}
           selectedObject={selectedObject}
@@ -137,6 +144,8 @@ const App: React.FC = () => {
           detailError={detailError}
           aviationStats={aviationStats}
           onSearchResultSelect={handleSearchResultSelect}
+          aviationFilters={aviationFilters}
+          onFiltersChange={handleFiltersChange}
         />
       </div>
     </div>
