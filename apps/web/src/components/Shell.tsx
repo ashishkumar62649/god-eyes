@@ -4,13 +4,16 @@ import LayerPanel from './LayerPanel';
 import DetailPanel from './DetailPanel';
 import StatusPanel from './StatusPanel';
 import '../styles/shell.css';
-import { AirportObject } from '@god-eyes/contracts';
+import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
 
 interface ShellProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
   selectedObject: AirportObject | null;
+  airportDetail: AirportDetailResponse | null;
+  detailLoading: boolean;
+  detailError: string | null;
   aviationStats: { loaded: number; visible: number; clustersActive: boolean };
   onSearchResultSelect: (result: SearchResult) => void;
 }
@@ -19,12 +22,14 @@ const Shell: React.FC<ShellProps> = ({
   aviationLayerActive, 
   setAviationLayerActive, 
   selectedObject,
+  airportDetail,
+  detailLoading,
+  detailError,
   aviationStats,
   onSearchResultSelect
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
-  // Auto-open detail panel when a new object is selected
   React.useEffect(() => {
     if (selectedObject) {
       setDetailPanelCollapsed(false);
@@ -43,6 +48,9 @@ const Shell: React.FC<ShellProps> = ({
         />
         <DetailPanel 
           selectedObject={selectedObject} 
+          airportDetail={airportDetail}
+          detailLoading={detailLoading}
+          detailError={detailError}
           isCollapsed={detailPanelCollapsed}
           setIsCollapsed={setDetailPanelCollapsed}
         />

@@ -369,6 +369,44 @@ All agents must append to this file after completing work.
 
 ---
 
+### 2026-05-16T20:59:39Z OpenCode — WO-026 Object Intel Airport Detail API Integration
+
+- Work order: WO-026
+- Agent: OpenCode
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-16T20:15:00Z
+- End time UTC: 2026-05-16T20:59:39Z
+- Commit hash: 9be0ce0 (local only - awaiting Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Connected the Object Intel panel to the Airport Detail API. When a user selects an airport (search or marker click), the panel now fetches GET /api/layers/layer_01_aviation/objects/:objectId/detail and renders real aviation intelligence sections.
+- Files created/modified:
+  - apps/web/src/lib/api.ts (added fetchAirportDetail + AirportDetailResponse import)
+  - apps/web/src/App.tsx (added airportDetail/detailLoading/detailError state, useRef for AbortController + cache, useEffect on selectedObject?.id, pass new props)
+  - apps/web/src/components/Shell.tsx (pass through airportDetail/detailLoading/detailError to DetailPanel)
+  - apps/web/src/components/DetailPanel.tsx (replaced AviationDetailPlaceholders with real RunwaysSection/FrequenciesSection/NearbyNavaidsSection/DataQualityCard, loading spinner in header, error state preservation)
+  - apps/web/src/components/intel/RunwaysSection.tsx (NEW - real runway data with ident/length/width/surface/endpoints, closed/lighted badges, display limit 10)
+  - apps/web/src/components/intel/FrequenciesSection.tsx (NEW - real frequency data with type/color/freq/description, display limit 10)
+  - apps/web/src/components/intel/NearbyNavaidsSection.tsx (NEW - real navaid data with icon/ident/name/type/freq/distance, VOR vs NDB frequency formatting, display limit 20)
+  - apps/web/src/components/intel/DataQualityCard.tsx (NEW - source system, runway/freq/navaid counts, generated timestamp, hides when all zero)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter web build
+- Tests/build result: Contracts build PASS, Web build PASS (55 modules, 174.30 kB)
+- Key behaviors implemented:
+  1. fetchAirportDetail() added to api.ts with abort signal support
+  2. AbortController cancels stale requests on fast airport switching
+  3. 5-minute in-memory cache avoids refetching same airport
+  4. Loading spinner in DetailPanel header during fetch
+  5. Error display keeps basic overview visible even if detail API fails
+  6. Real Runways section with ident, length, width, surface, LE/HE endpoints, CLOSED/LIGHTED badges
+  7. Real Frequencies section with color-coded types (ATIS cyan, TOWER green, APPROACH amber, GROUND blue, CLEARANCE purple)
+  8. Real Nearby Navaids section with VOR/NDB/TACAN icons, proper KHz/MHz formatting, distance in KM
+  9. Real Data Quality / Provenance section with source, counts, generated timestamp
+  10. No null/undefined displayed, no fake data, no emojis
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review, then browser manual test verification
+
 ### 2026-05-14 Kiro CLI — Layer-based control layer restructure
 
 - What was done: Restructured entire control layer from earthquake/weather MVP to layer-based architecture. Created layer registry, ID conventions, updated all ownership and pipeline docs, created specs for Layer 0 and Layer 1.
