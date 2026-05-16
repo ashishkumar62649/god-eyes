@@ -135,6 +135,17 @@ export const AirportMarkerObjectSchema = z.object({
 
 export type AirportMarkerObject = z.infer<typeof AirportMarkerObjectSchema>;
 
+// ==================== Marker Objects List Response ====================
+
+export const AirportMarkerObjectsListResponseSchema = z.object({
+  items: z.array(AirportMarkerObjectSchema),
+  pagination: PaginationSchema,
+  mode: z.enum(['points', 'clusters']).optional(),
+  metadata: ObjectListMetadataSchema.optional(),
+});
+
+export type AirportMarkerObjectsListResponse = z.infer<typeof AirportMarkerObjectsListResponseSchema>;
+
 // ==================== Airport Cluster Object ====================
 
 export const AirportClusterPositionSchema = z.object({

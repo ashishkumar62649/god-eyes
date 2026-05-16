@@ -5,6 +5,7 @@ import { buildFiltersApplied, buildListMetadata } from './metadata.js';
 import { ParsedBBox } from './validation.js';
 import {
   LayerObjectsListResponseSchema,
+  AirportMarkerObjectsListResponseSchema,
   ErrorCodes,
   PayloadProfile,
   PayloadProfiles,
@@ -60,7 +61,7 @@ export function buildPointsSql(params: PointsQueryParams): { sql: string; params
             a.created_at, a.updated_at,
             COALESCE(o.override_latitude, a.latitude_deg) as effective_latitude,
             COALESCE(o.override_longitude, a.longitude_deg) as effective_longitude,
-            o.id as override_id, o.confidence as override_confidence`
+            o.id as override_id, o.confidence_score as override_confidence`
         : OVERRIDE_COLUMNS + `,
             COALESCE(o.override_latitude, a.latitude_deg) as effective_latitude,
             COALESCE(o.override_longitude, a.longitude_deg) as effective_longitude`
@@ -226,7 +227,7 @@ export function buildPointsResponse(
     ? { ...metadata, ...metadataExtras }
     : metadata;
 
-  return LayerObjectsListResponseSchema.parse({
+  const responseData = {
     items: result.items,
     pagination: {
       limit,
@@ -236,7 +237,13 @@ export function buildPointsResponse(
     },
     mode: 'points' as const,
     metadata: metadataWithExtras,
-  });
+  };
+
+  // Use marker-specific schema for marker profile, default schema otherwise
+  if (fields === PayloadProfiles.MARKER) {
+    return AirportMarkerObjectsListResponseSchema.parse(responseData);
+  }
+  return LayerObjectsListResponseSchema.parse(responseData);
 }
 
 export async function handlePointsMode(params: PointsQueryParams) {
