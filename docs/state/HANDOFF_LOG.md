@@ -1,3 +1,38 @@
+### 2026-05-17T02:35:00Z — WO-028 Airport Detail API Runtime Error Hardening Tests
+
+- Work order: WO-028 Airport Detail API Runtime Error Hardening Tests
+- Branch: agent/claude-api-2
+- Goal: Add tests or small safe improvements so Airport Detail API runtime mapping bugs are caught earlier.
+
+**Context:**
+We had runtime bugs hidden as DATABASE_OFFLINE:
+- marker payload confidence column mismatch (o.confidence → o.confidence_score)
+- airport detail runway heading column mismatch (le_heading_deg → le_heading_degT)
+
+**Changes:**
+- Added 5 new tests for Airport Detail API runtime hardening:
+  1. Runway heading mapping test (leHeadingDeg, heHeadingDeg fields)
+  2. Response schema includes all sections (airport, runways, frequencies, nearbyNavaids, metadata)
+  3. Runway schema validation (all required fields per RunwayDetailSchema)
+  4. Frequency schema validation (all required fields per FrequencyDetailSchema)
+  5. Navaid schema validation (all required fields per NavaidDetailSchema)
+- Added guardrail in handleAirportDetail: Zod validation errors now propagate as-is instead of being mislabeled as DATABASE_OFFLINE (helps catch mapping bugs earlier)
+- Tests count: 84 → 89 (5 new tests added)
+
+**Commands run:**
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS
+- pnpm --filter api test → PASS (89 tests)
+- pnpm --filter web build → PASS (52 modules, 165.76 kB)
+
+**Build/test result:** ✅ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (89))
+
+**Security/privacy result:** ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps)
+
+**Note:** Branch not pushed - Kiro pushes after review.
+
+---
+
 ### 2026-05-17T01:56:27Z Kiro CLI — HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
 
 - Review work order: HOTFIX airport detail API runtime failure
