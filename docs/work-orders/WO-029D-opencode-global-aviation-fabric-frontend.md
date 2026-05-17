@@ -83,6 +83,31 @@ Camera Height     Mode        Collection        Visual
 - **`apps/web/src/components/LayerPanel.tsx`** — Removed RENDER MODE toggle section, updated stats interface, added mode label mapping
 - **`apps/web/src/components/StatusPanel.tsx`** — Added FPS display with color coding, updated render mode labels
 
+## Visual Tuning (2026-05-17)
+
+After initial implementation, the fabric nodes and density dots were too faint at full-globe zoom. Applied visual tuning:
+
+### Fabric Node Changes
+
+| Parameter | Before | After |
+|---|---|---|
+| Color | `#00d2ff` (medium cyan) | `#00EFFF` (bright cyan) |
+| Alpha floor (min weight) | 0.32 | 0.55 |
+| Alpha ramp | 0.02 per unit weight | 0.015 per unit weight |
+| Base pixelSize | 3 + sqrt(w)×0.8 (max +5) | 4 + sqrt(w)×0.6 (max +3) |
+| Outline color | `rgba(0,210,255,0.2)` | `rgba(0,238,255,0.35)` |
+
+**Effect**: Minimum alpha increased 0.32→0.55. Brightest cyan `#00EFFF` replaces medium `#00d2ff`. Nodes start at 4px minimum. Outline 75% brighter.
+
+### Density Dot Changes
+
+| Parameter | Before | After |
+|---|---|---|
+| scaleByDistance min fraction | 0.30 (1.2px at far) | 0.55 (2.2px at far) |
+| Outline opacity | `rgba(0,0,0,0.3)` | `rgba(0,0,0,0.4)` |
+
+**Effect**: At far zoom, dots stay visible at 2.2px instead of shrinking to 1.2px (nearly invisible).
+
 ## Known Limitations
 
 1. **1000-item API limit**: Fabric nodes at full globe only cover ~300 aggregated cells. Real fabric requires 5000+ items (backend change).

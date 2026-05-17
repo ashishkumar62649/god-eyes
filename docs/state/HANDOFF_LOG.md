@@ -1,3 +1,26 @@
+### 2026-05-17T23:55:00Z OpenCode Web 1 — WO-029D-FE visual tuning: increase fabric/dot visibility
+
+- Work order: WO-029D-FE visual tuning
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-17T23:50:00Z
+- End time UTC: 2026-05-17T23:55:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Visual tuning of fabric nodes and density dots for better visibility at full-globe zoom. Fabric nodes: color #00d2ff→#00EFFF (brighter cyan), min alpha 0.32→0.55, base pixelSize 3→4, outline opacity +75%. Density dots: scaleByDistance min fraction 0.30→0.55 (1.2px→2.2px at far zoom), outline opacity 0.3→0.4. No architecture changes. No API changes.
+- Files modified:
+  - apps/web/src/lib/aviationDensityRenderer.ts (color, alpha, size, outline parameters only)
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter web build (PASS, 57 modules, 184.71 kB)
+  - git diff --check (PASS)
+- Tests/build result: Contracts build PASS, Web build PASS
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review. Manual browser verification: full-globe aviation fabric should now be clearly visible.
+
 ### 2026-05-17T23:45:00Z OpenCode Web 1 — WO-029D-FE Global Aviation Fabric Frontend v1
 
 - Work order: WO-029D-FE

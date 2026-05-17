@@ -99,9 +99,9 @@ export function renderFabricNodes(
 ): void {
   collection.removeAll();
   for (const node of nodes) {
-    const baseSize = 3 + Math.min(Math.sqrt(node.weight) * 0.8, 5);
-    const alpha = Math.min(0.3 + node.weight * 0.02, 1.0);
-    const color = Color.fromCssColorString('#00d2ff').withAlpha(alpha);
+    const baseSize = 4 + Math.min(Math.sqrt(node.weight) * 0.6, 3);
+    const alpha = Math.min(0.55 + node.weight * 0.015, 1.0);
+    const color = Color.fromCssColorString('#00EFFF').withAlpha(alpha);
 
     const position = Cartesian3.fromDegrees(node.centroidLon, node.centroidLat, 5000);
 
@@ -109,7 +109,7 @@ export function renderFabricNodes(
       position,
       color,
       pixelSize: baseSize,
-      outlineColor: Color.fromCssColorString('rgba(0,210,255,0.2)'),
+      outlineColor: Color.fromCssColorString('rgba(0,238,255,0.35)'),
       outlineWidth: 0.5,
       translucencyByDistance: new NearFarScalar(6000000, 0.0, 10000000, 1.0),
       id: node.id,
@@ -147,9 +147,9 @@ export function renderDensityDots(
       position,
       color: Color.fromCssColorString(catInfo.markerColor),
       pixelSize: 4,
-      outlineColor: Color.fromCssColorString('rgba(0,0,0,0.3)'),
+      outlineColor: Color.fromCssColorString('rgba(0,0,0,0.4)'),
       outlineWidth: 0.5,
-      scaleByDistance: new NearFarScalar(1000000, 1.0, 10000000, 0.3),
+      scaleByDistance: new NearFarScalar(1000000, 1.0, 10000000, 0.55),
       translucencyByDistance: new NearFarScalar(6000000, 1.0, 10000000, 0.0),
       id: pointId,
     });
