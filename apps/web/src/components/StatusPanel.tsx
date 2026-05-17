@@ -10,6 +10,8 @@ interface AviationStats {
   cacheHits?: number;
   cacheMisses?: number;
   inflight?: number;
+  preloadStatus?: string;
+  categoryCounts?: Record<string, number>;
 }
 
 interface StatusPanelProps {
@@ -19,14 +21,6 @@ interface StatusPanelProps {
 
 const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const renderModeLabel = (mode: string): string => {
-    const parts = mode.split('_');
-    if (parts.length === 3 && (parts[0] === 'SMART' || parts[0] === 'EXPLICIT')) {
-      return `${parts[0]} ${parts[2]}`;
-    }
-    return mode;
-  };
 
   return (
     <footer className={`shell-panel shell-footer shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -55,9 +49,18 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Render Mode</div>
             <div className="detail-value" style={{ color: aviationLayerActive ? 'var(--shell-accent)' : 'inherit' }}>
-              {aviationLayerActive ? renderModeLabel(aviationStats.renderMode) : 'IDLE'}
+              {aviationLayerActive ? aviationStats.renderMode : 'IDLE'}
             </div>
           </div>
+
+          {aviationLayerActive && aviationStats.preloadStatus && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Preload</div>
+              <div className="detail-value" style={{ color: aviationStats.preloadStatus === 'CACHE_READY' ? '#00e676' : '#ffab00', fontWeight: 600 }}>
+                {aviationStats.preloadStatus}
+              </div>
+            </div>
+          )}
           
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">FPS</div>
@@ -76,14 +79,12 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
             </div>
           </div>
 
-          {aviationLayerActive && (
-            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
-              <div className="detail-label">Cache</div>
-              <div className="detail-value" style={{ opacity: 0.65, fontSize: '0.75rem' }}>
-                E:{aviationStats.cacheEntries ?? '-'} H:{aviationStats.cacheHits ?? '-'} M:{aviationStats.cacheMisses ?? '-'} F:{aviationStats.inflight ?? '-'}
-              </div>
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+            <div className="detail-label">Visible</div>
+            <div className="detail-value" style={{ opacity: 0.8 }}>
+              {aviationLayerActive ? aviationStats.visible : '--'}
             </div>
-          )}
+          </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
              <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.3 : 0.1 }}></div>

@@ -106,12 +106,12 @@ export interface AviationFilters {
 
 export const DEFAULT_AVIATION_FILTERS: AviationFilters = {
   major: true,
-  regional: true,
-  local: true,
-  heliport: true,
-  seaplane: true,
-  balloonport: true,
-  unknown: true,
+  regional: false,
+  local: false,
+  heliport: false,
+  seaplane: false,
+  balloonport: false,
+  unknown: false,
   closed: false,
 };
 

@@ -75,12 +75,42 @@ export function getGlobalDotPosition(picked: any): { longitude: number; latitude
 }
 
 /**
- * Update the `show` property on every PointPrimitive in the collection
- * based on whether its position is above the camera's horizon.
- * Call this on camera moveEnd when global dots are active to
- * hide behind-globe dots without X-ray depth-test disabling.
+ * Add all items to the collection regardless of current filter state.
+ * Each dot stores its displayCat in the id object for later filter application.
  */
-export function filterVisibleGlobalDots(collection: PointPrimitiveCollection, scene: Scene): void {
+export function addAllDotsToCollection(
+  collection: PointPrimitiveCollection,
+  items: AirportObject[],
+): number {
+  let count = 0;
+  for (const item of items) {
+    if (item.position.latitude === null || item.position.longitude === null) continue;
+    const displayCat = getAviationDisplayCategory(item);
+    const catColor = getCategoryDotColor(displayCat);
+    const alpha = displayCat === 'closed' ? DOT_ALPHA_CLOSED : DOT_ALPHA_ACTIVE;
+    const size = displayCat === 'closed' ? CLOSED_DOT_SIZE : DOT_SIZE;
+    collection.add({
+      position: Cartesian3.fromDegrees(item.position.longitude, item.position.latitude, DOT_HEIGHT_METERS),
+      color: Color.fromCssColorString(catColor).withAlpha(alpha),
+      pixelSize: size,
+      id: { type: 'global_dot', airportId: item.id, lon: item.position.longitude, lat: item.position.latitude, displayCat },
+      show: true,
+    });
+    count++;
+  }
+  return count;
+}
+
+/**
+ * Update the `show` property on every PointPrimitive in the collection
+ * based on category filter AND behind-globe occlusion in a single pass.
+ * This prevents conflicts between filter-based hiding and camera-based hiding.
+ */
+export function filterVisibleGlobalDots(
+  collection: PointPrimitiveCollection,
+  scene: Scene,
+  filters?: AviationFilters | null,
+): void {
   const cameraPos = scene.camera.positionWC;
   const cameraDist = Cartesian3.magnitude(cameraPos);
   if (cameraDist < 100) return;
@@ -92,7 +122,24 @@ export function filterVisibleGlobalDots(collection: PointPrimitiveCollection, sc
   const length = collection.length;
   for (let i = 0; i < length; i++) {
     const p = collection.get(i);
-    if (!p) continue;
+    if (!p || !p.id) continue;
+
+    // Category filter check
+    const displayCat: string = p.id.displayCat;
+    let filterPass = true;
+    if (filters) {
+      if (displayCat === 'closed') {
+        filterPass = filters.closed;
+      } else if (displayCat in filters) {
+        filterPass = filters[displayCat as keyof AviationFilters];
+      }
+    }
+    if (!filterPass) {
+      p.show = false;
+      continue;
+    }
+
+    // Occlusion check (only for dots that pass filter)
     const pos = p.position;
     const pointDir = Cartesian3.normalize(pos, new Cartesian3());
     const dotProd = Cartesian3.dot(cameraDir, pointDir);
