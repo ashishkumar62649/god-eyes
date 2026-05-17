@@ -292,3 +292,19 @@ export const MODE_LABELS: Record<string, string> = {
   smart: 'SMART LOD',
   explicit: 'EXPLICIT',
 };
+
+// Bbox rounding precision per zoom tier (in degrees)
+// Tier 0 (global, >12M): 10 deg — tiny camera moves at this range are irrelevant
+// Tier 1 (regional, 4M-12M): 2 deg — country-level
+// Tier 2 (state, 1M-4M): 0.5 deg — province/state level
+// Tier 3 (local, <1M): 0.1 deg — city/area level
+export const BBOX_ROUNDING: Record<number, number> = {
+  0: 10,
+  1: 2,
+  2: 0.5,
+  3: 0.1,
+};
+
+export function getBboxRoundingForTier(tier: number): number {
+  return BBOX_ROUNDING[tier] ?? 0.1;
+}

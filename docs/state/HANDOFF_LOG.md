@@ -2189,3 +2189,26 @@ All agents must append to this file after completing work.
 - Known issues: Unknown display category currently has 0 API rows. Explicit Filter mode at global zoom fetches per-category (now correctly makes separate requests), but per-request 1000 limit still applies.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
 - Review status: pending (not yet pushed or reviewed)
+
+### 2026-05-18T08:20:00Z OpenCode Web 1 — WO-029F-FE aviation viewport request scheduler + lightweight API
+
+- Work order: WO-029F-FE
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-18T08:00:00Z
+- End time UTC: 2026-05-18T08:20:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Stabilized frontend aviation request scheduling and eliminated marker flicker. Tier-aware bbox rounding (10°/2°/0.5°/0.1° for tiers 0-3) prevents re-fetch on tiny camera movements. Increased camera.changed debounce to 500ms; moveEnd cancels pending debounce to prevent double fetch. Removed direct fetchIfNeeded call from postRender tier handler — tier change is picked up by the next camera.changed or moveEnd. Added in-memory response cache (60s TTL, 50 max entries) keyed by stable request key, eliminating redundant network calls on back-and-forth pan/zoom. Cache cleared on layer deactivation. Added fields=marker to per-category API requests for lighter payload. Concurrency limit of 4 parallel requests in batch fetch prevents request storms. Removed extra clearEntities() before render (renderAviationObjects batches remove+add under suspendEvents). Added monotonic fetch generation counter in render key so stale async responses never overwrite newer render state. postRender only updates FPS counter — never triggers fetch or render.
+- Files modified:
+  - apps/web/src/lib/api.ts (response cache with prune, fields=marker, concurrency limit 4, fetchAviationCategoryBatch cache lookup)
+  - apps/web/src/lib/aviationCategories.ts (BBOX_ROUNDING per tier, getBboxRoundingForTier)
+  - apps/web/src/CesiumGlobe.tsx (tier-aware roundBbox, 500ms debounce, moveEnd cancels timeout, stale response guard via fetchGeneration, no extra clearEntities, postRender tier update passive, clearAviationCache on deactivate, percentageChanged=0.05)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check
+- Build result: 56 modules, 182.41 kB, zero TypeScript errors, production build PASS
+- API test result: 89/89 tests PASS
+- Known issues: Unknown display category currently has 0 API rows (expected). Global explicit filter still limited by per-request 1000 cap per category.
+- Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
+- Review status: pending (not yet pushed or reviewed)
