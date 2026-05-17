@@ -2020,3 +2020,28 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029D_API.md
 - Commit hash (review document): (not committed - FAIL status)
 - Next recommended task: Fix SQL injection vulnerability by parameterizing cellSizeDegrees. Re-run tests. Resubmit for review.
+
+### 2026-05-17T07:46:27Z Kiro CLI — WO-029E API Category Audit Review PASS, branch pushed to origin
+
+- Review work order: WO-029E-API-CATEGORY-AUDIT
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-api-1
+- Review start time UTC: 2026-05-17T07:46:27Z
+- Review end time UTC: 2026-05-17T07:46:27Z
+- Commit(s) reviewed: 8c086e0 (docs(api): audit aviation category filtering)
+- Push decision: PASS
+- Branch pushed: agent/claude-api-1
+- Review result: All checks passed. WO-029E audit complete. Backend database is CORRECT. API category filtering is CORRECT. India/China international airports present and returned correctly. Asia water/seaplane sites present (sparse but accurate data from OpenFlights). Single category filter works. Multiple category filter not supported (returns 400). Limit applied after filter. fields=marker includes category. No implementation code changed. No forbidden folders touched. No secrets committed. All builds pass. All 115 tests pass. Documentation comprehensive and accurate.
+- Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, git diff --check, git diff --cached --check
+- Pre-review checks result: ✅ PASS (working directory, branch, working tree clean, only docs/api/ and docs/state/HANDOFF_LOG.md modified, no implementation code changed, no forbidden folders, no secrets, no stale wording)
+- Backend category verdict: ✅ CORRECT (7 categories in DB, India/China international airports present, Asia water sites present, category filtering works, limit applied after filter, fields=marker has category)
+- API filter verdict: ✅ CORRECT (single category filter works, multiple category filter not supported, pagination shows correct total count, typeSource in standard mode, typeSource omitted from marker mode by design)
+- Build/test result: ✅ PASS (Contracts build PASS, API build PASS, API tests PASS (115/115))
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, documentation only)
+- Forbidden folders touched: no
+- Known issues: None. Multiple category filter not supported - frontend must make separate requests per category and merge client-side.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-029E_API_CATEGORY_AUDIT.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Push to origin. Frontend team use audit findings to verify bbox coordinates, check client-side filtering, implement multi-category support via separate requests, accept actual water site data distribution.
