@@ -2213,26 +2213,25 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
 - Review status: pending (not yet pushed or reviewed)
 
-### 2026-05-18T08:50:00Z OpenCode Web 1 — WO-029F-FE progressive tile loader + global dot renderer + sprite occlusion fix
+### 2026-05-18T09:05:00Z OpenCode Web 1 — WO-029F-FE batch entity render, interleaved tiles, dot depth fix
 
 - Work order: WO-029F-FE
 - Agent: OpenCode Web 1
 - LLM model: deepseek-v4-flash-free
 - Tool/CLI used: OpenCode CLI
 - Branch: agent/opencode-web-1
-- Start time UTC: 2026-05-18T08:30:00Z
-- End time UTC: 2026-05-18T08:50:00Z
+- Start time UTC: 2026-05-18T08:55:00Z
+- End time UTC: 2026-05-18T09:05:00Z
 - Commit hash: (local only - pending Kiro review)
 - Push status: local only (awaiting review)
-- What was done: Implemented progressive tile-based loading for Explicit Filter global zoom (tier 0) — 30° tile grid (72 tiles), concurrency 3, per-category tile cache (120s TTL, 200 max). Created PointPrimitiveCollection dot renderer (`aviationGlobalRenderer.ts`) for lightweight global dots (5px, ~0.92 alpha, closed at 4px 0.45 alpha). Global dot click flies to coordinate at 500km (no Object Intel for thousands of dots). Fixed sprite occlusion: removed white stroke outlines and padding from sprites (`STROKE_W=0`, `PAD=0`) to eliminate center-globe shadow artifact from overlapping semi-transparent outlines. Added `disableDepthTestDistance: Infinity` to entity billboards to ensure markers always visible on front-facing globe. Behind-globe click prevention via `isPositionVisible` retained. Updated CesiumGlobe.tsx routing: explicit filter + tier 0 → tile-based PointPrimitive dot loading; all else → entity-based fetch/render. AbortController for both entity and tile groups. TypeScript unused-var cleanup. Build clean at 58 modules / 185.75 kB. All 89 API tests pass.
+- What was done: Three fixes for remaining aviation rendering issues. (1) Center-globe shadow/occlusion — added `disableDepthTestDistance: Infinity` to PointPrimitive dots in `aviationGlobalRenderer.ts` so dots are never hidden by the globe surface. (2) Render freeze — `renderAviationObjects` refactored into async batched version (`renderAviationObjectsAsync`) that yields via `requestAnimationFrame` every 120 entities, keeping the browser responsive during large data renders. Also added `abortSignal` support so batch rendering stops on unmount/filter change. (3) Progressive tile loading — replaced sequential per-category tile fetching with `fetchInterleavedCategoryTiles` that interleaves all category+tile pairs in a single concurrency-limited queue (3 concurrent), so dots from every selected category appear early rather than waiting for one category's 72 tiles to finish. Cleaned up unused vars and fixed TypeScript strict null checks. Build 58 modules, 186.40 kB. All 89 API tests pass.
 - Files modified:
-  - apps/web/src/lib/aviationTileLoader.ts (NEW — 30° tile grid, progressive fetchCategoryTiles, per-category tile cache, TileUpdateCallback, clearTileCache)
-  - apps/web/src/lib/aviationGlobalRenderer.ts (NEW — PointPrimitiveCollection dot renderer, createGlobalDotCollection, addDotsToCollection, destroyGlobalDotCollection, isGlobalDot, getGlobalDotPosition)
-  - apps/web/src/lib/airportMarkerSprites.ts (STROKE_W=0, PAD=0, added getCategoryDotColor)
-  - apps/web/src/lib/aviationLayerRenderer.ts (disableDepthTestDistance: Infinity on billboards)
-  - apps/web/src/CesiumGlobe.tsx (explicit+tier0 → tile dots; entity AbortController restored; unused vars cleaned)
-- Commands run: pnpm --filter web build (PASS), pnpm --filter api test (PASS, 89 tests)
-- Build result: 58 modules, 185.75 kB, zero TypeScript errors, production build PASS
+  - apps/web/src/lib/aviationGlobalRenderer.ts (disableDepthTestDistance: Infinity on dot primitives)
+  - apps/web/src/lib/aviationLayerRenderer.ts (refactored into addEntity/shouldShowAirport helpers; added renderAviationObjectsAsync with batch yielding; abortSignal support)
+  - apps/web/src/lib/aviationTileLoader.ts (added fetchInterleavedCategoryTiles — cross-category interleaved tile queue; added INTERLEAVE_CONCURRENCY constant)
+  - apps/web/src/CesiumGlobe.tsx (uses renderAviationObjectsAsync with abortSignal; uses fetchInterleavedCategoryTiles; renderCurrent is async; fetchIfNeeded awaits renderCurrent; removed unused import)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 58 modules, 186.40 kB), pnpm --filter api test (PASS, 89 tests), git diff --check
+- Build result: 58 modules, 186.40 kB, zero TypeScript errors, production build PASS
 - API test result: 89/89 tests PASS
 - Known issues: Unknown display category has 0 API rows (expected). Global dots have no Object Intel — user zooms in for entity-mode interaction.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified)

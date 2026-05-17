@@ -5,6 +5,7 @@ const TILE_DEG = 30;
 const MAX_CONCURRENCY = 3;
 const CACHE_TTL_MS = 120_000;
 const MAX_CACHE = 200;
+const INTERLEAVE_CONCURRENCY = 3;
 
 interface TileCacheEntry {
   data: AirportObject[];
@@ -130,6 +131,103 @@ export async function fetchCategoryTiles(
       } catch (err: any) {
         if (err.name === 'AbortError') return;
         console.warn(`Tile fetch failed for ${tile.key}:`, err);
+      }
+    }
+
+    next();
+  });
+}
+
+interface InterleaveWorkItem {
+  category: string;
+  tile: TileInfo;
+}
+
+/**
+ * Fetch all tiles across multiple categories with a shared concurrency limit,
+ * interleaving categories so the user sees dots from all selected categories early.
+ */
+export async function fetchInterleavedCategoryTiles(
+  categories: string[],
+  abortSignal: AbortSignal,
+  onTileData: TileUpdateCallback,
+): Promise<void> {
+  if (categories.length === 0) return;
+
+  const tiles = generateGlobalTiles();
+  const queue: InterleaveWorkItem[] = [];
+  for (const cat of categories) {
+    for (const tile of tiles) {
+      queue.push({ category: cat, tile });
+    }
+  }
+
+  let totalSoFar = 0;
+  const seen = new Set<string>();
+  let active = 0;
+
+  return new Promise<void>((resolve, _reject) => {
+    function next(): void {
+      while (active < INTERLEAVE_CONCURRENCY && queue.length > 0 && !abortSignal.aborted) {
+        const work = queue.shift()!;
+        active++;
+        fetchTile(work).finally(() => {
+          active--;
+          if (queue.length === 0 && active === 0) {
+            resolve();
+          } else if (!abortSignal.aborted) {
+            next();
+          }
+        });
+      }
+    }
+
+    async function fetchTile(work: InterleaveWorkItem): Promise<void> {
+      if (abortSignal.aborted) return;
+      const { category, tile } = work;
+
+      const cacheKey = `${category}:${tile.key}`;
+      const cached = tileCache.get(cacheKey);
+      if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+        const batch = cached.data.filter((a) => {
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        });
+        if (batch.length > 0) {
+          totalSoFar += batch.length;
+          onTileData(batch, { tileKey: tile.key, count: batch.length, totalSoFar, done: false });
+        }
+        return;
+      }
+
+      try {
+        const response = await fetchAviationLayerObjects(
+          'points', tile.bbox, undefined, 1000, abortSignal, undefined, category, 'marker',
+        );
+
+        const airports = response.items.filter(
+          (item): item is AirportObject => item.objectType === 'airport',
+        );
+
+        pruneTileCache();
+        tileCache.set(cacheKey, { data: airports, ts: Date.now() });
+
+        if (abortSignal.aborted) return;
+
+        const batch = airports.filter((a) => {
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        });
+
+        if (batch.length > 0) {
+          totalSoFar += batch.length;
+          onTileData(batch, { tileKey: tile.key, count: batch.length, totalSoFar, done: false });
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        console.warn(`Tile fetch failed for ${category} ${tile.key}:`, err);
       }
     }
 

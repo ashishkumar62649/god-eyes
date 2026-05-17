@@ -15,7 +15,7 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 import { fetchAviationCategoryBatch, clearAviationCache } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
 import { isPositionVisible } from './lib/cesiumVisibility';
-import { renderAviationObjects } from './lib/aviationLayerRenderer';
+import { renderAviationObjectsAsync } from './lib/aviationLayerRenderer';
 import { flyToSearchResult } from './lib/globeCamera';
 import {
   AviationFilters,
@@ -27,7 +27,7 @@ import {
   MODE_LABELS,
 } from './lib/aviationCategories';
 import {
-  fetchCategoryTiles,
+  fetchInterleavedCategoryTiles,
   clearTileCache,
 } from './lib/aviationTileLoader';
 import {
@@ -157,7 +157,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }
 
-  function renderCurrent() {
+  async function renderCurrent() {
     if (!aviationDataSourceRef.current) return;
     const active = aviationLayerActiveRef.current;
     if (!active) return;
@@ -166,7 +166,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const tier = zoomTierRef.current;
     const isSmart = smartModeRef.current;
 
-    // If using global tiles, don't render entities (dots handle it)
     if (isUsingGlobalTiles(tier, filters)) return;
 
     const items = itemsCacheRef.current;
@@ -176,24 +175,27 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     lastRenderKeyRef.current = rk;
 
     const height = cameraHeightRef.current;
-    const { visibleCount } = renderAviationObjects(
-      aviationDataSourceRef.current,
-      items,
-      'points',
-      filters,
-      height,
-    );
+    try {
+      const { visibleCount } = await renderAviationObjectsAsync(
+        aviationDataSourceRef.current,
+        items,
+        'points',
+        filters,
+        height,
+        undefined,
+        abortControllerRef.current?.signal,
+      );
 
-    const tierLabel = ZOOM_TIER_LABELS[tier] || '?';
-    const modeLabel = MODE_LABELS[isSmart ? 'smart' : 'explicit'];
-
-    onStatsChangeRef.current?.({
-      loaded: items.length,
-      visible: visibleCount,
-      clustersActive: true,
-      renderMode: `${modeLabel}_${tierLabel}`,
-      fps: fpsRef.current,
-    });
+      onStatsChangeRef.current?.({
+        loaded: items.length,
+        visible: visibleCount,
+        clustersActive: true,
+        renderMode: `${MODE_LABELS[isSmart ? 'smart' : 'explicit']}_${ZOOM_TIER_LABELS[tier] || '?'}`,
+        fps: fpsRef.current,
+      });
+    } catch (err) {
+      console.error('Render error:', err);
+    }
   }
 
   async function startTileLoading(filters: AviationFilters): Promise<void> {
@@ -224,22 +226,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       fps: fpsRef.current,
     });
 
-    for (const cat of backendCats) {
+    await fetchInterleavedCategoryTiles(backendCats, ac.signal, (batch, progress) => {
       if (ac.signal.aborted) return;
-
-      await fetchCategoryTiles(cat, '', ac.signal, (batch, progress) => {
-        if (ac.signal.aborted) return;
-        addDotsToCollection(collection, batch, filters);
-        totalLoaded = progress.totalSoFar;
-        onStatsChangeRef.current?.({
-          loaded: totalLoaded,
-          visible: totalLoaded,
-          clustersActive: false,
-          renderMode: `${modeLabel}_${tierLabel}`,
-          fps: fpsRef.current,
-        });
+      addDotsToCollection(collection, batch, filters);
+      totalLoaded = progress.totalSoFar;
+      onStatsChangeRef.current?.({
+        loaded: totalLoaded,
+        visible: totalLoaded,
+        clustersActive: false,
+        renderMode: `${modeLabel}_${tierLabel}`,
+        fps: fpsRef.current,
       });
-    }
+    });
   }
 
   async function fetchIfNeeded() {
@@ -275,7 +273,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     const rk = computeRequestKey(active, tier, viewport.bbox, backendCats);
     if (rk === lastRequestKeyRef.current) {
-      renderCurrent();
+      await renderCurrent();
       return;
     }
     lastRequestKeyRef.current = rk;
@@ -299,7 +297,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
       fetchGenerationRef.current++;
       itemsCacheRef.current = merged;
-      renderCurrent();
+      await renderCurrent();
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error('Failed to fetch aviation data:', err);

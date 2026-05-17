@@ -49,6 +49,7 @@ export function addDotsToCollection(
         position: Cartesian3.fromDegrees(item.position.longitude, item.position.latitude, DOT_HEIGHT_METERS),
         color: Color.fromCssColorString(catColor).withAlpha(DOT_ALPHA_CLOSED),
         pixelSize: CLOSED_DOT_SIZE,
+        disableDepthTestDistance: Infinity,
         id: { type: 'global_dot', airportId: item.id, lon: item.position.longitude, lat: item.position.latitude, displayCat },
       });
     } else {
@@ -57,6 +58,7 @@ export function addDotsToCollection(
         position: Cartesian3.fromDegrees(item.position.longitude, item.position.latitude, DOT_HEIGHT_METERS),
         color: Color.fromCssColorString(catColor).withAlpha(DOT_ALPHA_ACTIVE),
         pixelSize: DOT_SIZE,
+        disableDepthTestDistance: Infinity,
         id: { type: 'global_dot', airportId: item.id, lon: item.position.longitude, lat: item.position.latitude, displayCat },
       });
     }
