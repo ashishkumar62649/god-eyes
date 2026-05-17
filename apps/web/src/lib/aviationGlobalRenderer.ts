@@ -49,8 +49,8 @@ export function addDotsToCollection(
         position: Cartesian3.fromDegrees(item.position.longitude, item.position.latitude, DOT_HEIGHT_METERS),
         color: Color.fromCssColorString(catColor).withAlpha(DOT_ALPHA_CLOSED),
         pixelSize: CLOSED_DOT_SIZE,
-        disableDepthTestDistance: Infinity,
         id: { type: 'global_dot', airportId: item.id, lon: item.position.longitude, lat: item.position.latitude, displayCat },
+        show: true,
       });
     } else {
       if (filters && !filters[displayCat]) continue;
@@ -58,8 +58,8 @@ export function addDotsToCollection(
         position: Cartesian3.fromDegrees(item.position.longitude, item.position.latitude, DOT_HEIGHT_METERS),
         color: Color.fromCssColorString(catColor).withAlpha(DOT_ALPHA_ACTIVE),
         pixelSize: DOT_SIZE,
-        disableDepthTestDistance: Infinity,
         id: { type: 'global_dot', airportId: item.id, lon: item.position.longitude, lat: item.position.latitude, displayCat },
+        show: true,
       });
     }
   }
@@ -72,4 +72,30 @@ export function isGlobalDot(picked: any): boolean {
 export function getGlobalDotPosition(picked: any): { longitude: number; latitude: number } | null {
   if (!picked?.id) return null;
   return { longitude: picked.id.lon, latitude: picked.id.lat };
+}
+
+/**
+ * Update the `show` property on every PointPrimitive in the collection
+ * based on whether its position is above the camera's horizon.
+ * Call this on camera moveEnd when global dots are active to
+ * hide behind-globe dots without X-ray depth-test disabling.
+ */
+export function filterVisibleGlobalDots(collection: PointPrimitiveCollection, scene: Scene): void {
+  const cameraPos = scene.camera.positionWC;
+  const cameraDist = Cartesian3.magnitude(cameraPos);
+  if (cameraDist < 100) return;
+  const cameraDir = Cartesian3.normalize(cameraPos, new Cartesian3());
+  const R = scene.globe.ellipsoid.maximumRadius;
+  const horizonDot = R / cameraDist;
+  const threshold = horizonDot - 0.05;
+
+  const length = collection.length;
+  for (let i = 0; i < length; i++) {
+    const p = collection.get(i);
+    if (!p) continue;
+    const pos = p.position;
+    const pointDir = Cartesian3.normalize(pos, new Cartesian3());
+    const dotProd = Cartesian3.dot(cameraDir, pointDir);
+    p.show = dotProd > threshold;
+  }
 }

@@ -2213,6 +2213,29 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
 - Review status: pending (not yet pushed or reviewed)
 
+### 2026-05-18T09:20:00Z OpenCode Web 1 — WO-029F-FE globe occlusion fix
+
+- Work order: WO-029F-FE globe occlusion fix
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-18T09:15:00Z
+- End time UTC: 2026-05-18T09:20:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Fixed aviation markers/dots showing through the back side of the globe (X-ray effect). Root cause: `disableDepthTestDistance: Infinity` was set on both entity billboards and PointPrimitive dots, which disables depth testing entirely and causes behind-globe objects to render through Earth. Fix: removed `disableDepthTestDistance` from all three occurrences (entity billboard in `aviationLayerRenderer.ts`, two PointPrimitive dot configs in `aviationGlobalRenderer.ts`). Added `filterVisibleGlobalDots(collection, scene)` function that iterates the PointPrimitiveCollection on camera moveEnd and sets `show=false` for dots below the horizon (using the same dot-product horizon culling as `isPositionVisible`). Called `filterVisibleGlobalDots` inside `scheduleFetch` so it runs before every fetch attempt. Front-facing markers remain visible because normal depth testing correctly shows them above the globe surface (they are shallower than the globe depth buffer). Behind-globe click prevention via existing `isPositionVisible` check in click handler. Build 58 modules, 186.93 kB.
+- Files modified:
+  - apps/web/src/lib/aviationLayerRenderer.ts (removed disableDepthTestDistance: Infinity from entity billboard)
+  - apps/web/src/lib/aviationGlobalRenderer.ts (removed disableDepthTestDistance: Infinity from both dot primitives; added filterVisibleGlobalDots with horizon-culling per-dot show update; added show:true init)
+  - apps/web/src/CesiumGlobe.tsx (imports filterVisibleGlobalDots; calls it inside scheduleFetch before every fetch)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 58 modules, 186.93 kB), pnpm --filter api test (PASS, 89 tests), git diff --check
+- Build result: 58 modules, 186.93 kB, zero TypeScript errors, production build PASS
+- API test result: 89/89 tests PASS
+- Known issues: Unknown display category has 0 API rows (expected). Global dots have no Object Intel — user zooms in for entity-mode interaction.
+- Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
+- Review status: pending (not yet pushed or reviewed)
+
 ### 2026-05-18T09:10:00Z OpenCode Web 1 — WO-029F-FE scheduler activation bugfix
 
 - Work order: WO-029F-FE scheduler activation bugfix

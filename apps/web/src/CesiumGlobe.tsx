@@ -36,6 +36,7 @@ import {
   addDotsToCollection,
   isGlobalDot,
   getGlobalDotPosition,
+  filterVisibleGlobalDots,
 } from './lib/aviationGlobalRenderer';
 import type { AirportObject } from '@god-eyes/contracts';
 
@@ -141,6 +142,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   function scheduleFetch(reason: string): void {
     if (import.meta.env.DEV) {
       console.debug(`[aviation] scheduleFetch: ${reason}`);
+    }
+    // Cull behind-globe dots based on current camera position
+    if (globalDotCollectionRef.current && viewerRef.current) {
+      filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene);
     }
     fetchIfNeeded();
   }

@@ -48,7 +48,6 @@ function addEntity(
     ),
     billboard: {
       image: icon,
-      disableDepthTestDistance: Infinity,
       color: displayCat === 'closed' ? Color.fromCssColorString('rgba(107,114,128,0.55)') : undefined,
     },
     properties: {
