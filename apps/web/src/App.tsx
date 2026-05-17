@@ -13,6 +13,14 @@ interface DetailCache {
   timestamp: number;
 }
 
+interface AviationStats {
+  loaded: number;
+  visible: number;
+  clustersActive: boolean;
+  renderMode: string;
+  fps: number;
+}
+
 const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
   const [aviationLayerActive, setAviationLayerActive] = useState(false);
@@ -20,14 +28,15 @@ const App: React.FC = () => {
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [aviationStats, setAviationStats] = useState({ loaded: 0, visible: 0, clustersActive: false, renderMode: 'density' });
+  const [aviationStats, setAviationStats] = useState<AviationStats>({
+    loaded: 0, visible: 0, clustersActive: false, renderMode: 'fabric', fps: 0,
+  });
   const [cameraTarget, setCameraTarget] = useState<{
     position: { latitude: number; longitude: number };
     type: string;
     timestamp: number;
   } | null>(null);
   const [aviationFilters, setAviationFilters] = useState<AviationFilters>(DEFAULT_AVIATION_FILTERS);
-  const [aviationRenderMode, setAviationRenderMode] = useState<'density' | 'clusters'>('density');
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
@@ -75,23 +84,19 @@ const App: React.FC = () => {
         setDetailLoading(false);
       })
       .catch((err: Error) => {
-        if (err.name === 'AbortError') {
-          return;
-        }
+        if (err.name === 'AbortError') return;
         setDetailError(err.message || 'Failed to load details');
         setDetailLoading(false);
       });
 
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [selectedObject?.id]);
 
   const handleObjectSelect = useCallback((obj: unknown) => {
     setSelectedObject(obj as AirportObject);
   }, []);
 
-  const handleAviationStatsChange = useCallback((stats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string }) => {
+  const handleAviationStatsChange = useCallback((stats: AviationStats) => {
     setAviationStats(stats);
   }, []);
 
@@ -102,7 +107,6 @@ const App: React.FC = () => {
     } else {
       setSelectedObject(null);
     }
-
     setCameraTarget({
       position: result.position,
       type: result.type,
@@ -112,10 +116,6 @@ const App: React.FC = () => {
 
   const handleFiltersChange = useCallback((filters: AviationFilters) => {
     setAviationFilters(filters);
-  }, []);
-
-  const handleRenderModeChange = useCallback((mode: 'density' | 'clusters') => {
-    setAviationRenderMode(mode);
   }, []);
 
   return (
@@ -133,7 +133,6 @@ const App: React.FC = () => {
         onAviationStatsChange={handleAviationStatsChange}
         cameraTarget={cameraTarget}
         aviationFilters={aviationFilters}
-        aviationRenderMode={aviationRenderMode}
       />
 
       <div style={{
@@ -152,8 +151,6 @@ const App: React.FC = () => {
           onSearchResultSelect={handleSearchResultSelect}
           aviationFilters={aviationFilters}
           onFiltersChange={handleFiltersChange}
-          aviationRenderMode={aviationRenderMode}
-          onRenderModeChange={handleRenderModeChange}
         />
       </div>
     </div>

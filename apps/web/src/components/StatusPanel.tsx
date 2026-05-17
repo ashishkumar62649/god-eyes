@@ -1,12 +1,26 @@
 import React, { useState } from 'react';
 
+interface AviationStats {
+  loaded: number;
+  visible: number;
+  clustersActive: boolean;
+  renderMode: string;
+  fps: number;
+}
+
 interface StatusPanelProps {
   aviationLayerActive: boolean;
-  aviationStats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string };
+  aviationStats: AviationStats;
 }
 
 const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const renderModeLabel: Record<string, string> = {
+    fabric: 'FABRIC',
+    density: 'DENSITY',
+    entity: 'ENTITY',
+  };
 
   return (
     <footer className={`shell-panel shell-footer shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -34,11 +48,21 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Render Mode</div>
-            <div className="detail-value" style={{ color: ['clusters', 'density'].includes(aviationStats.renderMode) ? 'var(--shell-accent)' : 'inherit' }}>
-              {aviationStats.renderMode === 'density' ? 'DENSITY' : aviationStats.clustersActive ? 'CLUSTERED' : 'POINTS'}
+            <div className="detail-value" style={{ color: aviationLayerActive ? 'var(--shell-accent)' : 'inherit' }}>
+              {aviationLayerActive ? (renderModeLabel[aviationStats.renderMode] || aviationStats.renderMode.toUpperCase()) : 'IDLE'}
             </div>
           </div>
           
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+            <div className="detail-label">FPS</div>
+            <div className="detail-value" style={{
+              color: aviationStats.fps >= 50 ? '#00e676' : aviationStats.fps >= 30 ? '#ffab00' : '#ff4d4d',
+              fontWeight: 600,
+            }}>
+              {aviationStats.fps || '--'}
+            </div>
+          </div>
+
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Data Stream</div>
             <div className="detail-value" style={{ opacity: 0.8 }}>

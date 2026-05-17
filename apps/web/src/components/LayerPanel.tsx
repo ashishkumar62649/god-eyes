@@ -3,14 +3,20 @@ import { fetchLayerStatus } from '../lib/api';
 import { LayerStatusResponse } from '@god-eyes/contracts';
 import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
 
+interface AviationStats {
+  loaded: number;
+  visible: number;
+  clustersActive: boolean;
+  renderMode: string;
+  fps: number;
+}
+
 interface LayerPanelProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
-  aviationStats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string };
+  aviationStats: AviationStats;
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;
-  aviationRenderMode: 'density' | 'clusters';
-  onRenderModeChange: (mode: 'density' | 'clusters') => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -33,8 +39,6 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   aviationStats,
   aviationFilters,
   onFiltersChange,
-  aviationRenderMode,
-  onRenderModeChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [aviationStatus, setAviationStatus] = useState<LayerStatusResponse | null>(null);
@@ -55,7 +59,6 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         setLoading(false);
       }
     }
-
     loadStatus();
   }, []);
 
@@ -71,6 +74,12 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     { label: 'Closed (dimmed)', cat: 'closed' as const },
     { label: 'Other', cat: 'unknown' as const },
   ];
+
+  const renderModeLabel: Record<string, string> = {
+    fabric: 'AVIATION FABRIC',
+    density: 'DENSITY DOTS',
+    entity: 'MARKER RENDER',
+  };
 
   return (
     <aside className={`shell-panel shell-panel-left shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -112,7 +121,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     <span>VISIBLE: {aviationStats.visible}</span>
                   </div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '2px' }}>
-                    MODE: {aviationStats.renderMode === 'density' ? 'DENSITY DOTS' : aviationStats.clustersActive ? 'CLUSTER AGGREGATION' : 'POINT RENDER'}
+                    MODE: {renderModeLabel[aviationStats.renderMode] || aviationStats.renderMode.toUpperCase()}
                   </div>
                 </div>
               ) : (
@@ -150,32 +159,12 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
 
               <div className="legend-section">
                 <div className="legend-section-header">MARKER LEGEND</div>
-                {legendItems.map((item) => {
-                  return (
-                    <div key={item.cat} className="legend-item">
-                      <span className={`legend-marker legend-marker-${item.cat}`} />
-                      <span className="legend-label">{item.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="filter-section" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '12px', paddingTop: '8px' }}>
-                <div className="filter-section-header">RENDER MODE</div>
-                <div
-                  className={`filter-toggle ${aviationRenderMode === 'density' ? 'active' : ''}`}
-                  onClick={() => onRenderModeChange('density')}
-                >
-                  <span className="filter-toggle-dot" style={{ background: aviationRenderMode === 'density' ? '#00d2ff' : '#444' }} />
-                  <span className="filter-toggle-label">DENSITY VIEW</span>
-                </div>
-                <div
-                  className={`filter-toggle ${aviationRenderMode === 'clusters' ? 'active' : ''}`}
-                  onClick={() => onRenderModeChange('clusters')}
-                >
-                  <span className="filter-toggle-dot" style={{ background: aviationRenderMode === 'clusters' ? '#00d2ff' : '#444' }} />
-                  <span className="filter-toggle-label">CLUSTER VIEW</span>
-                </div>
+                {legendItems.map((item) => (
+                  <div key={item.cat} className="legend-item">
+                    <span className={`legend-marker legend-marker-${item.cat}`} />
+                    <span className="legend-label">{item.label}</span>
+                  </div>
+                ))}
               </div>
             </>
           )}
