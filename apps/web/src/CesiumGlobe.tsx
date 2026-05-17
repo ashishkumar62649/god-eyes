@@ -12,10 +12,12 @@ import {
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
-import { fetchAviationCategoryBatch, clearAviationCache } from './lib/api';
+import { fetchAviationLayerObjects, clearAviationCache } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
 import { isPositionVisible } from './lib/cesiumVisibility';
-import { renderAviationObjectsAsync } from './lib/aviationLayerRenderer';
+import {
+  renderAviationObjectsIncrementalAsync,
+} from './lib/aviationLayerRenderer';
 import { flyToSearchResult } from './lib/globeCamera';
 import {
   AviationFilters,
@@ -34,10 +36,29 @@ import {
   createGlobalDotCollection,
   destroyGlobalDotCollection,
   addDotsToCollection,
+  clearGlobalDots,
   isGlobalDot,
   getGlobalDotPosition,
   filterVisibleGlobalDots,
 } from './lib/aviationGlobalRenderer';
+import {
+  makeTileKey,
+  hasTile,
+  setTile,
+  clearTileCache as clearPersistentTileCache,
+  bboxToTileIds,
+  tileIdToBbox,
+  markTileInFlight,
+  markTileDone,
+  isTileInFlight,
+  clearInFlightTiles,
+  getTileCacheStats,
+} from './lib/aviationTileCache';
+import {
+  storeObjects,
+  getAllObjects,
+  clearObjectStore,
+} from './lib/aviationObjectStore';
 import type { AirportObject } from '@god-eyes/contracts';
 
 const FETCH_DEBOUNCE_MS = 500;
@@ -48,6 +69,10 @@ interface AviationStats {
   clustersActive: boolean;
   renderMode: string;
   fps: number;
+  cacheEntries?: number;
+  cacheHits?: number;
+  cacheMisses?: number;
+  inflight?: number;
 }
 
 interface CesiumGlobeProps {
@@ -122,6 +147,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   const itemsCacheRef = useRef<AirportObject[]>([]);
   const fpsRef = useRef<number>(0);
+  const renderedEntityIdsRef = useRef<Set<string>>(new Set());
 
   const lastRequestKeyRef = useRef('');
   const lastRenderKeyRef = useRef('');
@@ -164,6 +190,62 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     tileActiveRef.current = false;
   }
 
+  function fetchSingleTile(
+    cacheKey: string,
+    category: string,
+    bbox: string,
+    includeClosed: boolean,
+    signal: AbortSignal,
+  ): Promise<void> {
+    return fetchAviationLayerObjects(
+      'points', bbox, undefined, 1000, signal, undefined, category, 'marker',
+    ).then((response) => {
+      if (signal.aborted) return;
+      const airports = response.items.filter(
+        (item): item is AirportObject => item.objectType === 'airport',
+      ).filter((a) => {
+        if (includeClosed) return true;
+        const cat = (a.category || '').toLowerCase().trim();
+        return cat !== 'closed' && cat !== 'closed_or_abandoned';
+      });
+      storeObjects(airports);
+      setTile(cacheKey, airports);
+    }).catch((err: any) => {
+      if (err.name === 'AbortError') return;
+      console.warn(`Tile fetch failed for ${cacheKey}:`, err);
+    });
+  }
+
+  async function fetchMissingTiles(
+    neededKeys: string[],
+    includeClosed: boolean,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const queue = [...neededKeys];
+    const CONCURRENCY = 3;
+    const workers: Promise<void>[] = [];
+    for (let i = 0; i < CONCURRENCY; i++) {
+      workers.push((async () => {
+        while (queue.length > 0 && !signal.aborted) {
+          const fullKey = queue.shift()!;
+          if (!fullKey) continue;
+          const catEnd = fullKey.indexOf(':');
+          if (catEnd === -1) continue;
+          const category = fullKey.substring(0, catEnd);
+          const tileStart = catEnd + 1;
+          const tileEnd = fullKey.indexOf(':', tileStart);
+          if (tileEnd === -1) continue;
+          const tileId = fullKey.substring(tileStart, tileEnd);
+          const bbox = tileIdToBbox(tileId);
+          markTileInFlight(fullKey);
+          await fetchSingleTile(fullKey, category, bbox, includeClosed, signal);
+          markTileDone(fullKey);
+        }
+      })());
+    }
+    await Promise.all(workers);
+  }
+
   function destroyGlobalDots(): void {
     if (globalDotCollectionRef.current && viewerRef.current) {
       destroyGlobalDotCollection(globalDotCollectionRef.current, viewerRef.current.scene);
@@ -177,7 +259,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }
 
-  async function renderCurrent() {
+  async function renderCurrentIncremental() {
     if (!aviationDataSourceRef.current) return;
     const active = aviationLayerActiveRef.current;
     if (!active) return;
@@ -188,17 +270,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     if (isUsingGlobalTiles(tier, filters)) return;
 
-    const items = itemsCacheRef.current;
+    const allObjects = getAllObjects();
     const gen = fetchGenerationRef.current;
-    const rk = computeRenderKey(active, tier, filters, items.length, gen);
+    const rk = computeRenderKey(active, tier, filters, allObjects.length, gen);
     if (rk === lastRenderKeyRef.current) return;
     lastRenderKeyRef.current = rk;
 
     const height = cameraHeightRef.current;
     try {
-      const { visibleCount } = await renderAviationObjectsAsync(
+      const { visibleCount, added } = await renderAviationObjectsIncrementalAsync(
         aviationDataSourceRef.current,
-        items,
+        allObjects,
         'points',
         filters,
         height,
@@ -206,13 +288,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         abortControllerRef.current?.signal,
       );
 
+      const stats = getTileCacheStats();
       onStatsChangeRef.current?.({
-        loaded: items.length,
+        loaded: allObjects.length,
         visible: visibleCount,
         clustersActive: true,
         renderMode: `${MODE_LABELS[isSmart ? 'smart' : 'explicit']}_${ZOOM_TIER_LABELS[tier] || '?'}`,
         fps: fpsRef.current,
+        cacheEntries: stats.entries,
+        cacheHits: stats.hits,
+        cacheMisses: stats.misses,
+        inflight: stats.inFlight,
       });
+
+      if (import.meta.env.DEV && added > 0) {
+        console.debug(`[aviation] incremental render: +${added} entities, visible ${visibleCount}`);
+      }
     } catch (err) {
       console.error('Render error:', err);
     }
@@ -222,11 +313,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (!viewerRef.current) return;
 
     abortTileLoader();
-    destroyGlobalDots();
 
     const viewer = viewerRef.current;
-    const collection = createGlobalDotCollection(viewer.scene);
-    globalDotCollectionRef.current = collection;
+    let collection = globalDotCollectionRef.current;
+    if (!collection) {
+      collection = createGlobalDotCollection(viewer.scene);
+      globalDotCollectionRef.current = collection;
+    } else {
+      clearGlobalDots(collection);
+    }
     tileActiveRef.current = true;
 
     const ac = new AbortController();
@@ -248,14 +343,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     await fetchInterleavedCategoryTiles(backendCats, ac.signal, (batch, progress) => {
       if (ac.signal.aborted) return;
-      addDotsToCollection(collection, batch, filters);
+      addDotsToCollection(collection!, batch, filters);
+      storeObjects(batch);
+      const tileId = progress.tileKey.split('_').slice(0, 2).join('_');
+      const cacheKey = makeTileKey(progress.category, tileId, 'points', filters.closed);
+      setTile(cacheKey, batch);
       totalLoaded = progress.totalSoFar;
+      const stats = getTileCacheStats();
       onStatsChangeRef.current?.({
         loaded: totalLoaded,
         visible: totalLoaded,
         clustersActive: false,
         renderMode: `${modeLabel}_${tierLabel}`,
         fps: fpsRef.current,
+        cacheEntries: stats.entries,
+        cacheHits: stats.hits,
+        cacheMisses: stats.misses,
+        inflight: stats.inFlight,
       });
     });
   }
@@ -287,16 +391,41 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       return;
     }
 
-    // All other cases → existing entity-based path
+    // Entity-based path with persistent tile cache
     abortTileLoader();
+
+    // Pre-render cached store data as entities before destroying dots
+    const storeData = getAllObjects();
+    if (globalDotCollectionRef.current && storeData.length > 0) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      fetchGenerationRef.current++;
+      itemsCacheRef.current = storeData;
+      await renderCurrentIncremental();
+    }
+
     destroyGlobalDots();
 
-    const rk = computeRequestKey(active, tier, viewport.bbox, backendCats);
-    if (rk === lastRequestKeyRef.current) {
-      await renderCurrent();
+    const includeClosed = filters.closed;
+    const tileIds = bboxToTileIds(viewport.bbox);
+
+    const tileKeys: string[] = [];
+    for (const cat of backendCats) {
+      for (const tid of tileIds) {
+        tileKeys.push(makeTileKey(cat, tid, 'points', includeClosed));
+      }
+    }
+
+    const tileSetKey = [...tileKeys].sort().join('|');
+    const fetchKey = `${active}:${tier}:tiles:${tileSetKey}`;
+
+    if (fetchKey === lastRequestKeyRef.current) {
+      await renderCurrentIncremental();
       return;
     }
-    lastRequestKeyRef.current = rk;
+    lastRequestKeyRef.current = fetchKey;
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -304,24 +433,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    try {
-      const merged = await fetchAviationCategoryBatch(
-        viewport.bbox,
-        'points',
-        backendCats,
-        1000,
-        signal,
-        viewport.zoom,
-        rk,
-      );
+    const neededKeys = tileKeys.filter((k) => !hasTile(k) && !isTileInFlight(k));
 
-      fetchGenerationRef.current++;
-      itemsCacheRef.current = merged;
-      await renderCurrent();
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      console.error('Failed to fetch aviation data:', err);
+    if (neededKeys.length > 0) {
+      try {
+        await fetchMissingTiles(neededKeys, includeClosed, signal);
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        console.warn('Tile fetch error:', err);
+      }
     }
+
+    if (signal.aborted) return;
+
+    fetchGenerationRef.current++;
+    itemsCacheRef.current = getAllObjects();
+    await renderCurrentIncremental();
   }
 
   useEffect(() => {
@@ -522,9 +649,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (!aviationLayerActive) {
       clearAviationCache();
       clearTileCache();
+      clearPersistentTileCache();
+      clearObjectStore();
+      clearInFlightTiles();
       abortTileLoader();
       destroyGlobalDots();
       clearEntities();
+      renderedEntityIdsRef.current.clear();
       zoomTierRef.current = 0;
       cameraHeightRef.current = 20000000;
       itemsCacheRef.current = [];
@@ -556,6 +687,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       scheduleFetch('filter-change');
     }
   }, [aviationFilters, aviationLayerActive]);
+
+  // Sync renderedEntityIdsRef before incremental render
+  useEffect(() => {
+    if (!aviationDataSourceRef.current) return;
+    const entities = aviationDataSourceRef.current.entities.values;
+    const ids = new Set<string>();
+    for (let i = 0; i < entities.length; i++) {
+      if (entities[i]) ids.add(entities[i].id);
+    }
+    renderedEntityIdsRef.current = ids;
+  });
 
   if (error) {
     return (

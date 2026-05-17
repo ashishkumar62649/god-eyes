@@ -2206,3 +2206,32 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029E_API_CATEGORY_AUDIT.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Push to origin. Frontend team use audit findings to verify bbox coordinates, check client-side filtering, implement multi-category support via separate requests, accept actual water site data distribution.
+
+
+### 2026-05-17T11:36:00Z OpenCode Web 1 — WO-029G-FE Aviation Persistent Tile Cache + Render Reuse
+
+- Work order: WO-029G-FE Aviation Persistent Tile Cache + Render Reuse
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: opencode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-17T11:10:00Z
+- End time UTC: 2026-05-17T11:36:00Z
+- Commit hash: a306116
+- Push status: NOT PUSHED
+- Files changed: 6 files (2 new, 4 modified)
+  - NEW: apps/web/src/lib/aviationTileCache.ts — LRU tile cache (max 200 entries, 10 min TTL, stale-while-revalidate)
+  - NEW: apps/web/src/lib/aviationObjectStore.ts — Global deduplicated AirportObject store by ID
+  - MODIFIED: apps/web/src/lib/aviationLayerRenderer.ts — Added renderAviationObjectsIncrementalAsync (no removeAll, incremental entity add/remove with rAF batching)
+  - MODIFIED: apps/web/src/CesiumGlobe.tsx — Entity path uses tile cache (bbox→tileIds→cache check→fetch missing→store→incremental render); dot path preserves existing collection; layer OFF clears all caches; cache stats reported
+  - MODIFIED: apps/web/src/components/StatusPanel.tsx — Added cache stats display (E/H/M/F)
+  - MODIFIED: apps/web/src/App.tsx — Extended AviationStats with optional cache fields
+  - NEW: docs/work-orders/WO-029G-opencode-aviation-persistent-tile-cache.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md (this entry)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter web build, git diff --check
+- Build result: ✅ PASS (Contracts build PASS, Web build PASS 60 modules 676ms)
+- Manual browser verification result: (pending — Kiro to verify after merge)
+- Security/privacy result: ✅ PASS (no .env, no API keys, no secrets, no node_modules, no new dependencies)
+- Forbidden folders touched: ❌ NO
+- Known issues: None. All WO-029F behavior preserved.
+- Next safe task: Push branch to origin. Kiro CLI review and manual browser verification.

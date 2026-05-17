@@ -45,6 +45,7 @@ export function generateGlobalTiles(): TileInfo[] {
 
 export interface TileProgress {
   tileKey: string;
+  category: string;
   count: number;
   totalSoFar: number;
   done: boolean;
@@ -97,7 +98,7 @@ export async function fetchCategoryTiles(
         });
         if (batch.length > 0) {
           totalSoFar += batch.length;
-          onTileData(batch, { tileKey: tile.key, count: batch.length, totalSoFar, done: false });
+          onTileData(batch, { tileKey: tile.key, category, count: batch.length, totalSoFar, done: false });
         }
         return;
       }
@@ -126,7 +127,7 @@ export async function fetchCategoryTiles(
 
         if (batch.length > 0) {
           totalSoFar += batch.length;
-          onTileData(batch, { tileKey: tile.key, count: batch.length, totalSoFar, done: false });
+          onTileData(batch, { tileKey: tile.key, category, count: batch.length, totalSoFar, done: false });
         }
       } catch (err: any) {
         if (err.name === 'AbortError') return;
@@ -196,7 +197,7 @@ export async function fetchInterleavedCategoryTiles(
         });
         if (batch.length > 0) {
           totalSoFar += batch.length;
-          onTileData(batch, { tileKey: tile.key, count: batch.length, totalSoFar, done: false });
+          onTileData(batch, { tileKey: tile.key, category, count: batch.length, totalSoFar, done: false });
         }
         return;
       }
@@ -223,7 +224,7 @@ export async function fetchInterleavedCategoryTiles(
 
         if (batch.length > 0) {
           totalSoFar += batch.length;
-          onTileData(batch, { tileKey: tile.key, count: batch.length, totalSoFar, done: false });
+          onTileData(batch, { tileKey: tile.key, category, count: batch.length, totalSoFar, done: false });
         }
       } catch (err: any) {
         if (err.name === 'AbortError') return;
