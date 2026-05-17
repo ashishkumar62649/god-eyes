@@ -262,6 +262,31 @@
 - Commit hash (review document): dfae14f
 - Next recommended task: Claude/API use reference for density endpoint planning. Gemini/frontend use reference for density mode QA and stress testing.
 
+### 2026-05-17T09:45:00Z Kiro CLI — WO-029F-FE Aviation LOD Category Rendering + Viewport Request Scheduler + Globe Occlusion Fix PASS, branch pushed to origin
+
+- Review work order: WO-029F-FE
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/opencode-web-1
+- Review start time UTC: 2026-05-17T09:14:22Z
+- Review end time UTC: 2026-05-17T09:45:00Z
+- Latest commit reviewed: 3be6e87 (fix(web): prevent aviation markers showing through globe)
+- Push decision: PASS
+- Branch pushed: agent/opencode-web-1
+- Review result: All 15 automated checks passed. All 28 manual browser verification tests passed. WO-029F-FE implementation complete and production-ready. 8-category LOD system correctly implemented with smart mode and explicit filter mode. Request scheduler prevents API spam with stable request keys and debouncing. Category batch fetching works correctly (one request per category, client-side merge/dedupe). Globe occlusion fix prevents markers from showing through Earth. No permanent labels. No cluster bubbles as default. Closed/historical hidden by default. All builds pass. All tests pass.
+- Commands run: git status, git log --oneline -10, git diff --stat origin/main..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm --filter api test, git add docs/state/INTEGRATION_REVIEW_WO-029F_FE.md docs/state/HANDOFF_LOG.md, git commit, git push -u origin agent/opencode-web-1
+- Automated checks result: ✅ PASS (15/15: git status, folder boundaries, category model, API helper, request scheduler, progressive loading, renderer, globe occlusion, UI, builds, regression, documentation, security/privacy)
+- Manual browser verification result: ✅ PASS (28/28: fresh reload, no API spam, request batching, no flicker, no labels, no clusters default, LOD tiers, category toggles, Smart LOD, closed/historical, FPS, responsiveness, no duplicates, no console errors, search, Object Intel, occlusion, behind-globe not clickable, layer toggle, no runaway requests)
+- Builds/tests result: ✅ PASS (Contracts build PASS, Web build PASS (58 modules, 628ms), API build PASS, API tests PASS (89 tests))
+- Security/privacy result: ✅ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
+- Forbidden folders touched: no
+- Known issues: None
+- Known limitations: Unknown category currently has 0 API rows, explicit global category loading bounded by API limits, global dots may not open Object Intel until local/entity mode, not live aircraft data, future polish may include density/fabric aggregation
+- Review document: docs/state/INTEGRATION_REVIEW_WO-029F_FE.md
+- Commit hash (review document): (pending commit)
+- Next recommended task: Merge approval and integration into main branch. Proceed with next work order or additional layer implementation.
+
 ### 2026-05-17T06:15:00Z Kiro CLI — WO-029C-FE Aviation Density View Frontend Implementation v1 PASS, manual browser verification required
 
 - Review work order: WO-029C-FE
