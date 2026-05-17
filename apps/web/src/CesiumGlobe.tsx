@@ -344,6 +344,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     await fetchInterleavedCategoryTiles(backendCats, ac.signal, (batch, progress) => {
       if (ac.signal.aborted) return;
       addDotsToCollection(collection!, batch, filters);
+      storeObjects(batch);
+      const tileId = progress.tileKey.split('_').slice(0, 2).join('_');
+      const cacheKey = makeTileKey(progress.category, tileId, 'points', filters.closed);
+      setTile(cacheKey, batch);
       totalLoaded = progress.totalSoFar;
       const stats = getTileCacheStats();
       onStatsChangeRef.current?.({
@@ -389,6 +393,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     // Entity-based path with persistent tile cache
     abortTileLoader();
+
+    // Pre-render cached store data as entities before destroying dots
+    const storeData = getAllObjects();
+    if (globalDotCollectionRef.current && storeData.length > 0) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      fetchGenerationRef.current++;
+      itemsCacheRef.current = storeData;
+      await renderCurrentIncremental();
+    }
+
     destroyGlobalDots();
 
     const includeClosed = filters.closed;
