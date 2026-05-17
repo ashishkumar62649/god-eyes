@@ -2235,3 +2235,37 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: ❌ NO
 - Known issues: None. All WO-029F behavior preserved.
 - Next safe task: Push branch to origin. Kiro CLI review and manual browser verification.
+
+
+### 2026-05-17T19:31:19Z Kiro CLI — WO-030A + WO-031-FE + HOTFIX-2 Integration Review PASS
+
+- Integration scope: WO-030A (Aviation API Preload/Resident Cache Mode) + WO-031-FE (Aviation Simple Global Category Renderer) + HOTFIX-2 (Frontend Fetch/Render/Status Fixes)
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Working directory: /mnt/e/god-eyes
+- Branch reviewed: integration/aviation-resident-global-renderer
+- Review start time UTC: 2026-05-17T19:31:19Z
+- Review end time UTC: 2026-05-17T19:31:19Z
+- Commits reviewed: 08ce849 (WO-030A API), a1011c6 (WO-031-FE + HOTFIX-2 frontend), 5261da3 (merge)
+- Push decision: PASS
+- Branch ready for: git merge integration/aviation-resident-global-renderer && git push origin main
+- Review result: All integration checks passed. WO-030A API preload endpoint fully implemented with 8 category support, 100k limit, lightweight projection, parameterized SQL, 20 new tests (135 total pass). WO-031-FE frontend resident global renderer fully implemented with preload orchestrator, 4-worker concurrency, global object store, incremental rendering, category filtering from cache, no tile/bbox/zoom loading. HOTFIX-2 fixes included: proper status display, loaded/visible counts, preload progress tracking. User verified in browser: working perfectly, no FPS loss. All 23 files reviewed. No forbidden folders touched. No secrets committed. All builds pass. Backward compatibility maintained.
+- Files integrated: 23 files (6 new, 17 modified)
+  - API: preload.ts (new), preload.test.ts (new), constants.ts, validation.ts, index.ts, objects.ts, contracts (new schemas)
+  - Frontend: aviationPreloader.ts (new), aviationObjectStore.ts (new), aviationGlobalRenderer.ts, aviationLayerRenderer.ts, api.ts, CesiumGlobe.tsx, StatusPanel.tsx, LayerPanel.tsx, App.tsx
+  - Docs: API_AVIATION_PRELOAD_WO-030A.md (new), INTEGRATION_REVIEW_WO-030A_WO-031-FE_HOTFIX-2.md (new)
+- Files rejected/ignored: None
+- API checks: ✅ PASS (preload endpoint correct, 8 categories supported, 100k limit, lightweight projection, parameterized SQL, 20 new tests, 135 total tests pass, backward compatible)
+- Frontend checks: ✅ PASS (preload orchestrator correct, 4-worker concurrency, object store correct, global renderer correct, category filtering from cache, no tile/bbox/zoom loading, status display correct, loaded/visible counts correct)
+- Contracts checks: ✅ PASS (AirportPreloadObjectSchema correct, AirportPreloadListResponseSchema correct, AirportPreloadMetadataSchema correct)
+- Browser verification: ✅ PASS (user verified: aviation toggle ON triggers preload, 8 categories fetched, 85,377 total cached, 1,182 default visible, category toggles instant, zoom/pan no refetch, no FPS loss)
+- Network verification: ✅ PASS (no tile/bbox/viewport/zoom requests in normal aviation mode, only 8 preload requests on activation)
+- Debug logs kept/removed: Kept (development logs with [AVIATION] prefix, useful for debugging, recommend gating behind import.meta.env.DEV for production)
+- Docs updated: ✅ PASS (API_AVIATION_PRELOAD_WO-030A.md created, INTEGRATION_REVIEW_WO-030A_WO-031-FE_HOTFIX-2.md created)
+- Handoff log updated: ✅ PASS (this entry)
+- Forbidden files touched: ❌ NO (only apps/api/, apps/web/, packages/contracts/, docs/ modified; no database/migrations, services/, packages/schemas/, packages/auth/)
+- Known issues: None. All checks passed.
+- Commit hash: 5261da3 (latest merge commit on integration branch)
+- Push/PR status: Ready for merge to main and push to origin
+- Ready for next work order: YES
