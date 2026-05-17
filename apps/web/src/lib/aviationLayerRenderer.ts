@@ -30,7 +30,6 @@ function displayCatToFilterKey(cat: string): keyof AviationFilters | null {
   }
 }
 
-// Render items with label=false (no text labels on markers)
 export function renderAviationObjects(
   dataSource: CustomDataSource,
   items: (AirportObject | AirportClusterObject)[],
@@ -53,10 +52,8 @@ export function renderAviationObjects(
 
       const displayCat = getAviationDisplayCategory(airport);
 
-      // Determine if this item should be shown
       let show = false;
       if (smartMode) {
-        // Smart LOD: tier-based filtering
         if (displayCat === 'closed') {
           show = filters ? filters.closed && tier >= 3 : false;
         } else if (tier === 0) {
@@ -67,7 +64,6 @@ export function renderAviationObjects(
           show = true;
         }
       } else if (filters) {
-        // Explicit filter mode: check individual toggles
         const key = displayCatToFilterKey(displayCat);
         show = key ? filters[key] : false;
       } else {
@@ -83,13 +79,12 @@ export function renderAviationObjects(
         position: Cartesian3.fromDegrees(
           airport.position.longitude,
           airport.position.latitude,
-          AIRPORT_VISUAL_HEIGHT_METERS
+          AIRPORT_VISUAL_HEIGHT_METERS,
         ),
         billboard: {
           image: icon,
-          verticalOrigin: 1,
-          horizontalOrigin: 0,
-          color: displayCat === 'closed' ? Color.fromCssColorString('rgba(107,114,128,0.6)') : undefined,
+          disableDepthTestDistance: Infinity,
+          color: displayCat === 'closed' ? Color.fromCssColorString('rgba(107,114,128,0.55)') : undefined,
         },
         properties: {
           rawData: airport,

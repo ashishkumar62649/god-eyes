@@ -8,6 +8,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
+  PointPrimitiveCollection,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
@@ -25,6 +26,17 @@ import {
   ZOOM_TIER_LABELS,
   MODE_LABELS,
 } from './lib/aviationCategories';
+import {
+  fetchCategoryTiles,
+  clearTileCache,
+} from './lib/aviationTileLoader';
+import {
+  createGlobalDotCollection,
+  destroyGlobalDotCollection,
+  addDotsToCollection,
+  isGlobalDot,
+  getGlobalDotPosition,
+} from './lib/aviationGlobalRenderer';
 import type { AirportObject } from '@god-eyes/contracts';
 
 const FETCH_DEBOUNCE_MS = 500;
@@ -55,7 +67,6 @@ function roundBbox(bbox: string, tier: number): string {
     const n = parseFloat(s);
     if (isNaN(n)) return s;
     const rounded = Math.round(n / precision) * precision;
-    // Avoid -0
     return rounded === 0 ? '0' : String(rounded);
   }).join(',');
 }
@@ -96,6 +107,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
+  const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
   const aviationLayerActiveRef = useRef(aviationLayerActive);
@@ -112,31 +124,38 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   const lastRequestKeyRef = useRef('');
   const lastRenderKeyRef = useRef('');
-  // Monotonic generation counter: each successful fetch bumps it.
-  // Render key includes gen so stale renders never match.
   const fetchGenerationRef = useRef(0);
 
-  useEffect(() => {
-    onObjectSelectRef.current = onObjectSelect;
-  }, [onObjectSelect]);
+  // Tile loader state
+  const tileAbortRef = useRef<AbortController | null>(null);
+  const tileActiveRef = useRef(false);
 
-  useEffect(() => {
-    onStatsChangeRef.current = onAviationStatsChange;
-  }, [onAviationStatsChange]);
+  function isUsingGlobalTiles(tier: number, filters: AviationFilters): boolean {
+    if (tier !== 0) return false;
+    if (isSmartLODMode(filters)) return false;
+    return true;
+  }
 
-  useEffect(() => {
-    aviationLayerActiveRef.current = aviationLayerActive;
-  }, [aviationLayerActive]);
-
-  useEffect(() => {
-    aviationFiltersRef.current = aviationFilters;
-  }, [aviationFilters]);
-
-  useEffect(() => {
-    if (cameraTarget && viewerRef.current) {
-      flyToSearchResult(viewerRef.current, cameraTarget.position, cameraTarget.type);
+  function abortTileLoader(): void {
+    if (tileAbortRef.current) {
+      tileAbortRef.current.abort();
+      tileAbortRef.current = null;
     }
-  }, [cameraTarget]);
+    tileActiveRef.current = false;
+  }
+
+  function destroyGlobalDots(): void {
+    if (globalDotCollectionRef.current && viewerRef.current) {
+      destroyGlobalDotCollection(globalDotCollectionRef.current, viewerRef.current.scene);
+      globalDotCollectionRef.current = null;
+    }
+  }
+
+  function clearEntities(): void {
+    if (aviationDataSourceRef.current) {
+      aviationDataSourceRef.current.entities.removeAll();
+    }
+  }
 
   function renderCurrent() {
     if (!aviationDataSourceRef.current) return;
@@ -145,13 +164,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     const filters = aviationFiltersRef.current;
     const tier = zoomTierRef.current;
+    const isSmart = smartModeRef.current;
+
+    // If using global tiles, don't render entities (dots handle it)
+    if (isUsingGlobalTiles(tier, filters)) return;
+
     const items = itemsCacheRef.current;
     const gen = fetchGenerationRef.current;
     const rk = computeRenderKey(active, tier, filters, items.length, gen);
     if (rk === lastRenderKeyRef.current) return;
     lastRenderKeyRef.current = rk;
 
-    // renderAviationObjects suspends, removes all, adds, resumes — no pre-clear needed
     const height = cameraHeightRef.current;
     const { visibleCount } = renderAviationObjects(
       aviationDataSourceRef.current,
@@ -161,7 +184,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       height,
     );
 
-    const isSmart = smartModeRef.current;
     const tierLabel = ZOOM_TIER_LABELS[tier] || '?';
     const modeLabel = MODE_LABELS[isSmart ? 'smart' : 'explicit'];
 
@@ -172,6 +194,52 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       renderMode: `${modeLabel}_${tierLabel}`,
       fps: fpsRef.current,
     });
+  }
+
+  async function startTileLoading(filters: AviationFilters): Promise<void> {
+    if (!viewerRef.current) return;
+
+    abortTileLoader();
+    destroyGlobalDots();
+
+    const viewer = viewerRef.current;
+    const collection = createGlobalDotCollection(viewer.scene);
+    globalDotCollectionRef.current = collection;
+    tileActiveRef.current = true;
+
+    const ac = new AbortController();
+    tileAbortRef.current = ac;
+
+    const backendCats = getBackendCategoriesToFetch(0, filters);
+    let totalLoaded = 0;
+
+    const tierLabel = ZOOM_TIER_LABELS[0] || '?';
+    const modeLabel = MODE_LABELS['explicit'];
+
+    onStatsChangeRef.current?.({
+      loaded: 0,
+      visible: 0,
+      clustersActive: false,
+      renderMode: `${modeLabel}_${tierLabel}`,
+      fps: fpsRef.current,
+    });
+
+    for (const cat of backendCats) {
+      if (ac.signal.aborted) return;
+
+      await fetchCategoryTiles(cat, '', ac.signal, (batch, progress) => {
+        if (ac.signal.aborted) return;
+        addDotsToCollection(collection, batch, filters);
+        totalLoaded = progress.totalSoFar;
+        onStatsChangeRef.current?.({
+          loaded: totalLoaded,
+          visible: totalLoaded,
+          clustersActive: false,
+          renderMode: `${modeLabel}_${tierLabel}`,
+          fps: fpsRef.current,
+        });
+      });
+    }
   }
 
   async function fetchIfNeeded() {
@@ -188,6 +256,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     smartModeRef.current = isSmartLODMode(filters);
     const backendCats = getBackendCategoriesToFetch(tier, filters);
+
+    // Route: explicit global → tile-based dots
+    if (isUsingGlobalTiles(tier, filters)) {
+      clearEntities();
+      itemsCacheRef.current = [];
+      const tileKey = computeRequestKey(active, tier, viewport.bbox, backendCats);
+      if (tileKey !== lastRequestKeyRef.current) {
+        lastRequestKeyRef.current = tileKey;
+        startTileLoading(filters);
+      }
+      return;
+    }
+
+    // All other cases → existing entity-based path
+    abortTileLoader();
+    destroyGlobalDots();
 
     const rk = computeRequestKey(active, tier, viewport.bbox, backendCats);
     if (rk === lastRequestKeyRef.current) {
@@ -213,7 +297,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         rk,
       );
 
-      // Bump generation: this fetch's response owns the render state
       fetchGenerationRef.current++;
       itemsCacheRef.current = merged;
       renderCurrent();
@@ -222,6 +305,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       console.error('Failed to fetch aviation data:', err);
     }
   }
+
+  useEffect(() => {
+    if (cameraTarget && viewerRef.current) {
+      flyToSearchResult(viewerRef.current, cameraTarget.position, cameraTarget.type);
+    }
+  }, [cameraTarget]);
 
   useEffect(() => {
     const token = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;
@@ -272,7 +361,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
-      // FPS tracking — purely visual, never triggers fetch or render
+      // FPS tracking
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
       fpsPostRender = viewer.scene.postRender.addEventListener(() => {
@@ -288,7 +377,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         fpsLastUpdate = now;
       }, 1000);
 
-      // Tier change detection — updates tier ref + bakes rounding precision
+      // Tier change detection
       let lastTier = 0;
       tierPostRender = viewer.scene.postRender.addEventListener(() => {
         const height = viewer!.camera.positionCartographic.height;
@@ -297,13 +386,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (newTier !== lastTier) {
           lastTier = newTier;
           zoomTierRef.current = newTier;
-          // Let the debounced camera-changed handler pick up the new tier
-          // Do NOT call fetchIfNeeded directly here — it would race with
-          // moveEnd and the debounce, causing extra fetches.
         }
       });
 
-      // Camera changed — debounced; fires 500ms after last camera motion
+      // Camera changed — debounced
       changedHandler = () => {
         if (renderTimeoutRef.current !== null) {
           window.clearTimeout(renderTimeoutRef.current);
@@ -313,7 +399,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }, FETCH_DEBOUNCE_MS) as unknown as number;
       };
 
-      // Camera moveEnd — fires once when camera stops, catches the final position
+      // Camera moveEnd
       moveEndHandler = () => {
         if (renderTimeoutRef.current !== null) {
           window.clearTimeout(renderTimeoutRef.current);
@@ -326,15 +412,26 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       viewer.camera.changed.addEventListener(changedHandler);
       viewer.camera.moveEnd.addEventListener(moveEndHandler);
 
-      // Initial fetch
       fetchIfNeeded();
 
-      // Click handler (unchanged)
+      // Click handler
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
         if (!pickedObject || !pickedObject.id) {
           onObjectSelectRef.current(null);
+          return;
+        }
+
+        // Global dot click → fly to coordinate
+        if (isGlobalDot(pickedObject)) {
+          const pos = getGlobalDotPosition(pickedObject);
+          if (pos) {
+            viewer!.camera.flyTo({
+              destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude, 500000),
+              duration: 1.0,
+            });
+          }
           return;
         }
 
@@ -398,15 +495,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      abortTileLoader();
+      destroyGlobalDots();
     };
   }, []);
 
   useEffect(() => {
     if (!aviationLayerActive) {
       clearAviationCache();
-      if (aviationDataSourceRef.current) {
-        aviationDataSourceRef.current.entities.removeAll();
-      }
+      clearTileCache();
+      abortTileLoader();
+      destroyGlobalDots();
+      clearEntities();
       zoomTierRef.current = 0;
       cameraHeightRef.current = 20000000;
       itemsCacheRef.current = [];
@@ -429,8 +529,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (!aviationLayerActive || !aviationDataSourceRef.current) return;
 
     smartModeRef.current = isSmartLODMode(aviationFilters);
-
-    // Invalidate keys so next fetch and render both fire
     lastRequestKeyRef.current = '';
     lastRenderKeyRef.current = '';
 
