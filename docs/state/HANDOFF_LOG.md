@@ -1848,7 +1848,6 @@ All agents must append to this file after completing work.
 - Known issues: None. Clusters are not filtered (preserved as-is per spec). Category filtering is client-side only (no backend filter params sent). Re-render on filter toggle uses cached last-fetched items, not a fresh API call.
 - Next safe task: Implement full density renderer, remove cluster fallback, add backend filter support.
 
-<<<<<<< HEAD
 ### 2026-05-16T22:52:12Z Codex - WO-029B-DATA Aviation Density View Data Distribution Reference
 
 - Work order: WO-029B-DATA
@@ -1875,7 +1874,6 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Review status: awaiting Kiro review.
 - Next safe task: Claude/API can use the density distribution and QA regions when shaping density endpoint limits; Gemini/frontend can use the same regions for density-rendering stress tests.
-=======
 ### 2026-05-17T04:34:13Z Kiro CLI — WO-029B API Feasibility Review PASS, branch pushed to origin
 
 - Review work order: WO-029B-API-FEASIBILITY
@@ -1901,4 +1899,28 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_API_FEASIBILITY.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Frontend team use feasibility document as specification for viewport-constrained density view. If performance proves inadequate, revisit density endpoint design in future work order.
->>>>>>> origin/agent/claude-api-1
+### 2026-05-17T02:06:48Z Codex - WO-029E-DATA Category Audit
+
+- Work order: WO-029E-DATA-CATEGORY-AUDIT
+- Agent: Codex
+- LLM model used: GPT-5
+- Tool/CLI used: Codex desktop, PowerShell, Python, Docker Compose
+- Branch: agent/codex-data-next
+- Start time UTC: 2026-05-17T01:59:06Z
+- End time UTC: 2026-05-17T02:06:48Z
+- Commit hash: pending local commit; final hash reported after commit creation
+- Push status: not pushed; Kiro review/push required
+- Preflight: confirmed working directory `E:\god-eyes-codex-data`; branch `agent/codex-data-next`; working tree clean; branch was ahead of `origin/agent/codex-data-next` by 8 commits before this work.
+- What was done: Added a read-only aviation category audit script, focused static tests, and a data truth reference for normalized category counts, source type distribution, major/international India and China evidence, water/seaplane distribution, ambiguous source text matches, QA examples, and frontend display mapping coverage.
+- Category verdict: Current database has 85,377 aviation airport records across seven present normalized categories; `unknown` is supported but has 0 rows. The recommended eight-category display mapping covers all current database categories with no missing mappings.
+- Water/seaplane verdict: `water_landing_site` maps from `type_source = seaplane_base` and has 1,262 rows globally. Asia has 50 rows: Sri Lanka 18, Maldives 11, Japan 6, Philippines 6, China 3, United Arab Emirates 2, India 1, South Korea 1, Turkey 1, Vietnam 1.
+- India/China major evidence: India has 43 `international_or_major_airport` rows; China has 69. Both lists are documented with ident, IATA, name, region, and source airport id.
+- Files changed: `scripts/aviation_category_audit.py`; `tests/data/layer_01_aviation/test_aviation_category_audit.py`; `docs/data/layer_01_aviation/AVIATION_CATEGORY_AUDIT_WO-029E.md`; `docs/state/HANDOFF_LOG.md`
+- Commands run: `(Get-Location).Path`; `git branch --show-current`; `git status --short`; `[DateTime]::UtcNow.ToString(...)`; `docker compose -f infra/docker/docker-compose.yml ps`; `rg --files ...`; `rg -n aviation/category terms ...`; `python -m pytest tests/data/layer_01_aviation/test_aviation_category_audit.py -q`; `python scripts\aviation_category_audit.py --json --country-limit 25 --region-limit 25 --sample-limit 3 --pattern-limit 30 --country-major-limit 100`; targeted Python read-only SQL summaries for India/China and Asia water evidence; `python -m pytest tests/data/layer_01_aviation -q`; `python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts`; `docker compose -f infra/docker/docker-compose.yml config --quiet`; `git diff --check`; `rg -n "^(<<<<<<<|=======|>>>>>>>)" ...`
+- Tests/build result: 98 aviation data tests passed; Python compileall passed; Docker Compose config validation passed; diff whitespace check passed; conflict marker scan clean.
+- Security/privacy result: no `.env`, API keys, secrets, raw CSVs, generated JSON dumps, database dumps, or node_modules committed; script is SELECT-only, parameterized, bounded, and does not write files.
+- Handoff log note: removed pre-existing literal conflict marker lines from this file while preserving both existing log entries.
+- Known issues: Counts reflect local Docker database state and may change after source refresh; OurAirports is reference data, not live operational data; source names/keywords can match water terms outside water categories, so frontend/category logic should use `category_normalized`, not text search; `unknown` currently has no real QA row.
+- Forbidden folders touched: no.
+- Review status: awaiting Kiro review.
+- Next safe task: Gemini/frontend can compare its category panel and globe zoom filtering against this reference; Claude/API can use the same mapping if category-specific endpoint validation is needed.
