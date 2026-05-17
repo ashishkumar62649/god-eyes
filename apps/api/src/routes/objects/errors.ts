@@ -43,7 +43,7 @@ export function invalidLimitError(message: string, details: Record<string, unkno
 }
 
 export function missingBBoxError(details: Record<string, unknown> = {}): ErrorResponse {
-  return makeErrorResponse(ErrorCodes.MISSING_BBOX, 'bbox is required when mode=clusters', details);
+  return makeErrorResponse(ErrorCodes.MISSING_BBOX, 'bbox is required for clusters and density modes', details);
 }
 
 export function invalidLayerError(layerId: string): ErrorResponse {

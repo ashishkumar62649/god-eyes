@@ -8,6 +8,14 @@ import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
 import { AviationFilters } from '../lib/aviationCategories';
 
+interface AviationStats {
+  loaded: number;
+  visible: number;
+  clustersActive: boolean;
+  renderMode: string;
+  fps: number;
+}
+
 interface ShellProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
@@ -15,7 +23,7 @@ interface ShellProps {
   airportDetail: AirportDetailResponse | null;
   detailLoading: boolean;
   detailError: string | null;
-  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
+  aviationStats: AviationStats;
   onSearchResultSelect: (result: SearchResult) => void;
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;

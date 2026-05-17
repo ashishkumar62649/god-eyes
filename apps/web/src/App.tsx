@@ -13,6 +13,14 @@ interface DetailCache {
   timestamp: number;
 }
 
+interface AviationStats {
+  loaded: number;
+  visible: number;
+  clustersActive: boolean;
+  renderMode: string;
+  fps: number;
+}
+
 const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
   const [aviationLayerActive, setAviationLayerActive] = useState(false);
@@ -20,7 +28,9 @@ const App: React.FC = () => {
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [aviationStats, setAviationStats] = useState({ loaded: 0, visible: 0, clustersActive: false });
+  const [aviationStats, setAviationStats] = useState<AviationStats>({
+    loaded: 0, visible: 0, clustersActive: false, renderMode: 'SMART_LOD_STRATEGIC', fps: 0,
+  });
   const [cameraTarget, setCameraTarget] = useState<{
     position: { latitude: number; longitude: number };
     type: string;
@@ -74,23 +84,19 @@ const App: React.FC = () => {
         setDetailLoading(false);
       })
       .catch((err: Error) => {
-        if (err.name === 'AbortError') {
-          return;
-        }
+        if (err.name === 'AbortError') return;
         setDetailError(err.message || 'Failed to load details');
         setDetailLoading(false);
       });
 
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [selectedObject?.id]);
 
   const handleObjectSelect = useCallback((obj: unknown) => {
     setSelectedObject(obj as AirportObject);
   }, []);
 
-  const handleAviationStatsChange = useCallback((stats: { loaded: number; visible: number; clustersActive: boolean }) => {
+  const handleAviationStatsChange = useCallback((stats: AviationStats) => {
     setAviationStats(stats);
   }, []);
 
@@ -101,7 +107,6 @@ const App: React.FC = () => {
     } else {
       setSelectedObject(null);
     }
-
     setCameraTarget({
       position: result.position,
       type: result.type,

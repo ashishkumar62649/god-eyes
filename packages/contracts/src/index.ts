@@ -306,6 +306,29 @@ export const AirportDetailResponseSchema = z.object({
 
 export type AirportDetailResponse = z.infer<typeof AirportDetailResponseSchema>;
 
+// ==================== Aviation Density / Fabric Mode (WO-029D) ====================
+
+export const AirportDensityCellSchema = z.object({
+  id: z.string(),
+  layerId: z.string(),
+  objectType: z.literal('airport_density'),
+  count: z.number().min(1),
+  position: AirportPositionSchema,
+  bbox: AirportClusterBBoxSchema.optional(),
+  categoryCounts: z.record(z.string(), z.number()).optional(),
+});
+
+export type AirportDensityCell = z.infer<typeof AirportDensityCellSchema>;
+
+export const AirportDensityResponseSchema = z.object({
+  items: z.array(AirportDensityCellSchema),
+  pagination: PaginationSchema,
+  mode: z.literal('density'),
+  metadata: ObjectListMetadataSchema.optional(),
+});
+
+export type AirportDensityResponse = z.infer<typeof AirportDensityResponseSchema>;
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {
