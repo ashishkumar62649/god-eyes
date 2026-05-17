@@ -1235,6 +1235,198 @@ describe('Aviation Objects API - WO-008', () => {
     }
   });
 
+  // ---- Aviation Density View (WO-029C) ----
+
+  it('density view: fields=marker returns 200 for density-compatible query', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&bbox=-125,25,-65,50&limit=100',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.items).toBeDefined();
+      expect(body.mode).toBe('points');
+      expect(body.metadata.fields).toBe('marker');
+    }
+  });
+
+  it('density view: category filter excludes closed_or_abandoned', async () => {
+    // Request only operational categories (not closed_or_abandoned)
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&category=heliport&limit=10',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      if (body.items.length > 0) {
+        // All returned items should be heliports, not closed_or_abandoned
+        for (const item of body.items) {
+          expect(item.category).toBe('heliport');
+        }
+      }
+    }
+  });
+
+  it('density view: limit is bounded by MAX_VIEWPORT_LIMIT (1000) with bbox', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&bbox=-180,-90,180,90&limit=5000',
+    });
+    // Should not be 400 - limit should be clamped
+    expect(response.statusCode).not.toBe(400);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Limit should be clamped to max 1000
+      expect(body.pagination.limit).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it('density view: limit is bounded by MAX_LIST_LIMIT (500) without bbox', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&limit=5000',
+    });
+    // Should not be 400 - limit should be clamped
+    expect(response.statusCode).not.toBe(400);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Limit should be clamped to max 500 (no bbox)
+      expect(body.pagination.limit).toBeLessThanOrEqual(500);
+    }
+  });
+
+  it('density view: bbox is required for clusters (already enforced)', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters',
+    });
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('MISSING_BBOX');
+  });
+
+  it('density view: global bbox with high limit returns bounded results (no global 85k fetch)', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&bbox=-180,-90,180,90&limit=1000',
+    });
+    // Should return bounded results, not all 85k airports
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Should never return more than 1000 items
+      expect(body.pagination.returned).toBeLessThanOrEqual(1000);
+      expect(body.pagination.total).toBeGreaterThan(0);
+      // Returned should match limit (or be less if fewer in bbox)
+      expect(body.pagination.returned).toBeLessThanOrEqual(body.pagination.limit);
+    }
+  });
+
+  it('density view: marker payload is lightweight (id, layerId, objectType, category, position)', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&limit=1',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      if (body.items.length > 0) {
+        const item = body.items[0];
+        // Required density view fields
+        expect(item.id).toBeDefined();
+        expect(item.layerId).toBeDefined();
+        expect(item.objectType).toBe('airport');
+        expect(item.category).toBeDefined();
+        expect(item.position).toBeDefined();
+        expect(item.position.latitude).toBeDefined();
+        expect(item.position.longitude).toBeDefined();
+        // Lightweight - no sourceId/sourceObjectId/typeSource in marker
+        expect(item.sourceId).toBeUndefined();
+        expect(item.sourceObjectId).toBeUndefined();
+      }
+    }
+  });
+
+  it('density view: can filter by multiple operational categories', async () => {
+    const operationalCategories = [
+      'international_or_major_airport',
+      'regional_or_domestic_airport',
+      'small_airfield',
+      'heliport',
+      'water_landing_site',
+      'balloonport',
+    ];
+    for (const cat of operationalCategories) {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&category=${cat}&limit=1`,
+      });
+      expect([200, 503]).toContain(response.statusCode);
+      if (response.statusCode === 200) {
+        const body = JSON.parse(response.body);
+        if (body.items.length > 0) {
+          expect(body.items[0].category).toBe(cat);
+        }
+      }
+    }
+  });
+
+  it('density view: existing points mode still works', async () => {
+    // Ensure standard mode still works after density support
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=standard&limit=2',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('points');
+      // Standard should still have source fields
+      if (body.items.length > 0) {
+        expect(body.items[0].sourceId).toBeDefined();
+        expect(body.items[0].sourceObjectId).toBeDefined();
+      }
+    }
+  });
+
+  it('density view: existing clusters mode still works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-125,25,-65,50&limit=10',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('clusters');
+      expect(body.items).toBeDefined();
+    }
+  });
+
+  it('density view: LayerObjectsListResponse still compatible with marker response', async () => {
+    // Ensure backward compatibility - both schemas should work
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&limit=2',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Should have all expected response fields
+      expect(body.items).toBeDefined();
+      expect(body.pagination).toBeDefined();
+      expect(body.pagination.limit).toBeDefined();
+      expect(body.pagination.offset).toBeDefined();
+      expect(body.pagination.returned).toBeDefined();
+      expect(body.pagination.total).toBeDefined();
+      expect(body.mode).toBe('points');
+      expect(body.metadata).toBeDefined();
+    }
+  });
+
+  // ---- END Aviation Density View (WO-029C) ----
+
   it('airport detail navaids include required fields per NavaidDetailSchema', async () => {
     const listResponse = await app.inject({
       method: 'GET',
