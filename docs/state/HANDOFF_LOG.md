@@ -1,3 +1,50 @@
+### 2026-05-17T23:00:00Z OpenCode Web 1 — WO-029C-FE Aviation Density View Frontend Implementation v1
+
+- Work order: WO-029C-FE
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-17T22:00:00Z
+- End time UTC: 2026-05-17T23:00:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Implemented aviation density view v1 using Cesium PointPrimitiveCollection. Density dots replace numbered cluster bubbles as the default global aviation view. PointPrimitiveCollection renders up to 1000+ colored dots per category (cyan airports, green heliports, amber seaplane, gray closed) with scaleByDistance/translucencyByDistance. Hard switch between density (>=250km) and entity (<350km) modes with 50km hysteresis to prevent flicker. Cluster fallback preserved as optional toggle in LayerPanel. Click handling on density dots resolves via pointId Map lookup and opens Object Intel. All filters work in density mode. Closed/historical hidden by default. Cleanup on layer off/unmount removes both PointPrimitiveCollection and entity data source. No backend/API/contract changes. No new dependencies.
+- Files created:
+  - apps/web/src/lib/aviationDensityRenderer.ts (new)
+- Files modified:
+  - apps/web/src/CesiumGlobe.tsx (PointPrimitiveCollection ref, density mode switching, click handling, cleanup, filter effect)
+  - apps/web/src/App.tsx (aviationRenderMode state, render mode handler, updated stats type)
+  - apps/web/src/components/Shell.tsx (render mode props passthrough)
+  - apps/web/src/components/LayerPanel.tsx (render mode toggle section, updated mode display)
+  - apps/web/src/components/StatusPanel.tsx (density mode display)
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter web build (PASS, 57 modules, 182.75 kB)
+  - git diff --check (PASS, CRLF warnings only)
+- Tests/build result: Contracts build PASS, Web build PASS (57 modules, 182.75 kB)
+- Key behaviors:
+  1. Density dots rendered via PointPrimitiveCollection (not Entity)
+  2. Hard switch at ~300km with 50km hysteresis
+  3. Density mode always fetches mode=points (no mode=clusters calls)
+  4. Click on density dot opens Object Intel via pointId Map lookup
+  5. Behind-globe check applied to density dot clicks
+  6. Filters applied in density mode during PointPrimitive construction
+  7. Cluster fallback available via LayerPanel toggle (not default)
+  8. Both collections cleared on mode switch (no duplicates)
+  9. PointPrimitiveCollection cleaned up on layer off and unmount
+  10. No labels in density mode
+  11. No glow/blur/importance scaling
+  12. Closed/historical hidden by default
+- Known issues: None
+- Known limitations:
+  - API 1000-item limit undersamples large bboxes (backend limit not raised in this WO)
+  - Hard switch may cause brief flicker between density and entity modes
+  - No fields=marker payload support (uses default payload for type safety)
+  - 4px dots at global zoom may be hard to click precisely
+- Forbidden folders touched: no
+- Next safe task: Kiro review. If PASS, push branch. Next WO: raise MAX_VIEWPORT_LIMIT backend or add smooth transition v2.
+
 ### 2026-05-17T05:35:00Z Kiro CLI — WO-029B Planning Batch Final Integration Review PASS, ready to push
 
 - Review work order: WO-029B Planning Batch (WO-029B-FEASIBILITY, WO-029B-DATA, WO-029B-API-FEASIBILITY)

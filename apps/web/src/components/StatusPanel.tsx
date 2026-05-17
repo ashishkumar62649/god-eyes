@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface StatusPanelProps {
   aviationLayerActive: boolean;
-  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
+  aviationStats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string };
 }
 
 const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
@@ -34,8 +34,8 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Render Mode</div>
-            <div className="detail-value" style={{ color: aviationStats.clustersActive ? 'var(--shell-accent)' : 'inherit' }}>
-              {aviationStats.clustersActive ? 'CLUSTERED' : 'POINTS'}
+            <div className="detail-value" style={{ color: ['clusters', 'density'].includes(aviationStats.renderMode) ? 'var(--shell-accent)' : 'inherit' }}>
+              {aviationStats.renderMode === 'density' ? 'DENSITY' : aviationStats.clustersActive ? 'CLUSTERED' : 'POINTS'}
             </div>
           </div>
           

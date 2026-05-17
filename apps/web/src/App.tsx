@@ -20,13 +20,14 @@ const App: React.FC = () => {
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [aviationStats, setAviationStats] = useState({ loaded: 0, visible: 0, clustersActive: false });
+  const [aviationStats, setAviationStats] = useState({ loaded: 0, visible: 0, clustersActive: false, renderMode: 'density' });
   const [cameraTarget, setCameraTarget] = useState<{
     position: { latitude: number; longitude: number };
     type: string;
     timestamp: number;
   } | null>(null);
   const [aviationFilters, setAviationFilters] = useState<AviationFilters>(DEFAULT_AVIATION_FILTERS);
+  const [aviationRenderMode, setAviationRenderMode] = useState<'density' | 'clusters'>('density');
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
@@ -90,7 +91,7 @@ const App: React.FC = () => {
     setSelectedObject(obj as AirportObject);
   }, []);
 
-  const handleAviationStatsChange = useCallback((stats: { loaded: number; visible: number; clustersActive: boolean }) => {
+  const handleAviationStatsChange = useCallback((stats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string }) => {
     setAviationStats(stats);
   }, []);
 
@@ -113,6 +114,10 @@ const App: React.FC = () => {
     setAviationFilters(filters);
   }, []);
 
+  const handleRenderModeChange = useCallback((mode: 'density' | 'clusters') => {
+    setAviationRenderMode(mode);
+  }, []);
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
       {isBooting && (
@@ -128,6 +133,7 @@ const App: React.FC = () => {
         onAviationStatsChange={handleAviationStatsChange}
         cameraTarget={cameraTarget}
         aviationFilters={aviationFilters}
+        aviationRenderMode={aviationRenderMode}
       />
 
       <div style={{
@@ -146,6 +152,8 @@ const App: React.FC = () => {
           onSearchResultSelect={handleSearchResultSelect}
           aviationFilters={aviationFilters}
           onFiltersChange={handleFiltersChange}
+          aviationRenderMode={aviationRenderMode}
+          onRenderModeChange={handleRenderModeChange}
         />
       </div>
     </div>

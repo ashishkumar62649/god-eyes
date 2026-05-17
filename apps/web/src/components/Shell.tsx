@@ -15,10 +15,12 @@ interface ShellProps {
   airportDetail: AirportDetailResponse | null;
   detailLoading: boolean;
   detailError: string | null;
-  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
+  aviationStats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string };
   onSearchResultSelect: (result: SearchResult) => void;
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;
+  aviationRenderMode: 'density' | 'clusters';
+  onRenderModeChange: (mode: 'density' | 'clusters') => void;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -32,6 +34,8 @@ const Shell: React.FC<ShellProps> = ({
   onSearchResultSelect,
   aviationFilters,
   onFiltersChange,
+  aviationRenderMode,
+  onRenderModeChange,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -52,6 +56,8 @@ const Shell: React.FC<ShellProps> = ({
           aviationStats={aviationStats}
           aviationFilters={aviationFilters}
           onFiltersChange={onFiltersChange}
+          aviationRenderMode={aviationRenderMode}
+          onRenderModeChange={onRenderModeChange}
         />
         <DetailPanel
           selectedObject={selectedObject}

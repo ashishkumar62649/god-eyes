@@ -8,6 +8,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
+  PointPrimitiveCollection,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
@@ -15,20 +16,32 @@ import { fetchAviationLayerObjects } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
 import { isPositionVisible } from './lib/cesiumVisibility';
 import { renderAviationObjects } from './lib/aviationLayerRenderer';
+import { renderDensityDots } from './lib/aviationDensityRenderer';
 import { flyToSearchResult } from './lib/globeCamera';
 import { AviationFilters } from './lib/aviationCategories';
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
 
+const DENSITY_HEIGHT_THRESHOLD = 300000;
+const DENSITY_HYSTERESIS = 50000;
+
+interface AviationStats {
+  loaded: number;
+  visible: number;
+  clustersActive: boolean;
+  renderMode: 'density' | 'points' | 'clusters';
+}
+
 interface CesiumGlobeProps {
   aviationLayerActive: boolean;
   onObjectSelect: (obj: unknown) => void;
-  onAviationStatsChange?: (stats: { loaded: number; visible: number; clustersActive: boolean }) => void;
+  onAviationStatsChange?: (stats: AviationStats) => void;
   cameraTarget?: {
     position: { latitude: number; longitude: number };
     type: string;
     timestamp: number;
   } | null;
   aviationFilters: AviationFilters;
+  aviationRenderMode: 'density' | 'clusters';
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -37,22 +50,28 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   onAviationStatsChange,
   cameraTarget,
   aviationFilters,
+  aviationRenderMode,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
+  const pointPrimitiveCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
   const aviationLayerActiveRef = useRef(aviationLayerActive);
   const aviationFiltersRef = useRef(aviationFilters);
+  const aviationRenderModeRef = useRef(aviationRenderMode);
 
   const renderTimeoutRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const itemsCacheRef = useRef<(AirportObject | AirportClusterObject)[]>([]);
   const modeCacheRef = useRef<'points' | 'clusters'>('points');
+  const renderModeCacheRef = useRef<'density' | 'entity' | 'clusters'>('density');
+  const densityPointMapRef = useRef<Map<string, AirportObject>>(new Map());
+  const lastDensityCountRef = useRef<number>(0);
 
   useEffect(() => {
     onObjectSelectRef.current = onObjectSelect;
@@ -69,6 +88,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   useEffect(() => {
     aviationFiltersRef.current = aviationFilters;
   }, [aviationFilters]);
+
+  useEffect(() => {
+    aviationRenderModeRef.current = aviationRenderMode;
+  }, [aviationRenderMode]);
 
   useEffect(() => {
     if (cameraTarget && viewerRef.current) {
@@ -120,6 +143,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
+      const pointCollection = new PointPrimitiveCollection();
+      pointPrimitiveCollectionRef.current = pointCollection;
+      viewer.scene.primitives.add(pointCollection);
+
       const fetchAndRenderData = async () => {
         if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
 
@@ -129,8 +156,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const viewport = getViewportFromCamera(camera);
         const cameraHeight = camera.positionCartographic.height;
-        const isZoomedIn = cameraHeight < 1500000;
-        const mode = isZoomedIn ? 'points' : 'clusters';
+        const renderMode = aviationRenderModeRef.current;
+        const currentRenderMode = renderModeCacheRef.current;
+
+        let fetchMode: 'points' | 'clusters' = 'points';
+        let activeRenderMode: 'density' | 'entity' | 'clusters' = 'entity';
+
+        if (renderMode === 'clusters') {
+          fetchMode = cameraHeight >= 1500000 ? 'clusters' : 'points';
+          activeRenderMode = fetchMode === 'clusters' ? 'clusters' : 'entity';
+        } else {
+          fetchMode = 'points';
+          const isCurrentlyDensity = currentRenderMode === 'density';
+          if (isCurrentlyDensity) {
+            activeRenderMode = cameraHeight >= DENSITY_HEIGHT_THRESHOLD - DENSITY_HYSTERESIS ? 'density' : 'entity';
+          } else {
+            activeRenderMode = cameraHeight >= DENSITY_HEIGHT_THRESHOLD + DENSITY_HYSTERESIS ? 'density' : 'entity';
+          }
+        }
 
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
@@ -139,7 +182,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         try {
           const response = await fetchAviationLayerObjects(
-            mode,
+            fetchMode,
             viewport.bbox,
             viewport.zoom,
             1000,
@@ -147,20 +190,43 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           );
 
           itemsCacheRef.current = response.items;
-          modeCacheRef.current = mode;
+          modeCacheRef.current = fetchMode;
+          renderModeCacheRef.current = activeRenderMode;
 
-          const { visibleCount, clustersActive } = renderAviationObjects(
-            currentDataSource,
-            response.items,
-            mode,
-            aviationFiltersRef.current
-          );
+          if (activeRenderMode === 'density') {
+            currentDataSource.entities.removeAll();
+            const result = renderDensityDots(
+              pointCollection,
+              response.items,
+              aviationFiltersRef.current
+            );
+            densityPointMapRef.current = result.pointMap;
+            lastDensityCountRef.current = result.count;
 
-          onStatsChangeRef.current?.({
-            loaded: response.items.length,
-            visible: visibleCount,
-            clustersActive: clustersActive,
-          });
+            onStatsChangeRef.current?.({
+              loaded: response.items.length,
+              visible: result.count,
+              clustersActive: false,
+              renderMode: 'density',
+            });
+          } else {
+            pointCollection.removeAll();
+            densityPointMapRef.current.clear();
+            const entityModeArg = activeRenderMode === 'clusters' ? 'clusters' : 'points';
+            const { visibleCount, clustersActive } = renderAviationObjects(
+              currentDataSource,
+              response.items,
+              entityModeArg,
+              aviationFiltersRef.current
+            );
+
+            onStatsChangeRef.current?.({
+              loaded: response.items.length,
+              visible: visibleCount,
+              clustersActive,
+              renderMode: activeRenderMode === 'entity' ? 'points' : 'clusters',
+            });
+          }
         } catch (err: any) {
           if (err.name === 'AbortError') {
             return;
@@ -177,7 +243,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
         renderTimeoutRef.current = window.setTimeout(() => {
           fetchAndRenderData();
-        }, 200);
+        }, 200) as unknown as number;
       };
 
       viewer.camera.changed.addEventListener(triggerRefresh);
@@ -186,7 +252,29 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
-        if (!pickedObject || !pickedObject.id || !(pickedObject.id instanceof Entity)) {
+        if (!pickedObject || !pickedObject.id) {
+          onObjectSelectRef.current(null);
+          return;
+        }
+
+        if (typeof pickedObject.id === 'string' && pickedObject.id.startsWith('density-')) {
+          const airport = densityPointMapRef.current.get(pickedObject.id);
+          if (airport && airport.position.longitude != null && airport.position.latitude != null) {
+            const pos = Cartesian3.fromDegrees(
+              airport.position.longitude,
+              airport.position.latitude,
+              100
+            );
+            if (!isPositionVisible(viewer!, pos)) {
+              onObjectSelectRef.current(null);
+              return;
+            }
+            onObjectSelectRef.current(airport);
+          }
+          return;
+        }
+
+        if (!(pickedObject.id instanceof Entity)) {
           onObjectSelectRef.current(null);
           return;
         }
@@ -231,6 +319,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
 
     return () => {
+      if (pointPrimitiveCollectionRef.current && !pointPrimitiveCollectionRef.current.isDestroyed()) {
+        pointPrimitiveCollectionRef.current.removeAll();
+        if (viewer && !viewer.isDestroyed()) {
+          viewer.scene.primitives.remove(pointPrimitiveCollectionRef.current);
+        }
+        pointPrimitiveCollectionRef.current = null;
+      }
       if (viewer && !viewer.isDestroyed()) {
         viewer.destroy();
         viewerRef.current = null;
@@ -249,7 +344,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (aviationDataSourceRef.current) {
         aviationDataSourceRef.current.entities.removeAll();
       }
-      onStatsChangeRef.current?.({ loaded: 0, visible: 0, clustersActive: false });
+      if (pointPrimitiveCollectionRef.current) {
+        pointPrimitiveCollectionRef.current.removeAll();
+      }
+      densityPointMapRef.current.clear();
+      lastDensityCountRef.current = 0;
+      renderModeCacheRef.current = 'density';
+      onStatsChangeRef.current?.({ loaded: 0, visible: 0, clustersActive: false, renderMode: 'density' });
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -262,20 +363,41 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }, [aviationLayerActive]);
 
   useEffect(() => {
-    if (!aviationLayerActive || !aviationDataSourceRef.current) return;
+    if (!aviationLayerActive) return;
 
-    const { visibleCount, clustersActive } = renderAviationObjects(
-      aviationDataSourceRef.current,
-      itemsCacheRef.current,
-      modeCacheRef.current,
-      aviationFilters
-    );
-    onStatsChangeRef.current?.({
-      loaded: itemsCacheRef.current.length,
-      visible: visibleCount,
-      clustersActive: clustersActive,
-    });
-  }, [aviationFilters, aviationLayerActive]);
+    const currentRenderMode = renderModeCacheRef.current;
+
+    if (currentRenderMode === 'density') {
+      if (!pointPrimitiveCollectionRef.current) return;
+      const result = renderDensityDots(
+        pointPrimitiveCollectionRef.current,
+        itemsCacheRef.current,
+        aviationFilters
+      );
+      densityPointMapRef.current = result.pointMap;
+      lastDensityCountRef.current = result.count;
+      onStatsChangeRef.current?.({
+        loaded: itemsCacheRef.current.length,
+        visible: result.count,
+        clustersActive: false,
+        renderMode: 'density',
+      });
+    } else {
+      if (!aviationDataSourceRef.current) return;
+      const { visibleCount, clustersActive } = renderAviationObjects(
+        aviationDataSourceRef.current,
+        itemsCacheRef.current,
+        modeCacheRef.current,
+        aviationFilters
+      );
+      onStatsChangeRef.current?.({
+        loaded: itemsCacheRef.current.length,
+        visible: visibleCount,
+        clustersActive,
+        renderMode: currentRenderMode === 'clusters' ? 'clusters' : 'points',
+      });
+    }
+  }, [aviationFilters, aviationLayerActive, aviationRenderMode]);
 
   if (error) {
     return (

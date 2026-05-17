@@ -6,9 +6,11 @@ import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories'
 interface LayerPanelProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
-  aviationStats: { loaded: number; visible: number; clustersActive: boolean };
+  aviationStats: { loaded: number; visible: number; clustersActive: boolean; renderMode: string };
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;
+  aviationRenderMode: 'density' | 'clusters';
+  onRenderModeChange: (mode: 'density' | 'clusters') => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -31,6 +33,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   aviationStats,
   aviationFilters,
   onFiltersChange,
+  aviationRenderMode,
+  onRenderModeChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [aviationStatus, setAviationStatus] = useState<LayerStatusResponse | null>(null);
@@ -108,7 +112,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     <span>VISIBLE: {aviationStats.visible}</span>
                   </div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '2px' }}>
-                    MODE: {aviationStats.clustersActive ? 'CLUSTER AGGREGATION' : 'POINT RENDER'}
+                    MODE: {aviationStats.renderMode === 'density' ? 'DENSITY DOTS' : aviationStats.clustersActive ? 'CLUSTER AGGREGATION' : 'POINT RENDER'}
                   </div>
                 </div>
               ) : (
@@ -154,6 +158,24 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="filter-section" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '12px', paddingTop: '8px' }}>
+                <div className="filter-section-header">RENDER MODE</div>
+                <div
+                  className={`filter-toggle ${aviationRenderMode === 'density' ? 'active' : ''}`}
+                  onClick={() => onRenderModeChange('density')}
+                >
+                  <span className="filter-toggle-dot" style={{ background: aviationRenderMode === 'density' ? '#00d2ff' : '#444' }} />
+                  <span className="filter-toggle-label">DENSITY VIEW</span>
+                </div>
+                <div
+                  className={`filter-toggle ${aviationRenderMode === 'clusters' ? 'active' : ''}`}
+                  onClick={() => onRenderModeChange('clusters')}
+                >
+                  <span className="filter-toggle-dot" style={{ background: aviationRenderMode === 'clusters' ? '#00d2ff' : '#444' }} />
+                  <span className="filter-toggle-label">CLUSTER VIEW</span>
+                </div>
               </div>
             </>
           )}
