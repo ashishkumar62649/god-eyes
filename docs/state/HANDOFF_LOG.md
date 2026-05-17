@@ -1969,3 +1969,33 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029C_API.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Frontend team implement PointPrimitiveCollection density view using existing API. No new backend work needed for density v1.
+
+### 2026-05-17T06:12:40Z Kiro CLI — WO-029D API Feasibility Review FAIL, SQL injection vulnerability
+
+- Review work order: WO-029D-API
+- Reviewer agent: Kiro CLI
+- LLM model: Claude 3.5 Sonnet
+- Tool/CLI used: kiro-cli chat
+- Branch reviewed: agent/claude-api-1
+- Review start time UTC: 2026-05-17T06:12:40Z
+- Review end time UTC: 2026-05-17T06:12:40Z
+- Commit(s) reviewed: 7b24936 (feat(api): add aviation fabric density mode)
+- Push decision: FAIL
+- Branch pushed: NOT PUSHED
+- Review result: FAIL - Critical SQL injection vulnerability found. cellSizeDegrees parameter is interpolated directly into SQL string using template literals instead of being parameterized. While practical risk is low (value validated to 0.5-10.0), this violates parameterization policy. All other checks pass: validation correct, routing correct, schemas correct, 15 meaningful tests pass (115 total), builds pass, no forbidden folders touched, no secrets, documentation comprehensive.
+- Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check, git diff --cached --check
+- Pre-review checks result: ✅ PASS (working directory, branch, working tree clean, no merge, only allowed files changed, no forbidden folders, no secrets, no stale wording)
+- Density route/validation result: ✅ PASS (mode=density validated, bbox required, cellSizeDegrees bounded, includeClosed safe, category filters safe, no route breakage)
+- Density SQL/handler result: ❌ FAIL (cellSizeDegrees not parameterized - uses template literal interpolation instead of parameterized query)
+- Contract/schema result: ✅ PASS (AirportDensityCellSchema correct, AirportDensityResponseSchema correct, backward compatible)
+- API behavior result: ✅ PASS (density returns cells not raw airports, bbox required, includeClosed works, cellSizeDegrees validation works, limit clamping works, existing modes unaffected)
+- Test coverage result: ✅ PASS (15 meaningful density tests covering all required behaviors)
+- Documentation result: ✅ PASS (comprehensive, accurate, practical, honest about limits, no false claims, no stale wording)
+- Build/test result: ✅ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (115/115))
+- Security/privacy result: ⚠️ PARTIAL (no secrets, no dependencies, but SQL not fully parameterized)
+- Forbidden folders touched: no
+- Known issues: SQL injection vulnerability - cellSizeDegrees interpolated directly into SQL string
+- Required fix: Parameterize cellSizeDegrees in buildDensitySql() function. Add cellSizeDegrees to queryParams array and use $N placeholder instead of template literal.
+- Review document: docs/state/INTEGRATION_REVIEW_WO-029D_API.md
+- Commit hash (review document): (not committed - FAIL status)
+- Next recommended task: Fix SQL injection vulnerability by parameterizing cellSizeDegrees. Re-run tests. Resubmit for review.
