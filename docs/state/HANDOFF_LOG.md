@@ -1,3 +1,24 @@
+### 2026-05-17T07:35:00Z Claude API 1 — WO-029E Aviation Category Audit Complete (Backend Verified Correct)
+
+- Work order: WO-029E API/Database Category Audit
+- Agent: Claude API 1
+- Role: API/Database Investigation
+- LLM model: minimax-m2.5-free
+- Tool/CLI used: Claude Code CLI, docker exec (PostgreSQL), curl
+- Branch: agent/claude-api-1
+- Start time UTC: 2026-05-17T07:15:00Z
+- End time UTC: 2026-05-17T07:35:00Z
+- Review result: Audit complete. Backend is CORRECT - no API/database bugs found. Issues are: (1) India/China international airports return correctly via API, (2) Asia water sites are sparse in actual data (not a bug), (3) Multiple category filtering not supported by API. Created detailed audit document with SQL verification.
+- Commands run: git branch --show-current, git status, docker exec psql (category counts, India/China queries, water sites), curl API endpoint tests, pnpm --filter api test, git diff --check
+- Build/tests result: ✅ PASS (API tests PASS (115/115))
+- Security/privacy result: ✅ PASS (read-only SQL, no mutations, no secrets)
+- Folder boundaries: ✅ PASS (docs/api/API_AVIATION_CATEGORY_AUDIT_WO-029E.md created; docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
+- Backend category verdict: ✅ CORRECT - 7 categories in DB (small_airfield: 42616, heliport: 22980, closed_or_abandoned: 13181, regional_or_domestic_airport: 4095, water_landing_site: 1262, international_or_major_airport: 1182, balloonport: 61). Unknown category has no data.
+- API filter verdict: ✅ CORRECT - Single category filter works, multiple categories not supported, limit applied after filter, fields=marker includes category correctly.
+- Known issues: None - backend is functioning correctly. Frontend may need to adjust client-side filtering or accept actual data distribution.
+- Files changed: docs/api/API_AVIATION_CATEGORY_AUDIT_WO-029E.md (new audit document), docs/state/HANDOFF_LOG.md (updated)
+- Next safe task: Push to origin for review. WO-029E complete. Frontend team should verify client-side filtering is correct.
+
 ### 2026-05-17T06:10:00Z Claude API 1 — WO-029D Aviation Fabric Density API Implementation Complete (Ready for Review)
 
 - Work order: WO-029D Aviation Fabric Density API Implementation
