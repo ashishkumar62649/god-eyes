@@ -75,10 +75,12 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     { label: 'Other', cat: 'unknown' as const },
   ];
 
-  const renderModeLabel: Record<string, string> = {
-    fabric: 'AVIATION FABRIC',
-    density: 'DENSITY DOTS',
-    entity: 'MARKER RENDER',
+  const renderModeLabel = (mode: string): string => {
+    const parts = mode.split('_');
+    if (parts.length === 3 && (parts[0] === 'SMART' || parts[0] === 'EXPLICIT')) {
+      return `${parts[0]} ${parts[2]}`;
+    }
+    return mode;
   };
 
   return (
@@ -121,7 +123,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     <span>VISIBLE: {aviationStats.visible}</span>
                   </div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '2px' }}>
-                    MODE: {renderModeLabel[aviationStats.renderMode] || aviationStats.renderMode.toUpperCase()}
+                    MODE: {renderModeLabel(aviationStats.renderMode)}
                   </div>
                 </div>
               ) : (

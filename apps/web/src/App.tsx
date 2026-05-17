@@ -29,7 +29,7 @@ const App: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [aviationStats, setAviationStats] = useState<AviationStats>({
-    loaded: 0, visible: 0, clustersActive: false, renderMode: 'fabric', fps: 0,
+    loaded: 0, visible: 0, clustersActive: false, renderMode: 'SMART_LOD_STRATEGIC', fps: 0,
   });
   const [cameraTarget, setCameraTarget] = useState<{
     position: { latitude: number; longitude: number };

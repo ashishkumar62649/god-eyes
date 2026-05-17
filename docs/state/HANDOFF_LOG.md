@@ -1,3 +1,92 @@
+### 2026-05-18T06:30:00Z OpenCode Web 1 — WO-029D-FE LOD logic correction: smart/explicit modes, server-side category fetch, stronger colors
+
+- Work order: WO-029D-FE LOD logic correction
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-18T06:00:00Z
+- End time UTC: 2026-05-18T06:30:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Fixed critical LOD issues: countries missing at global zoom (now uses server-side category filters + `ANY()` SQL for multi-category), categories appearing too late (thresholds raised to 10M/3M/800K), two behavior modes (Smart LOD when all ON / Explicit Filter when subset selected), stronger marker colors per airport size (international #00E5FF 10px, regional #00B2FF 8px, small #7DEBFF 6px), updated validation + SQL for comma-separated multi-category API queries, size-specific sprites in renderer, mode label cleanup. All 89 API tests pass.
+- Files modified:
+  - apps/api/src/routes/objects/validation.ts (comma-separated multi-category)
+  - apps/api/src/routes/objects/points.ts (ANY() SQL for multiple categories)
+  - apps/web/src/lib/aviationCategories.ts (getFetchCategories, isSmartLODMode, getZoomTierFromHeight, MODE_LABELS, LOD_TIER_THRESHOLDS, colors)
+  - apps/web/src/lib/api.ts (categories param)
+  - apps/web/src/CesiumGlobe.tsx (smart/explicit mode, server-side fetch, renderItems, thresholds)
+  - apps/web/src/lib/airportMarkerSprites.ts (AirportSizeIcons, getAirportSprite)
+  - apps/web/src/lib/aviationLayerRenderer.ts (size-specific sprites via getAirportSprite)
+  - apps/web/src/App.tsx (initial renderMode)
+  - apps/web/src/components/LayerPanel.tsx (mode label parser)
+  - apps/web/src/components/StatusPanel.tsx (mode label parser)
+  - docs/work-orders/WO-029D-opencode-global-aviation-fabric-frontend.md (LOD logic section)
+  - docs/state/HANDOFF_LOG.md (new entry)
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter api build (PASS)
+  - pnpm --filter api test (PASS, 89 tests)
+  - pnpm --filter web build (PASS, 56 modules, 181.66 kB)
+  - git diff --check (PASS, CRLF warnings only)
+- Tests/build result: Contracts build PASS, API build PASS, API tests PASS (89 tests), Web build PASS (56 modules, 181.66 kB)
+- Key behaviors:
+  1. Smart LOD mode (all categories ON): tier-based server-side category filtering
+  2. Explicit filter mode (subset ON): selected categories visible from global zoom
+  3. Tier thresholds: STRATEGIC >10M, NATIONAL 3-10M, STATE 800K-3M, LOCAL <800K
+  4. International major airports show globally in smart mode (fixes India/China issue)
+  5. Stronger colors: international #00E5FF/10px, regional #00B2FF/8px, small #7DEBFF/6px
+  6. API multi-category via comma-separated `category` param
+  7. All 89 API tests pass (backward compatible)
+  8. No client-side LOD filtering (server-side fetch is authoritative)
+  9. FPS display preserved
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review, then commit if approved. Manual browser verification required.
+
+### 2026-05-18T01:15:00Z OpenCode Web 1 — WO-029D-FE LOD visibility redesign: replace fabric/density with category-based zoom tiers
+
+- Work order: WO-029D-FE LOD visibility redesign
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-18T00:30:00Z
+- End time UTC: 2026-05-18T01:15:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Replaced the fabric/density/fabric-crossfade approach with a single entity-based category LOD visibility system. Removed dual PointPrimitiveCollections (fabricCollection + densityCollection), removed fabric node computation, removed density dot rendering, removed fabric/density crossfade via translucencyByDistance, removed fabric fly-to-area click handling. Added LOD tier tracking via camera height with hysteresis (4M/5M, 1.2M/1.5M, 250K/300K thresholds). Items are filtered by zoom tier before entity rendering: large_airport only at tier 0 (far), +medium_airport at tier 1 (regional), +all operational at tier 2 (state), all respecting filters at tier 3 (local). Updated marker colors per facility type (airport #00c8ff, heliport #ffb000, seaplane #00f5d4, closed #6b7280, unknown #7debff). Updated CategoryIcons canvas sprites to match. Added deprecation comment to aviationDensityRenderer.ts (preserved for reference). Updated LayerPanel/StatusPanel render mode labels for LOD tiers. Resolved stale merge conflict markers in HANDOFF_LOG.md. No backend/API/contract changes. No new dependencies.
+- Files modified:
+  - apps/web/src/lib/aviationCategories.ts (added filterByZoomTier, getAirportZoomTier, ZOOM_TIER_LABELS; updated marker colors)
+  - apps/web/src/CesiumGlobe.tsx (rewrite: removed fabric/density, single entity mode, LOD tier tracking via postRender)
+  - apps/web/src/lib/aviationDensityRenderer.ts (added deprecation comment)
+  - apps/web/src/lib/airportMarkerSprites.ts (updated CategoryIcons colors)
+  - apps/web/src/App.tsx (updated initial renderMode default)
+  - apps/web/src/components/LayerPanel.tsx (updated render mode display for LOD)
+  - apps/web/src/components/StatusPanel.tsx (updated render mode display for LOD)
+  - docs/work-orders/WO-029D-opencode-global-aviation-fabric-frontend.md (rewrote for LOD redesign)
+  - docs/state/HANDOFF_LOG.md (new entry + resolved conflict markers)
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter web build (PASS, 56 modules, 180.60 kB)
+  - git diff --check (PASS, CRLF warnings only)
+- Tests/build result: Contracts build PASS, Web build PASS (56 modules, 180.60 kB)
+- Key behaviors:
+  1. Single entity rendering mode, no PointPrimitiveCollections
+  2. LOD tier determined from camera height with hysteresis
+  3. Tier 0 (FAR, >4M): large_airport only
+  4. Tier 1 (REGIONAL, 1.2M-5M): +medium_airport
+  5. Tier 2 (STATE, 250K-1.5M): +all operational (small_airport, heliport, seaplane, unknown)
+  6. Tier 3 (LOCAL, <250K): all respecting filters
+  7. Closed airports always require explicit filter (default OFF) at any tier
+  8. Marker click → Object Intel (unified, no fabric fly-to)
+  9. Category filters applied on top of LOD tier filtering
+  10. FPS tracking preserved
+  11. Camera move triggers fresh API fetch; tier transitions re-filter cached items
+- Known issues: None
+- Forbidden folders touched: no
+- Next safe task: Kiro review and manual browser verification of LOD tier behavior at each zoom threshold.
+
 ### 2026-05-17T23:55:00Z OpenCode Web 1 — WO-029D-FE visual tuning: increase fabric/dot visibility
 
 - Work order: WO-029D-FE visual tuning
@@ -1997,7 +2086,6 @@ All agents must append to this file after completing work.
 - Known issues: None. Clusters are not filtered (preserved as-is per spec). Category filtering is client-side only (no backend filter params sent). Re-render on filter toggle uses cached last-fetched items, not a fresh API call.
 - Next safe task: Implement full density renderer, remove cluster fallback, add backend filter support.
 
-<<<<<<< HEAD
 ### 2026-05-16T22:52:12Z Codex - WO-029B-DATA Aviation Density View Data Distribution Reference
 
 - Work order: WO-029B-DATA
@@ -2024,7 +2112,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Review status: awaiting Kiro review.
 - Next safe task: Claude/API can use the density distribution and QA regions when shaping density endpoint limits; Gemini/frontend can use the same regions for density-rendering stress tests.
-=======
+
 ### 2026-05-17T04:34:13Z Kiro CLI — WO-029B API Feasibility Review PASS, branch pushed to origin
 
 - Review work order: WO-029B-API-FEASIBILITY
@@ -2050,4 +2138,3 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_API_FEASIBILITY.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Frontend team use feasibility document as specification for viewport-constrained density view. If performance proves inadequate, revisit density endpoint design in future work order.
->>>>>>> origin/agent/claude-api-1

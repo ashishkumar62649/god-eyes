@@ -30,7 +30,8 @@ export async function fetchAviationLayerObjects(
   zoom?: number,
   limit: number = 1000,
   abortSignal?: AbortSignal,
-  search?: string
+  search?: string,
+  categories?: string[] // optional category filter (API category_normalized values)
 ): Promise<LayerObjectsListResponse> {
   const url = new URL(`${API_BASE_URL}/api/layers/layer_01_aviation/objects`);
   url.searchParams.append('objectType', 'airport');
@@ -41,6 +42,10 @@ export async function fetchAviationLayerObjects(
     url.searchParams.append('search', search);
   }
   
+  if (categories && categories.length > 0) {
+    url.searchParams.append('category', categories.join(','));
+  }
+
   if (mode === 'points') {
     url.searchParams.append('limit', limit.toString());
   } else if (mode === 'clusters' && zoom !== undefined) {

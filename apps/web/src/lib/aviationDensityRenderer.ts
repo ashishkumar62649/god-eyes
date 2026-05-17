@@ -1,3 +1,10 @@
+/**
+ * @deprecated LOD visibility redesign (WO-029D-FE) replaced fabric/density dots with
+ * category-based zoom-tier entity rendering. This file is preserved for reference only.
+ * Active rendering happens in aviationLayerRenderer.ts, with LOD filtering in CesiumGlobe.tsx.
+ * No active code imports from this module.
+ */
+
 import { PointPrimitiveCollection, Cartesian3, Color, NearFarScalar } from 'cesium';
 import { AirportObject } from '@god-eyes/contracts';
 import { AviationFilters, getAviationDisplayCategory, AVIATION_CATEGORIES } from './aviationCategories';

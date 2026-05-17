@@ -8,7 +8,6 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
-  PointPrimitiveCollection,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
@@ -16,22 +15,16 @@ import { fetchAviationLayerObjects } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
 import { isPositionVisible } from './lib/cesiumVisibility';
 import { renderAviationObjects } from './lib/aviationLayerRenderer';
-import {
-  renderDensityDots,
-  renderFabricNodes,
-  computeFabricNodes,
-  FabricNode,
-} from './lib/aviationDensityRenderer';
 import { flyToSearchResult } from './lib/globeCamera';
-import { AviationFilters } from './lib/aviationCategories';
+import {
+  AviationFilters,
+  getZoomTierFromHeight,
+  getFetchCategories,
+  isSmartLODMode,
+  ZOOM_TIER_LABELS,
+  MODE_LABELS,
+} from './lib/aviationCategories';
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
-
-const MODE_FABRIC_LOWER = 6000000;
-const MODE_FABRIC_UPPER = 10000000;
-const MODE_DENSITY_LOWER = 250000;
-const MODE_DENSITY_UPPER = 350000;
-const RENDER_FABRIC_MIN = 6000000;
-const FABRIC_FLY_HEIGHT = 500000;
 
 interface AviationStats {
   loaded: number;
@@ -65,23 +58,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
-  const fabricCollectionRef = useRef<PointPrimitiveCollection | null>(null);
-  const densityCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
   const aviationLayerActiveRef = useRef(aviationLayerActive);
   const aviationFiltersRef = useRef(aviationFilters);
+  const zoomTierRef = useRef(0);
+  const smartModeRef = useRef(true);
 
   const renderTimeoutRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const itemsCacheRef = useRef<(AirportObject | AirportClusterObject)[]>([]);
-  const modeCacheRef = useRef<'points' | 'clusters'>('points');
-  const renderModeCacheRef = useRef<'fabric' | 'density' | 'entity'>('fabric');
-  const densityPointMapRef = useRef<Map<string, AirportObject>>(new Map());
-  const fabricClickMapRef = useRef<Map<string, FabricNode>>(new Map());
   const fpsRef = useRef<number>(0);
-  const lastModeRef = useRef<'fabric' | 'density' | 'entity'>('fabric');
 
   useEffect(() => {
     onObjectSelectRef.current = onObjectSelect;
@@ -105,107 +93,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [cameraTarget]);
 
-  function determineRenderMode(height: number): 'fabric' | 'density' | 'entity' {
-    const current = renderModeCacheRef.current;
-    if (current === 'fabric') {
-      if (height < MODE_FABRIC_LOWER) return 'density';
-      return 'fabric';
-    }
-    if (current === 'density') {
-      if (height >= MODE_FABRIC_UPPER) return 'fabric';
-      if (height < MODE_DENSITY_LOWER) return 'entity';
-      return 'density';
-    }
-    if (current === 'entity') {
-      if (height >= MODE_DENSITY_UPPER) return 'density';
-      return 'entity';
-    }
-    return 'fabric';
-  }
-
-  function clearAllPointPrimitives() {
-    if (fabricCollectionRef.current) {
-      fabricCollectionRef.current.removeAll();
-    }
-    if (densityCollectionRef.current) {
-      densityCollectionRef.current.removeAll();
-    }
-  }
-
   function clearEntities() {
     if (aviationDataSourceRef.current) {
       aviationDataSourceRef.current.entities.removeAll();
     }
   }
 
-  function renderFabricMode(items: any[], filters: AviationFilters | null) {
+  function renderItems(items: any[], filters: AviationFilters | null) {
     clearEntities();
-    densityCollectionRef.current?.removeAll();
-    densityPointMapRef.current.clear();
-
-    const nodes = computeFabricNodes(items, filters);
-    const fabricCol = fabricCollectionRef.current;
-    if (fabricCol) {
-      renderFabricNodes(fabricCol, nodes);
-    }
-
-    const clickMap = new Map<string, FabricNode>();
-    for (const n of nodes) clickMap.set(n.id, n);
-    fabricClickMapRef.current = clickMap;
-
-    const visCount = nodes.reduce((s, n) => s + n.count, 0);
-    renderModeCacheRef.current = 'fabric';
-    onStatsChangeRef.current?.({
-      loaded: items.length,
-      visible: visCount,
-      clustersActive: false,
-      renderMode: 'fabric',
-      fps: fpsRef.current,
-    });
-  }
-
-  function renderDensityMode(items: any[], filters: AviationFilters | null) {
-    clearEntities();
-    fabricClickMapRef.current.clear();
-
-    const densityCol = densityCollectionRef.current;
-    if (densityCol) {
-      const result = renderDensityDots(densityCol, items, filters);
-      densityPointMapRef.current = result.pointMap;
-    }
-
-    // Render fabric nodes for crossfade if camera is high enough
-    const viewer = viewerRef.current;
-    if (viewer) {
-      const height = viewer.camera.positionCartographic.height;
-      if (height >= RENDER_FABRIC_MIN) {
-        const nodes = computeFabricNodes(items, filters);
-        const fabricCol = fabricCollectionRef.current;
-        if (fabricCol) {
-          renderFabricNodes(fabricCol, nodes);
-        }
-        const clickMap = new Map<string, FabricNode>();
-        for (const n of nodes) clickMap.set(n.id, n);
-        fabricClickMapRef.current = clickMap;
-      } else {
-        fabricCollectionRef.current?.removeAll();
-      }
-    }
-
-    renderModeCacheRef.current = 'density';
-    onStatsChangeRef.current?.({
-      loaded: items.length,
-      visible: densityPointMapRef.current.size,
-      clustersActive: false,
-      renderMode: 'density',
-      fps: fpsRef.current,
-    });
-  }
-
-  function renderEntityMode(items: any[], filters: AviationFilters | null) {
-    clearAllPointPrimitives();
-    densityPointMapRef.current.clear();
-    fabricClickMapRef.current.clear();
 
     const { visibleCount } = renderAviationObjects(
       aviationDataSourceRef.current!,
@@ -214,12 +109,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       filters
     );
 
-    renderModeCacheRef.current = 'entity';
+    const tier = zoomTierRef.current;
+    const isSmart = smartModeRef.current;
+    const tierLabel = ZOOM_TIER_LABELS[tier] || '?';
+    const modeLabel = MODE_LABELS[isSmart ? 'smart' : 'explicit'];
+
     onStatsChangeRef.current?.({
       loaded: items.length,
       visible: visibleCount,
-      clustersActive: false,
-      renderMode: 'entity',
+      clustersActive: true,
+      renderMode: `${modeLabel}_${tierLabel}`,
       fps: fpsRef.current,
     });
   }
@@ -239,6 +138,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     let viewer: Viewer | undefined;
     let fpsInterval: ReturnType<typeof setInterval> | undefined;
     let fpsPostRender: (() => void) | undefined;
+    let cameraPostRender: (() => void) | undefined;
 
     try {
       viewer = new Viewer(containerRef.current, {
@@ -270,14 +170,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
-      const fabricCol = new PointPrimitiveCollection();
-      fabricCollectionRef.current = fabricCol;
-      viewer.scene.primitives.add(fabricCol);
-
-      const densityCol = new PointPrimitiveCollection();
-      densityCollectionRef.current = densityCol;
-      viewer.scene.primitives.add(densityCol);
-
       // FPS tracking via postRender
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
@@ -294,15 +186,50 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         fpsLastUpdate = now;
       }, 1000);
 
+      // LOD tier tracking via postRender
+      let lastTier = 0;
+      cameraPostRender = viewer.scene.postRender.addEventListener(() => {
+        const height = viewer!.camera.positionCartographic.height;
+        const newTier = getZoomTierFromHeight(height, lastTier);
+        if (newTier !== lastTier) {
+          lastTier = newTier;
+          zoomTierRef.current = newTier;
+          // If in smart mode, tier change requires re-fetch (different categories needed)
+          if (smartModeRef.current) {
+            triggerRefresh();
+          } else {
+            // In explicit mode, just re-render cached items (no re-fetch needed)
+            refreshEntities();
+          }
+        }
+      });
+
+      const refreshEntities = () => {
+        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
+        const items = itemsCacheRef.current;
+        if (items.length === 0) return;
+        renderItems(items, aviationFiltersRef.current);
+      };
+
       const fetchAndRenderData = async () => {
         if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
 
         const currentViewer = viewerRef.current;
         const camera = currentViewer.camera;
-
         const viewport = getViewportFromCamera(camera);
-        const cameraHeight = camera.positionCartographic.height;
-        const activeRenderMode = determineRenderMode(cameraHeight);
+        const tier = zoomTierRef.current;
+        const filters = aviationFiltersRef.current;
+
+        smartModeRef.current = isSmartLODMode(filters);
+        const isSmart = smartModeRef.current;
+
+        // Determine which API categories to fetch
+        let fetchCats: string[];
+        if (isSmart) {
+          fetchCats = getFetchCategories(tier, filters);
+        } else {
+          fetchCats = getFetchCategories(3, filters);
+        }
 
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
@@ -315,20 +242,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             viewport.bbox,
             viewport.zoom,
             1000,
-            abortControllerRef.current.signal
+            abortControllerRef.current.signal,
+            undefined,
+            fetchCats
           );
 
           itemsCacheRef.current = response.items;
-          modeCacheRef.current = 'points';
-          lastModeRef.current = activeRenderMode;
-
-          if (activeRenderMode === 'entity') {
-            renderEntityMode(response.items, aviationFiltersRef.current);
-          } else if (activeRenderMode === 'density') {
-            renderDensityMode(response.items, aviationFiltersRef.current);
-          } else {
-            renderFabricMode(response.items, aviationFiltersRef.current);
-          }
+          renderItems(response.items, filters);
         } catch (err: any) {
           if (err.name === 'AbortError') return;
           console.error('Failed to fetch/render aviation data:', err);
@@ -357,45 +277,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           return;
         }
 
-        // Fabric node click → fly to area
-        if (typeof pickedObject.id === 'string' && pickedObject.id.startsWith('fabric-')) {
-          const node = fabricClickMapRef.current.get(pickedObject.id);
-          if (node) {
-            const centerLon = (node.minLon + node.maxLon) / 2;
-            const centerLat = (node.minLat + node.maxLat) / 2;
-            const pos = Cartesian3.fromDegrees(centerLon, centerLat, 0);
-            const mag = Cartesian3.magnitude(pos);
-            const flyHeight = FABRIC_FLY_HEIGHT;
-            viewer!.camera.flyTo({
-              destination: Cartesian3.multiplyByScalar(
-                Cartesian3.normalize(pos, new Cartesian3()),
-                mag + flyHeight,
-                new Cartesian3()
-              ),
-              duration: 1.0,
-            });
-          }
-          return;
-        }
-
-        // Density dot click → Object Intel
-        if (typeof pickedObject.id === 'string' && pickedObject.id.startsWith('density-')) {
-          const airport = densityPointMapRef.current.get(pickedObject.id);
-          if (airport && airport.position.longitude != null && airport.position.latitude != null) {
-            const pos = Cartesian3.fromDegrees(
-              airport.position.longitude,
-              airport.position.latitude,
-              100
-            );
-            if (!isPositionVisible(viewer!, pos)) {
-              onObjectSelectRef.current(null);
-              return;
-            }
-            onObjectSelectRef.current(airport);
-          }
-          return;
-        }
-
         if (!(pickedObject.id instanceof Entity)) {
           onObjectSelectRef.current(null);
           return;
@@ -409,7 +290,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         if (entity.properties && entity.properties.isCluster?.getValue()) {
-          // Cluster zoom (existing fallback behavior, kept for safety)
           const camera = viewer!.camera;
           const pos = entity.position?.getValue(viewer!.clock.currentTime);
           if (pos) {
@@ -440,20 +320,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return () => {
       if (typeof fpsInterval !== 'undefined') clearInterval(fpsInterval);
       if (typeof fpsPostRender !== 'undefined') fpsPostRender();
-      if (fabricCollectionRef.current && !fabricCollectionRef.current.isDestroyed()) {
-        fabricCollectionRef.current.removeAll();
-        if (viewer && !viewer.isDestroyed()) {
-          viewer.scene.primitives.remove(fabricCollectionRef.current);
-        }
-        fabricCollectionRef.current = null;
-      }
-      if (densityCollectionRef.current && !densityCollectionRef.current.isDestroyed()) {
-        densityCollectionRef.current.removeAll();
-        if (viewer && !viewer.isDestroyed()) {
-          viewer.scene.primitives.remove(densityCollectionRef.current);
-        }
-        densityCollectionRef.current = null;
-      }
+      if (typeof cameraPostRender !== 'undefined') cameraPostRender();
       if (viewer && !viewer.isDestroyed()) {
         viewer.destroy();
         viewerRef.current = null;
@@ -469,14 +336,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   useEffect(() => {
     if (!aviationLayerActive) {
-      clearAllPointPrimitives();
       clearEntities();
-      densityPointMapRef.current.clear();
-      fabricClickMapRef.current.clear();
-      renderModeCacheRef.current = 'fabric';
+      zoomTierRef.current = 0;
       onStatsChangeRef.current?.({
         loaded: 0, visible: 0, clustersActive: false,
-        renderMode: 'fabric', fps: fpsRef.current,
+        renderMode: 'SMART_LOD_STRATEGIC', fps: fpsRef.current,
       });
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -489,14 +353,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }, [aviationLayerActive]);
 
   useEffect(() => {
-    if (!aviationLayerActive) return;
-    const currentMode = renderModeCacheRef.current;
-    if (currentMode === 'fabric') {
-      renderFabricMode(itemsCacheRef.current, aviationFilters);
-    } else if (currentMode === 'density') {
-      renderDensityMode(itemsCacheRef.current, aviationFilters);
-    } else {
-      renderEntityMode(itemsCacheRef.current, aviationFilters);
+    if (!aviationLayerActive || !aviationDataSourceRef.current) return;
+    const items = itemsCacheRef.current;
+    if (items.length === 0) return;
+
+    // When filters change, re-fetch with new category filter
+    zoomTierRef.current = viewerRef.current
+      ? getZoomTierFromHeight(viewerRef.current.camera.positionCartographic.height, zoomTierRef.current)
+      : 0;
+    smartModeRef.current = isSmartLODMode(aviationFilters);
+
+    if (viewerRef.current) {
+      viewerRef.current.camera.changed.raiseEvent();
     }
   }, [aviationFilters, aviationLayerActive]);
 

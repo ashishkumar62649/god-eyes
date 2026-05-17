@@ -16,10 +16,12 @@ interface StatusPanelProps {
 const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const renderModeLabel: Record<string, string> = {
-    fabric: 'FABRIC',
-    density: 'DENSITY',
-    entity: 'ENTITY',
+  const renderModeLabel = (mode: string): string => {
+    const parts = mode.split('_');
+    if (parts.length === 3 && (parts[0] === 'SMART' || parts[0] === 'EXPLICIT')) {
+      return `${parts[0]} ${parts[2]}`;
+    }
+    return mode;
   };
 
   return (
@@ -49,7 +51,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Render Mode</div>
             <div className="detail-value" style={{ color: aviationLayerActive ? 'var(--shell-accent)' : 'inherit' }}>
-              {aviationLayerActive ? (renderModeLabel[aviationStats.renderMode] || aviationStats.renderMode.toUpperCase()) : 'IDLE'}
+              {aviationLayerActive ? renderModeLabel(aviationStats.renderMode) : 'IDLE'}
             </div>
           </div>
           

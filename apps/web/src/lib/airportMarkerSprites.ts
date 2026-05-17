@@ -1,9 +1,14 @@
 import { AviationDisplayCategory } from './aviationCategories';
+import {
+  API_CATEGORY_LARGE,
+  API_CATEGORY_REGIONAL,
+  API_CATEGORY_SMALL,
+} from './aviationCategories';
 
 const MARKER_SIZE = 8;
 const CLOSED_SIZE = 6;
 
-function createCircleCanvas(size: number, color: string): HTMLCanvasElement {
+function createCircleCanvas(size: number, color: string, strokeStyle?: string): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   const padding = 4;
   const totalSize = size + padding * 2;
@@ -20,7 +25,7 @@ function createCircleCanvas(size: number, color: string): HTMLCanvasElement {
   ctx.arc(center, center, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.strokeStyle = strokeStyle || 'rgba(255, 255, 255, 0.9)';
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -144,12 +149,27 @@ function createOutlineCircleCanvas(size: number, color: string): HTMLCanvasEleme
 }
 
 export const CategoryIcons: Record<AviationDisplayCategory, HTMLCanvasElement> = {
-  airport: createCircleCanvas(MARKER_SIZE, '#00d2ff'),
-  heliport: createRoundedSquareCanvas(MARKER_SIZE, '#00e676'),
-  seaplane_base: createDiamondCanvas(MARKER_SIZE, '#ffab00'),
-  closed: createClosedCanvas(CLOSED_SIZE, '#666666'),
-  unknown: createOutlineCircleCanvas(6, '#999999'),
+  airport: createCircleCanvas(MARKER_SIZE, '#00E5FF'),
+  heliport: createRoundedSquareCanvas(MARKER_SIZE, '#FFB000'),
+  seaplane_base: createDiamondCanvas(MARKER_SIZE, '#00FFD1'),
+  closed: createClosedCanvas(CLOSED_SIZE, '#6B7280'),
+  unknown: createOutlineCircleCanvas(6, '#B8F7FF'),
 };
+
+// Size-specific airport icons for LOD display — larger, stronger colors per type
+export const AirportSizeIcons: Record<string, HTMLCanvasElement> = {
+  [API_CATEGORY_LARGE]: createCircleCanvas(10, '#00E5FF', 'rgba(255,255,255,1.0)'),
+  [API_CATEGORY_REGIONAL]: createCircleCanvas(8, '#00B2FF', 'rgba(255,255,255,0.9)'),
+  [API_CATEGORY_SMALL]: createCircleCanvas(6, '#7DEBFF', 'rgba(255,255,255,0.8)'),
+};
+
+export function getAirportSprite(normalizedCategory: string): HTMLCanvasElement {
+  const cat = (normalizedCategory || '').toLowerCase().trim();
+  const sprite = AirportSizeIcons[cat];
+  if (sprite) return sprite;
+  // Fallback: use default airport icon for unrecognized categories
+  return CategoryIcons.airport;
+}
 
 export const createMarkerCanvas = (size: number, color: string): HTMLCanvasElement => {
   return createCircleCanvas(size, color);
@@ -198,6 +218,6 @@ export const getClusterCanvas = (size: number): HTMLCanvasElement => {
 };
 
 export const Icons = {
-  largeAirport: createMarkerCanvas(8, '#00d2ff'),
-  smallAirport: createMarkerCanvas(5, '#00d2ff'),
+  largeAirport: createMarkerCanvas(8, '#00E5FF'),
+  smallAirport: createMarkerCanvas(5, '#7DEBFF'),
 };

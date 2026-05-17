@@ -36,8 +36,14 @@ export function validateBBox(bbox: ParsedBBox): string | null {
 }
 
 export function validateCategory(category: string): string | null {
-  if (!VALID_CATEGORIES.includes(category as ValidCategory)) {
+  const cats = category.split(',').map(c => c.trim()).filter(Boolean);
+  if (cats.length === 0) {
     return `Invalid category. Allowed: ${VALID_CATEGORIES.join(', ')}`;
+  }
+  for (const c of cats) {
+    if (!VALID_CATEGORIES.includes(c as ValidCategory)) {
+      return `Invalid category '${c}'. Allowed: ${VALID_CATEGORIES.join(', ')}`;
+    }
   }
   return null;
 }

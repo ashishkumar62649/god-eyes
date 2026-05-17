@@ -8,7 +8,11 @@ import {
   Color,
 } from 'cesium';
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
-import { CategoryIcons, getClusterCanvas } from './airportMarkerSprites';
+import {
+  CategoryIcons,
+  getAirportSprite,
+  getClusterCanvas,
+} from './airportMarkerSprites';
 import {
   getAviationDisplayCategory,
   AviationFilters,
@@ -44,7 +48,10 @@ export function renderAviationObjects(
         if (displayCat === 'airport' && !filters.airports) continue;
       }
 
-      const icon = CategoryIcons[displayCat];
+      // Use size-specific sprite for airports, category sprite for others
+      const icon = displayCat === 'airport'
+        ? getAirportSprite(airport.category)
+        : CategoryIcons[displayCat];
 
       dataSource.entities.add({
         id: `airport-${airport.id}`,
