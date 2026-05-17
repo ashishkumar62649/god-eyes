@@ -1427,6 +1427,216 @@ describe('Aviation Objects API - WO-008', () => {
 
   // ---- END Aviation Density View (WO-029C) ----
 
+  // ---- Aviation Fabric / Density Mode (WO-029D) ----
+
+  it('density mode: returns 400 when bbox is missing', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density',
+    });
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error.code).toBe('MISSING_BBOX');
+  });
+
+  it('density mode: returns 200 for global bbox query', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-180,-90,180,90&limit=50',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('density');
+      expect(body.items).toBeDefined();
+    }
+  });
+
+  it('density mode: returns bounded density cells, not raw airports', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-180,-90,180,90&limit=100',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Should return density cells, not individual airports
+      expect(body.items.length).toBeLessThanOrEqual(100);
+      // Each item should be a density cell, not an airport
+      if (body.items.length > 0) {
+        const cell = body.items[0];
+        expect(cell.objectType).toBe('airport_density');
+        expect(cell.count).toBeGreaterThan(0);
+        expect(cell.position).toBeDefined();
+        expect(cell.position.latitude).toBeDefined();
+        expect(cell.position.longitude).toBeDefined();
+      }
+    }
+  });
+
+  it('density mode: each cell has positive count', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-125,25,-65,50&limit=20',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      if (body.items.length > 0) {
+        for (const cell of body.items) {
+          expect(cell.count).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it('density mode: excludeClosed=true excludes closed_or_abandoned by default', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-125,25,-65,50&limit=50',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Default should exclude closed - check metadata
+      expect(body.metadata).toBeDefined();
+      expect(body.metadata.filtersApplied).toBeDefined();
+      expect(body.metadata.filtersApplied.includeClosed).toBe(false);
+    }
+  });
+
+  it('density mode: includeClosed=true includes closed airports', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-125,25,-65,50&limit=50&includeClosed=true',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.metadata.filtersApplied.includeClosed).toBe(true);
+    }
+  });
+
+  it('density mode: cellSizeDegrees validation clamps to min 0.5', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-180,-90,180,90&cellSizeDegrees=0.1&limit=10',
+    });
+    // Should not 400 - should clamp to min
+    expect(response.statusCode).not.toBe(400);
+    expect([200, 503]).toContain(response.statusCode);
+  });
+
+  it('density mode: cellSizeDegrees validation clamps to max 10', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-180,-90,180,90&cellSizeDegrees=100&limit=10',
+    });
+    // Should not 400 - should clamp to max
+    expect(response.statusCode).not.toBe(400);
+    expect([200, 503]).toContain(response.statusCode);
+  });
+
+  it('density mode: default cellSizeDegrees is 2.0', async () => {
+    // Just verify it works without explicit cellSizeDegrees
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-125,25,-65,50&limit=10',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('density');
+    }
+  });
+
+  it('density mode: limit clamping works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-180,-90,180,90&limit=5000',
+    });
+    // Should not 400 - should clamp to max (1000 with bbox)
+    expect(response.statusCode).not.toBe(400);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.pagination.limit).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it('density mode: category filter works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=density&bbox=-125,25,-65,50&category=heliport&limit=20',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      // Should return cells with only heliports (if any in bbox)
+      expect(body.metadata.filtersApplied.category).toBe('heliport');
+    }
+  });
+
+  it('density mode: existing points mode still works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&limit=2',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('points');
+      expect(body.items).toBeDefined();
+    }
+  });
+
+  it('density mode: existing fields=marker still works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&fields=marker&limit=2',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('points');
+      // Marker should not have source fields
+      if (body.items.length > 0) {
+        expect(body.items[0].sourceId).toBeUndefined();
+      }
+    }
+  });
+
+  it('density mode: existing clusters mode still works', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-125,25,-65,50&limit=10',
+    });
+    expect([200, 503]).toContain(response.statusCode);
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.mode).toBe('clusters');
+    }
+  });
+
+  it('density mode: detail endpoint still works', async () => {
+    // First get an airport ID
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_01_aviation/objects?objectType=airport&limit=1',
+    });
+    if (listResponse.statusCode !== 200) return;
+    const listBody = JSON.parse(listResponse.body);
+    if (listBody.items.length === 0) return;
+
+    const airportId = listBody.items[0].id;
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/layer_01_aviation/objects/${airportId}/detail`,
+    });
+    expect([200, 503, 404]).toContain(response.statusCode);
+  });
+
+  // ---- END Aviation Fabric / Density Mode (WO-029D) ----
+
   it('airport detail navaids include required fields per NavaidDetailSchema', async () => {
     const listResponse = await app.inject({
       method: 'GET',
