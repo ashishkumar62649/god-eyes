@@ -12,56 +12,23 @@ import {
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
-import { fetchAviationLayerObjects, clearAviationCache } from './lib/api';
-import { getViewportFromCamera } from './lib/airportViewport';
+import {
+  fetchAllAviationCategories,
+} from './lib/aviationPreloader';
 import { isPositionVisible } from './lib/cesiumVisibility';
 import {
-  renderAviationObjectsIncrementalAsync,
-} from './lib/aviationLayerRenderer';
-import { flyToSearchResult } from './lib/globeCamera';
-import {
   AviationFilters,
-  getZoomTierFromHeight,
-  getBackendCategoriesToFetch,
-  isSmartLODMode,
-  getBboxRoundingForTier,
-  ZOOM_TIER_LABELS,
-  MODE_LABELS,
 } from './lib/aviationCategories';
 import {
-  fetchInterleavedCategoryTiles,
-  clearTileCache,
-} from './lib/aviationTileLoader';
-import {
   createGlobalDotCollection,
-  destroyGlobalDotCollection,
-  addDotsToCollection,
-  clearGlobalDots,
+  addAllDotsToCollection,
   isGlobalDot,
   getGlobalDotPosition,
   filterVisibleGlobalDots,
 } from './lib/aviationGlobalRenderer';
 import {
-  makeTileKey,
-  hasTile,
-  setTile,
-  clearTileCache as clearPersistentTileCache,
-  bboxToTileIds,
-  tileIdToBbox,
-  markTileInFlight,
-  markTileDone,
-  isTileInFlight,
-  clearInFlightTiles,
-  getTileCacheStats,
-} from './lib/aviationTileCache';
-import {
-  storeObjects,
   getAllObjects,
-  clearObjectStore,
 } from './lib/aviationObjectStore';
-import type { AirportObject } from '@god-eyes/contracts';
-
-const FETCH_DEBOUNCE_MS = 500;
 
 interface AviationStats {
   loaded: number;
@@ -73,6 +40,8 @@ interface AviationStats {
   cacheHits?: number;
   cacheMisses?: number;
   inflight?: number;
+  preloadStatus?: string;
+  categoryCounts?: Record<string, number>;
 }
 
 interface CesiumGlobeProps {
@@ -87,49 +56,16 @@ interface CesiumGlobeProps {
   aviationFilters: AviationFilters;
 }
 
-function roundBbox(bbox: string, tier: number): string {
-  const precision = getBboxRoundingForTier(tier);
-  return bbox.split(',').map((s) => {
-    const n = parseFloat(s);
-    if (isNaN(n)) return s;
-    const rounded = Math.round(n / precision) * precision;
-    return rounded === 0 ? '0' : String(rounded);
-  }).join(',');
-}
-
-function computeRequestKey(
-  active: boolean,
-  tier: number,
-  bbox: string,
-  categories: string[],
-): string {
-  const catKey = [...categories].sort().join(',');
-  const roundedBbox = roundBbox(bbox, tier);
-  return `${active}:${tier}:${catKey}:${roundedBbox}`;
-}
-
-function computeRenderKey(
-  active: boolean,
-  tier: number,
-  filters: AviationFilters,
-  itemCount: number,
-  fetchGeneration: number,
-): string {
-  const f = filters
-    ? `${filters.major}:${filters.regional}:${filters.local}:${filters.heliport}:${filters.seaplane}:${filters.balloonport}:${filters.unknown}:${filters.closed}`
-    : 'null';
-  return `${active}:${tier}:${f}:${itemCount}:${fetchGeneration}`;
-}
-
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   aviationLayerActive,
   onObjectSelect,
   onAviationStatsChange,
-  cameraTarget,
+  cameraTarget: _cameraTarget,
   aviationFilters,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
+  const viewerReadyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
@@ -138,24 +74,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const onStatsChangeRef = useRef(onAviationStatsChange);
   const aviationLayerActiveRef = useRef(aviationLayerActive);
   const aviationFiltersRef = useRef(aviationFilters);
-  const zoomTierRef = useRef(0);
-  const smartModeRef = useRef(true);
   const cameraHeightRef = useRef(20000000);
 
-  const renderTimeoutRef = useRef<number | null>(null);
+  const fpsRef = useRef<number>(0);
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const itemsCacheRef = useRef<AirportObject[]>([]);
-  const fpsRef = useRef<number>(0);
-  const renderedEntityIdsRef = useRef<Set<string>>(new Set());
-
-  const lastRequestKeyRef = useRef('');
-  const lastRenderKeyRef = useRef('');
-  const fetchGenerationRef = useRef(0);
-
-  // Tile loader state
-  const tileAbortRef = useRef<AbortController | null>(null);
-  const tileActiveRef = useRef(false);
+  // Resident cache mode
+  const residentCacheActiveRef = useRef(false);
+  const preloadingRef = useRef(false);
+  const dotsCreatedRef = useRef(false);
 
   // Sync prop refs after every render so async callbacks always see current props
   useEffect(() => {
@@ -165,299 +93,122 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     aviationFiltersRef.current = aviationFilters;
   });
 
-  function scheduleFetch(reason: string): void {
-    if (import.meta.env.DEV) {
-      console.debug(`[aviation] scheduleFetch: ${reason}`);
-    }
-    // Cull behind-globe dots based on current camera position
-    if (globalDotCollectionRef.current && viewerRef.current) {
-      filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene);
-    }
-    fetchIfNeeded();
-  }
-
-  function isUsingGlobalTiles(tier: number, filters: AviationFilters): boolean {
-    if (tier !== 0) return false;
-    if (isSmartLODMode(filters)) return false;
-    return true;
-  }
-
-  function abortTileLoader(): void {
-    if (tileAbortRef.current) {
-      tileAbortRef.current.abort();
-      tileAbortRef.current = null;
-    }
-    tileActiveRef.current = false;
-  }
-
-  function fetchSingleTile(
-    cacheKey: string,
-    category: string,
-    bbox: string,
-    includeClosed: boolean,
-    signal: AbortSignal,
-  ): Promise<void> {
-    return fetchAviationLayerObjects(
-      'points', bbox, undefined, 1000, signal, undefined, category, 'marker',
-    ).then((response) => {
-      if (signal.aborted) return;
-      const airports = response.items.filter(
-        (item): item is AirportObject => item.objectType === 'airport',
-      ).filter((a) => {
-        if (includeClosed) return true;
-        const cat = (a.category || '').toLowerCase().trim();
-        return cat !== 'closed' && cat !== 'closed_or_abandoned';
-      });
-      storeObjects(airports);
-      setTile(cacheKey, airports);
-    }).catch((err: any) => {
-      if (err.name === 'AbortError') return;
-      console.warn(`Tile fetch failed for ${cacheKey}:`, err);
+  function emitStats(
+    renderMode: string,
+    preloadStatus?: string,
+    categoryCounts?: Record<string, number>,
+  ): void {
+    const allObjects = getAllObjects();
+    const visibleCount = globalDotCollectionRef.current?.length ?? 0;
+    console.log('[AVIATION] emitStats:', renderMode, preloadStatus, 'loaded:', allObjects.length, 'visible:', visibleCount);
+    onStatsChangeRef.current?.({
+      loaded: allObjects.length,
+      visible: visibleCount,
+      clustersActive: false,
+      renderMode,
+      fps: fpsRef.current,
+      preloadStatus,
+      categoryCounts,
     });
   }
 
-  async function fetchMissingTiles(
-    neededKeys: string[],
-    includeClosed: boolean,
-    signal: AbortSignal,
-  ): Promise<void> {
-    const queue = [...neededKeys];
-    const CONCURRENCY = 3;
-    const workers: Promise<void>[] = [];
-    for (let i = 0; i < CONCURRENCY; i++) {
-      workers.push((async () => {
-        while (queue.length > 0 && !signal.aborted) {
-          const fullKey = queue.shift()!;
-          if (!fullKey) continue;
-          const catEnd = fullKey.indexOf(':');
-          if (catEnd === -1) continue;
-          const category = fullKey.substring(0, catEnd);
-          const tileStart = catEnd + 1;
-          const tileEnd = fullKey.indexOf(':', tileStart);
-          if (tileEnd === -1) continue;
-          const tileId = fullKey.substring(tileStart, tileEnd);
-          const bbox = tileIdToBbox(tileId);
-          markTileInFlight(fullKey);
-          await fetchSingleTile(fullKey, category, bbox, includeClosed, signal);
-          markTileDone(fullKey);
-        }
-      })());
-    }
-    await Promise.all(workers);
-  }
-
-  function destroyGlobalDots(): void {
+  function applyFiltersToDots(): void {
     if (globalDotCollectionRef.current && viewerRef.current) {
-      destroyGlobalDotCollection(globalDotCollectionRef.current, viewerRef.current.scene);
-      globalDotCollectionRef.current = null;
-    }
-  }
-
-  function clearEntities(): void {
-    if (aviationDataSourceRef.current) {
-      aviationDataSourceRef.current.entities.removeAll();
-    }
-  }
-
-  async function renderCurrentIncremental() {
-    if (!aviationDataSourceRef.current) return;
-    const active = aviationLayerActiveRef.current;
-    if (!active) return;
-
-    const filters = aviationFiltersRef.current;
-    const tier = zoomTierRef.current;
-    const isSmart = smartModeRef.current;
-
-    if (isUsingGlobalTiles(tier, filters)) return;
-
-    const allObjects = getAllObjects();
-    const gen = fetchGenerationRef.current;
-    const rk = computeRenderKey(active, tier, filters, allObjects.length, gen);
-    if (rk === lastRenderKeyRef.current) return;
-    lastRenderKeyRef.current = rk;
-
-    const height = cameraHeightRef.current;
-    try {
-      const { visibleCount, added } = await renderAviationObjectsIncrementalAsync(
-        aviationDataSourceRef.current,
-        allObjects,
-        'points',
-        filters,
-        height,
-        undefined,
-        abortControllerRef.current?.signal,
-      );
-
-      const stats = getTileCacheStats();
+      const filters = aviationFiltersRef.current;
+      filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, filters);
+      const allObjects = getAllObjects();
+      let visibleCount = 0;
+      const length = globalDotCollectionRef.current.length;
+      for (let i = 0; i < length; i++) {
+        const p = globalDotCollectionRef.current.get(i);
+        if (p && p.show) visibleCount++;
+      }
+      console.log('[AVIATION] applyFiltersToDots: total', allObjects.length, 'visible', visibleCount);
       onStatsChangeRef.current?.({
         loaded: allObjects.length,
         visible: visibleCount,
-        clustersActive: true,
-        renderMode: `${MODE_LABELS[isSmart ? 'smart' : 'explicit']}_${ZOOM_TIER_LABELS[tier] || '?'}`,
+        clustersActive: false,
+        renderMode: 'RESIDENT_GLOBAL',
         fps: fpsRef.current,
-        cacheEntries: stats.entries,
-        cacheHits: stats.hits,
-        cacheMisses: stats.misses,
-        inflight: stats.inFlight,
+        preloadStatus: residentCacheActiveRef.current ? 'CACHE_READY' : undefined,
       });
-
-      if (import.meta.env.DEV && added > 0) {
-        console.debug(`[aviation] incremental render: +${added} entities, visible ${visibleCount}`);
-      }
-    } catch (err) {
-      console.error('Render error:', err);
     }
   }
 
-  async function startTileLoading(filters: AviationFilters): Promise<void> {
-    if (!viewerRef.current) return;
+  async function startResidentPreload(): Promise<void> {
+    console.log('[AVIATION] starting resident preload');
+    if (preloadingRef.current || residentCacheActiveRef.current) {
+      console.log('[AVIATION] preload skipped: preloading=', preloadingRef.current, 'residentCacheActive=', residentCacheActiveRef.current);
+      return;
+    }
+    if (!viewerRef.current) {
+      console.log('[AVIATION] preload skipped: viewer not ready');
+      return;
+    }
 
-    abortTileLoader();
+    preloadingRef.current = true;
 
     const viewer = viewerRef.current;
     let collection = globalDotCollectionRef.current;
     if (!collection) {
       collection = createGlobalDotCollection(viewer.scene);
       globalDotCollectionRef.current = collection;
-    } else {
-      clearGlobalDots(collection);
+      console.log('[AVIATION] created dot collection');
     }
-    tileActiveRef.current = true;
 
     const ac = new AbortController();
-    tileAbortRef.current = ac;
+    abortControllerRef.current = ac;
 
-    const backendCats = getBackendCategoriesToFetch(0, filters);
-    let totalLoaded = 0;
+    emitStats('RESIDENT_GLOBAL', 'PRELOAD_STARTED');
 
-    const tierLabel = ZOOM_TIER_LABELS[0] || '?';
-    const modeLabel = MODE_LABELS['explicit'];
+    const categoryCounts: Record<string, number> = {};
 
-    onStatsChangeRef.current?.({
-      loaded: 0,
-      visible: 0,
-      clustersActive: false,
-      renderMode: `${modeLabel}_${tierLabel}`,
-      fps: fpsRef.current,
-    });
+    try {
+      await fetchAllAviationCategories(ac.signal, (batch, progress) => {
+        if (ac.signal.aborted) return;
 
-    await fetchInterleavedCategoryTiles(backendCats, ac.signal, (batch, progress) => {
-      if (ac.signal.aborted) return;
-      addDotsToCollection(collection!, batch, filters);
-      storeObjects(batch);
-      const tileId = progress.tileKey.split('_').slice(0, 2).join('_');
-      const cacheKey = makeTileKey(progress.category, tileId, 'points', filters.closed);
-      setTile(cacheKey, batch);
-      totalLoaded = progress.totalSoFar;
-      const stats = getTileCacheStats();
-      onStatsChangeRef.current?.({
-        loaded: totalLoaded,
-        visible: totalLoaded,
-        clustersActive: false,
-        renderMode: `${modeLabel}_${tierLabel}`,
-        fps: fpsRef.current,
-        cacheEntries: stats.entries,
-        cacheHits: stats.hits,
-        cacheMisses: stats.misses,
-        inflight: stats.inFlight,
+        console.log('[AVIATION] fetched category', progress.category, 'count', progress.categoryCount, 'total', progress.totalLoaded);
+
+        if (batch.length > 0) {
+          addAllDotsToCollection(collection!, batch);
+          dotsCreatedRef.current = true;
+        }
+
+        categoryCounts[progress.category] = progress.categoryCount;
+
+        if (progress.allDone) {
+          residentCacheActiveRef.current = true;
+          preloadingRef.current = false;
+          console.log('[AVIATION] preload complete total', progress.totalLoaded);
+          emitStats('RESIDENT_GLOBAL', 'CACHE_READY', categoryCounts);
+          applyFiltersToDots();
+        } else {
+          emitStats(
+            'RESIDENT_GLOBAL',
+            `LOADING:${progress.displayLabel}(${progress.categoryCount})`,
+            categoryCounts,
+          );
+        }
       });
-    });
-  }
-
-  async function fetchIfNeeded() {
-    if (!aviationDataSourceRef.current || !viewerRef.current) return;
-
-    const active = aviationLayerActiveRef.current;
-    if (!active) return;
-
-    const currentViewer = viewerRef.current;
-    const camera = currentViewer.camera;
-    const viewport = getViewportFromCamera(camera);
-    const tier = zoomTierRef.current;
-    const filters = aviationFiltersRef.current;
-
-    smartModeRef.current = isSmartLODMode(filters);
-    const backendCats = getBackendCategoriesToFetch(tier, filters);
-
-    // Route: explicit global → tile-based dots
-    if (isUsingGlobalTiles(tier, filters)) {
-      clearEntities();
-      itemsCacheRef.current = [];
-      const tileKey = computeRequestKey(active, tier, viewport.bbox, backendCats);
-      if (tileKey !== lastRequestKeyRef.current) {
-        lastRequestKeyRef.current = tileKey;
-        startTileLoading(filters);
-      }
+    } catch (err) {
+      console.error('[AVIATION] preload error:', err);
+      preloadingRef.current = false;
+      emitStats('RESIDENT_GLOBAL', 'ERROR: ' + (err instanceof Error ? err.message : String(err)));
       return;
     }
 
-    // Entity-based path with persistent tile cache
-    abortTileLoader();
+    if (ac.signal.aborted) return;
 
-    // Pre-render cached store data as entities before destroying dots
-    const storeData = getAllObjects();
-    if (globalDotCollectionRef.current && storeData.length > 0) {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
-      fetchGenerationRef.current++;
-      itemsCacheRef.current = storeData;
-      await renderCurrentIncremental();
-    }
+    residentCacheActiveRef.current = true;
+    preloadingRef.current = false;
 
-    destroyGlobalDots();
-
-    const includeClosed = filters.closed;
-    const tileIds = bboxToTileIds(viewport.bbox);
-
-    const tileKeys: string[] = [];
-    for (const cat of backendCats) {
-      for (const tid of tileIds) {
-        tileKeys.push(makeTileKey(cat, tid, 'points', includeClosed));
-      }
-    }
-
-    const tileSetKey = [...tileKeys].sort().join('|');
-    const fetchKey = `${active}:${tier}:tiles:${tileSetKey}`;
-
-    if (fetchKey === lastRequestKeyRef.current) {
-      await renderCurrentIncremental();
-      return;
-    }
-    lastRequestKeyRef.current = fetchKey;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
-    const neededKeys = tileKeys.filter((k) => !hasTile(k) && !isTileInFlight(k));
-
-    if (neededKeys.length > 0) {
-      try {
-        await fetchMissingTiles(neededKeys, includeClosed, signal);
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        console.warn('Tile fetch error:', err);
-      }
-    }
-
-    if (signal.aborted) return;
-
-    fetchGenerationRef.current++;
-    itemsCacheRef.current = getAllObjects();
-    await renderCurrentIncremental();
+    emitStats('RESIDENT_GLOBAL', 'CACHE_READY', categoryCounts);
+    applyFiltersToDots();
   }
 
+  // Viewer initialization
   useEffect(() => {
-    if (cameraTarget && viewerRef.current) {
-      flyToSearchResult(viewerRef.current, cameraTarget.position, cameraTarget.type);
-    }
-  }, [cameraTarget]);
-
-  useEffect(() => {
+    console.log('[AVIATION] viewer init useEffect');
     const token = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;
 
     if (!token || token === 'replace_with_your_cesium_ion_token') {
@@ -472,7 +223,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     let viewer: Viewer | undefined;
     let fpsInterval: ReturnType<typeof setInterval> | undefined;
     let fpsPostRender: (() => void) | undefined;
-    let tierPostRender: (() => void) | undefined;
     let moveEndHandler: (() => void) | undefined;
     let changedHandler: (() => void) | undefined;
 
@@ -501,6 +251,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       cameraController.maximumZoomDistance = 50000000;
 
       viewerRef.current = viewer;
+      viewerReadyRef.current = true;
+      console.log('[AVIATION] viewer ready, viewerRef.current set');
 
       const dataSource = new CustomDataSource('aviation');
       aviationDataSourceRef.current = dataSource;
@@ -522,42 +274,27 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         fpsLastUpdate = now;
       }, 1000);
 
-      // Tier change detection
-      let lastTier = 0;
-      tierPostRender = viewer.scene.postRender.addEventListener(() => {
-        const height = viewer!.camera.positionCartographic.height;
-        cameraHeightRef.current = height;
-        const newTier = getZoomTierFromHeight(height, lastTier);
-        if (newTier !== lastTier) {
-          lastTier = newTier;
-          zoomTierRef.current = newTier;
-        }
-      });
-
-      // Camera changed — debounced
+      // Camera changed — debounced occlusion update only, NO data fetching
       changedHandler = () => {
-        if (renderTimeoutRef.current !== null) {
-          window.clearTimeout(renderTimeoutRef.current);
+        if (globalDotCollectionRef.current && viewerRef.current) {
+          const height = viewerRef.current.camera.positionCartographic.height;
+          cameraHeightRef.current = height;
+          filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
         }
-        renderTimeoutRef.current = window.setTimeout(() => {
-          scheduleFetch('camera-move-end');
-        }, FETCH_DEBOUNCE_MS) as unknown as number;
       };
 
-      // Camera moveEnd
+      // Camera moveEnd — NO data fetching, just update occlusion
       moveEndHandler = () => {
-        if (renderTimeoutRef.current !== null) {
-          window.clearTimeout(renderTimeoutRef.current);
-          renderTimeoutRef.current = null;
+        if (globalDotCollectionRef.current && viewerRef.current) {
+          const height = viewerRef.current.camera.positionCartographic.height;
+          cameraHeightRef.current = height;
+          filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
         }
-        scheduleFetch('camera-move-end');
       };
 
       viewer.camera.percentageChanged = 0.05;
       viewer.camera.changed.addEventListener(changedHandler);
       viewer.camera.moveEnd.addEventListener(moveEndHandler);
-
-      scheduleFetch('initial-viewer-ready');
 
       // Click handler
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -572,6 +309,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (isGlobalDot(pickedObject)) {
           const pos = getGlobalDotPosition(pickedObject);
           if (pos) {
+            // Look up the airport from resident cache
+            const airportId = pickedObject.id.airportId;
+            const allObjects = getAllObjects();
+            const airport = allObjects.find(a => a.id === airportId);
+            if (airport) {
+              onObjectSelectRef.current(airport);
+            }
             viewer!.camera.flyTo({
               destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude, 500000),
               duration: 1.0,
@@ -592,25 +336,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           return;
         }
 
-        if (entity.properties && entity.properties.isCluster?.getValue()) {
-          const camera = viewer!.camera;
-          const pos = entity.position?.getValue(viewer!.clock.currentTime);
-          if (pos) {
-            const mag = Cartesian3.magnitude(pos);
-            const targetHeight = camera.positionCartographic.height * 0.4;
-            camera.flyTo({
-              destination: Cartesian3.multiplyByScalar(
-                Cartesian3.normalize(pos, new Cartesian3()),
-                mag + targetHeight,
-                new Cartesian3(),
-              ),
-              duration: 1.0,
-              complete: () => scheduleFetch('camera-move-end'),
-            });
-          }
-          return;
-        }
-
         if (entity.properties && entity.properties.rawData) {
           onObjectSelectRef.current(entity.properties.rawData.getValue());
         }
@@ -623,7 +348,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return () => {
       if (typeof fpsInterval !== 'undefined') clearInterval(fpsInterval);
       if (typeof fpsPostRender !== 'undefined') fpsPostRender();
-      if (typeof tierPostRender !== 'undefined') tierPostRender();
       if (typeof changedHandler !== 'undefined' && viewer) {
         viewer.camera.changed.removeEventListener(changedHandler);
       }
@@ -633,71 +357,60 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (viewer && !viewer.isDestroyed()) {
         viewer.destroy();
         viewerRef.current = null;
-      }
-      if (renderTimeoutRef.current !== null) {
-        window.clearTimeout(renderTimeoutRef.current);
+        viewerReadyRef.current = false;
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      abortTileLoader();
-      destroyGlobalDots();
     };
   }, []);
 
+  // Layer ON/OFF handling
   useEffect(() => {
+    console.log('[AVIATION] toggle useEffect fired, aviationLayerActive =', aviationLayerActive, 'viewerReady =', viewerReadyRef.current, 'viewerRef =', !!viewerRef.current);
     if (!aviationLayerActive) {
-      clearAviationCache();
-      clearTileCache();
-      clearPersistentTileCache();
-      clearObjectStore();
-      clearInFlightTiles();
-      abortTileLoader();
-      destroyGlobalDots();
-      clearEntities();
-      renderedEntityIdsRef.current.clear();
-      zoomTierRef.current = 0;
-      cameraHeightRef.current = 20000000;
-      itemsCacheRef.current = [];
-      lastRequestKeyRef.current = '';
-      lastRenderKeyRef.current = '';
-      fetchGenerationRef.current = 0;
-      onStatsChangeRef.current?.({
-        loaded: 0, visible: 0, clustersActive: false,
-        renderMode: 'SMART_LOD_GLOBAL', fps: fpsRef.current,
-      });
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      console.log('[AVIATION] toggle disabled');
+      // Layer OFF: hide dots but KEEP resident cache in memory
+      if (globalDotCollectionRef.current) {
+        globalDotCollectionRef.current.removeAll();
+        dotsCreatedRef.current = false;
       }
+      emitStats('RESIDENT_GLOBAL', residentCacheActiveRef.current ? 'CACHE_READY (HIDDEN)' : 'IDLE');
     } else if (viewerRef.current) {
-      scheduleFetch('layer-on');
+      console.log('[AVIATION] toggle enabled, viewer exists');
+      // Layer ON: start preload if not already cached, otherwise reuse cache
+      if (residentCacheActiveRef.current && getAllObjects().length > 0) {
+        console.log('[AVIATION] reusing cache, objects:', getAllObjects().length);
+        // Reuse existing cache — recreate dots from cached objects
+        if (!dotsCreatedRef.current) {
+          let collection = globalDotCollectionRef.current;
+          if (!collection) {
+            collection = createGlobalDotCollection(viewerRef.current.scene);
+            globalDotCollectionRef.current = collection;
+          }
+          const allObjects = getAllObjects();
+          addAllDotsToCollection(collection, allObjects);
+          dotsCreatedRef.current = true;
+          console.log('[AVIATION] rendering dots count', allObjects.length);
+        }
+        emitStats('RESIDENT_GLOBAL', 'CACHE_READY');
+        applyFiltersToDots();
+      } else if (!preloadingRef.current) {
+        console.log('[AVIATION] starting resident preload');
+        startResidentPreload();
+      } else {
+        console.log('[AVIATION] preload already in progress');
+      }
+    } else {
+      console.log('[AVIATION] toggle enabled but viewer not ready yet');
     }
   }, [aviationLayerActive]);
 
+  // Filter change handling — only update visibility, NO data fetching
   useEffect(() => {
-    if (!aviationLayerActive || !aviationDataSourceRef.current) return;
-
-    smartModeRef.current = isSmartLODMode(aviationFilters);
-    lastRequestKeyRef.current = '';
-    lastRenderKeyRef.current = '';
-
-    if (viewerRef.current) {
-      const height = viewerRef.current.camera.positionCartographic.height;
-      zoomTierRef.current = getZoomTierFromHeight(height, zoomTierRef.current);
-      scheduleFetch('filter-change');
-    }
+    if (!aviationLayerActive || !residentCacheActiveRef.current) return;
+    applyFiltersToDots();
   }, [aviationFilters, aviationLayerActive]);
-
-  // Sync renderedEntityIdsRef before incremental render
-  useEffect(() => {
-    if (!aviationDataSourceRef.current) return;
-    const entities = aviationDataSourceRef.current.entities.values;
-    const ids = new Set<string>();
-    for (let i = 0; i < entities.length; i++) {
-      if (entities[i]) ids.add(entities[i].id);
-    }
-    renderedEntityIdsRef.current = ids;
-  });
 
   if (error) {
     return (

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchLayerStatus } from '../lib/api';
-import { LayerStatusResponse } from '@god-eyes/contracts';
-import { AviationFilters, AVIATION_CATEGORIES, isSmartLODMode, MODE_LABELS } from '../lib/aviationCategories';
+import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
 
 interface AviationStats {
   loaded: number;
@@ -9,6 +8,7 @@ interface AviationStats {
   clustersActive: boolean;
   renderMode: string;
   fps: number;
+  preloadStatus?: string;
 }
 
 interface LayerPanelProps {
@@ -30,17 +30,6 @@ const FILTER_KEYS: (keyof AviationFilters)[] = [
   'closed',
 ];
 
-const FILTER_CATEGORY_MAP: Record<keyof AviationFilters, keyof typeof AVIATION_CATEGORIES> = {
-  major: 'major',
-  regional: 'regional',
-  local: 'local',
-  heliport: 'heliport',
-  seaplane: 'seaplane',
-  balloonport: 'balloonport',
-  unknown: 'unknown',
-  closed: 'closed',
-};
-
 const LayerPanel: React.FC<LayerPanelProps> = ({
   aviationLayerActive,
   setAviationLayerActive,
@@ -49,7 +38,6 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   onFiltersChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [aviationStatus, setAviationStatus] = useState<LayerStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -57,8 +45,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     async function loadStatus() {
       setLoading(true);
       try {
-        const status = await fetchLayerStatus('layer_01_aviation');
-        setAviationStatus(status);
+        await fetchLayerStatus('layer_01_aviation');
         setError(null);
       } catch (err) {
         console.error('Failed to fetch aviation status:', err);
@@ -74,17 +61,6 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     const next = { ...aviationFilters, [key]: !aviationFilters[key] };
     onFiltersChange(next);
   };
-
-  const modeText = (renderMode: string): string => {
-    const parts = renderMode.split('_');
-    if (parts.length === 3 && (parts[0] === 'SMART' || parts[0] === 'EXPLICIT')) {
-      return `${parts[0]} ${parts[2]}`;
-    }
-    return renderMode;
-  };
-
-  const currentMode = aviationFilters ? (isSmartLODMode(aviationFilters) ? 'smart' : 'explicit') : 'smart';
-  const modeName = MODE_LABELS[currentMode] || currentMode;
 
   return (
     <aside className={`shell-panel shell-panel-left shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -120,14 +96,16 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                 <span style={{ opacity: 0.7 }}>SYNCING...</span>
               ) : aviationLayerActive ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                  <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE — {modeName}</span>
+                  <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE — RESIDENT GLOBAL</span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', opacity: 0.8 }}>
-                    <span>LOADED: {aviationStats.loaded} / {aviationStatus?.objectCounts.airports.toLocaleString() || 0}</span>
-                    <span>VISIBLE: {aviationStats.visible}</span>
+                    <span>LOADED: {aviationStats.loaded.toLocaleString()}</span>
+                    <span>VISIBLE: {aviationStats.visible.toLocaleString()}</span>
                   </div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '2px' }}>
-                    MODE: {modeText(aviationStats.renderMode)}
-                  </div>
+                  {aviationStats.preloadStatus && (
+                    <div style={{ fontSize: '0.6rem', opacity: 0.7, marginTop: '2px' }}>
+                      STATUS: {aviationStats.preloadStatus}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <span style={{ opacity: 0.7 }}>READY — CLICK TO ENABLE</span>
@@ -140,8 +118,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               <div className="filter-section">
                 <div className="filter-section-header">MARKER FILTERS</div>
                 {FILTER_KEYS.map((key) => {
-                  const catKey = FILTER_CATEGORY_MAP[key];
-                  const info = AVIATION_CATEGORIES[catKey];
+                  const info = AVIATION_CATEGORIES[key];
                   const active = aviationFilters[key];
                   return (
                     <div
@@ -165,8 +142,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               <div className="legend-section">
                 <div className="legend-section-header">MARKER LEGEND</div>
                 {FILTER_KEYS.map((key) => {
-                  const catKey = FILTER_CATEGORY_MAP[key];
-                  const info = AVIATION_CATEGORIES[catKey];
+                  const info = AVIATION_CATEGORIES[key];
                   return (
                     <div key={key} className="legend-item">
                       <span
