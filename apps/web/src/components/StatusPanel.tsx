@@ -6,6 +6,10 @@ interface AviationStats {
   clustersActive: boolean;
   renderMode: string;
   fps: number;
+  cacheEntries?: number;
+  cacheHits?: number;
+  cacheMisses?: number;
+  inflight?: number;
 }
 
 interface StatusPanelProps {
@@ -71,6 +75,15 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
               {aviationLayerActive ? `L1 [${aviationStats.loaded}]` : 'AWAITING L1'}
             </div>
           </div>
+
+          {aviationLayerActive && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Cache</div>
+              <div className="detail-value" style={{ opacity: 0.65, fontSize: '0.75rem' }}>
+                E:{aviationStats.cacheEntries ?? '-'} H:{aviationStats.cacheHits ?? '-'} M:{aviationStats.cacheMisses ?? '-'} F:{aviationStats.inflight ?? '-'}
+              </div>
+            </div>
+          )}
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
              <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.3 : 0.1 }}></div>

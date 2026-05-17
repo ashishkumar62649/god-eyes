@@ -19,6 +19,10 @@ interface AviationStats {
   clustersActive: boolean;
   renderMode: string;
   fps: number;
+  cacheEntries?: number;
+  cacheHits?: number;
+  cacheMisses?: number;
+  inflight?: number;
 }
 
 const App: React.FC = () => {
