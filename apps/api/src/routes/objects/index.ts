@@ -7,6 +7,7 @@ export * from './mapper.js';
 export * from './points.js';
 export * from './clusters.js';
 export * from './detail.js';
+export * from './density.js';
 
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { checkDatabaseStatus, query } from '../../lib/db.js';
@@ -32,6 +33,8 @@ import {
   validateCoordinates,
   validateNavaidRadius,
   validateNavaidLimit,
+  validateCellSizeDegrees,
+  validateIncludeClosed,
   getEffectiveMaxLimit,
   ParsedBBox,
   ValidationResult,
@@ -57,6 +60,7 @@ import { AirportRow } from './types.js';
 import { handlePointsMode, PointsQueryParams } from './points.js';
 import { handleClusterMode } from './clusters.js';
 import { handleAirportDetail, AirportDetailParams } from './detail.js';
+import { handleDensityMode, DensityQueryParams } from './density.js';
 
 interface ObjectsQueryParams {
   objectType: string;
@@ -70,6 +74,8 @@ interface ObjectsQueryParams {
   zoom?: string;
   fields?: string;
   coordinates?: string;
+  cellSizeDegrees?: string;
+  includeClosed?: string;
 }
 
 interface ObjectsParams {
@@ -105,6 +111,8 @@ export async function objectRoutes(fastify: FastifyInstance) {
       zoom: zoomStr,
       fields: fieldsStr,
       coordinates: coordinatesStr,
+      cellSizeDegrees: cellSizeStr,
+      includeClosed: includeClosedStr,
     } = request.query;
 
     // ---- Basic validation ----
@@ -158,7 +166,7 @@ export async function objectRoutes(fastify: FastifyInstance) {
     }
 
     // Validate mode
-    const modeValidation: ValidationResult<'points' | 'clusters'> = validateMode(modeStr);
+    const modeValidation: ValidationResult<'points' | 'clusters' | 'density'> = validateMode(modeStr);
     if (!modeValidation.valid) {
       return sendError(reply, 400, invalidModeError(modeValidation.error!, { received: modeStr }));
     }
@@ -171,22 +179,36 @@ export async function objectRoutes(fastify: FastifyInstance) {
     }
     const zoom = zoomValidation.value;
 
-    // Validate fields parameter (payload profile)
+    // Validate fields parameter (payload profile) - not used for density mode
     const fieldsValidation = validateFields(fieldsStr);
     if (!fieldsValidation.valid) {
       return sendError(reply, 400, invalidFieldsError(fieldsValidation.error!, { received: fieldsStr }));
     }
     const fields = fieldsValidation.value;
 
-    // Validate coordinates parameter (coordinate mode)
+    // Validate coordinates parameter (coordinate mode) - not used for density mode
     const coordinatesValidation = validateCoordinates(coordinatesStr);
     if (!coordinatesValidation.valid) {
       return sendError(reply, 400, invalidCoordinatesError(coordinatesValidation.error!, { received: coordinatesStr }));
     }
     const coordinates = coordinatesValidation.value;
 
-    // Clusters require bbox
-    if (mode === 'clusters' && parsedBBox === null) {
+    // Validate cellSizeDegrees for density mode
+    const cellSizeValidation = validateCellSizeDegrees(cellSizeStr);
+    if (!cellSizeValidation.valid) {
+      return sendError(reply, 400, invalidQueryError(cellSizeValidation.error!, { received: cellSizeStr }));
+    }
+    const cellSizeDegrees = cellSizeValidation.value;
+
+    // Validate includeClosed for density mode
+    const includeClosedValidation = validateIncludeClosed(includeClosedStr);
+    if (!includeClosedValidation.valid) {
+      return sendError(reply, 400, invalidQueryError(includeClosedValidation.error!, { received: includeClosedStr }));
+    }
+    const includeClosed = includeClosedValidation.value;
+
+    // Clusters and density require bbox
+    if ((mode === 'clusters' || mode === 'density') && parsedBBox === null) {
       return sendError(reply, 400, missingBBoxError({ hint: 'Use bbox=minLon,minLat,maxLon,maxLat' }));
     }
 
@@ -214,6 +236,23 @@ export async function objectRoutes(fastify: FastifyInstance) {
     if (mode === 'clusters') {
       try {
         return await handleClusterMode(parsedBBox!, zoom, limit);
+      } catch (error) {
+        return sendError(reply, 503, tablesUnavailableError());
+      }
+    }
+
+    // ---- Mode: density ----
+    if (mode === 'density') {
+      try {
+        const params: DensityQueryParams = {
+          bbox: parsedBBox!,
+          cellSizeDegrees,
+          includeClosed,
+          category,
+          limit,
+          offset,
+        };
+        return await handleDensityMode(params);
       } catch (error) {
         return sendError(reply, 503, tablesUnavailableError());
       }

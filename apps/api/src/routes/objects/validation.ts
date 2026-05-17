@@ -65,10 +65,47 @@ export function validateOffset(offsetStr: string | undefined): ValidationResult<
   return { value: parsed, valid: true, error: null };
 }
 
-export function validateMode(mode: string | undefined): ValidationResult<'points' | 'clusters'> {
+// Density mode constants
+export const DEFAULT_CELL_SIZE_DEGREES = 2.0;
+export const MIN_CELL_SIZE_DEGREES = 0.5;
+export const MAX_CELL_SIZE_DEGREES = 10.0;
+
+export function validateMode(mode: string | undefined): ValidationResult<'points' | 'clusters' | 'density'> {
   if (!mode || mode === 'points') return { value: 'points', valid: true, error: null };
   if (mode === 'clusters') return { value: 'clusters', valid: true, error: null };
-  return { value: 'points', valid: false, error: "mode must be 'points' or 'clusters'" };
+  if (mode === 'density') return { value: 'density', valid: true, error: null };
+  return { value: 'points', valid: false, error: "mode must be 'points', 'clusters', or 'density'" };
+}
+
+export function validateCellSizeDegrees(cellSizeStr: string | undefined): ValidationResult<number> {
+  if (!cellSizeStr) {
+    return { value: DEFAULT_CELL_SIZE_DEGREES, valid: true, error: null };
+  }
+
+  const parsed = parseFloat(cellSizeStr);
+  if (isNaN(parsed) || parsed <= 0) {
+    return { value: parsed, valid: false, error: 'cellSizeDegrees must be a positive number' };
+  }
+  if (parsed < MIN_CELL_SIZE_DEGREES) {
+    return { value: MIN_CELL_SIZE_DEGREES, valid: true, error: null }; // clamp to min
+  }
+  if (parsed > MAX_CELL_SIZE_DEGREES) {
+    return { value: MAX_CELL_SIZE_DEGREES, valid: true, error: null }; // clamp to max
+  }
+  return { value: parsed, valid: true, error: null };
+}
+
+export function validateIncludeClosed(includeClosedStr: string | undefined): ValidationResult<boolean> {
+  if (!includeClosedStr) {
+    return { value: false, valid: true, error: null }; // default: exclude closed
+  }
+  if (includeClosedStr === 'true' || includeClosedStr === '1') {
+    return { value: true, valid: true, error: null };
+  }
+  if (includeClosedStr === 'false' || includeClosedStr === '0') {
+    return { value: false, valid: true, error: null };
+  }
+  return { value: false, valid: false, error: "includeClosed must be 'true' or 'false'" };
 }
 
 export function validateZoom(zoomStr: string | undefined): ValidationResult<number | null> {
