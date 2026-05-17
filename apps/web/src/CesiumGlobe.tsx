@@ -11,7 +11,7 @@ import {
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
-import { fetchAviationLayerObjects } from './lib/api';
+import { fetchAviationCategoryBatch } from './lib/api';
 import { getViewportFromCamera } from './lib/airportViewport';
 import { isPositionVisible } from './lib/cesiumVisibility';
 import { renderAviationObjects } from './lib/aviationLayerRenderer';
@@ -19,12 +19,12 @@ import { flyToSearchResult } from './lib/globeCamera';
 import {
   AviationFilters,
   getZoomTierFromHeight,
-  getFetchCategory,
+  getBackendCategoriesToFetch,
   isSmartLODMode,
   ZOOM_TIER_LABELS,
   MODE_LABELS,
 } from './lib/aviationCategories';
-import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
+import type { AirportObject } from '@god-eyes/contracts';
 
 interface AviationStats {
   loaded: number;
@@ -44,6 +44,32 @@ interface CesiumGlobeProps {
     timestamp: number;
   } | null;
   aviationFilters: AviationFilters;
+}
+
+function computeRequestKey(
+  active: boolean,
+  tier: number,
+  bbox: string,
+  categories: string[],
+): string {
+  const catKey = [...categories].sort().join(',');
+  const parts = bbox.split(',').map((s) => {
+    const n = parseFloat(s);
+    return isNaN(n) ? s : Math.round(n * 10) / 10;
+  }).join(',');
+  return `${active}:${tier}:${catKey}:${parts}`;
+}
+
+function computeRenderKey(
+  active: boolean,
+  tier: number,
+  filters: AviationFilters,
+  itemCount: number,
+): string {
+  const f = filters
+    ? `${filters.major}:${filters.regional}:${filters.local}:${filters.heliport}:${filters.seaplane}:${filters.balloonport}:${filters.unknown}:${filters.closed}`
+    : 'null';
+  return `${active}:${tier}:${f}:${itemCount}`;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -69,8 +95,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const renderTimeoutRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const itemsCacheRef = useRef<(AirportObject | AirportClusterObject)[]>([]);
+  const itemsCacheRef = useRef<AirportObject[]>([]);
   const fpsRef = useRef<number>(0);
+
+  const lastRequestKeyRef = useRef('');
+  const lastRenderKeyRef = useRef('');
 
   useEffect(() => {
     onObjectSelectRef.current = onObjectSelect;
@@ -100,19 +129,29 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }
 
-  function renderItems(items: any[], filters: AviationFilters | null) {
+  function renderCurrent() {
+    if (!aviationDataSourceRef.current) return;
+    const active = aviationLayerActiveRef.current;
+    if (!active) return;
+
+    const filters = aviationFiltersRef.current;
+    const tier = zoomTierRef.current;
+    const items = itemsCacheRef.current;
+    const rk = computeRenderKey(active, tier, filters, items.length);
+    if (rk === lastRenderKeyRef.current) return;
+    lastRenderKeyRef.current = rk;
+
     clearEntities();
 
     const height = cameraHeightRef.current;
     const { visibleCount } = renderAviationObjects(
-      aviationDataSourceRef.current!,
+      aviationDataSourceRef.current,
       items,
       'points',
       filters,
       height,
     );
 
-    const tier = zoomTierRef.current;
     const isSmart = smartModeRef.current;
     const tierLabel = ZOOM_TIER_LABELS[tier] || '?';
     const modeLabel = MODE_LABELS[isSmart ? 'smart' : 'explicit'];
@@ -124,6 +163,52 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       renderMode: `${modeLabel}_${tierLabel}`,
       fps: fpsRef.current,
     });
+  }
+
+  async function fetchIfNeeded() {
+    if (!aviationDataSourceRef.current || !viewerRef.current) return;
+
+    const active = aviationLayerActiveRef.current;
+    if (!active) return;
+
+    const currentViewer = viewerRef.current;
+    const camera = currentViewer.camera;
+    const viewport = getViewportFromCamera(camera);
+    const tier = zoomTierRef.current;
+    const filters = aviationFiltersRef.current;
+
+    smartModeRef.current = isSmartLODMode(filters);
+    const backendCats = getBackendCategoriesToFetch(tier, filters);
+
+    const rk = computeRequestKey(active, tier, viewport.bbox, backendCats);
+    if (rk === lastRequestKeyRef.current) {
+      renderCurrent();
+      return;
+    }
+    lastRequestKeyRef.current = rk;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    try {
+      const merged = await fetchAviationCategoryBatch(
+        viewport.bbox,
+        'points',
+        backendCats,
+        1000,
+        signal,
+        viewport.zoom,
+      );
+
+      itemsCacheRef.current = merged;
+      renderCurrent();
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      console.error('Failed to fetch aviation data:', err);
+    }
   }
 
   useEffect(() => {
@@ -142,6 +227,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     let fpsInterval: ReturnType<typeof setInterval> | undefined;
     let fpsPostRender: (() => void) | undefined;
     let cameraPostRender: (() => void) | undefined;
+    let moveEndHandler: (() => void) | undefined;
+    let changedHandler: (() => void) | undefined;
 
     try {
       viewer = new Viewer(containerRef.current, {
@@ -173,6 +260,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
+      // FPS tracking (separate from render/fetch logic)
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
       fpsPostRender = viewer.scene.postRender.addEventListener(() => {
@@ -188,6 +276,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         fpsLastUpdate = now;
       }, 1000);
 
+      // Tier change detection (also via postRender)
       let lastTier = 0;
       cameraPostRender = viewer.scene.postRender.addEventListener(() => {
         const height = viewer!.camera.positionCartographic.height;
@@ -196,73 +285,35 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (newTier !== lastTier) {
           lastTier = newTier;
           zoomTierRef.current = newTier;
-          if (smartModeRef.current) {
-            triggerRefresh();
-          } else {
-            refreshEntities();
-          }
+          fetchIfNeeded();
+        } else {
+          // Always update height but don't trigger anything on same tier
         }
       });
 
-      const refreshEntities = () => {
-        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
-        const items = itemsCacheRef.current;
-        if (items.length === 0) return;
-        renderItems(items, aviationFiltersRef.current);
-      };
-
-      const fetchAndRenderData = async () => {
-        if (!aviationLayerActiveRef.current || !aviationDataSourceRef.current || !viewerRef.current) return;
-
-        const currentViewer = viewerRef.current;
-        const camera = currentViewer.camera;
-        const viewport = getViewportFromCamera(camera);
-        const tier = zoomTierRef.current;
-        const filters = aviationFiltersRef.current;
-
-        smartModeRef.current = isSmartLODMode(filters);
-        const isSmart = smartModeRef.current;
-
-        const fetchCat = isSmart ? getFetchCategory(tier, filters) : undefined;
-
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-        abortControllerRef.current = new AbortController();
-
-        try {
-          const response = await fetchAviationLayerObjects(
-            'points',
-            viewport.bbox,
-            viewport.zoom,
-            1000,
-            abortControllerRef.current.signal,
-            undefined,
-            fetchCat,
-          );
-
-          itemsCacheRef.current = response.items;
-          renderItems(response.items, filters);
-        } catch (err: any) {
-          if (err.name === 'AbortError') return;
-          console.error('Failed to fetch/render aviation data:', err);
-        }
-      };
-
-      viewer.camera.percentageChanged = 0.01;
-
-      const triggerRefresh = () => {
+      // Camera changed: debounced
+      changedHandler = () => {
         if (renderTimeoutRef.current !== null) {
           window.clearTimeout(renderTimeoutRef.current);
         }
         renderTimeoutRef.current = window.setTimeout(() => {
-          fetchAndRenderData();
+          fetchIfNeeded();
         }, 200) as unknown as number;
       };
 
-      viewer.camera.changed.addEventListener(triggerRefresh);
-      viewer.camera.moveEnd.addEventListener(fetchAndRenderData);
+      // Camera moveEnd: immediate check
+      moveEndHandler = () => {
+        fetchIfNeeded();
+      };
 
+      viewer.camera.percentageChanged = 0.01;
+      viewer.camera.changed.addEventListener(changedHandler);
+      viewer.camera.moveEnd.addEventListener(moveEndHandler);
+
+      // Initial fetch
+      fetchIfNeeded();
+
+      // Click handler
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       handler.setInputAction((click: { position: Cartesian2 }) => {
         const pickedObject = viewer!.scene.pick(click.position);
@@ -293,10 +344,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               destination: Cartesian3.multiplyByScalar(
                 Cartesian3.normalize(pos, new Cartesian3()),
                 mag + targetHeight,
-                new Cartesian3()
+                new Cartesian3(),
               ),
               duration: 1.0,
-              complete: () => fetchAndRenderData(),
+              complete: () => fetchIfNeeded(),
             });
           }
           return;
@@ -315,6 +366,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (typeof fpsInterval !== 'undefined') clearInterval(fpsInterval);
       if (typeof fpsPostRender !== 'undefined') fpsPostRender();
       if (typeof cameraPostRender !== 'undefined') cameraPostRender();
+      if (typeof changedHandler !== 'undefined' && viewer) {
+        viewer.camera.changed.removeEventListener(changedHandler);
+      }
+      if (typeof moveEndHandler !== 'undefined' && viewer) {
+        viewer.camera.moveEnd.removeEventListener(moveEndHandler);
+      }
       if (viewer && !viewer.isDestroyed()) {
         viewer.destroy();
         viewerRef.current = null;
@@ -332,6 +389,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (!aviationLayerActive) {
       clearEntities();
       zoomTierRef.current = 0;
+      cameraHeightRef.current = 20000000;
+      itemsCacheRef.current = [];
+      lastRequestKeyRef.current = '';
+      lastRenderKeyRef.current = '';
       onStatsChangeRef.current?.({
         loaded: 0, visible: 0, clustersActive: false,
         renderMode: 'SMART_LOD_GLOBAL', fps: fpsRef.current,
@@ -339,25 +400,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-    } else {
-      if (viewerRef.current) {
-        viewerRef.current.camera.changed.raiseEvent();
-      }
+    } else if (viewerRef.current) {
+      fetchIfNeeded();
     }
   }, [aviationLayerActive]);
 
   useEffect(() => {
     if (!aviationLayerActive || !aviationDataSourceRef.current) return;
-    const items = itemsCacheRef.current;
-    if (items.length === 0) return;
 
-    zoomTierRef.current = viewerRef.current
-      ? getZoomTierFromHeight(viewerRef.current.camera.positionCartographic.height, zoomTierRef.current)
-      : 0;
     smartModeRef.current = isSmartLODMode(aviationFilters);
 
+    // Invalidate render key so re-render happens with new filter
+    lastRenderKeyRef.current = '';
+
     if (viewerRef.current) {
-      viewerRef.current.camera.changed.raiseEvent();
+      const height = viewerRef.current.camera.positionCartographic.height;
+      zoomTierRef.current = getZoomTierFromHeight(height, zoomTierRef.current);
+      fetchIfNeeded();
     }
   }, [aviationFilters, aviationLayerActive]);
 

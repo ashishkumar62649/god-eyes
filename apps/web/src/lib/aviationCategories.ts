@@ -140,14 +140,67 @@ export function isSmartLODMode(filters: AviationFilters): boolean {
   return OPERATIONAL_CATEGORIES.every((k) => filters[k]);
 }
 
-// Get the single category to pass to API at global zoom in smart mode
-export function getFetchCategory(
+// Map display category filter keys to backend API category values
+export const DISPLAY_TO_BACKEND_MAP: Record<keyof AviationFilters, string> = {
+  major: API_CATEGORY_LARGE,
+  regional: API_CATEGORY_REGIONAL,
+  local: API_CATEGORY_SMALL,
+  heliport: API_CATEGORY_HELIPORT,
+  seaplane: API_CATEGORY_WATER,
+  balloonport: API_CATEGORY_BALLOONPORT,
+  unknown: API_CATEGORY_UNKNOWN,
+  closed: API_CATEGORY_CLOSED,
+};
+
+// Get the list of backend category values to fetch for the given mode/tier/filters
+// API supports only ONE category per request, so each entry must be fetched separately
+export function getBackendCategoriesToFetch(
   tier: number,
   filters: AviationFilters
-): string | undefined {
-  if (!isSmartLODMode(filters)) return undefined;
-  if (tier === 0) return API_CATEGORY_LARGE;
-  return undefined;
+): string[] {
+  const smartMode = isSmartLODMode(filters);
+
+  if (smartMode) {
+    switch (tier) {
+      case 0:
+        return [API_CATEGORY_LARGE];
+      case 1:
+        return [API_CATEGORY_LARGE, API_CATEGORY_REGIONAL];
+      case 2:
+        return [
+          API_CATEGORY_LARGE,
+          API_CATEGORY_REGIONAL,
+          API_CATEGORY_SMALL,
+          API_CATEGORY_HELIPORT,
+          API_CATEGORY_WATER,
+          API_CATEGORY_BALLOONPORT,
+        ];
+      case 3: {
+        const cats = [
+          API_CATEGORY_LARGE,
+          API_CATEGORY_REGIONAL,
+          API_CATEGORY_SMALL,
+          API_CATEGORY_HELIPORT,
+          API_CATEGORY_WATER,
+          API_CATEGORY_BALLOONPORT,
+          API_CATEGORY_UNKNOWN,
+        ];
+        if (filters.closed) cats.push(API_CATEGORY_CLOSED);
+        return cats;
+      }
+      default:
+        return [API_CATEGORY_LARGE];
+    }
+  }
+
+  // Explicit filter mode: return backend categories for each enabled display category
+  const cats: string[] = [];
+  for (const [displayCat, backendCat] of Object.entries(DISPLAY_TO_BACKEND_MAP)) {
+    if (filters[displayCat as keyof AviationFilters]) {
+      cats.push(backendCat);
+    }
+  }
+  return cats;
 }
 
 // Map API airport data to a display category

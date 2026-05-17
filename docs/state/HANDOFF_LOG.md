@@ -2166,3 +2166,26 @@ All agents must append to this file after completing work.
 - Known issues: Explicit Filter mode at global zoom cannot show globally-selected categories via API (single-category API now). Client-side filtering of what's in the 1000-item viewport sample is the accepted tradeoff per user directive.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified; API files reverted to pre-change state)
 - Review status: pending (not yet pushed or reviewed)
+
+### 2026-05-18T07:50:00Z OpenCode Web 1 — WO-029D-FE category request/filter correction: multi-request per-category fetch, stable key, no flicker
+
+- Work order: WO-029D-FE category request/filter correction
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-18T07:30:00Z
+- End time UTC: 2026-05-18T07:50:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Fixed frontend aviation category filtering to use separate API requests per backend category instead of sending multiple categories in one request (which returned 400). Added `fetchAviationCategoryBatch` helper that fires parallel requests per category and merges/dedupes results by stable id. Smart LOD now correctly requests specific backend categories per tier (tier 0: major only, tier 1: major+regional, tier 2: 6 operational cats, tier 3: all 7 + optional closed). Explicit Filter mode requests exactly the selected backend categories globally. Implemented stable request key (bbox rounded to 0.1°, tier, sorted category list, active state) to prevent re-fetch on camera movement when nothing changed. Implemented render guard key to prevent expensive clear+re-add when filters/tier/data unchanged — eliminating marker flicker. FPS counter separated from render logic. `camera.changed` and `camera.moveEnd` handlers consolidated. PostRender tier change handler uses `fetchIfNeeded` which respects request key. Backend API files not touched.
+- Files modified:
+  - apps/web/src/lib/aviationCategories.ts (getBackendCategoriesToFetch returns string[], DISPLAY_TO_BACKEND_MAP for explicit mode)
+  - apps/web/src/lib/api.ts (fetchAviationCategoryBatch: parallel per-category requests, merge by id, dedupe)
+  - apps/web/src/CesiumGlobe.tsx (requestKeyRef, renderKeyRef, fetchIfNeeded, renderCurrent, stable key comparison, render guard, multi-category fetch via batch)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check
+- Build result: 56 modules, 181.75 kB, zero TypeScript errors, production build PASS
+- API test result: 89/89 tests PASS
+- Known issues: Unknown display category currently has 0 API rows. Explicit Filter mode at global zoom fetches per-category (now correctly makes separate requests), but per-request 1000 limit still applies.
+- Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
+- Review status: pending (not yet pushed or reviewed)

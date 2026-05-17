@@ -69,6 +69,42 @@ export async function fetchLayerStatus(layerId: string): Promise<LayerStatusResp
   return response.json();
 }
 
+// Fetch multiple backend categories in parallel (one request per category).
+// API supports only ONE category per request. Merges + dedupes by stable id.
+export async function fetchAviationCategoryBatch(
+  bbox: string,
+  mode: 'points' | 'clusters',
+  categories: string[],
+  limit: number = 1000,
+  abortSignal?: AbortSignal,
+  zoom?: number,
+): Promise<AirportObject[]> {
+  if (categories.length === 0) return [];
+
+  const seen = new Set<string>();
+  const merged: AirportObject[] = [];
+
+  await Promise.all(categories.map(async (cat) => {
+    if (abortSignal?.aborted) return;
+    try {
+      const response = await fetchAviationLayerObjects(
+        mode, bbox, zoom, limit, abortSignal, undefined, cat,
+      );
+      for (const item of response.items) {
+        if (item.objectType !== 'airport') continue;
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        merged.push(item);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      throw err;
+    }
+  }));
+
+  return merged;
+}
+
 export async function fetchAirportDetail(
   objectId: string,
   abortSignal?: AbortSignal
