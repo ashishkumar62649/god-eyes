@@ -49,6 +49,7 @@ export async function fetchAviationLayerObjects(
   search?: string,
   category?: string,
   fields?: string,
+  offset?: number,
 ): Promise<LayerObjectsListResponse> {
   const url = new URL(`${API_BASE_URL}/api/layers/layer_01_aviation/objects`);
   url.searchParams.append('objectType', 'airport');
@@ -68,6 +69,9 @@ export async function fetchAviationLayerObjects(
     url.searchParams.append('limit', limit.toString());
   } else if (mode === 'clusters' && zoom !== undefined) {
     url.searchParams.append('zoom', zoom.toString());
+  }
+  if (offset !== undefined && offset > 0) {
+    url.searchParams.append('offset', offset.toString());
   }
 
   const response = await fetch(url.toString(), { signal: abortSignal });
@@ -148,6 +152,26 @@ export async function fetchLayerStatus(layerId: string): Promise<LayerStatusResp
   }
   
   return response.json();
+}
+
+export async function fetchAviationPreload(
+  category: string,
+  abortSignal?: AbortSignal,
+): Promise<LayerObjectsListResponse> {
+  const url = new URL(`${API_BASE_URL}/api/layers/layer_01_aviation/objects`);
+  url.searchParams.append('objectType', 'airport');
+  url.searchParams.append('mode', 'preload');
+  url.searchParams.append('category', category);
+
+  console.log('[AVIATION] fetchAviationPreload URL:', url.toString());
+
+  const response = await fetch(url.toString(), { signal: abortSignal });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Failed to preload aviation category: ${response.status}`);
+  }
+
+  return await response.json();
 }
 
 export async function fetchAirportDetail(

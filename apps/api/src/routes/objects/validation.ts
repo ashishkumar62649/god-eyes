@@ -1,4 +1,4 @@
-import { VALID_CATEGORIES, ValidCategory, MAX_LIST_LIMIT, MAX_VIEWPORT_LIMIT, DEFAULT_LIMIT } from './constants.js';
+import { VALID_CATEGORIES, ValidCategory, MAX_LIST_LIMIT, MAX_VIEWPORT_LIMIT, MAX_PRELOAD_LIMIT, DEFAULT_LIMIT } from './constants.js';
 import { PayloadProfiles, PayloadProfile, CoordinateModes, CoordinateMode } from '@god-eyes/contracts';
 
 // Bounding box parsed from string
@@ -70,11 +70,12 @@ export const DEFAULT_CELL_SIZE_DEGREES = 2.0;
 export const MIN_CELL_SIZE_DEGREES = 0.5;
 export const MAX_CELL_SIZE_DEGREES = 10.0;
 
-export function validateMode(mode: string | undefined): ValidationResult<'points' | 'clusters' | 'density'> {
+export function validateMode(mode: string | undefined): ValidationResult<'points' | 'clusters' | 'density' | 'preload'> {
   if (!mode || mode === 'points') return { value: 'points', valid: true, error: null };
   if (mode === 'clusters') return { value: 'clusters', valid: true, error: null };
   if (mode === 'density') return { value: 'density', valid: true, error: null };
-  return { value: 'points', valid: false, error: "mode must be 'points', 'clusters', or 'density'" };
+  if (mode === 'preload') return { value: 'preload', valid: true, error: null };
+  return { value: 'points', valid: false, error: "mode must be 'points', 'clusters', 'density', or 'preload'" };
 }
 
 export function validateCellSizeDegrees(cellSizeStr: string | undefined): ValidationResult<number> {
@@ -183,6 +184,21 @@ export function validateNavaidLimit(limitStr: string | undefined): ValidationRes
   }
   if (parsed > MAX_NAVAID_LIMIT) {
     return { value: MAX_NAVAID_LIMIT, valid: true, error: null }; // clamp to max
+  }
+  return { value: parsed, valid: true, error: null };
+}
+
+export function validatePreloadLimit(limitStr: string | undefined): ValidationResult<number> {
+  if (limitStr === undefined) {
+    return { value: MAX_PRELOAD_LIMIT, valid: true, error: null };
+  }
+
+  const parsed = parseInt(limitStr, 10);
+  if (isNaN(parsed) || parsed < 1) {
+    return { value: parsed, valid: false, error: 'limit must be a positive integer for preload mode' };
+  }
+  if (parsed > MAX_PRELOAD_LIMIT) {
+    return { value: MAX_PRELOAD_LIMIT, valid: true, error: null }; // clamp to max
   }
   return { value: parsed, valid: true, error: null };
 }

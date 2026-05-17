@@ -6,6 +6,12 @@ interface AviationStats {
   clustersActive: boolean;
   renderMode: string;
   fps: number;
+  cacheEntries?: number;
+  cacheHits?: number;
+  cacheMisses?: number;
+  inflight?: number;
+  preloadStatus?: string;
+  categoryCounts?: Record<string, number>;
 }
 
 interface StatusPanelProps {
@@ -15,14 +21,6 @@ interface StatusPanelProps {
 
 const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const renderModeLabel = (mode: string): string => {
-    const parts = mode.split('_');
-    if (parts.length === 3 && (parts[0] === 'SMART' || parts[0] === 'EXPLICIT')) {
-      return `${parts[0]} ${parts[2]}`;
-    }
-    return mode;
-  };
 
   return (
     <footer className={`shell-panel shell-footer shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -51,9 +49,18 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Render Mode</div>
             <div className="detail-value" style={{ color: aviationLayerActive ? 'var(--shell-accent)' : 'inherit' }}>
-              {aviationLayerActive ? renderModeLabel(aviationStats.renderMode) : 'IDLE'}
+              {aviationLayerActive ? aviationStats.renderMode : 'IDLE'}
             </div>
           </div>
+
+          {aviationLayerActive && aviationStats.preloadStatus && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Preload</div>
+              <div className="detail-value" style={{ color: aviationStats.preloadStatus === 'CACHE_READY' ? '#00e676' : '#ffab00', fontWeight: 600 }}>
+                {aviationStats.preloadStatus}
+              </div>
+            </div>
+          )}
           
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">FPS</div>
@@ -69,6 +76,13 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
             <div className="detail-label">Data Stream</div>
             <div className="detail-value" style={{ opacity: 0.8 }}>
               {aviationLayerActive ? `L1 [${aviationStats.loaded}]` : 'AWAITING L1'}
+            </div>
+          </div>
+
+          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+            <div className="detail-label">Visible</div>
+            <div className="detail-value" style={{ opacity: 0.8 }}>
+              {aviationLayerActive ? aviationStats.visible : '--'}
             </div>
           </div>
 

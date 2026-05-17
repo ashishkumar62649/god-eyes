@@ -597,6 +597,149 @@
           ]
         }
       }
+    },
+    {
+      "name": "Aviation Preload — International Airports (WO-030A)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=international_or_major_airport",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "international_or_major_airport" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Regional Airports",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=regional_or_domestic_airport",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "regional_or_domestic_airport" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Small Airfields",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=small_airfield",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "small_airfield" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Heliports",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=heliport",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "heliport" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Water Landing Sites",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=water_landing_site",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "water_landing_site" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Balloonports",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=balloonport",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "balloonport" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Closed Airports",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=closed_or_abandoned",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "closed_or_abandoned" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Invalid Category (Error Test)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload&category=invalid_category",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" },
+            { "key": "category", "value": "invalid_category" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Aviation Preload — Missing Category (Error Test)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/layers/layer_01_aviation/objects?objectType=airport&mode=preload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "layers", "layer_01_aviation", "objects"],
+          "query": [
+            { "key": "objectType", "value": "airport" },
+            { "key": "mode", "value": "preload" }
+          ]
+        }
+      }
     }
   ]
 }

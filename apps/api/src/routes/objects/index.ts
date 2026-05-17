@@ -8,6 +8,7 @@ export * from './points.js';
 export * from './clusters.js';
 export * from './detail.js';
 export * from './density.js';
+export * from './preload.js';
 
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { checkDatabaseStatus, query } from '../../lib/db.js';
@@ -20,6 +21,7 @@ import {
 import {
   SUPPORTED_LAYER,
   SUPPORTED_OBJECT_TYPE,
+  VALID_CATEGORIES,
 } from './constants.js';
 import {
   parseBBox,
@@ -61,6 +63,9 @@ import { handlePointsMode, PointsQueryParams } from './points.js';
 import { handleClusterMode } from './clusters.js';
 import { handleAirportDetail, AirportDetailParams } from './detail.js';
 import { handleDensityMode, DensityQueryParams } from './density.js';
+import { handlePreloadMode, PreloadQueryParams } from './preload.js';
+import { MAX_PRELOAD_LIMIT } from './constants.js';
+import { validatePreloadLimit } from './validation.js';
 
 interface ObjectsQueryParams {
   objectType: string;
@@ -166,7 +171,7 @@ export async function objectRoutes(fastify: FastifyInstance) {
     }
 
     // Validate mode
-    const modeValidation: ValidationResult<'points' | 'clusters' | 'density'> = validateMode(modeStr);
+    const modeValidation: ValidationResult<'points' | 'clusters' | 'density' | 'preload'> = validateMode(modeStr);
     if (!modeValidation.valid) {
       return sendError(reply, 400, invalidModeError(modeValidation.error!, { received: modeStr }));
     }
@@ -253,6 +258,33 @@ export async function objectRoutes(fastify: FastifyInstance) {
           offset,
         };
         return await handleDensityMode(params);
+      } catch (error) {
+        return sendError(reply, 503, tablesUnavailableError());
+      }
+    }
+
+    // ---- Mode: preload (WO-030A Resident Cache Mode) ----
+    if (mode === 'preload') {
+      // Preload requires category parameter
+      if (!category) {
+        return sendError(reply, 400, invalidQueryError('category is required for preload mode.', {
+          hint: `Use category=${VALID_CATEGORIES.join('|')}`,
+        }));
+      }
+
+      // Preload uses its own high limit (MAX_PRELOAD_LIMIT)
+      const preloadLimitResult = validatePreloadLimit(limitStr);
+      if (!preloadLimitResult.valid) {
+        return sendError(reply, 400, invalidLimitError(preloadLimitResult.error!, { received: limitStr }));
+      }
+      const preloadLimit = preloadLimitResult.value;
+
+      try {
+        const params: PreloadQueryParams = {
+          category,
+          limit: preloadLimit,
+        };
+        return await handlePreloadMode(params);
       } catch (error) {
         return sendError(reply, 503, tablesUnavailableError());
       }
