@@ -1,38 +1,50 @@
 import {
   CustomDataSource,
   Cartesian3,
-  Cartesian2,
-  VerticalOrigin,
-  HorizontalOrigin,
-  LabelStyle,
   Color,
 } from 'cesium';
 import { AirportObject, AirportClusterObject } from '@god-eyes/contracts';
 import {
-  CategoryIcons,
   getAirportSprite,
-  getClusterCanvas,
 } from './airportMarkerSprites';
 import {
   getAviationDisplayCategory,
   AviationFilters,
+  isSmartLODMode,
+  getZoomTierFromHeight,
 } from './aviationCategories';
 
 const AIRPORT_VISUAL_HEIGHT_METERS = 100;
-const CLUSTER_VISUAL_HEIGHT_METERS = 5000;
 
+function displayCatToFilterKey(cat: string): keyof AviationFilters | null {
+  switch (cat) {
+    case 'major': return 'major';
+    case 'regional': return 'regional';
+    case 'local': return 'local';
+    case 'heliport': return 'heliport';
+    case 'seaplane': return 'seaplane';
+    case 'balloonport': return 'balloonport';
+    case 'unknown': return 'unknown';
+    case 'closed': return 'closed';
+    default: return null;
+  }
+}
+
+// Render items with label=false (no text labels on markers)
 export function renderAviationObjects(
   dataSource: CustomDataSource,
   items: (AirportObject | AirportClusterObject)[],
   mode: 'points' | 'clusters',
-  filters?: AviationFilters | null
+  filters: AviationFilters | null,
+  cameraHeight?: number,
 ): { visibleCount: number; clustersActive: boolean } {
   dataSource.entities.suspendEvents();
-
   dataSource.entities.removeAll();
 
   let visibleCount = 0;
   const clustersActive = mode === 'clusters';
+  const smartMode = filters ? isSmartLODMode(filters) : false;
+  const tier = filters && cameraHeight ? getZoomTierFromHeight(cameraHeight, -1) : 3;
 
   for (const item of items) {
     if (item.objectType === 'airport') {
@@ -41,17 +53,30 @@ export function renderAviationObjects(
 
       const displayCat = getAviationDisplayCategory(airport);
 
-      if (filters) {
-        if (displayCat === 'closed' && !filters.closed) continue;
-        if (displayCat === 'heliport' && !filters.heliports) continue;
-        if (displayCat === 'seaplane_base' && !filters.seaplaneBases) continue;
-        if (displayCat === 'airport' && !filters.airports) continue;
+      // Determine if this item should be shown
+      let show = false;
+      if (smartMode) {
+        // Smart LOD: tier-based filtering
+        if (displayCat === 'closed') {
+          show = filters ? filters.closed && tier >= 3 : false;
+        } else if (tier === 0) {
+          show = displayCat === 'major';
+        } else if (tier === 1) {
+          show = displayCat === 'major' || displayCat === 'regional';
+        } else {
+          show = true;
+        }
+      } else if (filters) {
+        // Explicit filter mode: check individual toggles
+        const key = displayCatToFilterKey(displayCat);
+        show = key ? filters[key] : false;
+      } else {
+        show = true;
       }
 
-      // Use size-specific sprite for airports, category sprite for others
-      const icon = displayCat === 'airport'
-        ? getAirportSprite(airport.category)
-        : CategoryIcons[displayCat];
+      if (!show) continue;
+
+      const icon = getAirportSprite(displayCat);
 
       dataSource.entities.add({
         id: `airport-${airport.id}`,
@@ -62,17 +87,9 @@ export function renderAviationObjects(
         ),
         billboard: {
           image: icon,
-          verticalOrigin: VerticalOrigin.CENTER,
-          horizontalOrigin: HorizontalOrigin.CENTER,
-        },
-        label: {
-          text: airport.ident,
-          font: '10px JetBrains Mono, monospace',
-          style: LabelStyle.FILL_AND_OUTLINE,
-          outlineWidth: 2,
-          outlineColor: Color.BLACK,
-          verticalOrigin: VerticalOrigin.BOTTOM,
-          pixelOffset: new Cartesian2(0, -10),
+          verticalOrigin: 1,
+          horizontalOrigin: 0,
+          color: displayCat === 'closed' ? Color.fromCssColorString('rgba(107,114,128,0.6)') : undefined,
         },
         properties: {
           rawData: airport,
@@ -81,46 +98,9 @@ export function renderAviationObjects(
         },
       });
       visibleCount++;
-    } else if (item.objectType === 'airport_cluster') {
-      const cluster = item as AirportClusterObject;
-      const count = cluster.count;
-      visibleCount += count;
-
-      const baseSize = 24;
-      const growthFactor = Math.min(count * 0.4, 12);
-      const finalSize = baseSize + growthFactor;
-      const clusterIcon = getClusterCanvas(finalSize);
-
-      dataSource.entities.add({
-        id: `cluster-${cluster.id}`,
-        position: Cartesian3.fromDegrees(
-          cluster.position.longitude,
-          cluster.position.latitude,
-          CLUSTER_VISUAL_HEIGHT_METERS
-        ),
-        billboard: {
-          image: clusterIcon as any,
-          verticalOrigin: VerticalOrigin.CENTER,
-          horizontalOrigin: HorizontalOrigin.CENTER,
-        },
-        label: {
-          text: count.toString(),
-          font: '600 12px Inter, sans-serif',
-          fillColor: Color.fromCssColorString('#00d2ff'),
-          style: LabelStyle.FILL,
-          verticalOrigin: VerticalOrigin.CENTER,
-          horizontalOrigin: HorizontalOrigin.CENTER,
-          pixelOffset: new Cartesian2(0, 0),
-        },
-        properties: {
-          isCluster: true,
-          clusterData: cluster,
-        },
-      });
     }
   }
 
   dataSource.entities.resumeEvents();
-
   return { visibleCount, clustersActive };
 }

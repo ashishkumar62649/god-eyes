@@ -108,16 +108,9 @@ export function buildPointsSql(params: PointsQueryParams): { sql: string; params
   }
 
   if (params.category) {
-    const cats = params.category.split(',').map(c => c.trim()).filter(Boolean);
-    if (cats.length === 1) {
-      sql += ` AND category_normalized = $${paramIndex}`;
-      queryParams.push(cats[0]);
-      paramIndex++;
-    } else if (cats.length > 1) {
-      sql += ` AND category_normalized = ANY($${paramIndex})`;
-      queryParams.push(cats);
-      paramIndex++;
-    }
+    sql += ` AND category_normalized = $${paramIndex}`;
+    queryParams.push(params.category);
+    paramIndex++;
   }
 
   if (params.search) {

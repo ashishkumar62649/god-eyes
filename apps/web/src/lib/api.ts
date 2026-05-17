@@ -1,4 +1,3 @@
-// Simple API client for GOD EYES
 import type { 
   LayerObjectsListResponse, 
   AirportObject,
@@ -18,20 +17,18 @@ export async function fetchAirports(limit: number = 500): Promise<AirportObject[
   }
   
   const data: LayerObjectsListResponse = await response.json();
-  
-  // Type guard: filter to only airport objects (not clusters)
   const airports = data.items.filter((item: any): item is AirportObject => item.objectType === 'airport');
   return airports;
 }
 
 export async function fetchAviationLayerObjects(
   mode: 'points' | 'clusters',
-  bbox: string, // format: minLon,minLat,maxLon,maxLat
+  bbox: string,
   zoom?: number,
   limit: number = 1000,
   abortSignal?: AbortSignal,
   search?: string,
-  categories?: string[] // optional category filter (API category_normalized values)
+  category?: string,
 ): Promise<LayerObjectsListResponse> {
   const url = new URL(`${API_BASE_URL}/api/layers/layer_01_aviation/objects`);
   url.searchParams.append('objectType', 'airport');
@@ -42,8 +39,8 @@ export async function fetchAviationLayerObjects(
     url.searchParams.append('search', search);
   }
   
-  if (categories && categories.length > 0) {
-    url.searchParams.append('category', categories.join(','));
+  if (category) {
+    url.searchParams.append('category', category);
   }
 
   if (mode === 'points') {

@@ -1,9 +1,12 @@
 export type AviationDisplayCategory =
-  | 'airport'
+  | 'major'
+  | 'regional'
+  | 'local'
   | 'heliport'
-  | 'seaplane_base'
-  | 'closed'
-  | 'unknown';
+  | 'seaplane'
+  | 'balloonport'
+  | 'unknown'
+  | 'closed';
 
 export interface AviationCategoryInfo {
   id: AviationDisplayCategory;
@@ -16,13 +19,31 @@ export interface AviationCategoryInfo {
 }
 
 export const AVIATION_CATEGORIES: Record<AviationDisplayCategory, AviationCategoryInfo> = {
-  airport: {
-    id: 'airport',
-    label: 'Airports / Airfields',
-    shortLabel: 'Airport',
+  major: {
+    id: 'major',
+    label: 'Major / International',
+    shortLabel: 'Major',
     color: '#00E5FF',
     markerColor: '#00E5FF',
     dimColor: '#006688',
+    defaultVisible: true,
+  },
+  regional: {
+    id: 'regional',
+    label: 'Regional / Domestic',
+    shortLabel: 'Regional',
+    color: '#00B2FF',
+    markerColor: '#00B2FF',
+    dimColor: '#004e72',
+    defaultVisible: true,
+  },
+  local: {
+    id: 'local',
+    label: 'Local / Small Airfields',
+    shortLabel: 'Local',
+    color: '#7DEBFF',
+    markerColor: '#7DEBFF',
+    dimColor: '#2a5e66',
     defaultVisible: true,
   },
   heliport: {
@@ -34,13 +55,31 @@ export const AVIATION_CATEGORIES: Record<AviationDisplayCategory, AviationCatego
     dimColor: '#885500',
     defaultVisible: true,
   },
-  seaplane_base: {
-    id: 'seaplane_base',
-    label: 'Seaplane Bases',
+  seaplane: {
+    id: 'seaplane',
+    label: 'Water / Seaplane',
     shortLabel: 'Seaplane',
     color: '#00FFD1',
     markerColor: '#00FFD1',
     dimColor: '#007a66',
+    defaultVisible: true,
+  },
+  balloonport: {
+    id: 'balloonport',
+    label: 'Balloonports',
+    shortLabel: 'Balloonport',
+    color: '#C084FC',
+    markerColor: '#C084FC',
+    dimColor: '#5b22a8',
+    defaultVisible: true,
+  },
+  unknown: {
+    id: 'unknown',
+    label: 'Unknown / Unclassified',
+    shortLabel: 'Unknown',
+    color: '#B8F7FF',
+    markerColor: '#B8F7FF',
+    dimColor: '#3e757a',
     defaultVisible: true,
   },
   closed: {
@@ -52,30 +91,39 @@ export const AVIATION_CATEGORIES: Record<AviationDisplayCategory, AviationCatego
     dimColor: '#3a3f4a',
     defaultVisible: false,
   },
-  unknown: {
-    id: 'unknown',
-    label: 'Other',
-    shortLabel: 'Other',
-    color: '#B8F7FF',
-    markerColor: '#B8F7FF',
-    dimColor: '#3e757a',
-    defaultVisible: true,
-  },
 };
 
 export interface AviationFilters {
-  airports: boolean;
-  heliports: boolean;
-  seaplaneBases: boolean;
+  major: boolean;
+  regional: boolean;
+  local: boolean;
+  heliport: boolean;
+  seaplane: boolean;
+  balloonport: boolean;
+  unknown: boolean;
   closed: boolean;
 }
 
 export const DEFAULT_AVIATION_FILTERS: AviationFilters = {
-  airports: true,
-  heliports: true,
-  seaplaneBases: true,
+  major: true,
+  regional: true,
+  local: true,
+  heliport: true,
+  seaplane: true,
+  balloonport: true,
+  unknown: true,
   closed: false,
 };
+
+export const OPERATIONAL_CATEGORIES: (keyof AviationFilters)[] = [
+  'major',
+  'regional',
+  'local',
+  'heliport',
+  'seaplane',
+  'balloonport',
+  'unknown',
+];
 
 // API category_normalized values
 export const API_CATEGORY_LARGE = 'international_or_major_airport';
@@ -87,71 +135,22 @@ export const API_CATEGORY_BALLOONPORT = 'balloonport';
 export const API_CATEGORY_CLOSED = 'closed_or_abandoned';
 export const API_CATEGORY_UNKNOWN = 'unknown';
 
-// Map display filter to API categories
-export function displayFilterToApiCategories(filters: AviationFilters): string[] {
-  const cats: string[] = [];
-  if (filters.airports) cats.push(API_CATEGORY_LARGE, API_CATEGORY_REGIONAL, API_CATEGORY_SMALL);
-  if (filters.heliports) cats.push(API_CATEGORY_HELIPORT);
-  if (filters.seaplaneBases) cats.push(API_CATEGORY_WATER, API_CATEGORY_BALLOONPORT);
-  return cats;
-}
-
-// Smart LOD mode: true when all normal operational categories are ON
+// Smart LOD mode: true when all 7 operational categories are ON
 export function isSmartLODMode(filters: AviationFilters): boolean {
-  return filters.airports && filters.heliports && filters.seaplaneBases;
+  return OPERATIONAL_CATEGORIES.every((k) => filters[k]);
 }
 
-// Get API categories to fetch for the given LOD tier and filter mode
-export function getFetchCategories(
+// Get the single category to pass to API at global zoom in smart mode
+export function getFetchCategory(
   tier: number,
   filters: AviationFilters
-): string[] {
-  const smartMode = isSmartLODMode(filters);
-
-  if (smartMode) {
-    // Smart LOD: fetch only what's visible at this tier
-    switch (tier) {
-      case 0:
-        return [API_CATEGORY_LARGE];
-      case 1:
-        return [API_CATEGORY_LARGE, API_CATEGORY_REGIONAL];
-      case 2:
-        return [
-          API_CATEGORY_LARGE,
-          API_CATEGORY_REGIONAL,
-          API_CATEGORY_SMALL,
-          API_CATEGORY_HELIPORT,
-          API_CATEGORY_WATER,
-          API_CATEGORY_BALLOONPORT,
-          API_CATEGORY_UNKNOWN,
-        ];
-      case 3: {
-        const cats = [
-          API_CATEGORY_LARGE,
-          API_CATEGORY_REGIONAL,
-          API_CATEGORY_SMALL,
-          API_CATEGORY_HELIPORT,
-          API_CATEGORY_WATER,
-          API_CATEGORY_BALLOONPORT,
-          API_CATEGORY_UNKNOWN,
-        ];
-        if (filters.closed) cats.push(API_CATEGORY_CLOSED);
-        return cats;
-      }
-      default:
-        return [API_CATEGORY_LARGE];
-    }
-  }
-
-  // Explicit filter mode: fetch all selected categories globally
-  const cats: string[] = [];
-  if (filters.airports) cats.push(API_CATEGORY_LARGE, API_CATEGORY_REGIONAL, API_CATEGORY_SMALL);
-  if (filters.heliports) cats.push(API_CATEGORY_HELIPORT);
-  if (filters.seaplaneBases) cats.push(API_CATEGORY_WATER, API_CATEGORY_BALLOONPORT);
-  if (filters.closed) cats.push(API_CATEGORY_CLOSED);
-  return cats;
+): string | undefined {
+  if (!isSmartLODMode(filters)) return undefined;
+  if (tier === 0) return API_CATEGORY_LARGE;
+  return undefined;
 }
 
+// Map API airport data to a display category
 export function getAviationDisplayCategory(
   airport: { category: string; typeSource: string }
 ): AviationDisplayCategory {
@@ -159,33 +158,24 @@ export function getAviationDisplayCategory(
   const source = (airport.typeSource || '').toLowerCase().trim();
 
   if (cat === 'closed' || cat === API_CATEGORY_CLOSED) return 'closed';
-  if (cat === 'heliport' || cat === API_CATEGORY_HELIPORT) return 'heliport';
-  if (cat === 'seaplane_base' || cat === API_CATEGORY_WATER) return 'seaplane_base';
-
   if (source === 'closed' || source.includes('abandoned')) return 'closed';
 
-  if (
-    cat === 'large_airport' ||
-    cat === 'medium_airport' ||
-    cat === 'small_airport' ||
-    cat === API_CATEGORY_LARGE ||
-    cat === API_CATEGORY_REGIONAL ||
-    cat === API_CATEGORY_SMALL
-  ) {
-    return 'airport';
-  }
-
-  if (
-    source === 'large_airport' ||
-    source === 'medium_airport' ||
-    source === 'small_airport' ||
-    source === 'airport' ||
-    source === 'airfield'
-  ) {
-    return 'airport';
-  }
+  if (cat === 'heliport' || cat === API_CATEGORY_HELIPORT) return 'heliport';
   if (source === 'heliport') return 'heliport';
-  if (source === 'seaplane_base') return 'seaplane_base';
+
+  if (cat === API_CATEGORY_BALLOONPORT) return 'balloonport';
+
+  if (cat === API_CATEGORY_WATER) return 'seaplane';
+  if (source === 'seaplane_base' || source === 'floatplane' || source === 'water') return 'seaplane';
+
+  if (cat === API_CATEGORY_LARGE || cat === 'large_airport') return 'major';
+  if (source === 'large_airport') return 'major';
+
+  if (cat === API_CATEGORY_REGIONAL || cat === 'medium_airport') return 'regional';
+  if (source === 'medium_airport') return 'regional';
+
+  if (cat === API_CATEGORY_SMALL || cat === 'small_airport') return 'local';
+  if (source === 'small_airport' || source === 'airport' || source === 'airfield') return 'local';
 
   return 'unknown';
 }
@@ -203,18 +193,18 @@ export function getCategoryLabel(
 }
 
 // LOD tier thresholds with hysteresis (in meters)
-// Tier 0 (strategic/global, >10M): international major only
-// Tier 1 (national/country, 3M-10M): + regional domestic
-// Tier 2 (state/multi-state, 800K-3M): + small, heliport, seaplane, balloonport, unknown
-// Tier 3 (local, <800K): all respecting filters
+// Tier 0 (global, >12M): major only
+// Tier 1 (regional, 4M-12M): major + regional
+// Tier 2 (wide state, 1M-4M): all operational
+// Tier 3 (local, <1M): all
 
 export const LOD_TIER_THRESHOLDS = {
-  DOWN_0_TO_1: 8_000_000,
-  UP_1_TO_0: 10_000_000,
-  DOWN_1_TO_2: 2_500_000,
-  UP_2_TO_1: 3_000_000,
-  DOWN_2_TO_3: 600_000,
-  UP_3_TO_2: 800_000,
+  DOWN_0_TO_1: 10_000_000,
+  UP_1_TO_0: 12_000_000,
+  DOWN_1_TO_2: 3_500_000,
+  UP_2_TO_1: 4_000_000,
+  DOWN_2_TO_3: 800_000,
+  UP_3_TO_2: 1_000_000,
 };
 
 export function getZoomTierFromHeight(height: number, previousTier: number): number {
@@ -239,8 +229,8 @@ export function getZoomTierFromHeight(height: number, previousTier: number): num
 }
 
 export const ZOOM_TIER_LABELS: Record<number, string> = {
-  0: 'STRATEGIC',
-  1: 'NATIONAL',
+  0: 'GLOBAL',
+  1: 'REGIONAL',
   2: 'STATE',
   3: 'LOCAL',
 };

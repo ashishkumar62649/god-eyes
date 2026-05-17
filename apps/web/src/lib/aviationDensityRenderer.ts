@@ -48,9 +48,10 @@ export function computeFabricNodes(
     const displayCat = getAviationDisplayCategory(airport);
     if (filters) {
       if (displayCat === 'closed' && !filters.closed) continue;
-      if (displayCat === 'heliport' && !filters.heliports) continue;
-      if (displayCat === 'seaplane_base' && !filters.seaplaneBases) continue;
-      if (displayCat === 'airport' && !filters.airports) continue;
+      if (displayCat === 'heliport' && !filters.heliport) continue;
+      if (displayCat === 'seaplane' && !filters.seaplane) continue;
+      if (displayCat === 'balloonport' && !filters.balloonport) continue;
+      if ((displayCat === 'major' || displayCat === 'regional' || displayCat === 'local' || displayCat === 'unknown') && !filters[displayCat]) continue;
     }
 
     const cellX = Math.floor(airport.position.longitude / cellSize);
@@ -141,9 +142,10 @@ export function renderDensityDots(
     const displayCat = getAviationDisplayCategory(airport);
     if (filters) {
       if (displayCat === 'closed' && !filters.closed) continue;
-      if (displayCat === 'heliport' && !filters.heliports) continue;
-      if (displayCat === 'seaplane_base' && !filters.seaplaneBases) continue;
-      if (displayCat === 'airport' && !filters.airports) continue;
+      if (displayCat === 'heliport' && !filters.heliport) continue;
+      if (displayCat === 'seaplane' && !filters.seaplane) continue;
+      if (displayCat === 'balloonport' && !filters.balloonport) continue;
+      if ((displayCat === 'major' || displayCat === 'regional' || displayCat === 'local' || displayCat === 'unknown') && !filters[displayCat]) continue;
     }
 
     const catInfo = AVIATION_CATEGORIES[displayCat];

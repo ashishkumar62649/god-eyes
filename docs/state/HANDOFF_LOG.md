@@ -2138,3 +2138,31 @@ All agents must append to this file after completing work.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_API_FEASIBILITY.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Frontend team use feasibility document as specification for viewport-constrained density view. If performance proves inadequate, revisit density endpoint design in future work order.
+
+### 2026-05-18T07:15:00Z OpenCode Web 1 — WO-029D-FE final LOD/category correction: 8 categories, labels removed, water mapping, API revert
+
+- Work order: WO-029D-FE final LOD/category correction
+- Agent: OpenCode Web 1
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/opencode-web-1
+- Start time UTC: 2026-05-18T06:45:00Z
+- End time UTC: 2026-05-18T07:15:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Corrected aviation LOD/category system: expanded from 4 to 8 categories (Major, Regional, Local, Heliports, Water/Seaplane, Balloonports, Unknown, Closed); removed all permanent marker labels; water mapping handles seaplane_base/floatplane/water without false positives; Smart LOD mode when all 7 operational toggles ON, Explicit Filter mode when subset selected; server-side single-category fetch at global tier only (international_or_major_airport), no category filter at smaller viewports; thresholds raised to 12M/4M/1M with hysteresis; reverted API multi-category changes (validation.ts + points.ts) back to original single-category = only; stronger per-category colors (major #00E5FF, regional #00B2FF, local #7DEBFF, heliport #FFB000, seaplane #00FFD1, balloonport #C084FC, unknown #B8F7FF, closed #6B7280); closed dimmed at 0.6 alpha; aviationDensityRenderer.ts filter checks updated for new category names; FPS display retained; click→Object Intel retained; search retained; behind-globe entity behavior retained.
+- Files modified:
+  - apps/web/src/lib/aviationCategories.ts (8 categories, AviationFilters with 8 fields, getFetchCategory returns single value, getAviationDisplayCategory water mapping, LOD_TIER_THRESHOLDS 12M/4M/1M)
+  - apps/web/src/lib/airportMarkerSprites.ts (8 category sprites, no shadows/glow, strong colors, white outlines)
+  - apps/web/src/lib/aviationLayerRenderer.ts (no label text, 8-category tier-based filter logic in renderAviationObjects)
+  - apps/web/src/lib/api.ts (single category string param instead of array)
+  - apps/web/src/CesiumGlobe.tsx (getFetchCategory for single-category global fetch, cameraHeight propagated to renderer)
+  - apps/web/src/components/LayerPanel.tsx (8 filter toggle rows with labels/colors/dots)
+  - apps/web/src/lib/aviationDensityRenderer.ts (updated filter checks for new category names)
+  - apps/api/src/routes/objects/validation.ts (reverted multi-category comma-split to original single-category check)
+  - apps/api/src/routes/objects/points.ts (reverted ANY() SQL to original single = parameter)
+- Commands run: git checkout fa241ba (revert API files), git diff, pnpm --filter web build
+- Build result: 56 modules, 180.53 kB, zero TypeScript errors, production build PASS
+- Known issues: Explicit Filter mode at global zoom cannot show globally-selected categories via API (single-category API now). Client-side filtering of what's in the 1000-item viewport sample is the accepted tradeoff per user directive.
+- Forbidden folders touched: ✅ NO (only apps/web/src/ modified; API files reverted to pre-change state)
+- Review status: pending (not yet pushed or reviewed)

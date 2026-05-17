@@ -19,7 +19,7 @@ import { flyToSearchResult } from './lib/globeCamera';
 import {
   AviationFilters,
   getZoomTierFromHeight,
-  getFetchCategories,
+  getFetchCategory,
   isSmartLODMode,
   ZOOM_TIER_LABELS,
   MODE_LABELS,
@@ -64,6 +64,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationFiltersRef = useRef(aviationFilters);
   const zoomTierRef = useRef(0);
   const smartModeRef = useRef(true);
+  const cameraHeightRef = useRef(20000000);
 
   const renderTimeoutRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -102,11 +103,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   function renderItems(items: any[], filters: AviationFilters | null) {
     clearEntities();
 
+    const height = cameraHeightRef.current;
     const { visibleCount } = renderAviationObjects(
       aviationDataSourceRef.current!,
       items,
       'points',
-      filters
+      filters,
+      height,
     );
 
     const tier = zoomTierRef.current;
@@ -170,7 +173,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
-      // FPS tracking via postRender
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
       fpsPostRender = viewer.scene.postRender.addEventListener(() => {
@@ -186,19 +188,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         fpsLastUpdate = now;
       }, 1000);
 
-      // LOD tier tracking via postRender
       let lastTier = 0;
       cameraPostRender = viewer.scene.postRender.addEventListener(() => {
         const height = viewer!.camera.positionCartographic.height;
+        cameraHeightRef.current = height;
         const newTier = getZoomTierFromHeight(height, lastTier);
         if (newTier !== lastTier) {
           lastTier = newTier;
           zoomTierRef.current = newTier;
-          // If in smart mode, tier change requires re-fetch (different categories needed)
           if (smartModeRef.current) {
             triggerRefresh();
           } else {
-            // In explicit mode, just re-render cached items (no re-fetch needed)
             refreshEntities();
           }
         }
@@ -223,13 +223,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         smartModeRef.current = isSmartLODMode(filters);
         const isSmart = smartModeRef.current;
 
-        // Determine which API categories to fetch
-        let fetchCats: string[];
-        if (isSmart) {
-          fetchCats = getFetchCategories(tier, filters);
-        } else {
-          fetchCats = getFetchCategories(3, filters);
-        }
+        const fetchCat = isSmart ? getFetchCategory(tier, filters) : undefined;
 
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
@@ -244,7 +238,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             1000,
             abortControllerRef.current.signal,
             undefined,
-            fetchCats
+            fetchCat,
           );
 
           itemsCacheRef.current = response.items;
@@ -340,7 +334,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       zoomTierRef.current = 0;
       onStatsChangeRef.current?.({
         loaded: 0, visible: 0, clustersActive: false,
-        renderMode: 'SMART_LOD_STRATEGIC', fps: fpsRef.current,
+        renderMode: 'SMART_LOD_GLOBAL', fps: fpsRef.current,
       });
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -357,7 +351,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const items = itemsCacheRef.current;
     if (items.length === 0) return;
 
-    // When filters change, re-fetch with new category filter
     zoomTierRef.current = viewerRef.current
       ? getZoomTierFromHeight(viewerRef.current.camera.positionCartographic.height, zoomTierRef.current)
       : 0;

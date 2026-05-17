@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchLayerStatus } from '../lib/api';
 import { LayerStatusResponse } from '@god-eyes/contracts';
-import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
+import { AviationFilters, AVIATION_CATEGORIES, isSmartLODMode, MODE_LABELS } from '../lib/aviationCategories';
 
 interface AviationStats {
   loaded: number;
@@ -20,16 +20,24 @@ interface LayerPanelProps {
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
-  'airports',
-  'heliports',
-  'seaplaneBases',
+  'major',
+  'regional',
+  'local',
+  'heliport',
+  'seaplane',
+  'balloonport',
+  'unknown',
   'closed',
 ];
 
 const FILTER_CATEGORY_MAP: Record<keyof AviationFilters, keyof typeof AVIATION_CATEGORIES> = {
-  airports: 'airport',
-  heliports: 'heliport',
-  seaplaneBases: 'seaplane_base',
+  major: 'major',
+  regional: 'regional',
+  local: 'local',
+  heliport: 'heliport',
+  seaplane: 'seaplane',
+  balloonport: 'balloonport',
+  unknown: 'unknown',
   closed: 'closed',
 };
 
@@ -67,21 +75,16 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     onFiltersChange(next);
   };
 
-  const legendItems = [
-    { label: 'Airport / Airfield', cat: 'airport' as const },
-    { label: 'Heliport', cat: 'heliport' as const },
-    { label: 'Seaplane Base', cat: 'seaplane_base' as const },
-    { label: 'Closed (dimmed)', cat: 'closed' as const },
-    { label: 'Other', cat: 'unknown' as const },
-  ];
-
-  const renderModeLabel = (mode: string): string => {
-    const parts = mode.split('_');
+  const modeText = (renderMode: string): string => {
+    const parts = renderMode.split('_');
     if (parts.length === 3 && (parts[0] === 'SMART' || parts[0] === 'EXPLICIT')) {
       return `${parts[0]} ${parts[2]}`;
     }
-    return mode;
+    return renderMode;
   };
+
+  const currentMode = aviationFilters ? (isSmartLODMode(aviationFilters) ? 'smart' : 'explicit') : 'smart';
+  const modeName = MODE_LABELS[currentMode] || currentMode;
 
   return (
     <aside className={`shell-panel shell-panel-left shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -117,13 +120,13 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                 <span style={{ opacity: 0.7 }}>SYNCING...</span>
               ) : aviationLayerActive ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                  <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE</span>
+                  <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE — {modeName}</span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', opacity: 0.8 }}>
                     <span>LOADED: {aviationStats.loaded} / {aviationStatus?.objectCounts.airports.toLocaleString() || 0}</span>
                     <span>VISIBLE: {aviationStats.visible}</span>
                   </div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '2px' }}>
-                    MODE: {renderModeLabel(aviationStats.renderMode)}
+                    MODE: {modeText(aviationStats.renderMode)}
                   </div>
                 </div>
               ) : (
@@ -161,12 +164,27 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
 
               <div className="legend-section">
                 <div className="legend-section-header">MARKER LEGEND</div>
-                {legendItems.map((item) => (
-                  <div key={item.cat} className="legend-item">
-                    <span className={`legend-marker legend-marker-${item.cat}`} />
-                    <span className="legend-label">{item.label}</span>
-                  </div>
-                ))}
+                {FILTER_KEYS.map((key) => {
+                  const catKey = FILTER_CATEGORY_MAP[key];
+                  const info = AVIATION_CATEGORIES[catKey];
+                  return (
+                    <div key={key} className="legend-item">
+                      <span
+                        className="legend-marker"
+                        style={{
+                          display: 'inline-block',
+                          width: '10px', height: '10px',
+                          borderRadius: '50%',
+                          background: info.color,
+                          marginRight: '8px',
+                          verticalAlign: 'middle',
+                          opacity: 0.8,
+                        }}
+                      />
+                      <span className="legend-label">{info.label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
