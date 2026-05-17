@@ -2213,25 +2213,22 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified)
 - Review status: pending (not yet pushed or reviewed)
 
-### 2026-05-18T09:05:00Z OpenCode Web 1 — WO-029F-FE batch entity render, interleaved tiles, dot depth fix
+### 2026-05-18T09:10:00Z OpenCode Web 1 — WO-029F-FE scheduler activation bugfix
 
-- Work order: WO-029F-FE
+- Work order: WO-029F-FE scheduler activation bugfix
 - Agent: OpenCode Web 1
 - LLM model: deepseek-v4-flash-free
 - Tool/CLI used: OpenCode CLI
 - Branch: agent/opencode-web-1
-- Start time UTC: 2026-05-18T08:55:00Z
-- End time UTC: 2026-05-18T09:05:00Z
+- Start time UTC: 2026-05-18T09:00:00Z
+- End time UTC: 2026-05-18T09:10:00Z
 - Commit hash: (local only - pending Kiro review)
 - Push status: local only (awaiting review)
-- What was done: Three fixes for remaining aviation rendering issues. (1) Center-globe shadow/occlusion — added `disableDepthTestDistance: Infinity` to PointPrimitive dots in `aviationGlobalRenderer.ts` so dots are never hidden by the globe surface. (2) Render freeze — `renderAviationObjects` refactored into async batched version (`renderAviationObjectsAsync`) that yields via `requestAnimationFrame` every 120 entities, keeping the browser responsive during large data renders. Also added `abortSignal` support so batch rendering stops on unmount/filter change. (3) Progressive tile loading — replaced sequential per-category tile fetching with `fetchInterleavedCategoryTiles` that interleaves all category+tile pairs in a single concurrency-limited queue (3 concurrent), so dots from every selected category appear early rather than waiting for one category's 72 tiles to finish. Cleaned up unused vars and fixed TypeScript strict null checks. Build 58 modules, 186.40 kB. All 89 API tests pass.
+- What was done: Fixed critical bug where Aviation layer ON never triggered API fetch. Root cause: `aviationLayerActiveRef` and `aviationFiltersRef` were initialized with `useRef(prop)` but never synced when props changed, so `fetchIfNeeded()` always read stale values (`active=false` → early return). Added ref-sync `useEffect` (no deps) that updates all four prop refs (`onObjectSelectRef`, `onStatsChangeRef`, `aviationLayerActiveRef`, `aviationFiltersRef`) after every render. Also added `scheduleFetch(reason)` wrapper function with dev-only `console.debug` logging of reason strings (`'layer-on'`, `'filter-change'`, `'camera-move-end'`, `'initial-viewer-ready'`). All bare `fetchIfNeeded()` calls migrated to `scheduleFetch(reason)` for traceability. Anti-spam, cache, bbox rounding, AbortController, stale response guard all preserved.
 - Files modified:
-  - apps/web/src/lib/aviationGlobalRenderer.ts (disableDepthTestDistance: Infinity on dot primitives)
-  - apps/web/src/lib/aviationLayerRenderer.ts (refactored into addEntity/shouldShowAirport helpers; added renderAviationObjectsAsync with batch yielding; abortSignal support)
-  - apps/web/src/lib/aviationTileLoader.ts (added fetchInterleavedCategoryTiles — cross-category interleaved tile queue; added INTERLEAVE_CONCURRENCY constant)
-  - apps/web/src/CesiumGlobe.tsx (uses renderAviationObjectsAsync with abortSignal; uses fetchInterleavedCategoryTiles; renderCurrent is async; fetchIfNeeded awaits renderCurrent; removed unused import)
-- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 58 modules, 186.40 kB), pnpm --filter api test (PASS, 89 tests), git diff --check
-- Build result: 58 modules, 186.40 kB, zero TypeScript errors, production build PASS
+  - apps/web/src/CesiumGlobe.tsx (ref-sync useEffect, scheduleFetch helper, all 6 fetchIfNeeded() calls → scheduleFetch(reason) with distinct reason strings, dev debug logging in DEV mode)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 58 modules, 186.57 kB), pnpm --filter api test (PASS, 89 tests), git diff --check
+- Build result: 58 modules, 186.57 kB, zero TypeScript errors, production build PASS
 - API test result: 89/89 tests PASS
 - Known issues: Unknown display category has 0 API rows (expected). Global dots have no Object Intel — user zooms in for entity-mode interaction.
 - Forbidden folders touched: ✅ NO (only apps/web/src/ modified)

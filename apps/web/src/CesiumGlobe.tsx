@@ -130,6 +130,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const tileAbortRef = useRef<AbortController | null>(null);
   const tileActiveRef = useRef(false);
 
+  // Sync prop refs after every render so async callbacks always see current props
+  useEffect(() => {
+    onObjectSelectRef.current = onObjectSelect;
+    onStatsChangeRef.current = onAviationStatsChange;
+    aviationLayerActiveRef.current = aviationLayerActive;
+    aviationFiltersRef.current = aviationFilters;
+  });
+
+  function scheduleFetch(reason: string): void {
+    if (import.meta.env.DEV) {
+      console.debug(`[aviation] scheduleFetch: ${reason}`);
+    }
+    fetchIfNeeded();
+  }
+
   function isUsingGlobalTiles(tier: number, filters: AviationFilters): boolean {
     if (tier !== 0) return false;
     if (isSmartLODMode(filters)) return false;
@@ -393,7 +408,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           window.clearTimeout(renderTimeoutRef.current);
         }
         renderTimeoutRef.current = window.setTimeout(() => {
-          fetchIfNeeded();
+          scheduleFetch('camera-move-end');
         }, FETCH_DEBOUNCE_MS) as unknown as number;
       };
 
@@ -403,14 +418,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           window.clearTimeout(renderTimeoutRef.current);
           renderTimeoutRef.current = null;
         }
-        fetchIfNeeded();
+        scheduleFetch('camera-move-end');
       };
 
       viewer.camera.percentageChanged = 0.05;
       viewer.camera.changed.addEventListener(changedHandler);
       viewer.camera.moveEnd.addEventListener(moveEndHandler);
 
-      fetchIfNeeded();
+      scheduleFetch('initial-viewer-ready');
 
       // Click handler
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -458,7 +473,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 new Cartesian3(),
               ),
               duration: 1.0,
-              complete: () => fetchIfNeeded(),
+              complete: () => scheduleFetch('camera-move-end'),
             });
           }
           return;
@@ -519,7 +534,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         abortControllerRef.current.abort();
       }
     } else if (viewerRef.current) {
-      fetchIfNeeded();
+      scheduleFetch('layer-on');
     }
   }, [aviationLayerActive]);
 
@@ -533,7 +548,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (viewerRef.current) {
       const height = viewerRef.current.camera.positionCartographic.height;
       zoomTierRef.current = getZoomTierFromHeight(height, zoomTierRef.current);
-      fetchIfNeeded();
+      scheduleFetch('filter-change');
     }
   }, [aviationFilters, aviationLayerActive]);
 
