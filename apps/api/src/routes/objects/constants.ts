@@ -16,8 +16,10 @@ export type ValidCategory = (typeof VALID_CATEGORIES)[number];
 // - Default limit: 500
 // - General list max: 500 (production safety guard from WO-012)
 // - Viewport/query max (bbox present): 1000 (WO-008 spatial queries may need more)
+// - Preload mode max: 100000 (WO-030A resident cache mode — full dataset fetch)
 export const MAX_LIST_LIMIT = 500;
 export const MAX_VIEWPORT_LIMIT = 1000;
+export const MAX_PRELOAD_LIMIT = 100000;
 export const DEFAULT_LIMIT = 500;
 
 // Bounding box limits

@@ -1,4 +1,29 @@
-### 2026-05-17T09:21:48Z Kiro CLI — Integration Review WO-029E-DATA-CATEGORY-AUDIT + WO-029F-FE Aviation LOD Request Scheduler PASS, branch pushed to origin
+### 2026-05-17T23:05:00Z Claude API 1 — WO-030A Aviation API Preload/Resident Cache Mode Complete
+
+- Work order: WO-030A Aviation API support for Global Resident Cache Mode
+- Agent: Claude API 1
+- Role: API/Backend Implementation
+- LLM model: claude-sonnet-4-20250514
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/claude-api-1
+- Start time UTC: 2026-05-17T22:50:00Z
+- End time UTC: 2026-05-17T23:05:00Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only (awaiting review)
+- What was done: Added `mode=preload` endpoint for frontend resident cache mode. Frontend can now fetch all airports by category in a single request with lightweight projection. Limit increased to 100,000 for preload mode. Response includes only fields needed for map rendering and Object Intel lookup. Category summary included in metadata. All 135 API tests pass (115 existing + 20 new). Existing endpoints (points/clusters/density/detail/bbox) remain unchanged.
+- Files modified: apps/api/src/routes/objects/constants.ts (added MAX_PRELOAD_LIMIT), apps/api/src/routes/objects/validation.ts (added preload mode + validatePreloadLimit), apps/api/src/routes/objects/index.ts (added preload routing), apps/api/src/routes/objects.ts (export MAX_PRELOAD_LIMIT), apps/api/src/routes/objects/preload.ts (new handler), apps/api/tests/preload.test.ts (new 20 tests), packages/contracts/src/index.ts (added preload schemas), docs/postman/GOD_EYES_LOCAL_API.postman_collection.json (added 10 preload requests), docs/api/API_AVIATION_PRELOAD_WO-030A.md (new documentation), docs/state/HANDOFF_LOG.md (updated)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (135 passed), git status, git diff --stat, git add, git diff --check
+- Tests/build result: Contracts build PASS, API build PASS, API tests PASS (135/135: 115 existing + 20 new preload tests)
+- Key behaviors: mode=preload requires category parameter; returns lightweight projection (id, ident, name, category, latitude, longitude, country, region, municipality, iataCode, gpsCode, elevationFt, status); limit capped at 100,000; metadata includes summary with all category counts; existing endpoints unchanged
+- Category keys supported: international_or_major_airport, regional_or_domestic_airport, small_airfield, heliport, water_landing_site, balloonport, closed_or_abandoned, unknown
+- Limit behavior: Standard 500/500, Viewport 500/1000, Preload 100000/100000
+- Protection: Explicit mode=preload required, category required and validated, limit capped at 100k, lightweight projection only
+- Security/privacy result: PASS (no .env, no API keys, no secrets, parameterized SQL queries, no unsafe endpoints, no database writes)
+- Folder boundaries: PASS (only apps/api/src/routes/objects/, apps/api/tests/, packages/contracts/src/, docs/postman/, docs/api/, docs/state/ modified; no forbidden folders touched)
+- Known issues: Preload does not support bbox/country/search filters (category only); no pagination (single request returns all up to limit); large categories may take several seconds; not for real-time data
+- Forbidden folders touched: no
+- Next safe task: Kiro review, then commit if approved. Frontend integration can proceed using mode=preload endpoint.
+
 
 - Integration scope: WO-029E-DATA-CATEGORY-AUDIT + WO-029E-API-CATEGORY-AUDIT + WO-029F-FE Aviation LOD Category Rendering + Viewport Request Scheduler + Globe Occlusion Fix
 - Reviewer agent: Kiro CLI

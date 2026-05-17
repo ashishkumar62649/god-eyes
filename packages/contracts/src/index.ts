@@ -329,6 +329,54 @@ export const AirportDensityResponseSchema = z.object({
 
 export type AirportDensityResponse = z.infer<typeof AirportDensityResponseSchema>;
 
+// ==================== Aviation Preload / Resident Cache Mode (WO-030A) ====================
+
+export const AirportPreloadObjectSchema = z.object({
+  id: z.string().uuid(),
+  ident: z.string(),
+  name: z.string(),
+  category: z.string(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
+  country: z.string().nullable(),
+  region: z.string().nullable(),
+  municipality: z.string().nullable(),
+  iataCode: z.string().nullable(),
+  icaoCode: z.string().nullable(),
+  gpsCode: z.string().nullable(),
+  elevationFt: z.number().nullable(),
+  status: z.string().nullable(),
+});
+
+export type AirportPreloadObject = z.infer<typeof AirportPreloadObjectSchema>;
+
+export const PreloadCategorySummarySchema = z.object({
+  category: z.string(),
+  count: z.number(),
+});
+
+export type PreloadCategorySummary = z.infer<typeof PreloadCategorySummarySchema>;
+
+export const AirportPreloadMetadataSchema = z.object({
+  mode: z.literal('preload'),
+  category: z.string(),
+  returnedCount: z.number(),
+  totalCount: z.number(),
+  generatedAt: z.string().datetime(),
+  dataVersion: z.string().optional(),
+  updatedAt: z.string().datetime().optional(),
+  summary: z.array(PreloadCategorySummarySchema).optional(),
+});
+
+export type AirportPreloadMetadata = z.infer<typeof AirportPreloadMetadataSchema>;
+
+export const AirportPreloadListResponseSchema = z.object({
+  items: z.array(AirportPreloadObjectSchema),
+  metadata: AirportPreloadMetadataSchema,
+});
+
+export type AirportPreloadListResponse = z.infer<typeof AirportPreloadListResponseSchema>;
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {
