@@ -809,9 +809,8 @@ or cancelled history.
 
 capacity, traffic, layout, derived intelligence, and backfill tables are intentionally not included in WO-036.
 
-Later work orders should add:
+WO-037 adds `airport_capacity_profiles`. Later work orders should add:
 
-- `airport_capacity_profiles`
 - `airport_traffic_metrics`
 - `airport_layout_profiles`
 - `airport_derived_intelligence`
@@ -820,6 +819,120 @@ Later work orders should add:
 
 No workers, API endpoints, frontend behavior, contracts, or package code are
 implemented by WO-036.
+
+## WO-037 Stage 2 Implementation Notes
+
+WO-037 implements only the source-backed capacity profile table from the
+canonical WO-035 design. The migration file is:
+
+`database/migrations/layers/layer_01_aviation/007_airport_capacity_profiles.sql`
+
+Stage 2 creates:
+
+- `airport_capacity_profiles`: one current capacity profile per airport for the
+  `capacity` intelligence module.
+
+Stage 2 does not change:
+
+- `aviation_airports`
+- `airport_public_profiles`
+- `airport_public_profile_versions`
+- `airport_public_profile_fetch_runs`
+- `airport_intelligence_modules`
+- `airport_source_links`
+- `airport_intelligence_fetch_runs`
+
+### Capacity Is Source-Backed Only
+
+Capacity is source-backed only. Do not guess passenger capacity, terminal
+capacity, gate count, stand count, movement capacity, or facility counts. If a
+trusted source does not provide the value, the field remains `NULL`.
+
+This is enforced in the migration by keeping every measurement field nullable
+and adding a source-backed `ok` rule:
+
+- if `capacity_status = 'ok'`, at least one of `primary_source_link_id`,
+  `source_summary`, or `data_payload` must be present.
+- `primary_source_link_id` or `source_summary` is preferred over relying only on
+  `data_payload`.
+
+### Capacity Fields
+
+The Stage 2 table stores typed, queryable capacity fields:
+
+- `annual_passenger_capacity`
+- `terminal_capacity`
+- `runway_movement_capacity_per_hour`
+- `terminal_count`
+- `gate_count`
+- `stand_count`
+- `aircraft_stand_count`
+- `check_in_counter_count`
+- `baggage_belt_count`
+
+All numeric capacity fields are nullable and constrained to be non-negative
+when present.
+
+### Source And Module Relationships
+
+`airport_capacity_profiles.airport_id` references `aviation_airports(id)`.
+`module_id` optionally references `airport_intelligence_modules(id)` and should
+point to the same airport's `capacity` module when populated. This practical
+rule is left to application/worker logic because the referenced module table is
+keyed by `id`.
+
+`primary_source_link_id` optionally references `airport_source_links(id)` and
+should identify the primary source backing the current capacity profile.
+Additional source detail can be stored in `source_summary`.
+
+### Status, Basis, And Confidence
+
+`capacity_status` is constrained to:
+
+- `ok`
+- `stale`
+- `fetching`
+- `no_data`
+- `low_confidence`
+- `error`
+
+`capacity_basis` is nullable and constrained to:
+
+- `official_declared`
+- `annual_report`
+- `authority_dataset`
+- `airport_website`
+- `osm_count`
+- `wikidata`
+- `wikipedia_extract`
+- `other`
+
+`confidence_score` is nullable and constrained from 0 to 1 when present.
+
+### Freshness Fields
+
+The capacity profile table includes module freshness timestamps:
+
+- `retrieved_at`
+- `fetched_at`
+- `stale_at`
+- `expires_at`
+- `next_refresh_at`
+
+The migration checks that `stale_at` and `expires_at` are after `fetched_at`
+when both timestamps exist.
+
+### Intentionally Not Included Until Later Stages
+
+Traffic metrics, derived capability tags, OSM layout, API implementation, and worker implementation are intentionally not included in WO-037.
+
+Later work orders should add:
+
+- `airport_traffic_metrics`
+- `airport_layout_profiles`
+- `airport_derived_intelligence`
+- `airport_backfill_runs`
+- `airport_backfill_run_items`
 
 ## Open Questions
 
