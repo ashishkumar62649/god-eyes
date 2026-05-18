@@ -564,3 +564,45 @@ Response: `AirportPublicProfile` or `{ found: false }` or error
 
 **Forbidden folders touched:** NO (no code written)
 **Ready for review:** YES
+
+---
+
+## 13. Integration Status (WO-032E Final — 2026-05-18)
+
+**Completed by:** Kiro CLI (Claude) — WO-032E
+**Branch:** agent/frontend-airport-enrichment-ui
+
+### API Response Shape Matched
+
+Frontend types in `apps/web/src/lib/airportPublicProfileTypes.ts` now exactly mirror `apps/api/src/routes/public-profile/types.ts`:
+
+| Field | Type |
+|-------|------|
+| `status` | `'ok' \| 'stale' \| 'fetching' \| 'no_profile_found' \| 'low_confidence_match' \| 'error'` |
+| `cached` | `boolean` |
+| `profile` | `PublicProfileData \| null` |
+| `fetchedAt` | `string \| null` |
+| `expiresAt` | `string \| null` |
+| `attribution` | `PublicProfileAttribution \| null` |
+
+`PublicProfileData` contains: `id`, `name`, `iataCode`, `icaoCode`, `location` (lat/lon/city/country), `summary`, `facts`.
+
+`PublicProfileAttribution` contains: `source`, `matchMethod`, `matchConfidence`.
+
+### Files Changed
+
+- `apps/web/src/lib/airportPublicProfileTypes.ts` — rewritten to match real API shape
+- `apps/web/src/lib/api.ts` — added `fetchAirportPublicProfile`; parses typed body on 4xx/5xx instead of throwing
+- `apps/web/src/components/intel/AirportPublicProfilePanel.tsx` — handles all 7 states; retry fixed with `fetchKey` counter
+- `apps/web/src/components/DetailPanel.tsx` — panel wired between Overview and Location sections
+
+### Build Result
+
+- `tsc --noEmit`: ✅ exit 0
+- `vite build`: ✅ exit 0, 57 modules, 190 KB JS
+
+### Known Issues / Open Questions
+
+- `git diff --check` reports CRLF warnings — pre-existing repo-wide Windows line endings, not introduced here.
+- No frontend test framework exists in `apps/web`; no tests added.
+- Manual browser verification requires live API (`GET /api/airports/:airportId/public-profile`). Panel will show error state until API is running.
