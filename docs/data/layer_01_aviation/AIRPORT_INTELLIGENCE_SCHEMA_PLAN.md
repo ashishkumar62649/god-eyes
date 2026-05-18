@@ -809,9 +809,9 @@ or cancelled history.
 
 capacity, traffic, layout, derived intelligence, and backfill tables are intentionally not included in WO-036.
 
-WO-037 adds `airport_capacity_profiles`. Later work orders should add:
+WO-037 adds `airport_capacity_profiles`. WO-038 adds
+`airport_traffic_metrics`. Later work orders should add:
 
-- `airport_traffic_metrics`
 - `airport_layout_profiles`
 - `airport_derived_intelligence`
 - `airport_backfill_runs`
@@ -928,11 +928,122 @@ Traffic metrics, derived capability tags, OSM layout, API implementation, and wo
 
 Later work orders should add:
 
-- `airport_traffic_metrics`
 - `airport_layout_profiles`
 - `airport_derived_intelligence`
 - `airport_backfill_runs`
 - `airport_backfill_run_items`
+
+## WO-038 Stage 3 Implementation Notes
+
+WO-038 implements only the source-backed annual traffic metrics table from the
+canonical WO-035 design. The migration file is:
+
+`database/migrations/layers/layer_01_aviation/008_airport_traffic_metrics.sql`
+
+Stage 3 creates:
+
+- `airport_traffic_metrics`: one current canonical annual metric row per
+  airport, metric type, period type, and year.
+
+Stage 3 does not change:
+
+- `aviation_airports`
+- `airport_public_profiles`
+- `airport_public_profile_versions`
+- `airport_public_profile_fetch_runs`
+- `airport_intelligence_modules`
+- `airport_source_links`
+- `airport_intelligence_fetch_runs`
+- `airport_capacity_profiles`
+
+### Annual Traffic Metrics Only
+
+Annual traffic metrics only are included in WO-038. `period_type` is constrained
+to `annual`, and `period_year` is required for every row. Monthly, quarterly,
+and rolling-period traffic are intentionally left for later design work.
+
+### Traffic Is Source-Backed Only
+
+Traffic is source-backed only. Never guess traffic values, passenger counts,
+cargo totals, movement counts, route counts, destination counts, or seat totals.
+If a trusted source does not provide the value, do not insert a metric row for
+that value.
+
+The migration enforces source-backed `ok` rows:
+
+- if `traffic_status = 'ok'`, at least one of `primary_source_link_id`,
+  `source_summary`, or `data_payload` must be present.
+- `primary_source_link_id` or `source_summary` is preferred over relying only on
+  `data_payload`.
+
+This supports the canonical rule that passenger traffic must not be displayed
+without both year and source. `period_year` and `metric_value` are `NOT NULL`,
+and the source-backed rule requires provenance for usable `ok` metrics.
+
+### Metric Fields
+
+The Stage 3 table stores typed, queryable metric fields:
+
+- `metric_type`
+- `period_type`
+- `period_year`
+- `period_start`
+- `period_end`
+- `metric_value`
+- `metric_unit`
+
+Supported annual metric types include passenger totals, domestic/international
+passengers, aircraft movements, cargo/freight/mail tonnage or kilograms,
+route/destination counts, seat totals, and `other`.
+
+`metric_value` is constrained to be non-negative. `period_year` is constrained
+from 1900 to 2200. `period_start` must be on or before `period_end` when both
+dates are present.
+
+### Source And Module Relationships
+
+`airport_traffic_metrics.airport_id` references `aviation_airports(id)`.
+`module_id` optionally references `airport_intelligence_modules(id)` and should
+point to the same airport's `traffic` module when populated. This practical
+rule is left to application/worker logic because the referenced module table is
+keyed by `id`.
+
+`primary_source_link_id` optionally references `airport_source_links(id)` and
+should identify the primary source backing the metric row. Additional source
+detail can be stored in `source_summary`.
+
+### Growth Is Computed Later
+
+Growth is computed later from multiple annual rows. WO-038 does not store
+guessed growth percentages, trend labels, or derived capability tags. API and
+frontend work can compute trends from ordered annual metrics once source-backed
+rows exist.
+
+### Freshness Fields
+
+The traffic metrics table includes module freshness timestamps:
+
+- `retrieved_at`
+- `fetched_at`
+- `stale_at`
+- `expires_at`
+- `next_refresh_at`
+
+The migration checks that `stale_at` and `expires_at` are after `fetched_at`
+when both timestamps exist.
+
+### Intentionally Not Included Until Later Stages
+
+Monthly traffic, API implementation, worker implementation, derived intelligence/capability tags, and OSM layout are intentionally not included in WO-038.
+
+Later work orders should add:
+
+- monthly traffic support, if needed after annual metrics are validated.
+- API endpoint implementation.
+- worker/fetcher implementation.
+- `airport_layout_profiles`.
+- `airport_derived_intelligence`.
+- backfill orchestration tables.
 
 ## Open Questions
 
