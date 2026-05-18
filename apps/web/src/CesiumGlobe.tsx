@@ -63,6 +63,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   cameraTarget,
   aviationFilters,
 }) => {
+
+  /**
+   * Returns the target fly-to height for an airport overview.
+   * - Stays at current height if already closer than the target (no zoom-out).
+   * - Target: 12 000 m — frames a typical airport/runway area without going to city level.
+   */
+  function airportFlyHeight(currentHeight?: number): number {
+    const TARGET = 12_000; // metres — whole airport visible, not city/state level
+    if (currentHeight !== undefined && currentHeight < TARGET) {
+      return currentHeight; // already close — don't zoom out
+    }
+    return TARGET;
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const viewerReadyRef = useRef(false);
@@ -339,7 +352,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               onObjectSelectRef.current(airport);
             }
             viewer!.camera.flyTo({
-              destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude, 500000),
+              destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude,
+                airportFlyHeight(viewer!.camera.positionCartographic.height)),
               duration: 1.0,
             });
           }
@@ -465,8 +479,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return;
       }
       console.log('[SEARCH FLYTO] flying to', latitude, longitude);
+      const currentHeight = viewer.camera.positionCartographic?.height;
+      const targetHeight = airportFlyHeight(currentHeight);
+      console.log('[SEARCH FLYTO] current height', Math.round(currentHeight ?? 0), 'final height', targetHeight);
       viewer.camera.flyTo({
-        destination: Cartesian3.fromDegrees(longitude, latitude, 500000),
+        destination: Cartesian3.fromDegrees(longitude, latitude, targetHeight),
         duration: 1.5,
       });
     };
