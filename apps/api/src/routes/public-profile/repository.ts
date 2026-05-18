@@ -60,7 +60,7 @@ function rowToResponse(row: ProfileRow): PublicProfileResponse {
 
 export async function getCachedProfile(airportId: string): Promise<PublicProfileResponse | null> {
   const rows = await query<ProfileRow>(
-    `SELECT * FROM aviation_airport_public_profiles 
+    `SELECT * FROM airport_public_profiles 
      WHERE airport_id = $1 
      AND expires_at > NOW()`,
     [airportId]
@@ -75,7 +75,7 @@ export async function getCachedProfile(airportId: string): Promise<PublicProfile
 
 export async function getStaleProfile(airportId: string): Promise<PublicProfileResponse | null> {
   const rows = await query<ProfileRow>(
-    `SELECT * FROM aviation_airport_public_profiles 
+    `SELECT * FROM airport_public_profiles 
      WHERE airport_id = $1 
      ORDER BY expires_at DESC 
      LIMIT 1`,
@@ -92,7 +92,7 @@ export async function getStaleProfile(airportId: string): Promise<PublicProfileR
 export async function markStaleAndQueueRefresh(airportId: string): Promise<void> {
   // Create a new fetch run for background refresh
   await query(
-    `INSERT INTO aviation_public_profile_fetch_runs (airport_id, status, started_at)
+    `INSERT INTO airport_public_profile_fetch_runs (airport_id, status, started_at)
      VALUES ($1, 'queued', NULL)`,
     [airportId]
   );
@@ -100,7 +100,7 @@ export async function markStaleAndQueueRefresh(airportId: string): Promise<void>
 
 export async function hasInProgressFetch(airportId: string): Promise<boolean> {
   const rows = await query<FetchRunRow>(
-    `SELECT id FROM aviation_public_profile_fetch_runs 
+    `SELECT id FROM airport_public_profile_fetch_runs 
      WHERE airport_id = $1 
      AND status IN ('queued', 'in_progress')
      AND created_at > NOW() - INTERVAL '1 hour'
@@ -114,7 +114,7 @@ export async function hasInProgressFetch(airportId: string): Promise<boolean> {
 
 export async function createFetchRun(airportId: string): Promise<string> {
   const rows = await query<FetchRunRow>(
-    `INSERT INTO aviation_public_profile_fetch_runs (airport_id, status, started_at)
+    `INSERT INTO airport_public_profile_fetch_runs (airport_id, status, started_at)
      VALUES ($1, 'in_progress', NOW())
      RETURNING id`,
     [airportId]
@@ -133,7 +133,7 @@ export async function saveProfile(
   const expiresAt = new Date(now.getTime() + ttlMs);
 
   const rows = await query<ProfileRow>(
-    `INSERT INTO aviation_airport_public_profiles (
+    `INSERT INTO airport_public_profiles (
       airport_id,
       profile_data,
       identity_source,
@@ -179,7 +179,7 @@ export async function saveNoProfileFound(airportId: string): Promise<PublicProfi
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours for negative cache
 
   const rows = await query<ProfileRow>(
-    `INSERT INTO aviation_airport_public_profiles (
+    `INSERT INTO airport_public_profiles (
       airport_id,
       profile_data,
       status,
@@ -213,7 +213,7 @@ export async function saveLowConfidenceMatch(
   const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days for low confidence
 
   const rows = await query<ProfileRow>(
-    `INSERT INTO aviation_airport_public_profiles (
+    `INSERT INTO airport_public_profiles (
       airport_id,
       profile_data,
       identity_source,
