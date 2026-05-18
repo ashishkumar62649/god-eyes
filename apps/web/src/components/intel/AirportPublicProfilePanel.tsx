@@ -52,12 +52,33 @@ const spinner: React.CSSProperties = {
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function AttributionBlock({ attribution }: { attribution: PublicProfileAttribution | null }) {
+// Error boundary — prevents a panel crash from blacking out the whole app.
+class ProfilePanelBoundary extends React.Component<
+  { children: React.ReactNode },
+  { crashed: boolean }
+> {
+  state = { crashed: false };
+  static getDerivedStateFromError() { return { crashed: true }; }
+  render() {
+    if (this.state.crashed) {
+      return <div style={{ ...dim, fontSize: '0.65rem' }}>Profile unavailable.</div>;
+    }
+    return this.props.children;
+  }
+}
+
+function AttributionBlock({ attribution }: { attribution: PublicProfileAttribution | null | undefined }) {
   if (!attribution) return null;
+  // Guard: source may be absent or non-string in partial API responses.
+  const src = typeof attribution.source === 'string' ? attribution.source.toLowerCase() : '';
+  const hasSource = src.length > 0;
   return (
     <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px', fontSize: '0.6rem', ...dim }}>
-      📋 Source: {attribution.source} · Match: {attribution.matchMethod} ({attribution.matchConfidence} confidence)
-      {attribution.source.toLowerCase().includes('wikipedia') && (
+      {hasSource && (
+        <>📋 Source: {attribution.source}{attribution.matchMethod ? ` · Match: ${attribution.matchMethod}` : ''}{attribution.matchConfidence ? ` (${attribution.matchConfidence} confidence)` : ''}</>
+      )}
+      {!hasSource && <>Source attribution unavailable</>}
+      {src.includes('wikipedia') && (
         <span>
           {' · '}Text available under{' '}
           <a
@@ -68,7 +89,7 @@ function AttributionBlock({ attribution }: { attribution: PublicProfileAttributi
           </a>
         </span>
       )}
-      {attribution.source.toLowerCase().includes('wikidata') && (
+      {src.includes('wikidata') && (
         <span>{' · '}Data from Wikidata (CC0).</span>
       )}
     </div>
@@ -254,4 +275,10 @@ const AirportPublicProfilePanel: React.FC<Props> = ({ airportId }) => {
   return <ProfileBody data={state.data} attribution={state.attribution} fetchedAt={state.fetchedAt} />;
 };
 
-export default AirportPublicProfilePanel;
+const AirportPublicProfilePanelSafe: React.FC<Props> = (props) => (
+  <ProfilePanelBoundary>
+    <AirportPublicProfilePanel {...props} />
+  </ProfilePanelBoundary>
+);
+
+export default AirportPublicProfilePanelSafe;
