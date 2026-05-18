@@ -45,7 +45,7 @@ class TestDryRunBehavior:
     def test_dry_run_does_not_connect_to_db(self):
         with patch("airport_public_profile_worker.connect_db") as mock_connect:
             with patch("airport_public_profile_worker.get_existing_profile") as mock_get:
-                with patch("airport_public_profile_worker.create_fetch_run") as mock_create:
+                with patch("airport_public_profile_worker.create_or_reuse_fetch_run") as mock_create:
                     with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
                         with patch("airport_public_profile_worker.insert_profile_version") as mock_version:
                             with patch("airport_public_profile_worker.update_fetch_run_completed") as mock_complete:
@@ -303,22 +303,24 @@ class TestFixturePersistenceSafety:
 
         with patch("airport_public_profile_worker.connect_db"):
             with patch("airport_public_profile_worker.resolve_airport_identity", return_value=identity):
-                with patch("airport_public_profile_worker.create_fetch_run") as mock_create:
+                with patch("airport_public_profile_worker.create_or_reuse_fetch_run") as mock_create:
                     with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
                         with patch("airport_public_profile_worker.insert_profile_version") as mock_version:
                             with patch("airport_public_profile_worker.update_fetch_run_completed"):
-                                run_worker(
-                                    airport_id="00000000-0000-0000-0000-000000000001",
-                                    fixture_mode=True,
-                                    allow_fixture_persistence=True,
-                                    dry_run=False,
-                                    show_raw=False,
-                                    database_url="postgresql://test:test@localhost:5432/test",
-                                )
-                                captured = capsys.readouterr()
-                                assert "Identity match confirmed" in captured.out
-                                assert "OMDB" in captured.out
-                                mock_create.assert_called()
+                                with patch("airport_public_profile_worker.update_profile_current_version"):
+                                    with patch("airport_public_profile_worker.update_profile_latest_fetch_run"):
+                                        run_worker(
+                                            airport_id="00000000-0000-0000-0000-000000000001",
+                                            fixture_mode=True,
+                                            allow_fixture_persistence=True,
+                                            dry_run=False,
+                                            show_raw=False,
+                                            database_url="postgresql://test:test@localhost:5432/test",
+                                        )
+                                        captured = capsys.readouterr()
+                                        assert "Identity match confirmed" in captured.out
+                                        assert "OMDB" in captured.out
+                                        mock_create.assert_called()
 
 
 class TestAllowedRunType:
@@ -338,7 +340,7 @@ class TestAllowedRunType:
                 }
 
                 with patch("airport_public_profile_worker.get_existing_profile", return_value=None):
-                    with patch("airport_public_profile_worker.create_fetch_run") as mock_create:
+                    with patch("airport_public_profile_worker.create_or_reuse_fetch_run") as mock_create:
                         mock_create.return_value = "test-uuid"
 
                         with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
@@ -425,6 +427,141 @@ class TestSafeJsonSerialization:
         parsed = json.loads(result)
         assert len(parsed["facts"]) == 2
         assert parsed["match"]["confidence"] == "high"
+
+
+class TestDuplicateFetchRunHandling:
+    """Test handling of duplicate/stuck in-progress fetch_runs."""
+
+    def test_existing_running_fetch_run_is_reused(self, capsys):
+        from datetime import datetime, timezone
+
+        existing_fetch_run = {
+            "id": "existing-uuid-123",
+            "profile_id": None,
+            "source_airport_id": "OA-12345",
+            "airport_ident": "OMDB",
+            "run_type": "lazy_fetch",
+            "run_status": "running",
+            "started_at": datetime.now(timezone.utc),
+            "lock_expires_at": None,
+            "error_message": None,
+        }
+
+        with patch("airport_public_profile_worker.connect_db") as mock_connect:
+            mock_conn = MagicMock()
+            mock_connect.return_value = mock_conn
+
+            with patch("airport_public_profile_worker.resolve_airport_identity") as mock_resolve:
+                mock_resolve.return_value = {
+                    "id": "00000000-0000-0000-0000-000000000001",
+                    "source_airport_id": "OA-12345",
+                    "ident": "OMDB",
+                    "iata_code": "DXB",
+                }
+
+                with patch("airport_public_profile_worker.get_existing_profile", return_value=None):
+                    with patch("airport_public_profile_worker.create_or_reuse_fetch_run") as mock_reuse:
+                        mock_reuse.return_value = "existing-uuid-123"
+
+                        with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
+                            with patch("airport_public_profile_worker.insert_profile_version"):
+                                with patch("airport_public_profile_worker.update_fetch_run_completed"):
+                                    with patch("airport_public_profile_worker.update_profile_current_version"):
+                                        with patch("airport_public_profile_worker.update_profile_latest_fetch_run"):
+                                            run_worker(
+                                                airport_id="00000000-0000-0000-0000-000000000001",
+                                                dry_run=False,
+                                                show_raw=False,
+                                                database_url="postgresql://test:test@localhost:5432/test",
+                                            )
+
+                                            mock_reuse.assert_called_once()
+                                            call_kwargs = mock_reuse.call_args.kwargs
+                                            assert call_kwargs["run_type"] == "lazy_fetch"
+                                            assert call_kwargs["run_status"] == "running"
+
+    def test_stale_fetch_run_marked_failed(self):
+        from datetime import datetime, timezone, timedelta
+        from airport_public_profile_db import mark_stale_fetch_runs_failed
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        mock_cursor.rowcount = 1
+
+        count = mark_stale_fetch_runs_failed(
+            mock_conn,
+            source_airport_id="OA-12345",
+            run_type="lazy_fetch",
+            stale_minutes=30,
+        )
+
+        assert count == 1
+        mock_conn.commit.assert_called()
+
+    def test_get_in_progress_fetch_run_finds_existing(self):
+        from airport_public_profile_db import get_in_progress_fetch_run
+        from datetime import datetime, timezone
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        mock_cursor.fetchone.return_value = {
+            "id": "existing-uuid",
+            "profile_id": None,
+            "source_airport_id": "OA-12345",
+            "airport_ident": "OMDB",
+            "run_type": "lazy_fetch",
+            "run_status": "running",
+            "started_at": datetime.now(timezone.utc),
+            "lock_expires_at": None,
+            "error_message": None,
+        }
+
+        result = get_in_progress_fetch_run(mock_conn, "OA-12345", "lazy_fetch")
+
+        assert result is not None
+        assert result["id"] == "existing-uuid"
+        assert result["run_status"] == "running"
+
+    def test_worker_continues_after_duplicate_recovery(self, capsys):
+        with patch("airport_public_profile_worker.connect_db") as mock_connect:
+            mock_conn = MagicMock()
+            mock_connect.return_value = mock_conn
+
+            with patch("airport_public_profile_worker.resolve_airport_identity") as mock_resolve:
+                mock_resolve.return_value = {
+                    "id": "00000000-0000-0000-0000-000000000001",
+                    "source_airport_id": "OA-12345",
+                    "ident": "OMDB",
+                    "iata_code": "DXB",
+                }
+
+                with patch("airport_public_profile_worker.get_existing_profile", return_value=None):
+                    with patch("airport_public_profile_worker.create_or_reuse_fetch_run") as mock_reuse:
+                        mock_reuse.return_value = "recovered-uuid"
+
+                        with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
+                            mock_upsert.return_value = {"id": "profile-uuid"}
+
+                            with patch("airport_public_profile_worker.insert_profile_version") as mock_version:
+                                mock_version.return_value = "version-uuid"
+
+                                with patch("airport_public_profile_worker.update_fetch_run_completed"):
+                                    with patch("airport_public_profile_worker.update_profile_current_version"):
+                                        with patch("airport_public_profile_worker.update_profile_latest_fetch_run"):
+                                            run_worker(
+                                                airport_id="00000000-0000-0000-0000-000000000001",
+                                                dry_run=False,
+                                                show_raw=False,
+                                                database_url="postgresql://test:test@localhost:5432/test",
+                                            )
+
+                                            captured = capsys.readouterr()
+                                            assert "Created/reused fetch_run" in captured.out
+                                            assert "Persistence complete" in captured.out
 
 
 if __name__ == "__main__":

@@ -113,6 +113,161 @@ def get_existing_profile(conn: Any, airport_id: str) -> dict[str, Any] | None:
         return dict(row) if row else None
 
 
+def get_in_progress_fetch_run(
+    conn: Any,
+    source_airport_id: str,
+    run_type: str = "lazy_fetch",
+) -> dict[str, Any] | None:
+    """Find an existing queued/running fetch_run for the same airport and run_type."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, profile_id, source_airport_id, airport_ident,
+                   run_type, run_status, started_at, lock_expires_at,
+                   error_message
+            FROM airport_public_profile_fetch_runs
+            WHERE layer_id = %s
+              AND source_id = %s
+              AND source_airport_id = %s
+              AND run_type = %s
+              AND run_status IN ('queued', 'running')
+            ORDER BY started_at DESC
+            LIMIT 1
+            """,
+            [LAYER_ID, DEFAULT_SOURCE_ID, source_airport_id, run_type]
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def mark_stale_fetch_runs_failed(
+    conn: Any,
+    source_airport_id: str,
+    run_type: str = "lazy_fetch",
+    stale_minutes: int = 30,
+) -> int:
+    """Mark stale running/queued fetch_runs as failed. Returns count of marked runs."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE airport_public_profile_fetch_runs
+            SET run_status = 'failed',
+                completed_at = NOW(),
+                error_message = 'Marked stale by new worker (stuck for > %s minutes)',
+                duration_ms = EXTRACT(MILLISECONDS FROM (NOW() - started_at))::INTEGER
+            WHERE layer_id = %s
+              AND source_id = %s
+              AND source_airport_id = %s
+              AND run_type = %s
+              AND run_status IN ('queued', 'running')
+              AND started_at < NOW() - INTERVAL '%s minutes'
+            """,
+            [stale_minutes, LAYER_ID, DEFAULT_SOURCE_ID, source_airport_id, run_type, stale_minutes]
+        )
+        conn.commit()
+        return cur.rowcount
+
+
+def create_or_reuse_fetch_run(
+    conn: Any,
+    profile_id: UUID | None,
+    source_airport_id: str,
+    airport_ident: str | None,
+    run_type: str = "lazy_fetch",
+    run_status: str = "running",
+    stale_minutes: int = 30,
+) -> UUID:
+    """Create a new fetch_run or reuse an existing in-progress one.
+
+    Strategy:
+    1. Check for existing queued/running fetch_run
+    2. If exists and is stale (> stale_minutes), mark it failed and create new
+    3. If exists and is recent, reuse it (update lock_expires_at)
+    4. If none exists, create new
+    5. If create hits UniqueViolation, recover by loading existing
+    """
+    existing = get_in_progress_fetch_run(conn, source_airport_id, run_type)
+
+    if existing:
+        started_at = existing.get("started_at")
+        is_stale = False
+
+        if started_at:
+            if isinstance(started_at, datetime):
+                age_minutes = (datetime.now(timezone.utc) - started_at).total_seconds() / 60
+                is_stale = age_minutes > stale_minutes
+            else:
+                is_stale = True
+
+        if is_stale:
+            mark_stale_fetch_runs_failed(conn, source_airport_id, run_type, stale_minutes)
+            print(f"[DB] Marked stale fetch_run {existing['id']} as failed")
+        else:
+            print(f"[DB] Reusing existing fetch_run {existing['id']} (started {started_at})")
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE airport_public_profile_fetch_runs
+                    SET run_status = 'running',
+                        lock_expires_at = NOW() + INTERVAL '5 minutes',
+                        error_message = NULL
+                    WHERE id = %s
+                    """,
+                    [existing["id"]]
+                )
+                conn.commit()
+            return existing["id"]
+
+    idempotency_key = f"{source_airport_id}_{run_type}_{datetime.now(timezone.utc).isoformat()}"
+    in_progress_key = f"{source_airport_id}_{run_type}_running"
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO airport_public_profile_fetch_runs (
+                    profile_id, layer_id, source_id, source_airport_id, airport_ident,
+                    run_type, run_status, idempotency_key, in_progress_key, started_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                RETURNING id
+                """,
+                [
+                    profile_id,
+                    LAYER_ID,
+                    DEFAULT_SOURCE_ID,
+                    source_airport_id,
+                    airport_ident,
+                    run_type,
+                    run_status,
+                    idempotency_key,
+                    in_progress_key,
+                ]
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return row["id"]
+    except Exception as e:
+        conn.rollback()
+        if "idx_airport_public_profile_fetch_runs_in_progress" in str(e) or "in_progress_key" in str(e):
+            existing = get_in_progress_fetch_run(conn, source_airport_id, run_type)
+            if existing:
+                print(f"[DB] Recovered from duplicate: reusing fetch_run {existing['id']}")
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        UPDATE airport_public_profile_fetch_runs
+                        SET run_status = 'running',
+                            lock_expires_at = NOW() + INTERVAL '5 minutes',
+                            error_message = NULL
+                        WHERE id = %s
+                        """,
+                        [existing["id"]]
+                    )
+                    conn.commit()
+                return existing["id"]
+        raise
+
+
 def create_fetch_run(
     conn: Any,
     profile_id: UUID | None,
@@ -156,9 +311,6 @@ def update_fetch_run_completed(
     fetch_run_id: UUID,
     run_status: str = "completed",
     error_message: str | None = None,
-    wikipedia_page_title: str | None = None,
-    wikipedia_revision_id: str | None = None,
-    wikidata_qid: str | None = None,
     records_examined: int = 1,
     content_changed: bool = True,
     produced_version_id: UUID | None = None,
@@ -172,9 +324,6 @@ def update_fetch_run_completed(
                 completed_at = NOW(),
                 duration_ms = EXTRACT(MILLISECONDS FROM (NOW() - started_at))::INTEGER,
                 error_message = %s,
-                wikipedia_page_title = %s,
-                wikipedia_revision_id = %s,
-                wikidata_qid = %s,
                 records_examined = %s,
                 content_changed = %s,
                 produced_version_id = %s
@@ -183,9 +332,6 @@ def update_fetch_run_completed(
             [
                 run_status,
                 error_message,
-                wikipedia_page_title,
-                wikipedia_revision_id,
-                wikidata_qid,
                 records_examined,
                 content_changed,
                 produced_version_id,
@@ -262,22 +408,14 @@ def upsert_profile(
             INSERT INTO airport_public_profiles (
                 airport_id, layer_id, source_id, source_airport_id, airport_ident,
                 profile_payload, profile_summary, source_attribution,
-                wikipedia_page_title, wikipedia_page_id, wikipedia_revision_id, wikipedia_url,
-                wikidata_qid, wikidata_url,
                 profile_status, cache_state,
                 fetched_at, stale_at, expires_at,
                 cache_key, latest_fetch_run_id
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (layer_id, source_id, source_airport_id) DO UPDATE SET
                 profile_payload = EXCLUDED.profile_payload,
                 profile_summary = EXCLUDED.profile_summary,
                 source_attribution = EXCLUDED.source_attribution,
-                wikipedia_page_title = EXCLUDED.wikipedia_page_title,
-                wikipedia_page_id = EXCLUDED.wikipedia_page_id,
-                wikipedia_revision_id = EXCLUDED.wikipedia_revision_id,
-                wikipedia_url = EXCLUDED.wikipedia_url,
-                wikidata_qid = EXCLUDED.wikidata_qid,
-                wikidata_url = EXCLUDED.wikidata_url,
                 profile_status = EXCLUDED.profile_status,
                 cache_state = EXCLUDED.cache_state,
                 fetched_at = EXCLUDED.fetched_at,
@@ -296,19 +434,13 @@ def upsert_profile(
                 safe_json_dumps(profile_payload),
                 profile_summary,
                 safe_json_dumps(source_attribution),
-                wikipedia_page_title,
-                wikipedia_page_id,
-                wikipedia_revision_id,
-                wikipedia_url,
-                wikidata_qid,
-                wikidata_url,
                 profile_status,
                 cache_state,
                 now,
                 stale_at,
                 expires_at,
                 cache_key,
-                None,  # latest_fetch_run_id set after insert
+                None,
             ]
         )
         row = cur.fetchone()
@@ -324,16 +456,29 @@ def insert_profile_version(
     profile_payload: dict[str, Any],
     profile_summary: str | None,
     source_attribution: dict[str, Any],
-    wikipedia_page_title: str | None = None,
-    wikipedia_page_id: str | None = None,
-    wikipedia_revision_id: str | None = None,
-    wikipedia_url: str | None = None,
-    wikidata_qid: str | None = None,
-    wikidata_url: str | None = None,
     content_hash: str | None = None,
 ) -> UUID:
-    """Insert a new version record in airport_public_profile_versions."""
+    """Insert a new version record in airport_public_profile_versions.
+
+    If a version with the same content_hash already exists, returns that version's ID
+    instead of creating a duplicate.
+    """
     with conn.cursor() as cur:
+        # Check if version with same content_hash already exists
+        if content_hash:
+            cur.execute(
+                """
+                SELECT id FROM airport_public_profile_versions
+                WHERE profile_id = %s AND content_hash = %s
+                LIMIT 1
+                """,
+                [profile_id, content_hash]
+            )
+            existing = cur.fetchone()
+            if existing:
+                print(f"[DB] Version with same content_hash exists: {existing['id']}")
+                return existing["id"]
+
         # Get next version number
         cur.execute(
             """
@@ -363,11 +508,9 @@ def insert_profile_version(
                 profile_id, fetch_run_id, layer_id, source_id, source_airport_id,
                 version_number, is_current, version_status,
                 profile_payload, profile_summary,
-                wikipedia_page_title, wikipedia_page_id, wikipedia_revision_id, wikipedia_url,
-                wikidata_qid, wikidata_url,
                 source_attribution, content_hash,
-                valid_from, fetched_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                created_by, valid_from, fetched_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
             RETURNING id
             """,
             [
@@ -381,15 +524,9 @@ def insert_profile_version(
                 "current",
                 safe_json_dumps(profile_payload),
                 profile_summary,
-                wikipedia_page_title,
-                wikipedia_page_id,
-                wikipedia_revision_id,
-                wikipedia_url,
-                wikidata_qid,
-                wikidata_url,
                 safe_json_dumps(source_attribution),
                 content_hash,
-                version_number,
+                "worker",
             ]
         )
         version_row = cur.fetchone()

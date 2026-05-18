@@ -60,7 +60,7 @@ from airport_public_profile_db import (
     connect_db,
     resolve_airport_identity,
     get_existing_profile,
-    create_fetch_run,
+    create_or_reuse_fetch_run,
     update_fetch_run_completed,
     get_next_queued_fetch_run,
     lock_fetch_run,
@@ -440,7 +440,7 @@ def run_worker(
             print(f"[WORKER] Creating new profile for airport: {airport_id}")
 
         if not fetch_run_uuid:
-            fetch_run_uuid = create_fetch_run(
+            fetch_run_uuid = create_or_reuse_fetch_run(
                 conn,
                 profile_id=profile_id,
                 source_airport_id=source_airport_id,
@@ -448,7 +448,7 @@ def run_worker(
                 run_type="lazy_fetch",
                 run_status="running",
             )
-            print(f"[WORKER] Created fetch_run: {fetch_run_uuid}")
+            print(f"[WORKER] Created/reused fetch_run: {fetch_run_uuid}")
 
         profile_payload = profile_to_db_payload(profile, identity)
 
@@ -460,12 +460,6 @@ def run_worker(
             profile_payload=profile_payload,
             profile_summary=profile.summary,
             source_attribution=profile.attribution or {},
-            wikipedia_page_title=profile.wikipedia_title,
-            wikipedia_page_id=str(profile.wikipedia_page_id) if profile.wikipedia_page_id else None,
-            wikipedia_revision_id=str(profile.wikipedia_revision_id) if profile.wikipedia_revision_id else None,
-            wikipedia_url=profile.wikipedia_url,
-            wikidata_qid=profile.wikidata_qid,
-            wikidata_url=f"https://www.wikidata.org/wiki/{profile.wikidata_qid}" if profile.wikidata_qid else None,
             profile_status="cached",
             cache_state="fresh",
         )
@@ -495,12 +489,6 @@ def run_worker(
             profile_payload=profile_payload,
             profile_summary=profile.summary,
             source_attribution=profile.attribution or {},
-            wikipedia_page_title=profile.wikipedia_title,
-            wikipedia_page_id=str(profile.wikipedia_page_id) if profile.wikipedia_page_id else None,
-            wikipedia_revision_id=str(profile.wikipedia_revision_id) if profile.wikipedia_revision_id else None,
-            wikipedia_url=profile.wikipedia_url,
-            wikidata_qid=profile.wikidata_qid,
-            wikidata_url=f"https://www.wikidata.org/wiki/{profile.wikidata_qid}" if profile.wikidata_qid else None,
             content_hash=content_hash,
         )
         print(f"[WORKER] Version created: {version_id}")
@@ -512,9 +500,6 @@ def run_worker(
             conn,
             fetch_run_uuid,
             run_status="completed",
-            wikipedia_page_title=profile.wikipedia_title,
-            wikipedia_revision_id=str(profile.wikipedia_revision_id) if profile.wikipedia_revision_id else None,
-            wikidata_qid=profile.wikidata_qid,
             records_examined=1,
             content_changed=True,
             produced_version_id=version_id,
