@@ -4,6 +4,7 @@ import type {
   AirportDetailResponse,
   LayerStatusResponse 
 } from '@god-eyes/contracts';
+import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const CACHE_TTL_MS = 60_000;
@@ -163,7 +164,7 @@ export async function fetchAviationPreload(
   url.searchParams.append('mode', 'preload');
   url.searchParams.append('category', category);
 
-  console.log('[AVIATION] fetchAviationPreload URL:', url.toString());
+  console.log('[AVIATION DEBUG] fetch URL:', url.toString());
 
   const response = await fetch(url.toString(), { signal: abortSignal });
   if (!response.ok) {
@@ -187,4 +188,18 @@ export async function fetchAirportDetail(
   }
 
   return response.json();
+}
+
+export async function fetchAirportPublicProfile(
+  airportId: string,
+  abortSignal?: AbortSignal,
+): Promise<AirportPublicProfileResponse> {
+  const url = `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/public-profile`;
+  const response = await fetch(url, { signal: abortSignal });
+  // The API returns a typed body even on 4xx/5xx — parse it directly.
+  // Only throw on network-level failures (response not received).
+  const body: AirportPublicProfileResponse = await response.json().catch(() => {
+    throw new Error(`Failed to fetch airport public profile: ${response.status}`);
+  });
+  return body;
 }

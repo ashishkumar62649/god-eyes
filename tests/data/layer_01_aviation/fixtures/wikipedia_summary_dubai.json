@@ -1,0 +1,31 @@
+{
+  "title": "Dubai International Airport",
+  "pageid": 4792390,
+  "revision": 1285778220,
+  "tid": "t4g82w",
+  "extract": "Dubai International Airport is the primary international airport serving Dubai, United Arab Emirates. It is located in the Al Garhoud district, 5 km east of central Dubai. It opened in 1960 and is operated by Dubai Airports. It is the busiest airport in the world by international passenger traffic and the busiest airport in the Middle East.",
+  "description": "International airport in Dubai, United Arab Emirates",
+  "thumbnail": {
+    "source": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4f/DXB_Approach.jpg/320px-DXB_Approach.jpg",
+    "width": 320,
+    "height": 213
+  },
+  "originalimage": {
+    "source": "https://upload.wikimedia.org/wikipedia/en/4/4f/DXB_Approach.jpg",
+    "width": 4000,
+    "height": 2667
+  },
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Dubai_International_Airport"
+    },
+    "mobile": {
+      "page": "https://en.m.wikipedia.org/wiki/Dubai_International_Airport"
+    }
+  },
+  "coordinates": {
+    "lat": 25.2528,
+    "lon": 55.3644
+  },
+  "Type": "standard"
+}
