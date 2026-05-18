@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -32,6 +33,39 @@ DEFAULT_DATABASE_URL = os.getenv(
 
 LAYER_ID = "layer_01_aviation"
 DEFAULT_SOURCE_ID = "airport_public_enrichment"
+
+
+def safe_json_dumps(data: Any) -> str:
+    """Serialize data to JSON, handling UUID, datetime, date, Decimal, etc.
+
+    This helper ensures all non-JSON-native Python types are converted to
+    strings before serialization, which is required for PostgreSQL JSONB fields.
+    """
+
+    def serialize_value(obj: Any) -> Any:
+        if isinstance(obj, UUID):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, datetime.__bases__[0]):  # date without datetime
+            return obj.isoformat()
+        if isinstance(obj, Decimal):
+            return str(obj)
+        if isinstance(obj, bytes):
+            return obj.decode("utf-8", errors="replace")
+        if isinstance(obj, set):
+            return list(obj)
+        if isinstance(obj, tuple):
+            return list(obj)
+        if isinstance(obj, dict):
+            return {k: serialize_value(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [serialize_value(item) for item in obj]
+        if hasattr(obj, "__dict__"):
+            return serialize_value(obj.__dict__)
+        return obj
+
+    return json.dumps(serialize_value(data))
 
 
 def connect_db(database_url: str = DEFAULT_DATABASE_URL) -> Any:
@@ -259,9 +293,9 @@ def upsert_profile(
                 DEFAULT_SOURCE_ID,
                 source_airport_id,
                 airport_ident,
-                json.dumps(profile_payload),
+                safe_json_dumps(profile_payload),
                 profile_summary,
-                json.dumps(source_attribution),
+                safe_json_dumps(source_attribution),
                 wikipedia_page_title,
                 wikipedia_page_id,
                 wikipedia_revision_id,
@@ -345,7 +379,7 @@ def insert_profile_version(
                 version_number,
                 True,
                 "current",
-                json.dumps(profile_payload),
+                safe_json_dumps(profile_payload),
                 profile_summary,
                 wikipedia_page_title,
                 wikipedia_page_id,
@@ -353,7 +387,7 @@ def insert_profile_version(
                 wikipedia_url,
                 wikidata_qid,
                 wikidata_url,
-                json.dumps(source_attribution),
+                safe_json_dumps(source_attribution),
                 content_hash,
                 version_number,
             ]
