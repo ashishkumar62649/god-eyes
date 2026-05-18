@@ -233,5 +233,131 @@ class TestMatchConfidence:
         assert profile.match.method == "fixture_dubai"
 
 
+class TestFixturePersistenceSafety:
+    """Test fixture mode persistence safety guards."""
+
+    def test_fixture_mode_non_dry_run_blocked_by_default(self, capsys):
+        run_worker(
+            airport_id="00000000-0000-0000-0000-000000000001",
+            fixture_mode=True,
+            dry_run=False,
+            show_raw=False,
+            database_url="postgresql://test:test@localhost:5432/test",
+        )
+        captured = capsys.readouterr()
+        assert "ERROR: Fixture mode cannot persist to real DB" in captured.out
+        assert "--allow-fixture-persistence" in captured.out
+
+    def test_fixture_mode_dry_run_works(self, capsys):
+        with patch("airport_public_profile_worker.connect_db"):
+            run_worker(
+                airport_id="00000000-0000-0000-0000-000000000001",
+                fixture_mode=True,
+                dry_run=True,
+                show_raw=False,
+            )
+            captured = capsys.readouterr()
+            assert "DRY-RUN: No database writes performed" in captured.out
+            assert "ERROR" not in captured.out
+
+    def test_kbdl_dubai_mismatch_prevented(self, capsys):
+        identity = {
+            "id": "5209e070-54e7-45af-a2ef-afa20905085c",
+            "source_airport_id": "OA-12345",
+            "ident": "KBDL",
+            "iata_code": "BDL",
+            "name": "Bradley International Airport",
+            "iso_country": "US",
+            "municipality": "Windsor Locks",
+            "latitude_deg": 41.9389,
+            "longitude_deg": -72.6832,
+        }
+
+        with patch("airport_public_profile_worker.connect_db"):
+            with patch("airport_public_profile_worker.resolve_airport_identity", return_value=identity):
+                run_worker(
+                    airport_id="5209e070-54e7-45af-a2ef-afa20905085c",
+                    fixture_mode=True,
+                    allow_fixture_persistence=True,
+                    dry_run=False,
+                    show_raw=False,
+                    database_url="postgresql://test:test@localhost:5432/test",
+                )
+                captured = capsys.readouterr()
+                assert "KBDL" in captured.out
+                assert "does not match fixture ICAO" in captured.out
+                assert "Dubai" in captured.out
+
+    def test_dubai_to_dubai_identity_match_allowed(self, capsys):
+        identity = {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "source_airport_id": "OA-DXB",
+            "ident": "OMDB",
+            "iata_code": "DXB",
+            "name": "Dubai International Airport",
+            "iso_country": "AE",
+            "municipality": "Dubai",
+            "latitude_deg": 25.2528,
+            "longitude_deg": 55.3644,
+        }
+
+        with patch("airport_public_profile_worker.connect_db"):
+            with patch("airport_public_profile_worker.resolve_airport_identity", return_value=identity):
+                with patch("airport_public_profile_worker.create_fetch_run") as mock_create:
+                    with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
+                        with patch("airport_public_profile_worker.insert_profile_version") as mock_version:
+                            with patch("airport_public_profile_worker.update_fetch_run_completed"):
+                                run_worker(
+                                    airport_id="00000000-0000-0000-0000-000000000001",
+                                    fixture_mode=True,
+                                    allow_fixture_persistence=True,
+                                    dry_run=False,
+                                    show_raw=False,
+                                    database_url="postgresql://test:test@localhost:5432/test",
+                                )
+                                captured = capsys.readouterr()
+                                assert "Identity match confirmed" in captured.out
+                                assert "OMDB" in captured.out
+                                mock_create.assert_called()
+
+
+class TestAllowedRunType:
+    """Test that worker uses allowed run_type values."""
+
+    def test_worker_creates_fetch_run_with_lazy_fetch_type(self):
+        with patch("airport_public_profile_worker.connect_db") as mock_connect:
+            mock_conn = MagicMock()
+            mock_connect.return_value = mock_conn
+
+            with patch("airport_public_profile_worker.resolve_airport_identity") as mock_resolve:
+                mock_resolve.return_value = {
+                    "id": "00000000-0000-0000-0000-000000000001",
+                    "source_airport_id": "OA-12345",
+                    "ident": "OMDB",
+                    "iata_code": "DXB",
+                }
+
+                with patch("airport_public_profile_worker.get_existing_profile", return_value=None):
+                    with patch("airport_public_profile_worker.create_fetch_run") as mock_create:
+                        mock_create.return_value = "test-uuid"
+
+                        with patch("airport_public_profile_worker.upsert_profile") as mock_upsert:
+                            with patch("airport_public_profile_worker.insert_profile_version"):
+                                with patch("airport_public_profile_worker.update_fetch_run_completed"):
+                                    with patch("airport_public_profile_worker.update_profile_current_version"):
+                                        with patch("airport_public_profile_worker.update_profile_latest_fetch_run"):
+                                            run_worker(
+                                                airport_id="00000000-0000-0000-0000-000000000001",
+                                                dry_run=False,
+                                                show_raw=False,
+                                                database_url="postgresql://test:test@localhost:5432/test",
+                                            )
+
+                                            mock_create.assert_called_once()
+                                            call_kwargs = mock_create.call_args.kwargs
+                                            assert call_kwargs["run_type"] == "lazy_fetch"
+                                            assert call_kwargs["run_status"] == "running"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
