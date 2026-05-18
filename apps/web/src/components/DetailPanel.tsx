@@ -2,6 +2,7 @@ import React from 'react';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import IntelSection from './intel/IntelSection';
 import AirportOverview from './intel/AirportOverview';
+import AirportPublicProfilePanel from './intel/AirportPublicProfilePanel';
 import CoordinateSourceCard from './intel/CoordinateSourceCard';
 import RunwaysSection from './intel/RunwaysSection';
 import FrequenciesSection from './intel/FrequenciesSection';
@@ -87,6 +88,10 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <IntelSection title="Overview">
                 <AirportOverview airport={selectedObject} />
+              </IntelSection>
+
+              <IntelSection title="Public Profile" collapsible defaultOpen>
+                <AirportPublicProfilePanel airportId={selectedObject.id} />
               </IntelSection>
 
               <IntelSection title="Location & Source">
