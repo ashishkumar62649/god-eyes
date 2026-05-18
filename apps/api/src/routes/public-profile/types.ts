@@ -37,10 +37,3 @@ export interface PublicProfileResponse {
   expiresAt: string | null;
   attribution: PublicProfileAttribution | null;
 }
-
-// TODO: Repository interface - to be implemented when DB migration WO-032B is merged
-export interface PublicProfileRepository {
-  getCachedProfile(airportId: string): Promise<PublicProfileResponse | null>;
-  fetchAndCacheProfile(airportId: string): Promise<PublicProfileResponse>;
-  markStaleAndQueueRefresh(airportId: string): Promise<void>;
-}

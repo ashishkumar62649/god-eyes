@@ -1,22 +1,9 @@
 // Public profile service - handles cache logic and response building
 
-import { PublicProfileResponse, PublicProfileStatus, PublicProfileRepository } from './types.js';
+import { PublicProfileResponse, PublicProfileStatus } from './types.js';
+import * as repository from './repository.js';
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-// TODO: Replace with actual repository implementation when DB migration is ready
-let repository: PublicProfileRepository | null = null;
-
-export function setPublicProfileRepository(repo: PublicProfileRepository): void {
-  repository = repo;
-}
-
-function requireRepository(): PublicProfileRepository {
-  if (!repository) {
-    throw new Error('Public profile repository not initialized. DB migration WO-032B required.');
-  }
-  return repository;
-}
 
 function isCacheStale(fetchedAt: string | null): boolean {
   if (!fetchedAt) return true;
@@ -86,10 +73,8 @@ function buildErrorResponse(message: string): PublicProfileResponse {
 
 export async function handlePublicProfile(airportId: string): Promise<PublicProfileResponse> {
   try {
-    const repo = requireRepository();
-
-    // Check cache first
-    const cached = await repo.getCachedProfile(airportId);
+    // Check fresh cache first
+    const cached = await repository.getCachedProfile(airportId);
 
     if (cached) {
       // Cache hit
@@ -104,7 +89,8 @@ export async function handlePublicProfile(airportId: string): Promise<PublicProf
       // Check if stale
       if (isCacheStale(cached.fetchedAt)) {
         // Stale cache - return stale data and queue refresh
-        await repo.markStaleAndQueueRefresh(airportId);
+        // TODO: Background refresh queue - requires fetcher integration
+        await repository.markStaleAndQueueRefresh(airportId);
         return buildStaleResponse(cached);
       }
 
@@ -112,10 +98,26 @@ export async function handlePublicProfile(airportId: string): Promise<PublicProf
       return buildOkResponse(cached);
     }
 
-    // Cache miss - start fetching
-    // TODO: Implement async fetch/queue logic
+    // Cache miss - check for stale profile
+    const stale = await repository.getStaleProfile(airportId);
+    if (stale) {
+      // Return stale and queue refresh
+      await repository.markStaleAndQueueRefresh(airportId);
+      return buildStaleResponse(stale);
+    }
+
+    // No cache at all - check for in-progress fetch
+    const hasInProgress = await repository.hasInProgressFetch(airportId);
+    if (hasInProgress) {
+      return buildFetchingResponse(airportId);
+    }
+
+    // No cache, no in-progress fetch - create fetch run and return fetching
+    // TODO: Actual fetcher integration would go here
+    await repository.createFetchRun(airportId);
     return buildFetchingResponse(airportId);
   } catch (error) {
+    console.error('Public profile error:', error);
     return buildErrorResponse('Failed to fetch airport profile');
   }
 }

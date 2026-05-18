@@ -19,13 +19,11 @@ function getStatusCode(status: PublicProfileStatus): number {
   switch (status) {
     case 'ok':
     case 'stale':
+    case 'no_profile_found':
+    case 'low_confidence_match':
       return 200;
     case 'fetching':
       return 202; // Accepted - profile is being fetched
-    case 'no_profile_found':
-      return 404;
-    case 'low_confidence_match':
-      return 200;
     case 'error':
       return 500;
     default:
