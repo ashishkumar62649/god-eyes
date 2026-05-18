@@ -1,0 +1,194 @@
+{
+  "entities": {
+    "Q44426": {
+      "type": "item",
+      "id": "Q44426",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Dubai International Airport"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "airport"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "DXB"
+          }
+        ]
+      },
+      "claims": {
+        "P239": [
+          {
+            "id": "q44426$12345678-1234-1234-1234-123456789abc",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P239",
+              "datavalue": {
+                "type": "text",
+                "value": "OMDB"
+              },
+              "datatype": "external-id"
+            },
+            "references": [
+              {
+                "hash": "abc123",
+                "snaks": {},
+                "snaks-order": []
+              }
+            ]
+          }
+        ],
+        "P238": [
+          {
+            "id": "q44426$23456789-2345-2345-2345-234567890def",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P238",
+              "datavalue": {
+                "type": "text",
+                "value": "DXB"
+              },
+              "datatype": "external-id"
+            }
+          }
+        ],
+        "P571": [
+          {
+            "id": "q44426$34567890-3456-3456-3456-345678901ghi",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P571",
+              "datavalue": {
+                "type": "time",
+                "value": {
+                  "time": "+1960-01-01T00:00:00Z",
+                  "timezone": 0,
+                  "before": 0,
+                  "after": 0,
+                  "precision": 11,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                }
+              },
+              "datatype": "time"
+            }
+          }
+        ],
+        "P137": [
+          {
+            "id": "q44426$45678901-4567-4567-4567-456789012jkl",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P137",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "id": "Q1395985",
+                  "entity-type": "item"
+                }
+              },
+              "datatype": "wikibase-item"
+            }
+          }
+        ],
+        "P127": [
+          {
+            "id": "q44426$56789012-5678-5678-5678-567890123mno",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P127",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "id": "Q1395985",
+                  "entity-type": "item"
+                }
+              },
+              "datatype": "wikibase-item"
+            }
+          }
+        ],
+        "P856": [
+          {
+            "id": "q44426$67890123-6789-6789-6789-678901234pqr",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P856",
+              "datavalue": {
+                "type": "text",
+                "value": "https://www.dubaiairports.ae"
+              },
+              "datatype": "url"
+            }
+          }
+        ],
+        "P18": [
+          {
+            "id": "q44426$78901234-7890-7890-7890-789012345stu",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P18",
+              "datavalue": {
+                "type": "text",
+                "value": "Dubai International Airport overview.jpg"
+              },
+              "datatype": "commonsMedia"
+            }
+          }
+        ],
+        "P625": [
+          {
+            "id": "q44426$89012345-8901-8901-8901-890123456vwx",
+            "type": "statement",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P625",
+              "datavalue": {
+                "type": "globecoordinate",
+                "value": {
+                  "latitude": 25.2528,
+                  "longitude": 55.3644,
+                  "precision": 0.0001,
+                  "globe": "http://www.wikidata.org/entity/Q2"
+                }
+              },
+              "datatype": "globe-coordinate"
+            }
+          }
+        ]
+      },
+      "sitelinks": {
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Dubai International Airport",
+          "url": "https://en.wikipedia.org/wiki/Dubai_International_Airport"
+        }
+      }
+    }
+  },
+  "success": 1,
+  "pageinfo": {
+    "lastrevid": 1285778220
+  }
+}
