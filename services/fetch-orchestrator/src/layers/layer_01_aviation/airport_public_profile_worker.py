@@ -34,7 +34,9 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 if str(REPO_ROOT) not in sys.path:
@@ -63,7 +65,10 @@ from airport_public_profile_db import (
     create_or_reuse_fetch_run,
     update_fetch_run_completed,
     get_next_queued_fetch_run,
-    lock_fetch_run,
+    claim_fetch_run,
+    count_pending_fetch_runs,
+    mark_fetch_run_failed,
+    resolve_airport_by_fetch_run,
     upsert_profile,
     insert_profile_version,
     update_profile_current_version,
@@ -310,7 +315,7 @@ def run_worker(
     print(f"[WORKER] MODE: {mode_label}")
 
     identity: dict[str, Any] | None = None
-    fetch_run_uuid = None
+    fetch_run_uuid = fetch_run_id
     source_airport_id = None
 
     if next_queued:
@@ -324,8 +329,8 @@ def run_worker(
             print(f"[WORKER] Found queued fetch_run: {queued['id']}")
             fetch_run_uuid = queued["id"]
             if not dry_run:
-                locked = lock_fetch_run(conn, fetch_run_uuid)
-                if not locked:
+                claimed = claim_fetch_run(conn, fetch_run_uuid)
+                if not claimed:
                     print("[WORKER] Failed to lock fetch_run, may be processed by another worker")
                     return
             source_airport_id = queued["source_airport_id"]
@@ -526,6 +531,133 @@ def run_worker(
         conn.close()
 
 
+def process_airport_profile(
+    airport_id: str,
+    identity: dict[str, Any],
+    fetch_run_id: str | None = None,
+    show_raw: bool = False,
+    dry_run: bool = False,
+    fixture_mode: bool = False,
+    allow_fixture_persistence: bool = False,
+    database_url: str | None = None,
+) -> bool:
+    """Process one airport profile using the existing manual worker path."""
+    run_worker(
+        airport_id=airport_id,
+        fetch_run_id=fetch_run_id,
+        show_raw=show_raw,
+        dry_run=dry_run,
+        fixture_mode=fixture_mode,
+        allow_fixture_persistence=allow_fixture_persistence,
+        database_url=database_url,
+    )
+    return True
+
+
+def run_queue_once(
+    database_url: str | None = None,
+    show_raw: bool = False,
+    dry_run: bool = False,
+    fixture_mode: bool = False,
+    allow_fixture_persistence: bool = False,
+) -> bool:
+    """Claim and process one queued public-profile fetch_run."""
+    db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+
+    if dry_run:
+        print("[QUEUE] dry-run requested; no database writes performed")
+        return False
+
+    conn = connect_db(db_url)
+    claimed: dict[str, Any] | None = None
+    try:
+        pending_count = count_pending_fetch_runs(conn)
+        print(f"[QUEUE] pending count: {pending_count}")
+
+        queued = get_next_queued_fetch_run(conn)
+        if not queued:
+            print("[QUEUE] idle, no queued fetch_run found")
+            return False
+
+        claimed = claim_fetch_run(conn, queued["id"])
+        if not claimed:
+            print(f"[QUEUE] fetch_run already claimed: {queued['id']}")
+            return False
+
+        print(f"[QUEUE] claimed fetch_run: {claimed['id']}")
+
+        identity = resolve_airport_by_fetch_run(conn, {**queued, **claimed})
+        if not identity:
+            message = "Airport identity not found for queued fetch_run"
+            print(f"[QUEUE] failed fetch_run: {claimed['id']} {message}")
+            mark_fetch_run_failed(conn, claimed["id"], error_message=message)
+            return True
+
+        airport_id = str(identity["id"])
+        print(f"[QUEUE] processing airport: {airport_id}")
+
+        process_airport_profile(
+            airport_id=airport_id,
+            identity=identity,
+            fetch_run_id=str(claimed["id"]),
+            show_raw=show_raw,
+            dry_run=False,
+            fixture_mode=fixture_mode,
+            allow_fixture_persistence=allow_fixture_persistence,
+            database_url=db_url,
+        )
+        print(f"[QUEUE] completed fetch_run: {claimed['id']}")
+        return True
+    except Exception as exc:
+        if claimed:
+            print(f"[QUEUE] failed fetch_run: {claimed['id']} {exc}")
+            mark_fetch_run_failed(conn, claimed["id"], error_message=str(exc))
+            return True
+        raise
+    finally:
+        conn.close()
+
+
+def run_queue_loop(
+    database_url: str | None = None,
+    watch: bool = False,
+    once: bool = False,
+    interval_seconds: int = 5,
+    limit: int | None = None,
+    show_raw: bool = False,
+    dry_run: bool = False,
+    fixture_mode: bool = False,
+    allow_fixture_persistence: bool = False,
+) -> int:
+    """Process queued jobs until limit, one-shot idle, or watch stop."""
+    processed_count = 0
+    effective_limit = 1 if once else limit
+
+    while True:
+        if effective_limit is not None and processed_count >= effective_limit:
+            break
+
+        processed = run_queue_once(
+            database_url=database_url,
+            show_raw=show_raw,
+            dry_run=dry_run,
+            fixture_mode=fixture_mode,
+            allow_fixture_persistence=allow_fixture_persistence,
+        )
+
+        if processed:
+            processed_count += 1
+            continue
+
+        if not watch:
+            break
+
+        print(f"[QUEUE] idle, sleeping: {interval_seconds}s")
+        time.sleep(interval_seconds)
+
+    return processed_count
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Airport Public Profile Worker — fetch, normalize, persist"
@@ -546,6 +678,28 @@ def main() -> None:
         "--next-queued",
         action="store_true",
         help="Process next queued fetch_run",
+    )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="Continuously poll for queued fetch_runs",
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Process exactly one queued fetch_run",
+    )
+    parser.add_argument(
+        "--interval-seconds",
+        type=int,
+        default=5,
+        help="Polling interval for --watch",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum queued fetch_runs to process",
     )
     parser.add_argument(
         "--show-raw",
@@ -574,6 +728,20 @@ def main() -> None:
         help="PostgreSQL connection URL",
     )
     args = parser.parse_args()
+
+    if args.next_queued or args.watch:
+        run_queue_loop(
+            database_url=args.database_url,
+            watch=args.watch,
+            once=args.once,
+            interval_seconds=args.interval_seconds,
+            limit=1 if args.once else args.limit,
+            show_raw=args.show_raw,
+            dry_run=args.dry_run,
+            fixture_mode=args.fixture_mode,
+            allow_fixture_persistence=args.allow_fixture_persistence,
+        )
+        return
 
     run_worker(
         airport_id=args.airport_id,

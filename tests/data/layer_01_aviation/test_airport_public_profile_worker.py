@@ -31,7 +31,10 @@ sys.path.insert(0, str(REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "
 
 from airport_public_profile_worker import (
     build_profile_from_fixtures,
+    main,
     profile_to_db_payload,
+    run_queue_loop,
+    run_queue_once,
     run_worker,
     DEFAULT_DATABASE_URL,
 )
@@ -562,6 +565,196 @@ class TestDuplicateFetchRunHandling:
                                             captured = capsys.readouterr()
                                             assert "Created/reused fetch_run" in captured.out
                                             assert "Persistence complete" in captured.out
+
+
+class TestQueueDbHelpers:
+    """Test queue helper SQL behavior."""
+
+    def test_get_next_queued_fetch_run_returns_oldest_queued_job(self):
+        from airport_public_profile_db import get_next_queued_fetch_run
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        mock_cursor.fetchone.return_value = {
+            "id": "queued-oldest",
+            "source_airport_id": "OA-1",
+            "run_status": "queued",
+        }
+
+        result = get_next_queued_fetch_run(mock_conn)
+
+        assert result["id"] == "queued-oldest"
+        sql = mock_cursor.execute.call_args.args[0].lower()
+        assert "run_status in ('queued', 'running')" in sql
+        assert "lock_expires_at is null" in sql
+        assert "order by" in sql
+        assert "started_at asc" in sql
+
+    def test_claim_fetch_run_changes_queued_to_running(self):
+        from airport_public_profile_db import claim_fetch_run
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        mock_cursor.fetchone.return_value = {"id": "run-1", "run_status": "running"}
+
+        result = claim_fetch_run(mock_conn, "run-1")
+
+        assert result["id"] == "run-1"
+        sql = mock_cursor.execute.call_args.args[0].lower()
+        assert "set run_status = 'running'" in sql
+        assert "where id = %s" in sql
+        assert "run_status in ('queued', 'running')" in sql
+        assert "lock_expires_at is null" in sql
+        assert "returning" in sql
+        mock_conn.commit.assert_called()
+
+    def test_two_workers_cannot_claim_same_job(self):
+        from airport_public_profile_db import claim_fetch_run
+
+        mock_conn = MagicMock()
+        first_cursor = MagicMock()
+        second_cursor = MagicMock()
+        first_cursor.fetchone.return_value = {"id": "run-1", "run_status": "running"}
+        second_cursor.fetchone.return_value = None
+        mock_conn.cursor.return_value.__enter__.side_effect = [first_cursor, second_cursor]
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        first = claim_fetch_run(mock_conn, "run-1")
+        second = claim_fetch_run(mock_conn, "run-1")
+
+        assert first is not None
+        assert second is None
+
+
+class TestQueueWorkerModes:
+    """Test automatic queue processing modes."""
+
+    def test_next_queued_processes_one_job(self, capsys):
+        queued = {"id": "run-1", "source_airport_id": "OA-1", "airport_ident": "OMDB"}
+        identity = {
+            "id": "airport-1",
+            "source_airport_id": "OA-1",
+            "ident": "OMDB",
+            "iata_code": "DXB",
+        }
+
+        with patch("airport_public_profile_worker.connect_db", return_value=MagicMock()):
+            with patch("airport_public_profile_worker.count_pending_fetch_runs", return_value=1):
+                with patch("airport_public_profile_worker.get_next_queued_fetch_run", return_value=queued):
+                    with patch("airport_public_profile_worker.claim_fetch_run", return_value={**queued, "run_status": "running"}):
+                        with patch("airport_public_profile_worker.resolve_airport_by_fetch_run", return_value=identity):
+                            with patch("airport_public_profile_worker.process_airport_profile", return_value=True) as mock_process:
+                                processed = run_queue_once(
+                                    database_url="postgresql://test:test@localhost:5432/test",
+                                    fixture_mode=True,
+                                    allow_fixture_persistence=True,
+                                )
+
+        captured = capsys.readouterr()
+        assert processed is True
+        assert "[QUEUE] pending count: 1" in captured.out
+        assert "[QUEUE] claimed fetch_run: run-1" in captured.out
+        assert "[QUEUE] processing airport: airport-1" in captured.out
+        mock_process.assert_called_once()
+
+    def test_limit_processes_multiple_jobs(self):
+        with patch("airport_public_profile_worker.run_queue_once", side_effect=[True, True, False]) as mock_once:
+            processed = run_queue_loop(
+                database_url="postgresql://test:test@localhost:5432/test",
+                limit=10,
+                watch=False,
+            )
+
+        assert processed == 2
+        assert mock_once.call_count == 3
+
+    def test_failed_job_is_marked_failed(self):
+        queued = {"id": "run-1", "source_airport_id": "OA-1", "airport_ident": "OMDB"}
+        identity = {
+            "id": "airport-1",
+            "source_airport_id": "OA-1",
+            "ident": "OMDB",
+            "iata_code": "DXB",
+        }
+        mock_conn = MagicMock()
+
+        with patch("airport_public_profile_worker.connect_db", return_value=mock_conn):
+            with patch("airport_public_profile_worker.count_pending_fetch_runs", return_value=1):
+                with patch("airport_public_profile_worker.get_next_queued_fetch_run", return_value=queued):
+                    with patch("airport_public_profile_worker.claim_fetch_run", return_value={**queued, "run_status": "running"}):
+                        with patch("airport_public_profile_worker.resolve_airport_by_fetch_run", return_value=identity):
+                            with patch("airport_public_profile_worker.process_airport_profile", side_effect=RuntimeError("boom")):
+                                with patch("airport_public_profile_worker.mark_fetch_run_failed") as mock_failed:
+                                    processed = run_queue_once(
+                                        database_url="postgresql://test:test@localhost:5432/test",
+                                        fixture_mode=True,
+                                        allow_fixture_persistence=True,
+                                    )
+
+        assert processed is True
+        mock_failed.assert_called_once()
+        assert mock_failed.call_args.args[1] == "run-1"
+        assert "boom" in mock_failed.call_args.kwargs["error_message"]
+
+    def test_successful_job_is_marked_completed_by_process_airport_profile(self):
+        queued = {"id": "run-1", "source_airport_id": "OA-1", "airport_ident": "OMDB"}
+        identity = {
+            "id": "airport-1",
+            "source_airport_id": "OA-1",
+            "ident": "OMDB",
+            "iata_code": "DXB",
+        }
+
+        with patch("airport_public_profile_worker.connect_db", return_value=MagicMock()):
+            with patch("airport_public_profile_worker.count_pending_fetch_runs", return_value=1):
+                with patch("airport_public_profile_worker.get_next_queued_fetch_run", return_value=queued):
+                    with patch("airport_public_profile_worker.claim_fetch_run", return_value={**queued, "run_status": "running"}):
+                        with patch("airport_public_profile_worker.resolve_airport_by_fetch_run", return_value=identity):
+                            with patch("airport_public_profile_worker.process_airport_profile", return_value=True) as mock_process:
+                                run_queue_once(
+                                    database_url="postgresql://test:test@localhost:5432/test",
+                                    fixture_mode=True,
+                                    allow_fixture_persistence=True,
+                                )
+
+        assert mock_process.call_args.kwargs["fetch_run_id"] == "run-1"
+
+    def test_cli_next_queued_once_flags(self):
+        argv = [
+            "airport_public_profile_worker.py",
+            "--next-queued",
+            "--once",
+            "--database-url",
+            "postgresql://test:test@localhost:5432/test",
+        ]
+
+        with patch.object(sys, "argv", argv):
+            with patch("airport_public_profile_worker.run_queue_loop", return_value=1) as mock_loop:
+                main()
+
+        assert mock_loop.call_args.kwargs["limit"] == 1
+        assert mock_loop.call_args.kwargs["watch"] is False
+
+    def test_cli_watch_interval_flags(self):
+        argv = [
+            "airport_public_profile_worker.py",
+            "--watch",
+            "--interval-seconds",
+            "5",
+            "--database-url",
+            "postgresql://test:test@localhost:5432/test",
+        ]
+
+        with patch.object(sys, "argv", argv):
+            with patch("airport_public_profile_worker.run_queue_loop", return_value=0) as mock_loop:
+                main()
+
+        assert mock_loop.call_args.kwargs["watch"] is True
+        assert mock_loop.call_args.kwargs["interval_seconds"] == 5
 
 
 if __name__ == "__main__":
