@@ -342,17 +342,17 @@ def update_fetch_run_completed(
 
 
 def get_next_queued_fetch_run(conn: Any) -> dict[str, Any] | None:
-    """Get the next queued fetch_run to process."""
+    """Get the oldest queued or unclaimed running fetch_run to process."""
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT fr.id, fr.profile_id, fr.source_airport_id, fr.airport_ident,
+            SELECT fr.id, fr.profile_id, fr.source_id, fr.source_airport_id, fr.airport_ident,
                    fr.run_type, fr.run_status, fr.started_at,
                    p.airport_id
             FROM airport_public_profile_fetch_runs fr
             LEFT JOIN airport_public_profiles p ON fr.profile_id = p.id
             WHERE fr.run_status IN ('queued', 'running')
-            AND (fr.lock_expires_at IS NULL OR fr.lock_expires_at < NOW())
+              AND (fr.lock_expires_at IS NULL OR fr.lock_expires_at < NOW())
             ORDER BY fr.started_at ASC
             LIMIT 1
             """
@@ -361,20 +361,129 @@ def get_next_queued_fetch_run(conn: Any) -> dict[str, Any] | None:
         return dict(row) if row else None
 
 
-def lock_fetch_run(conn: Any, fetch_run_id: UUID) -> bool:
-    """Lock a fetch_run to prevent concurrent processing."""
+def claim_fetch_run(conn: Any, fetch_run_id: UUID | str) -> dict[str, Any] | None:
+    """Atomically claim a queued fetch_run for this worker."""
     with conn.cursor() as cur:
         cur.execute(
             """
             UPDATE airport_public_profile_fetch_runs
             SET run_status = 'running',
                 lock_expires_at = NOW() + INTERVAL '5 minutes'
-            WHERE id = %s AND run_status IN ('queued', 'running')
+            WHERE id = %s
+              AND run_status IN ('queued', 'running')
+              AND (lock_expires_at IS NULL OR lock_expires_at < NOW())
+            RETURNING id, profile_id, source_id, source_airport_id, airport_ident,
+                      run_type, run_status, started_at, lock_expires_at
             """,
             [fetch_run_id]
         )
+        row = cur.fetchone()
         conn.commit()
-        return cur.rowcount > 0
+        return dict(row) if row else None
+
+
+def lock_fetch_run(conn: Any, fetch_run_id: UUID | str) -> bool:
+    """Backward-compatible lock helper for older worker path."""
+    return claim_fetch_run(conn, fetch_run_id) is not None
+
+
+def resolve_airport_by_fetch_run(
+    conn: Any,
+    fetch_run: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Resolve aviation_airports identity for a queued public-profile fetch_run."""
+    airport_id = fetch_run.get("airport_id")
+    source_airport_id = fetch_run.get("source_airport_id")
+
+    with conn.cursor() as cur:
+        if airport_id:
+            cur.execute(
+                """
+                SELECT id, source_id, source_airport_id, ident, iata_code,
+                       name, iso_country, municipality, latitude_deg, longitude_deg,
+                       wikipedia_link
+                FROM aviation_airports
+                WHERE id = %s
+                LIMIT 1
+                """,
+                [airport_id],
+            )
+            row = cur.fetchone()
+            if row:
+                return dict(row)
+
+        if not source_airport_id:
+            return None
+
+        cur.execute(
+            """
+            SELECT id, source_id, source_airport_id, ident, iata_code,
+                   name, iso_country, municipality, latitude_deg, longitude_deg,
+                   wikipedia_link
+            FROM aviation_airports
+            WHERE source_airport_id = %s
+            ORDER BY source_id, ident
+            LIMIT 1
+            """,
+            [source_airport_id],
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def mark_fetch_run_running(conn: Any, fetch_run_id: UUID | str) -> dict[str, Any] | None:
+    """Compatibility wrapper for claim_fetch_run."""
+    return claim_fetch_run(conn, fetch_run_id)
+
+
+def mark_fetch_run_completed(
+    conn: Any,
+    fetch_run_id: UUID | str,
+    produced_version_id: UUID | str | None = None,
+    records_examined: int = 1,
+    content_changed: bool = True,
+) -> None:
+    """Mark a fetch_run completed."""
+    update_fetch_run_completed(
+        conn,
+        fetch_run_id,
+        run_status="completed",
+        records_examined=records_examined,
+        content_changed=content_changed,
+        produced_version_id=produced_version_id,
+    )
+
+
+def mark_fetch_run_failed(
+    conn: Any,
+    fetch_run_id: UUID | str,
+    error_message: str,
+    records_examined: int = 0,
+) -> None:
+    """Mark a fetch_run failed with a sanitized error message."""
+    update_fetch_run_completed(
+        conn,
+        fetch_run_id,
+        run_status="failed",
+        error_message=error_message,
+        records_examined=records_examined,
+        content_changed=False,
+    )
+
+
+def count_pending_fetch_runs(conn: Any) -> int:
+    """Count queued or unclaimed running public-profile fetch runs."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS pending_count
+            FROM airport_public_profile_fetch_runs
+            WHERE run_status IN ('queued', 'running')
+              AND (lock_expires_at IS NULL OR lock_expires_at < NOW())
+            """
+        )
+        row = cur.fetchone()
+        return int(row["pending_count"] if row else 0)
 
 
 def upsert_profile(
