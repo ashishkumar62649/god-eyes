@@ -291,9 +291,20 @@ def run_worker(
     show_raw: bool = False,
     dry_run: bool = False,
     fixture_mode: bool = False,
+    allow_fixture_persistence: bool = False,
     database_url: str | None = None,
 ) -> None:
     db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+
+    if fixture_mode and not dry_run and not allow_fixture_persistence:
+        print("[WORKER] ERROR: Fixture mode cannot persist to real DB unless --allow-fixture-persistence is provided.")
+        print("[WORKER] This prevents accidental fixture data (e.g., Dubai) from overwriting real airports (e.g., KBDL).")
+        print("[WORKER] Use --dry-run for fixture debugging without DB writes.")
+        return
+
+    if fixture_mode and allow_fixture_persistence and not dry_run:
+        print("[WORKER] WARNING: Fixture persistence enabled - this is dangerous!")
+        print("[WORKER] Ensure fixture ICAO/IATA matches target airport identity.")
 
     mode_label = "fixture-backed dry-run" if (dry_run and fixture_mode) else "live dry-run" if dry_run else "live persistence"
     print(f"[WORKER] MODE: {mode_label}")
@@ -366,6 +377,19 @@ def run_worker(
     iata_code = identity.get("iata_code") if identity else DEFAULT_IATA_CODE
 
     if fixture_mode or dry_run:
+        if fixture_mode and allow_fixture_persistence and identity:
+            target_icao = identity.get("ident")
+            target_iata = identity.get("iata_code")
+            if target_icao and target_icao.upper() != DEFAULT_ICAO_CODE.upper():
+                print(f"[WORKER] ERROR: Target airport ICAO ({target_icao}) does not match fixture ICAO ({DEFAULT_ICAO_CODE})")
+                print(f"[WORKER] Refusing to persist Dubai fixture data to {target_icao} profile")
+                return
+            if target_iata and target_iata.upper() != DEFAULT_IATA_CODE.upper():
+                print(f"[WORKER] ERROR: Target airport IATA ({target_iata}) does not match fixture IATA ({DEFAULT_IATA_CODE})")
+                print(f"[WORKER] Refusing to persist Dubai fixture data to {target_iata} profile")
+                return
+            print(f"[WORKER] Identity match confirmed: {target_icao}/{target_iata} matches fixture")
+
         wiki_data = load_fixture_wikipedia()
         wikidata_raw = load_fixture_wikidata()
         if show_raw or dry_run:
@@ -421,7 +445,7 @@ def run_worker(
                 profile_id=profile_id,
                 source_airport_id=source_airport_id,
                 airport_ident=icao_code,
-                run_type="worker_fetch",
+                run_type="lazy_fetch",
                 run_status="running",
             )
             print(f"[WORKER] Created fetch_run: {fetch_run_uuid}")
@@ -554,6 +578,11 @@ def main() -> None:
         help="Use fixture data (for testing, no network calls)",
     )
     parser.add_argument(
+        "--allow-fixture-persistence",
+        action="store_true",
+        help="Allow fixture mode to persist to real DB (DANGEROUS, requires identity match)",
+    )
+    parser.add_argument(
         "--database-url",
         type=str,
         default=None,
@@ -568,6 +597,7 @@ def main() -> None:
         show_raw=args.show_raw,
         dry_run=args.dry_run,
         fixture_mode=args.fixture_mode,
+        allow_fixture_persistence=args.allow_fixture_persistence,
         database_url=args.database_url,
     )
 
