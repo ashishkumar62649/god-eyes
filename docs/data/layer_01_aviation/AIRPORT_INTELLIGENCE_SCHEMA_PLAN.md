@@ -810,10 +810,10 @@ or cancelled history.
 capacity, traffic, layout, derived intelligence, and backfill tables are intentionally not included in WO-036.
 
 WO-037 adds `airport_capacity_profiles`. WO-038 adds
-`airport_traffic_metrics`. Later work orders should add:
+`airport_traffic_metrics`. WO-039 adds `airport_derived_intelligence`. Later
+work orders should add:
 
 - `airport_layout_profiles`
-- `airport_derived_intelligence`
 - `airport_backfill_runs`
 - `airport_backfill_run_items`
 
@@ -1042,8 +1042,137 @@ Later work orders should add:
 - API endpoint implementation.
 - worker/fetcher implementation.
 - `airport_layout_profiles`.
-- `airport_derived_intelligence`.
 - backfill orchestration tables.
+
+## WO-039 Stage 4 Implementation Notes
+
+WO-039 implements only the current derived intelligence profile table from the
+canonical WO-035 design. The migration file is:
+
+`database/migrations/layers/layer_01_aviation/009_airport_derived_intelligence.sql`
+
+Stage 4 creates:
+
+- `airport_derived_intelligence`: one current derived intelligence profile per
+  airport.
+
+Stage 4 does not change:
+
+- `aviation_airports`
+- `airport_public_profiles`
+- `airport_public_profile_versions`
+- `airport_public_profile_fetch_runs`
+- `airport_intelligence_modules`
+- `airport_source_links`
+- `airport_intelligence_fetch_runs`
+- `airport_capacity_profiles`
+- `airport_traffic_metrics`
+
+### Derived Intelligence Purpose
+
+This table stores derived/computed intelligence, not raw fetched facts. It is a
+cache for labels, filterable tags, summaries, and lightweight numeric rollups
+computed later from source-backed airport, capacity, traffic, and runway data.
+
+WO-039 does not compute actual values. Capability tags are generated later by worker/API logic.
+
+### Core Labels
+
+The table stores current derived labels:
+
+- `airport_class`
+- `traffic_scale`
+- `capacity_scale`
+- `runway_capability`
+- `operating_role`
+
+These labels are constrained to canonical vocabularies so future API and
+frontend filters can rely on stable values.
+
+### Expected Capability Tags
+
+The migration intentionally does not enforce a full tag vocabulary because tags
+will evolve with capability rules. Expected tags include:
+
+- `international`
+- `domestic`
+- `scheduled_service`
+- `jet_capable`
+- `large_aircraft_capable`
+- `long_runway`
+- `multiple_runways`
+- `cargo_capable`
+- `high_traffic`
+- `capacity_known`
+- `traffic_known`
+- `profile_verified`
+- `low_confidence`
+- `source_limited`
+- `heliport`
+- `seaplane`
+- `closed`
+
+Tags are stored in `TEXT[]` fields with GIN indexes:
+
+- `capability_tags`
+- `risk_flags`
+- `source_flags`
+
+### Source-Backed/Derived-Backed Rule
+
+The migration includes a source-backed/derived-backed rule for usable derived
+profiles. If `intelligence_status = 'ok'`, at least one of these must be
+present:
+
+- `input_snapshot`
+- `source_summary`
+- `data_payload`
+- `capacity_profile_id`
+- `latest_passenger_value`
+- `longest_runway_ft`
+- non-empty `capability_tags`
+
+This prevents an empty derived profile from being marked usable before worker
+logic has generated evidence-backed output.
+
+The migration also constrains `low_confidence` rows so `confidence_score` is
+either null or below `0.5`.
+
+### Relationships
+
+`airport_derived_intelligence.airport_id` references `aviation_airports(id)`.
+`module_id` optionally references `airport_intelligence_modules(id)` and should
+point to the same airport's derived intelligence module when populated.
+
+`capacity_profile_id` optionally references `airport_capacity_profiles(id)`.
+Traffic input is represented through rollup fields and `input_snapshot`; a
+direct traffic metric FK is intentionally omitted because derived profiles may
+depend on multiple annual metric rows.
+
+### Freshness Fields
+
+The derived intelligence table includes freshness and version fields:
+
+- `source_hash`
+- `generated_at`
+- `stale_at`
+- `expires_at`
+- `next_refresh_at`
+
+The migration checks that `stale_at` and `expires_at` are after `generated_at`
+when both timestamps exist.
+
+### Intentionally Not Included Until Later Stages
+
+API implementation, worker implementation, frontend implementation, OSM layout, backfill, monthly traffic, and actual computation logic are intentionally not included in WO-039.
+
+Later work orders should add:
+
+- worker-side derivation rules.
+- API endpoint composition.
+- frontend display and filtering.
+- `airport_layout_profiles`.
+- backfill orchestration.
 
 ## Open Questions
 
