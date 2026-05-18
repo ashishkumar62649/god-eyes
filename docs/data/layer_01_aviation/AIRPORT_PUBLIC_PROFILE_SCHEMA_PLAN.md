@@ -147,7 +147,7 @@ append-only versions, and fetch-run auditability.
 - `wikidata_url`
 - `source_urls`
 - `source_attribution`
-- `source_metadata`
+- `raw_source_metadata`
 - `content_hash`
 - `source_content_hash`
 - `change_summary`
@@ -426,7 +426,7 @@ This table answers:
 | `wikidata_url` | `TEXT` | yes | Wikidata entity URL. |
 | `source_urls` | `JSONB` | no | URLs used to produce this version. Default `[]`. |
 | `source_attribution` | `JSONB` | no | Terms/license/citation snapshot. Default `{}`. |
-| `source_metadata` | `JSONB` | no | Sanitized source metadata and compact extracted public fields. Default `{}`. |
+| `raw_source_metadata` | `JSONB` | no | Sanitized source metadata and compact extracted public fields. Default `{}`. |
 | `content_hash` | `TEXT` | no | Hash of `profile_payload`. |
 | `source_content_hash` | `TEXT` | yes | Hash of source content inputs. |
 | `diff_from_previous` | `JSONB` | no | Structured diff from prior version. Default `{}`. |
@@ -694,12 +694,37 @@ normalized source data.
 - Should profile payload JSONB eventually be split into typed relational
   subtables after API usage stabilizes?
 
+## WO-032B Implementation Notes
+
+- Migration file path:
+  `database/migrations/layers/layer_01_aviation/005_airport_public_profile_cache.sql`
+- Tables created: `airport_public_profiles`,
+  `airport_public_profile_versions`,
+  `airport_public_profile_fetch_runs`.
+- V1 fields included: source identity, optional `airport_id` FK,
+  profile/cache state, 30-day TTL via `cache_ttl_seconds = 2592000`,
+  `stale_at`, `expires_at`, refresh scheduling, current profile JSONB,
+  source URLs, source attribution, content hashes, append-only version fields,
+  raw source metadata, review fields, and fetch-run audit/dedup fields.
+- Future AI fields intentionally excluded from the v1 migration.
+- Tests/checks run:
+  `python -m pytest tests/data/layer_01_aviation/test_airport_public_profile_cache_migration.py -q`
+  passed with 7 tests.
+- Migration apply check:
+  `Get-Content database/migrations/core/*.sql, database/migrations/layers/layer_01_aviation/*.sql | docker exec -i god-eyes-postgis psql -v ON_ERROR_STOP=1 -U god_eyes -d god_eyes_dev`
+  completed successfully against local Docker PostGIS.
+- Broader checks: `pnpm --filter @god-eyes/contracts build`,
+  `pnpm --filter api build`, `python -m pytest tests/data/layer_01_aviation -q`,
+  and `git diff --check` completed successfully. `git diff --check` reported
+  only the existing Windows line-ending warning for this Markdown file.
+
 ## Review Readiness
 
 - Proposed tables: `airport_public_profiles`,
   `airport_public_profile_versions`,
   `airport_public_profile_fetch_runs`.
-- Migrations created: no.
-- Database migration folders modified: no.
-- Intended reviewer: Kiro/database integration review before any migration
-  implementation.
+- Migration created: yes,
+  `database/migrations/layers/layer_01_aviation/005_airport_public_profile_cache.sql`.
+- Future AI columns included in v1 migration: no.
+- Intended reviewer: Kiro/database integration review before API, frontend, or
+  fetcher implementation.
