@@ -359,5 +359,73 @@ class TestAllowedRunType:
                                             assert call_kwargs["run_status"] == "running"
 
 
+class TestSafeJsonSerialization:
+    """Test safe JSON serialization for UUID and other non-JSON-native types."""
+
+    def test_safe_json_dumps_handles_uuid(self):
+        from airport_public_profile_db import safe_json_dumps
+        from uuid import UUID
+
+        data = {
+            "id": UUID("12345678-1234-5678-1234-567812345678"),
+            "name": "Test Airport",
+        }
+        result = safe_json_dumps(data)
+        parsed = json.loads(result)
+        assert parsed["id"] == "12345678-1234-5678-1234-567812345678"
+        assert parsed["name"] == "Test Airport"
+
+    def test_safe_json_dumps_handles_datetime(self):
+        from airport_public_profile_db import safe_json_dumps
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        data = {
+            "fetched_at": now,
+            "expires_at": now,
+        }
+        result = safe_json_dumps(data)
+        parsed = json.loads(result)
+        assert "fetched_at" in parsed
+        assert "expires_at" in parsed
+
+    def test_safe_json_dumps_handles_nested_uuid(self):
+        from airport_public_profile_db import safe_json_dumps
+        from uuid import UUID
+
+        data = {
+            "profile": {
+                "id": UUID("12345678-1234-5678-1234-567812345678"),
+                "location": {
+                    "airport_id": UUID("87654321-4321-8765-4321-876543218765"),
+                },
+            },
+        }
+        result = safe_json_dumps(data)
+        parsed = json.loads(result)
+        assert parsed["profile"]["id"] == "12345678-1234-5678-1234-567812345678"
+        assert parsed["profile"]["location"]["airport_id"] == "87654321-4321-8765-4321-876543218765"
+
+    def test_safe_json_dumps_handles_list_of_dicts_with_uuid(self):
+        from airport_public_profile_db import safe_json_dumps
+        from uuid import UUID
+
+        data = {
+            "facts": [
+                {"fact": "Opened in 1960", "source": "wikidata", "property_id": "P571"},
+                {"fact": "Operated by Dubai Airports", "source": "wikidata", "property_id": "P137"},
+            ],
+            "match": {
+                "method": "fixture_dubai",
+                "confidence": "high",
+                "wikidata_qid": "Q44426",
+            },
+        }
+        result = safe_json_dumps(data)
+        parsed = json.loads(result)
+        assert len(parsed["facts"]) == 2
+        assert parsed["match"]["confidence"] == "high"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
