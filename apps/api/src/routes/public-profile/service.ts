@@ -73,6 +73,13 @@ function buildErrorResponse(message: string): PublicProfileResponse {
 
 export async function handlePublicProfile(airportId: string): Promise<PublicProfileResponse> {
   try {
+    // First resolve airport identity - airportId must exist in aviation_airports
+    const identity = await repository.resolveAirportIdentity(airportId);
+    if (!identity) {
+      // Airport doesn't exist in our database
+      return buildNoProfileFoundResponse();
+    }
+
     // Check fresh cache first
     const cached = await repository.getCachedProfile(airportId);
 
@@ -89,7 +96,6 @@ export async function handlePublicProfile(airportId: string): Promise<PublicProf
       // Check if stale
       if (isCacheStale(cached.fetchedAt)) {
         // Stale cache - return stale data and queue refresh
-        // TODO: Background refresh queue - requires fetcher integration
         await repository.markStaleAndQueueRefresh(airportId);
         return buildStaleResponse(cached);
       }
