@@ -4,6 +4,7 @@ import { config } from './lib/config.js';
 import { healthRoutes } from './routes/health.js';
 import { layerRoutes } from './routes/layers.js';
 import { objectRoutes } from './routes/objects.js';
+import { publicProfileRoutes } from './routes/public-profile/index.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -22,6 +23,7 @@ async function start() {
     await fastify.register(healthRoutes);
     await fastify.register(layerRoutes);
     await fastify.register(objectRoutes);
+    await fastify.register(publicProfileRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {

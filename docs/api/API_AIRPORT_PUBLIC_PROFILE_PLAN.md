@@ -101,3 +101,35 @@ When cache is stale:
 `POST /api/airports/:airportId/public-profile/refresh`
 - May trigger immediate profile refresh
 - Returns 202 Accepted on success
+
+## WO-032C Implementation Notes
+
+### Implementation Date
+2026-05-18
+
+### Database Tables
+- `aviation_airport_public_profiles` - stores cached profile data
+- `aviation_public_profile_fetch_runs` - tracks fetch operations
+
+### Repository Layer
+- Located at: `apps/api/src/routes/public-profile/repository.ts`
+- Uses existing `query<T>()` pattern from `apps/api/src/lib/db.ts`
+- Supports: getCachedProfile, getStaleProfile, markStaleAndQueueRefresh, hasInProgressFetch, createFetchRun, saveProfile, saveNoProfileFound, saveLowConfidenceMatch
+
+### Service Layer
+- Located at: `apps/api/src/routes/public-profile/service.ts`
+- Implements cache logic with 30-day TTL
+- Stale-while-revalidate pattern
+- Returns `fetching` status when no cache exists and creates fetch run
+
+### Fetcher Integration
+- Not yet implemented in this WO
+- Fetch runs are created and tracked in DB
+- Actual Wikipedia/Wikidata fetching requires separate fetcher service
+- TODO markers indicate where fetcher integration should occur
+
+### Tests
+- Located at: `apps/api/tests/public-profile.test.ts`
+- 8 tests covering all response statuses
+- Uses vi.mock() for repository functions
+- All tests pass
