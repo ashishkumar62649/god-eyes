@@ -55,20 +55,20 @@ class TestParseWikipediaSummaryResponse:
         result = parse_wikipedia_summary_response(raw)
         assert isinstance(result, WikipediaSummaryResponse)
         assert result.title == "Dubai International Airport"
-        assert result.page_id == 4792390
-        assert result.revision_id == 1285778220
+        assert result.page_id == 154742
+        assert result.revision_id == 1354800236
         assert "primary international airport" in result.extract
-        assert result.description == "International airport in Dubai, United Arab Emirates"
+        assert result.description == "Major international airport in Dubai, United Arab Emirates"
         assert result.thumbnail_url is not None
         assert "upload.wikimedia.org" in result.thumbnail_url
         assert result.content_url == "https://en.wikipedia.org/wiki/Dubai_International_Airport"
-        assert result.tid == "t4g82w"
+        assert result.tid == "2506bfe5-5295-11f1-9adb-dc0725409e35"
 
     def test_parses_string_input(self):
         raw_str = WIKIPEDIA_DUBAI_FIXTURE.read_text(encoding="utf-8")
         result = parse_wikipedia_summary_response(raw_str)
         assert result.title == "Dubai International Airport"
-        assert result.page_id == 4792390
+        assert result.page_id == 154742
 
     def test_handles_missing_optional_fields(self):
         minimal_json = b'{"title":"Test","pageid":1,"extract":"Summary text."}'
@@ -188,7 +188,7 @@ class TestNormalizeAirportPublicProfile:
         assert result.wikidata_qid == "Q44426"
         assert result.summary is not None
         assert "primary international airport" in result.summary
-        assert result.short_description == "International airport in Dubai, United Arab Emirates"
+        assert result.short_description == "Major international airport in Dubai, United Arab Emirates"
         assert result.opened_date == "1960-01-01T00:00:00Z"
         assert result.operator == "Q1395985"
         assert result.official_website == "https://www.dubaiairports.ae"
@@ -284,7 +284,7 @@ class TestBuildSourceAttribution:
         assert "wikipedia" in result
         assert result["wikipedia"]["title"] == "Dubai International Airport"
         assert result["wikipedia"]["license"] == "CC BY-SA 4.0"
-        assert result["wikipedia"]["revision_id"] == 1285778220
+        assert result["wikipedia"]["revision_id"] == 1354800236
         assert "wikidata" not in result
 
     def test_builds_both_wikipedia_and_wikidata_attribution(self):
