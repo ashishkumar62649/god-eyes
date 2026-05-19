@@ -48,7 +48,8 @@ const typeColors: Record<string, string> = {
   CLEARANCE: '#c084fc',
 };
 
-function getTypeColor(type: string): string {
+function getTypeColor(type: string | null | undefined): string {
+  if (!type) return 'var(--shell-text-bright)';
   const t = type.toUpperCase();
   for (const [key, color] of Object.entries(typeColors)) {
     if (t.includes(key)) return color;

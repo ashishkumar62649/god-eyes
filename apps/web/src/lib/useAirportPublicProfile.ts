@@ -19,26 +19,42 @@ export function useAirportPublicProfile(airportId: string | null) {
   const [state, setState] = useState<ProfilePhase>({ phase: 'loading' });
   const [fetchKey, setFetchKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  // Track whether the current fetchKey increment is a poll tick (true) or a fresh load (false).
+  const isPollRef = useRef(false);
 
-  const retry = useCallback(() => setFetchKey(k => k + 1), []);
+  const retry = useCallback(() => {
+    isPollRef.current = false; // retry = fresh load, show loading spinner
+    setFetchKey(k => k + 1);
+  }, []);
 
-  // Reset on airport change
-  useEffect(() => { setFetchKey(0); }, [airportId]);
+  // Airport change: reset state and mark as fresh load.
+  useEffect(() => {
+    isPollRef.current = false;
+    setFetchKey(0);
+  }, [airportId]);
 
-  // Auto-poll every 4 s while fetching
+  // Auto-poll every 3 s while the backend is still building the profile.
+  // Uses a stable interval — does NOT depend on state object reference.
   useEffect(() => {
     if (state.phase !== 'fetching') return;
-    const id = setInterval(() => setFetchKey(k => k + 1), 4000);
+    const id = setInterval(() => {
+      isPollRef.current = true; // poll tick — keep showing "fetching", don't flash loading
+      setFetchKey(k => k + 1);
+    }, 3000);
     return () => clearInterval(id);
   }, [state.phase]);
 
-  // Fetch
+  // Fetch effect — runs on airport change or fetchKey increment.
   useEffect(() => {
     if (!airportId) return;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    setState({ phase: 'loading' });
+
+    // Only show the loading spinner on a fresh airport load, not on poll ticks.
+    if (!isPollRef.current) {
+      setState({ phase: 'loading' });
+    }
 
     fetchAirportPublicProfile(airportId, ctrl.signal)
       .then((res: AirportPublicProfileResponse) => {

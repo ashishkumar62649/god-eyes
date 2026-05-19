@@ -147,11 +147,20 @@ function ProfileBody({
 
 const AirportPublicProfilePanel: React.FC<Props> = ({ airportId }) => {
   const [state, setState] = useState<PanelState>({ phase: 'loading' });
-  // fetchKey increments on retry, re-triggering the effect without changing airportId
   const [fetchKey, setFetchKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   const retry = useCallback(() => setFetchKey(k => k + 1), []);
+
+  // Auto-poll every 4 s while the backend is still building the profile.
+  useEffect(() => {
+    if (state.phase !== 'fetching') return;
+    const id = setInterval(() => setFetchKey(k => k + 1), 4000);
+    return () => clearInterval(id);
+  }, [state.phase]);
+
+  // Reset fetchKey when airport changes so stale poll ticks from the previous airport are discarded.
+  useEffect(() => { setFetchKey(0); }, [airportId]);
 
   useEffect(() => {
     abortRef.current?.abort();
