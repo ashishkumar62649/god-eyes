@@ -1,31 +1,34 @@
 {
   "title": "Dubai International Airport",
-  "pageid": 4792390,
-  "revision": 1285778220,
-  "tid": "t4g82w",
-  "extract": "Dubai International Airport is the primary international airport serving Dubai, United Arab Emirates. It is located in the Al Garhoud district, 5 km east of central Dubai. It opened in 1960 and is operated by Dubai Airports. It is the busiest airport in the world by international passenger traffic and the busiest airport in the Middle East.",
-  "description": "International airport in Dubai, United Arab Emirates",
+  "pageid": 154742,
+  "revision": 1354800236,
+  "tid": "2506bfe5-5295-11f1-9adb-dc0725409e35",
+  "extract": "Dubai International Airport is the primary international airport serving Dubai, United Arab Emirates, and is the world's busiest airport by international passenger traffic as of 2024. It is also the busiest airport in the Middle East as of 2024, the second-busiest airport in the world by passenger traffic as of 2024, the busiest airport for Airbus A380 and Boeing 777 movements, and the airport with the highest average number of passengers per flight. In 2024, the airport handled over 92 million passengers, over 2.2 million tonnes of cargo and registered over 450,000 aircraft movements.",
+  "description": "Major international airport in Dubai, United Arab Emirates",
   "thumbnail": {
-    "source": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4f/DXB_Approach.jpg/320px-DXB_Approach.jpg",
-    "width": 320,
-    "height": 213
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/DXB_word_mark.svg/330px-DXB_word_mark.svg.png",
+    "width": 330,
+    "height": 156
   },
   "originalimage": {
-    "source": "https://upload.wikimedia.org/wikipedia/en/4/4f/DXB_Approach.jpg",
-    "width": 4000,
-    "height": 2667
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/DXB_word_mark.svg/120px-DXB_word_mark.svg.png",
+    "width": 112,
+    "height": 53
   },
   "content_urls": {
     "desktop": {
-      "page": "https://en.wikipedia.org/wiki/Dubai_International_Airport"
+      "page": "https://en.wikipedia.org/wiki/Dubai_International_Airport",
+      "revisions": "https://en.wikipedia.org/wiki/Dubai_International_Airport?action=history",
+      "edit": "https://en.wikipedia.org/wiki/Dubai_International_Airport?action=edit",
+      "talk": "https://en.wikipedia.org/wiki/Dubai_International_Airport?action=Talk"
     },
     "mobile": {
       "page": "https://en.m.wikipedia.org/wiki/Dubai_International_Airport"
     }
   },
   "coordinates": {
-    "lat": 25.2528,
-    "lon": 55.3644
+    "lat": 25.25277778,
+    "lon": 55.36444444
   },
   "Type": "standard"
 }
