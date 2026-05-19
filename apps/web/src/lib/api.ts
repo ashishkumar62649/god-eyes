@@ -1,10 +1,11 @@
-import type { 
-  LayerObjectsListResponse, 
+import type {
+  LayerObjectsListResponse,
   AirportObject,
   AirportDetailResponse,
-  LayerStatusResponse 
+  LayerStatusResponse
 } from '@god-eyes/contracts';
 import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
+import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const CACHE_TTL_MS = 60_000;
@@ -29,13 +30,13 @@ export function clearAviationCache(): void {
 
 export async function fetchAirports(limit: number = 500): Promise<AirportObject[]> {
   const url = `${API_BASE_URL}/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&limit=${limit}`;
-  
+
   const response = await fetch(url);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error?.message || `Failed to fetch airports: ${response.status}`);
   }
-  
+
   const data: LayerObjectsListResponse = await response.json();
   const airports = data.items.filter((item: any): item is AirportObject => item.objectType === 'airport');
   return airports;
@@ -56,7 +57,7 @@ export async function fetchAviationLayerObjects(
   url.searchParams.append('objectType', 'airport');
   url.searchParams.append('mode', mode);
   url.searchParams.append('bbox', bbox);
-  
+
   if (fields) {
     url.searchParams.append('fields', fields);
   }
@@ -80,7 +81,7 @@ export async function fetchAviationLayerObjects(
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error?.message || `Failed to fetch aviation objects: ${response.status}`);
   }
-  
+
   return await response.json();
 }
 
@@ -146,12 +147,12 @@ export async function fetchAviationCategoryBatch(
 
 export async function fetchLayerStatus(layerId: string): Promise<LayerStatusResponse> {
   const url = `${API_BASE_URL}/api/layers/${layerId}/status`;
-  
+
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch layer status: ${response.status}`);
   }
-  
+
   return response.json();
 }
 
@@ -200,6 +201,18 @@ export async function fetchAirportPublicProfile(
   // Only throw on network-level failures (response not received).
   const body: AirportPublicProfileResponse = await response.json().catch(() => {
     throw new Error(`Failed to fetch airport public profile: ${response.status}`);
+  });
+  return body;
+}
+
+export async function getAirportIntelligence(
+  airportId: string,
+  abortSignal?: AbortSignal,
+): Promise<AirportIntelligenceResponse> {
+  const url = `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/intelligence`;
+  const response = await fetch(url, { signal: abortSignal });
+  const body: AirportIntelligenceResponse = await response.json().catch(() => {
+    throw new Error(`Failed to fetch airport intelligence: ${response.status}`);
   });
   return body;
 }

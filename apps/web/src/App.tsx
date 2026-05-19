@@ -137,6 +137,7 @@ const App: React.FC = () => {
         onAviationStatsChange={handleAviationStatsChange}
         cameraTarget={cameraTarget}
         aviationFilters={aviationFilters}
+        selectedAirport={selectedObject}
       />
 
       <div style={{
