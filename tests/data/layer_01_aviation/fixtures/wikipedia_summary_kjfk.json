@@ -1,0 +1,34 @@
+{
+  "title": "John F. Kennedy International Airport",
+  "pageid": 97218,
+  "revision": 1354694476,
+  "tid": "c6a8f6bd-5232-11f1-a29e-d9c013d08b18",
+  "extract": "John F. Kennedy International Airport is a major international airport serving the New York metropolitan area. It is located on the southwestern shore of Long Island, in Queens, New York City, bordering Jamaica Bay. It is the busiest of the seven airports in the New York airport system, the sixth-busiest airport in the United States, and the busiest international commercial airport in North America. The airport, which covers 5,200 acres (2,104 ha), is the largest in the New York metropolitan area. Nearly 100 airlines operate from JFK Airport, with nonstop or direct flights to destinations on all six permanently inhabited continents.",
+  "description": "International airport serving New York City",
+  "thumbnail": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/JFK_Aerial_Nov_14_2018.jpg/330px-JFK_Aerial_Nov_14_2018.jpg",
+    "width": 330,
+    "height": 248
+  },
+  "originalimage": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/JFK_Aerial_Nov_14_2018.jpg/3840px-JFK_Aerial_Nov_14_2018.jpg",
+    "width": 4032,
+    "height": 3024
+  },
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/John_F._Kennedy_International_Airport",
+      "revisions": "https://en.wikipedia.org/wiki/John_F._Kennedy_International_Airport?action=history",
+      "edit": "https://en.wikipedia.org/wiki/John_F._Kennedy_International_Airport?action=edit",
+      "talk": "https://en.wikipedia.org/wiki/John_F._Kennedy_International_Airport?action=Talk"
+    },
+    "mobile": {
+      "page": "https://en.m.wikipedia.org/wiki/John_F._Kennedy_International_Airport"
+    }
+  },
+  "coordinates": {
+    "lat": 40.63972222,
+    "lon": -73.77888889
+  },
+  "Type": "standard"
+}
