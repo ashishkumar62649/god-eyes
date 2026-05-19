@@ -5,6 +5,7 @@ import { healthRoutes } from './routes/health.js';
 import { layerRoutes } from './routes/layers.js';
 import { objectRoutes } from './routes/objects.js';
 import { publicProfileRoutes } from './routes/public-profile/index.js';
+import { airportIntelligenceRoutes } from './routes/airport-intelligence/index.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -24,6 +25,7 @@ async function start() {
     await fastify.register(layerRoutes);
     await fastify.register(objectRoutes);
     await fastify.register(publicProfileRoutes);
+    await fastify.register(airportIntelligenceRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {
