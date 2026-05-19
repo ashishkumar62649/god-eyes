@@ -60,14 +60,28 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   aviationLayerActive,
   onObjectSelect,
   onAviationStatsChange,
-  cameraTarget: _cameraTarget,
+  cameraTarget,
   aviationFilters,
 }) => {
+
+  /**
+   * Returns the target fly-to height for an airport overview.
+   * - Stays at current height if already closer than the target (no zoom-out).
+   * - Target: 12 000 m — frames a typical airport/runway area without going to city level.
+   */
+  function airportFlyHeight(currentHeight?: number): number {
+    const TARGET = 12_000; // metres — whole airport visible, not city/state level
+    if (currentHeight !== undefined && currentHeight < TARGET) {
+      return currentHeight; // already close — don't zoom out
+    }
+    return TARGET;
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const viewerReadyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
+  const [viewerReady, setViewerReady] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
@@ -115,6 +129,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   function applyFiltersToDots(): void {
     if (globalDotCollectionRef.current && viewerRef.current) {
       const filters = aviationFiltersRef.current;
+      console.log('[AVIATION DEBUG] active filters:', JSON.stringify(filters));
       filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, filters);
       const allObjects = getAllObjects();
       let visibleCount = 0;
@@ -123,7 +138,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const p = globalDotCollectionRef.current.get(i);
         if (p && p.show) visibleCount++;
       }
-      console.log('[AVIATION] applyFiltersToDots: total', allObjects.length, 'visible', visibleCount);
+      const visibleCategoryKeys = Object.entries(filters)
+        .filter(([, v]) => v === true)
+        .map(([k]) => k);
+      console.log('[AVIATION DEBUG] visible category keys:', visibleCategoryKeys);
+      console.log('[AVIATION DEBUG] visible count after filter:', visibleCount);
+      console.log('[AVIATION DEBUG] point collection length:', length);
+      console.log('[AVIATION DEBUG] applyFiltersToDots: total', allObjects.length, 'visible', visibleCount);
       onStatsChangeRef.current?.({
         loaded: allObjects.length,
         visible: visibleCount,
@@ -136,25 +157,37 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }
 
   async function startResidentPreload(): Promise<void> {
-    console.log('[AVIATION] starting resident preload');
-    if (preloadingRef.current || residentCacheActiveRef.current) {
-      console.log('[AVIATION] preload skipped: preloading=', preloadingRef.current, 'residentCacheActive=', residentCacheActiveRef.current);
-      return;
-    }
-    if (!viewerRef.current) {
-      console.log('[AVIATION] preload skipped: viewer not ready');
+    // 1. If cache already active, return immediately
+    if (residentCacheActiveRef.current) {
+      console.log('[AVIATION DEBUG] preload skipped: cache already active');
       return;
     }
 
+    // 2. If viewer not ready, return WITHOUT setting preloadingRef
+    // The viewerReady retry effect will handle this case
+    if (!viewerRef.current) {
+      console.log('[AVIATION DEBUG] preload skipped: viewer not ready');
+      return;
+    }
+
+    // 3. If already preloading, return
+    if (preloadingRef.current) {
+      console.log('[AVIATION DEBUG] preload skipped: already preloading');
+      return;
+    }
+
+    // 4. Only set flag AFTER we've passed all checks and are ready to start
     preloadingRef.current = true;
+    console.log('[AVIATION DEBUG] starting resident preload');
 
     const viewer = viewerRef.current;
     let collection = globalDotCollectionRef.current;
     if (!collection) {
       collection = createGlobalDotCollection(viewer.scene);
       globalDotCollectionRef.current = collection;
-      console.log('[AVIATION] created dot collection');
+      console.log('[AVIATION DEBUG] point collection created');
     }
+    console.log('[AVIATION DEBUG] viewer ready', viewerReadyRef.current);
 
     const ac = new AbortController();
     abortControllerRef.current = ac;
@@ -167,19 +200,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       await fetchAllAviationCategories(ac.signal, (batch, progress) => {
         if (ac.signal.aborted) return;
 
-        console.log('[AVIATION] fetched category', progress.category, 'count', progress.categoryCount, 'total', progress.totalLoaded);
+        console.log('[AVIATION DEBUG] fetched category', progress.category, 'count', progress.categoryCount, 'total', progress.totalLoaded);
 
         if (batch.length > 0) {
+          const countBefore = collection!.length;
           addAllDotsToCollection(collection!, batch);
           dotsCreatedRef.current = true;
+          console.log('[AVIATION DEBUG] point collection length after add:', collection!.length, '(was', countBefore, ')');
         }
 
         categoryCounts[progress.category] = progress.categoryCount;
 
         if (progress.allDone) {
           residentCacheActiveRef.current = true;
-          preloadingRef.current = false;
-          console.log('[AVIATION] preload complete total', progress.totalLoaded);
+          console.log('[AVIATION DEBUG] preload complete total', progress.totalLoaded);
+          console.log('[AVIATION DEBUG] store count after all categories:', getAllObjects().length);
           emitStats('RESIDENT_GLOBAL', 'CACHE_READY', categoryCounts);
           applyFiltersToDots();
         } else {
@@ -191,17 +226,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
       });
     } catch (err) {
-      console.error('[AVIATION] preload error:', err);
-      preloadingRef.current = false;
+      console.error('[AVIATION DEBUG] preload error:', err);
       emitStats('RESIDENT_GLOBAL', 'ERROR: ' + (err instanceof Error ? err.message : String(err)));
-      return;
+    } finally {
+      // Always clear preloadingRef so retry can happen if needed
+      preloadingRef.current = false;
     }
 
     if (ac.signal.aborted) return;
 
     residentCacheActiveRef.current = true;
-    preloadingRef.current = false;
-
     emitStats('RESIDENT_GLOBAL', 'CACHE_READY', categoryCounts);
     applyFiltersToDots();
   }
@@ -252,6 +286,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
       viewerRef.current = viewer;
       viewerReadyRef.current = true;
+      setViewerReady(true);
       console.log('[AVIATION] viewer ready, viewerRef.current set');
 
       const dataSource = new CustomDataSource('aviation');
@@ -317,7 +352,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               onObjectSelectRef.current(airport);
             }
             viewer!.camera.flyTo({
-              destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude, 500000),
+              destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude,
+                airportFlyHeight(viewer!.camera.positionCartographic.height)),
               duration: 1.0,
             });
           }
@@ -367,50 +403,103 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   // Layer ON/OFF handling
   useEffect(() => {
-    console.log('[AVIATION] toggle useEffect fired, aviationLayerActive =', aviationLayerActive, 'viewerReady =', viewerReadyRef.current, 'viewerRef =', !!viewerRef.current);
+    console.log('[AVIATION DEBUG] toggle active', aviationLayerActive);
     if (!aviationLayerActive) {
-      console.log('[AVIATION] toggle disabled');
+      console.log('[AVIATION DEBUG] toggle inactive - hiding dots');
       // Layer OFF: hide dots but KEEP resident cache in memory
       if (globalDotCollectionRef.current) {
         globalDotCollectionRef.current.removeAll();
         dotsCreatedRef.current = false;
       }
+      // Reset preload state so toggle can restart
+      preloadingRef.current = false;
       emitStats('RESIDENT_GLOBAL', residentCacheActiveRef.current ? 'CACHE_READY (HIDDEN)' : 'IDLE');
     } else if (viewerRef.current) {
-      console.log('[AVIATION] toggle enabled, viewer exists');
+      console.log('[AVIATION DEBUG] viewer ready true/false:', viewerReadyRef.current);
       // Layer ON: start preload if not already cached, otherwise reuse cache
       if (residentCacheActiveRef.current && getAllObjects().length > 0) {
-        console.log('[AVIATION] reusing cache, objects:', getAllObjects().length);
+        console.log('[AVIATION DEBUG] reusing cache, objects:', getAllObjects().length);
         // Reuse existing cache — recreate dots from cached objects
         if (!dotsCreatedRef.current) {
           let collection = globalDotCollectionRef.current;
           if (!collection) {
             collection = createGlobalDotCollection(viewerRef.current.scene);
             globalDotCollectionRef.current = collection;
+            console.log('[AVIATION DEBUG] point collection created');
           }
           const allObjects = getAllObjects();
           addAllDotsToCollection(collection, allObjects);
           dotsCreatedRef.current = true;
-          console.log('[AVIATION] rendering dots count', allObjects.length);
+          console.log('[AVIATION DEBUG] point collection length after add:', collection.length);
+          console.log('[AVIATION DEBUG] rendering dots count', allObjects.length);
         }
         emitStats('RESIDENT_GLOBAL', 'CACHE_READY');
         applyFiltersToDots();
       } else if (!preloadingRef.current) {
-        console.log('[AVIATION] starting resident preload');
+        console.log('[AVIATION DEBUG] preload start');
         startResidentPreload();
       } else {
-        console.log('[AVIATION] preload already in progress');
+        console.log('[AVIATION DEBUG] preload already in progress');
       }
     } else {
-      console.log('[AVIATION] toggle enabled but viewer not ready yet');
+      console.log('[AVIATION DEBUG] viewer not ready yet');
     }
   }, [aviationLayerActive]);
+
+  // Retry preload when viewer becomes ready while aviation layer is active
+  useEffect(() => {
+    if (!viewerReady) return;
+    if (!aviationLayerActiveRef.current) return;
+    if (residentCacheActiveRef.current) return;
+    if (preloadingRef.current) return;
+    console.log('[AVIATION DEBUG] viewer became ready while aviation active, triggering preload');
+    startResidentPreload();
+  }, [viewerReady]);
 
   // Filter change handling — only update visibility, NO data fetching
   useEffect(() => {
     if (!aviationLayerActive || !residentCacheActiveRef.current) return;
     applyFiltersToDots();
   }, [aviationFilters, aviationLayerActive]);
+
+  // Camera fly-to when a search result is selected
+  useEffect(() => {
+    if (!cameraTarget) return;
+    const { latitude, longitude } = cameraTarget.position;
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      console.warn('[SEARCH FLYTO] missing coordinates, skipping fly-to', cameraTarget);
+      return;
+    }
+    const doFly = () => {
+      const viewer = viewerRef.current;
+      if (!viewer || viewer.isDestroyed()) {
+        console.warn('[SEARCH FLYTO] viewer not ready, queuing retry');
+        // Retry once viewer is ready — the viewerReady state change will re-run this effect
+        // because cameraTarget is still set. No extra state needed.
+        return;
+      }
+      console.log('[SEARCH FLYTO] flying to', latitude, longitude);
+      const currentHeight = viewer.camera.positionCartographic?.height;
+      const targetHeight = airportFlyHeight(currentHeight);
+      console.log('[SEARCH FLYTO] current height', Math.round(currentHeight ?? 0), 'final height', targetHeight);
+      viewer.camera.flyTo({
+        destination: Cartesian3.fromDegrees(longitude, latitude, targetHeight),
+        duration: 1.5,
+      });
+    };
+    if (viewerReadyRef.current) {
+      doFly();
+    } else {
+      // Viewer not yet initialised — wait for it
+      const id = setInterval(() => {
+        if (viewerReadyRef.current) {
+          clearInterval(id);
+          doFly();
+        }
+      }, 100);
+      return () => clearInterval(id);
+    }
+  }, [cameraTarget]);
 
   if (error) {
     return (
