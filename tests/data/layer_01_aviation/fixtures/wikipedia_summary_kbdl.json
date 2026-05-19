@@ -1,0 +1,34 @@
+{
+  "title": "Bradley International Airport",
+  "pageid": 263642,
+  "revision": 1354875430,
+  "tid": "a1b2c3d4-1234-5678-90ab-cdef12345678",
+  "extract": "Bradley International Airport is a public airport in the town of Windsor Locks, in Hartford County, Connecticut, United States. It is the second-busiest airport in New England after Boston's Logan International Airport. The airport is located about 12 miles (20 km) southeast of Hartford, and about 75 miles (120 km) from New York City. It is operated by the Connecticut Airport Authority.",
+  "description": "International airport in Windsor Locks, Connecticut",
+  "thumbnail": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Bradley_International_Airport.jpg/320px-Bradley_International_Airport.jpg",
+    "width": 320,
+    "height": 213
+  },
+  "originalimage": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Bradley_International_Airport.jpg/1024px-Bradley_International_Airport.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Bradley_International_Airport",
+      "revisions": "https://en.wikipedia.org/wiki/Bradley_International_Airport?action=history",
+      "edit": "https://en.wikipedia.org/wiki/Bradley_International_Airport?action=edit",
+      "talk": "https://en.wikipedia.org/wiki/Bradley_International_Airport?action=Talk"
+    },
+    "mobile": {
+      "page": "https://en.m.wikipedia.org/wiki/Bradley_International_Airport"
+    }
+  },
+  "coordinates": {
+    "lat": 41.9389,
+    "lon": -72.6832
+  },
+  "Type": "standard"
+}
