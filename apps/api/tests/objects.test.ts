@@ -1,18 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify from 'fastify';
-
-// Apply mock at top level before any imports
-vi.mock('../src/lib/db.js', () => ({
-  checkDatabaseStatus: vi.fn().mockResolvedValue({
-    status: 'connected',
-    latencyMs: 10,
-    message: null,
-  }),
-  query: vi.fn(),
-  closePool: vi.fn(),
-}));
-
-// Now import the route after mock is applied
 import { objectRoutes } from '../src/routes/objects.js';
 
 describe('Aviation Objects API - WO-008', () => {

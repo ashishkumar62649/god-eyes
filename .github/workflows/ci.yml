@@ -12,7 +12,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: god_eyes
+          POSTGRES_PASSWORD: god_eyes_dev_password
+          POSTGRES_DB: god_eyes_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U god_eyes -d god_eyes_dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://god_eyes:god_eyes_dev_password@localhost:5432/god_eyes_dev
+
     steps:
       # Checkout the repository
       - name: Checkout code
