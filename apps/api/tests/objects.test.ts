@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Fastify from 'fastify';
 import { objectRoutes } from '../src/routes/objects.js';
 
@@ -797,6 +797,11 @@ describe('Aviation Objects API - WO-008', () => {
   // ---- Airport Detail Endpoint (WO-022) ----
 
   it('airport detail endpoint returns 404 for non-existent airport', async () => {
+    // Mock query to return empty array for non-existent airport
+    const { query } = await import('../src/lib/db.js');
+    const originalQuery = vi.mocked(query);
+    originalQuery.mockResolvedValueOnce([]);
+
     const response = await app.inject({
       method: 'GET',
       url: '/api/layers/layer_01_aviation/objects/00000000-0000-0000-0000-000000000000/detail',
