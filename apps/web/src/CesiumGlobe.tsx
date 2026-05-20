@@ -9,8 +9,11 @@ import {
   ScreenSpaceEventType,
   CustomDataSource,
   PointPrimitiveCollection,
+  SceneTransforms,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
+import AirportMapPopup from './components/intel/AirportMapPopup';
+import type { AirportObject } from '@god-eyes/contracts';
 
 import {
   fetchAllAviationCategories,
@@ -54,6 +57,7 @@ interface CesiumGlobeProps {
     timestamp: number;
   } | null;
   aviationFilters: AviationFilters;
+  selectedAirport?: AirportObject | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -62,6 +66,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   onAviationStatsChange,
   cameraTarget,
   aviationFilters,
+  selectedAirport,
 }) => {
 
   /**
@@ -94,6 +99,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Popup screen-space position tracking
+  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  const selectedAirportRef = useRef(selectedAirport);
+
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
   const preloadingRef = useRef(false);
@@ -105,7 +114,46 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onStatsChangeRef.current = onAviationStatsChange;
     aviationLayerActiveRef.current = aviationLayerActive;
     aviationFiltersRef.current = aviationFilters;
+    selectedAirportRef.current = selectedAirport ?? null;
   });
+
+  // Track selected airport screen-space position on every post-render frame
+  useEffect(() => {
+    if (!selectedAirport || !viewerRef.current) {
+      setPopupPos(null);
+      return;
+    }
+    const lat = selectedAirport.position?.latitude;
+    const lon = selectedAirport.position?.longitude;
+    if (lat == null || lon == null) {
+      setPopupPos(null);
+      return;
+    }
+
+    const viewer = viewerRef.current;
+    const worldPos = Cartesian3.fromDegrees(lon, lat, 0);
+
+    function updatePos() {
+      if (!viewerRef.current) return;
+      const screenPos = SceneTransforms.worldToWindowCoordinates(
+        viewerRef.current.scene,
+        worldPos,
+        new Cartesian2(),
+      );
+      if (screenPos) {
+        setPopupPos({ x: Math.round(screenPos.x), y: Math.round(screenPos.y) });
+      } else {
+        setPopupPos(null);
+      }
+    }
+
+    // Initial position
+    updatePos();
+
+    // Update on every post-render (camera move, zoom, etc.)
+    const removeListener = viewer.scene.postRender.addEventListener(updatePos);
+    return () => removeListener();
+  }, [selectedAirport?.id, viewerReady]);
 
   function emitStats(
     renderMode: string,
@@ -531,6 +579,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }}>
           SYSTEM WARNING: CESIUM_ION_TOKEN_ABSENT
         </div>
+      )}
+      {selectedAirport && popupPos && (
+        <AirportMapPopup
+          airport={selectedAirport}
+          screenX={popupPos.x}
+          screenY={popupPos.y}
+          onClose={() => onObjectSelectRef.current(null)}
+        />
       )}
     </div>
   );

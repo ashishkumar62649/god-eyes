@@ -60,7 +60,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
 };
 
-function getTypeIcon(type: string): string {
+function getTypeIcon(type: string | null | undefined): string {
+  if (!type) return '\u25C7';
   const t = type.toUpperCase();
   if (t.includes('VOR')) return '\u25C9';
   if (t.includes('NDB')) return '\u25CE';
@@ -68,9 +69,9 @@ function getTypeIcon(type: string): string {
   return '\u25C7';
 }
 
-function formatFrequency(khz: number | null, type: string): string {
+function formatFrequency(khz: number | null, type: string | null | undefined): string {
   if (khz === null) return '\u2014';
-  const t = type.toUpperCase();
+  const t = (type ?? '').toUpperCase();
   if (t.includes('VOR')) {
     return `${(khz / 1000).toFixed(2)} MHz`;
   }
