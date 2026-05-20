@@ -12,35 +12,53 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: god_eyes
+          POSTGRES_PASSWORD: god_eyes_dev_password
+          POSTGRES_DB: god_eyes_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U god_eyes -d god_eyes_dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://god_eyes:god_eyes_dev_password@localhost:5432/god_eyes_dev
+
     steps:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Node.js with pnpm caching
+      # Setup pnpm package manager first (before setup-node cache)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+          run_install: false
+
+      # Setup Node.js with pnpm caching (pnpm now available)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      # Setup pnpm package manager
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
       # Install JavaScript dependencies with frozen lockfile
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
-      # Setup Python with pip caching
+      # Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       # Install Python test dependencies
       - name: Install Python dependencies
