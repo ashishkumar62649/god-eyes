@@ -18,18 +18,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Node.js with pnpm caching
+      # Setup pnpm package manager first (before setup-node cache)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+          run_install: false
+
+      # Setup Node.js with pnpm caching (pnpm now available)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      # Setup pnpm package manager
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
 
       # Install JavaScript dependencies with frozen lockfile
       - name: Install JS dependencies
