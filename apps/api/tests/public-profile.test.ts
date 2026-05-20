@@ -2,6 +2,13 @@ import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vites
 import Fastify from 'fastify';
 import { publicProfileRoutes } from '../src/routes/public-profile/index.js';
 
+// Mock the database module
+vi.mock('../../src/lib/db.js', () => ({
+  checkDatabaseStatus: vi.fn(),
+  query: vi.fn(),
+  closePool: vi.fn(),
+}));
+
 // Mock the repository module
 vi.mock('../src/routes/public-profile/repository.js', () => ({
   resolveAirportIdentity: vi.fn(),
@@ -17,6 +24,7 @@ vi.mock('../src/routes/public-profile/repository.js', () => ({
 }));
 
 import * as repository from '../src/routes/public-profile/repository.js';
+import * as db from '../../src/lib/db.js';
 
 const MOCK_AIRPORT_IDENTITY = {
   id: '99592da8-c66d-4522-8af9-54be9ee0635c',
@@ -44,6 +52,12 @@ describe('Public Profile API', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock database as available
+    vi.mocked(db.checkDatabaseStatus).mockResolvedValue({
+      status: 'connected',
+      latencyMs: 10,
+      message: null,
+    });
     // Default: airport identity resolves successfully
     vi.mocked(repository.resolveAirportIdentity).mockResolvedValue(MOCK_AIRPORT_IDENTITY);
   });

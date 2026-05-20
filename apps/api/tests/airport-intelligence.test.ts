@@ -2,6 +2,13 @@ import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vites
 import Fastify from 'fastify';
 import { airportIntelligenceRoutes } from '../src/routes/airport-intelligence/index.js';
 
+// Mock the database module
+vi.mock('../../src/lib/db.js', () => ({
+  checkDatabaseStatus: vi.fn(),
+  query: vi.fn(),
+  closePool: vi.fn(),
+}));
+
 vi.mock('../src/routes/airport-intelligence/repository.js', () => ({
   getAirportBase: vi.fn(),
   getPublicProfile: vi.fn(),
@@ -13,6 +20,7 @@ vi.mock('../src/routes/airport-intelligence/repository.js', () => ({
 }));
 
 import * as repository from '../src/routes/airport-intelligence/repository.js';
+import * as db from '../../src/lib/db.js';
 
 const MOCK_AIRPORT_BASE = {
   id: '5209e070-54e7-45af-a2ef-afa20905085c',
@@ -198,6 +206,12 @@ describe('Airport Intelligence API', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock database as available
+    vi.mocked(db.checkDatabaseStatus).mockResolvedValue({
+      status: 'connected',
+      latencyMs: 10,
+      message: null,
+    });
     vi.mocked(repository.getAirportBase).mockResolvedValue(MOCK_AIRPORT_BASE);
     vi.mocked(repository.getPublicProfile).mockResolvedValue(null);
     vi.mocked(repository.getIntelligenceModules).mockResolvedValue([]);
