@@ -1174,6 +1174,69 @@ Later work orders should add:
 - `airport_layout_profiles`.
 - backfill orchestration.
 
+## WO-050 Airport Image Assets
+
+WO-050 implements only the airport image gallery database foundation. The
+migration file is:
+
+`database/migrations/layers/layer_01_aviation/010_airport_image_assets.sql`
+
+This table supports multiple images per airport through
+`airport_image_assets`, with one row per source-backed image asset.
+
+Fetching will later populate this table from Wikimedia Commons, Wikipedia, and Wikidata.
+Official airport sites, manual curation, and other sources are also
+represented in the constrained `source_type` vocabulary for future controlled
+ingest paths.
+
+The future API composition layer will later return heroImage and images[] from
+this table (`heroImage` and `images[]`). The frontend will later show those
+assets in a popup slider and Intel panel gallery.
+
+WO-050 does not fetch images, insert image data, create a backfill worker,
+change API contracts, change frontend code, or touch fetching workers.
+
+### Image Asset Rules
+
+`airport_image_assets.airport_id` references `aviation_airports(id)` with
+`ON DELETE CASCADE`, so image assets remain scoped to a canonical airport row.
+
+The migration adds a unique `(airport_id, image_url)` rule to prevent duplicate
+image URLs for the same airport. It also adds a partial unique hero-image index
+so only one row per airport can have `is_hero = TRUE`.
+
+Source and image classification fields are constrained to stable vocabularies:
+
+- `source_type`: Wikimedia Commons, Wikipedia, Wikidata, official site,
+  manual, or other.
+- `image_kind`: photo, logo, map, terminal, runway, aerial, tower, interior,
+  or unknown.
+- `confidence_label`: high, medium, low, or unknown.
+
+Image URLs are required and cannot be blank. Width and height must be positive
+when provided, rank must be non-negative, and confidence scores must be between
+0 and 1 when provided.
+
+### Attribution And Metadata
+
+License and attribution fields are first-class nullable columns:
+
+- `attribution_text`
+- `license_name`
+- `license_url`
+
+These fields should be populated when source data provides them. They remain
+nullable because some future source responses may not include complete license
+metadata.
+
+Source-specific metadata and parser diagnostics are stored in JSONB fields:
+
+- `raw_metadata`
+- `diagnostics`
+
+Both fields have GIN indexes for later inspection and troubleshooting queries.
+No images are fetched in this work order.
+
 ## Open Questions
 
 - Should `airport_intelligence_fetch_runs` replace future module-specific fetch
