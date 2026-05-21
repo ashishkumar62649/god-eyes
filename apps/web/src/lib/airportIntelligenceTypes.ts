@@ -1,6 +1,30 @@
 // Local frontend types for GET /api/airports/:airportId/intelligence
 // Do not import from @god-eyes/contracts until contracts package is updated.
 
+export interface ImageAssetItem {
+  imageUrl: string;
+  thumbnailUrl: string | null;
+  caption: string | null;
+  description: string | null;
+  imageKind: string | null;
+  sourceType: string | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  attributionText: string | null;
+  licenseName: string | null;
+  licenseUrl: string | null;
+  widthPx: number | null;
+  heightPx: number | null;
+  rank: number | null;
+  isHero: boolean;
+}
+
+export interface AirportIntelImages {
+  status: 'ok' | 'no_data';
+  heroImage: ImageAssetItem | null;
+  items: ImageAssetItem[];
+}
+
 export interface AirportIntelMapPopup {
   airportName: string;
   iataCode: string | null;
@@ -63,4 +87,5 @@ export interface AirportIntelligenceResponse {
   traffic: AirportIntelTraffic | null;
   sources: AirportIntelSource[];
   advanced: Record<string, unknown> | null;
+  images: AirportIntelImages | null;
 }

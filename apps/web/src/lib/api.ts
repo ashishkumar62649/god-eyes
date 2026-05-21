@@ -211,8 +211,38 @@ export async function getAirportIntelligence(
 ): Promise<AirportIntelligenceResponse> {
   const url = `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/intelligence`;
   const response = await fetch(url, { signal: abortSignal });
-  const body: AirportIntelligenceResponse = await response.json().catch(() => {
+  const body = await response.json().catch(() => {
     throw new Error(`Failed to fetch airport intelligence: ${response.status}`);
   });
-  return body;
+
+  // Normalize mapPopup to match AirportIntelMapPopup — support both API shapes.
+  if (body?.mapPopup) {
+    const p = body.mapPopup;
+    const qs = p.quickStats ?? {};
+    body.mapPopup = {
+      ...p,
+      iataCode:        p.iataCode        ?? p.iata             ?? null,
+      icaoCode:        p.icaoCode        ?? p.icao             ?? null,
+      imageUrl:        p.imageUrl        ?? p.image_url        ?? null,
+      shortSummary:    p.shortSummary    ?? p.short_summary    ?? null,
+      confidenceLabel: p.confidenceLabel ?? p.confidence_label ?? null,
+      runwayCount:     p.runwayCount     ?? qs.runwayCount     ?? null,
+      longestRunwayFt: p.longestRunwayFt ?? qs.longestRunwayFt ?? null,
+      badges:          Array.isArray(p.badges) ? p.badges : [],
+    };
+  }
+
+  // Normalize images field — ensure items is always an array.
+  if (body?.images) {
+    const img = body.images;
+    body.images = {
+      status:    img.status ?? 'no_data',
+      heroImage: img.heroImage ?? null,
+      items:     Array.isArray(img.items) ? img.items : [],
+    };
+  } else {
+    body.images = null;
+  }
+
+  return body as AirportIntelligenceResponse;
 }

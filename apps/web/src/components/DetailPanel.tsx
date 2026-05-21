@@ -5,8 +5,11 @@ import RunwaysSection from './intel/RunwaysSection';
 import FrequenciesSection from './intel/FrequenciesSection';
 import NearbyNavaidsSection from './intel/NearbyNavaidsSection';
 import DataQualityCard from './intel/DataQualityCard';
+import AirportImageSlider from './intel/AirportImageSlider';
 import { useAirportPublicProfile } from '../lib/useAirportPublicProfile';
+import { useAirportIntelligence } from '../lib/useAirportIntelligence';
 import type { PublicProfileData, PublicProfileAttribution } from '../lib/airportPublicProfileTypes';
+import type { AirportIntelImages } from '../lib/airportIntelligenceTypes';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;
@@ -63,21 +66,37 @@ function HeroImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
+// ── intel image gallery (larger, for panel) ───────────────────────────────────
+function IntelImageGallery({ images, airportName }: { images: AirportIntelImages; airportName: string }) {
+  if (images.status !== 'ok') return null;
+  const hero = images.heroImage;
+  const rest = images.items.filter(i => !i.isHero);
+  const sliderItems = hero ? [hero, ...rest] : images.items;
+  if (sliderItems.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <AirportImageSlider items={sliderItems} height={160} fallbackCode={airportName} />
+    </div>
+  );
+}
+
 // ── overview section ──────────────────────────────────────────────────────────
 function AirportOverviewSection({
   airport,
   profile,
   profilePhase,
   onRetry,
+  intelImages,
 }: {
   airport: AirportObject;
   profile: PublicProfileData | null;
   profilePhase: string;
   onRetry: () => void;
+  intelImages: AirportIntelImages | null;
 }) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
 
-  // Image: prefer facts.imageUrl, then facts.image
+  // Image: prefer facts.imageUrl, then facts.image — only used as legacy fallback
   const imageUrl = profile?.facts
     ? (profile.facts['imageUrl'] ?? profile.facts['image'] ?? null)
     : null;
@@ -94,9 +113,19 @@ function AirportOverviewSection({
     ? summary.slice(0, 280) + '…'
     : summary;
 
+  // Show intel gallery if available, otherwise fall back to legacy profile image
+  const hasIntelImages = intelImages?.status === 'ok' && (
+    intelImages.heroImage != null || intelImages.items.length > 0
+  );
+
   return (
     <div>
-      {imageStr && <HeroImage src={imageStr} alt={`${airport.name} image`} />}
+      {/* Intel image gallery (preferred) */}
+      {hasIntelImages && (
+        <IntelImageGallery images={intelImages!} airportName={airport.name} />
+      )}
+      {/* Legacy profile image fallback */}
+      {!hasIntelImages && imageStr && <HeroImage src={imageStr} alt={`${airport.name} image`} />}
 
       {/* Name + codes */}
       <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--shell-accent)', lineHeight: 1.2, marginBottom: '2px' }}>
@@ -233,6 +262,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   setIsCollapsed,
 }) => {
   const { state: profileState, retry } = useAirportPublicProfile(selectedObject?.id ?? null);
+  const intelState = useAirportIntelligence(selectedObject?.id ?? null);
 
   const profile =
     profileState.phase === 'ok' || profileState.phase === 'stale' || profileState.phase === 'low_confidence'
@@ -248,6 +278,9 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     profileState.phase === 'ok' || profileState.phase === 'stale'
       ? profileState.fetchedAt
       : null;
+
+  const intelImages =
+    intelState.phase === 'ok' ? (intelState.data.images ?? null) : null;
 
   const headerContent = detailLoading ? (
     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -290,6 +323,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     profile={profile}
                     profilePhase={profileState.phase}
                     onRetry={retry}
+                    intelImages={intelImages}
                   />
                 </IntelSection>
 
