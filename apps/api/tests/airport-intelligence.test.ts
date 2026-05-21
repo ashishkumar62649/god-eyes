@@ -10,6 +10,7 @@ vi.mock('../src/routes/airport-intelligence/repository.js', () => ({
   getDerivedIntelligence: vi.fn(),
   getCapacityProfile: vi.fn(),
   getTrafficMetrics: vi.fn(),
+  getAirportImages: vi.fn(),
 }));
 
 import * as repository from '../src/routes/airport-intelligence/repository.js';
@@ -141,6 +142,113 @@ const MOCK_DERIVED_INTELLIGENCE = {
   capability_summary: '6 capability tags identified',
 };
 
+const MOCK_HERO_IMAGE = {
+  id: 'img-hero-1',
+  airport_id: '5209e070-54e7-45af-a2ef-afa20905085c',
+  source_type: 'wikimedia_commons',
+  source_name: 'Wikimedia Commons',
+  source_url: 'https://commons.wikimedia.org/wiki/File:Bradley_Aerial.jpg',
+  image_url: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Bradley_Aerial.jpg',
+  thumbnail_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Bradley_Aerial.jpg',
+  caption: 'Aerial view of Bradley International Airport',
+  description: 'Overview of the main terminal and runways',
+  attribution_text: 'John Smith, CC BY-SA 4.0',
+  license_name: 'CC BY-SA 4.0',
+  license_url: 'https://creativecommons.org/licenses/by-sa/4.0/',
+  width_px: 1920,
+  height_px: 1080,
+  image_kind: 'aerial',
+  is_hero: true,
+  rank: 10,
+  created_at: new Date('2026-05-20T12:00:00Z'),
+};
+
+const MOCK_NON_HERO_IMAGES = [
+  {
+    id: 'img-2',
+    airport_id: '5209e070-54e7-45af-a2ef-afa20905085c',
+    source_type: 'wikimedia_commons',
+    source_name: 'Wikimedia Commons',
+    source_url: 'https://commons.wikimedia.org/wiki/File:Bradley_Terminal.jpg',
+    image_url: 'https://upload.wikimedia.org/wikipedia/commons/c/c2/Bradley_Terminal.jpg',
+    thumbnail_url: null,
+    caption: 'Terminal interior',
+    description: null,
+    attribution_text: 'Jane Doe, CC BY 3.0',
+    license_name: 'CC BY 3.0',
+    license_url: 'https://creativecommons.org/licenses/by/3.0/',
+    width_px: 800,
+    height_px: 600,
+    image_kind: 'terminal',
+    is_hero: false,
+    rank: 20,
+    created_at: new Date('2026-05-20T13:00:00Z'),
+  },
+  {
+    id: 'img-3',
+    airport_id: '5209e070-54e7-45af-a2ef-afa20905085c',
+    source_type: 'wikipedia',
+    source_name: 'Wikipedia',
+    source_url: 'https://en.wikipedia.org/wiki/File:Bradley_Logo.svg',
+    image_url: 'https://upload.wikimedia.org/wikipedia/en/b/b1/Bradley_INTL_Logo.svg',
+    thumbnail_url: 'https://upload.wikimedia.org/wikipedia/en/thumb/b/b1/Bradley_INTL_Logo.svg',
+    caption: 'Airport logo',
+    description: 'Official logo of Bradley International Airport',
+    attribution_text: null,
+    license_name: null,
+    license_url: null,
+    width_px: 330,
+    height_px: 200,
+    image_kind: 'logo',
+    is_hero: false,
+    rank: 30,
+    created_at: new Date('2026-05-20T14:00:00Z'),
+  },
+];
+
+const MOCK_IMAGES_NO_HERO = [
+  {
+    id: 'img-low-rank',
+    airport_id: '5209e070-54e7-45af-a2ef-afa20905085c',
+    source_type: 'wikimedia_commons',
+    source_name: 'Wikimedia Commons',
+    source_url: null,
+    image_url: 'https://example.com/low-rank.jpg',
+    thumbnail_url: null,
+    caption: null,
+    description: null,
+    attribution_text: null,
+    license_name: null,
+    license_url: null,
+    width_px: null,
+    height_px: null,
+    image_kind: 'photo',
+    is_hero: false,
+    rank: 5,
+    created_at: new Date('2026-05-20T10:00:00Z'),
+  },
+  {
+    id: 'img-high-rank',
+    airport_id: '5209e070-54e7-45af-a2ef-afa20905085c',
+    source_type: 'wikimedia_commons',
+    source_name: 'Wikimedia Commons',
+    source_url: null,
+    image_url: 'https://example.com/high-rank.jpg',
+    thumbnail_url: null,
+    caption: null,
+    description: null,
+    attribution_text: null,
+    license_name: null,
+    license_url: null,
+    width_px: null,
+    height_px: null,
+    image_kind: 'photo',
+    is_hero: false,
+    rank: 100,
+    created_at: new Date('2026-05-20T11:00:00Z'),
+  },
+];
+
 const MOCK_SOURCE_LINKS = [
   {
     id: 'source-1',
@@ -205,6 +313,7 @@ describe('Airport Intelligence API', () => {
     vi.mocked(repository.getDerivedIntelligence).mockResolvedValue(null);
     vi.mocked(repository.getCapacityProfile).mockResolvedValue(null);
     vi.mocked(repository.getTrafficMetrics).mockResolvedValue([]);
+    vi.mocked(repository.getAirportImages).mockResolvedValue([]);
   });
 
   describe('GET /api/airports/:airportId/intelligence', () => {
@@ -515,6 +624,7 @@ describe('Airport Intelligence API', () => {
       expect(body).toHaveProperty('capacity');
       expect(body).toHaveProperty('traffic');
       expect(body).toHaveProperty('sources');
+      expect(body).toHaveProperty('images');
       expect(body).toHaveProperty('advanced');
     });
 
@@ -570,6 +680,133 @@ describe('Airport Intelligence API', () => {
       const body = response.json();
       expect(body.status).toBe('partial');
       expect(body.mapPopup.airportName).toBe('Bradley International Airport');
+    });
+
+    it('should return images with no_data when no image assets exist', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.images).toBeDefined();
+      expect(body.images.status).toBe('no_data');
+      expect(body.images.heroImage).toBeNull();
+      expect(body.images.items).toEqual([]);
+    });
+
+    it('should return images with status ok when image assets exist', async () => {
+      vi.mocked(repository.getAirportImages).mockResolvedValue([MOCK_HERO_IMAGE, ...MOCK_NON_HERO_IMAGES]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.images.status).toBe('ok');
+      expect(body.images.heroImage).not.toBeNull();
+      expect(body.images.items).toHaveLength(3);
+    });
+
+    it('should select hero image from is_hero=true row', async () => {
+      vi.mocked(repository.getAirportImages).mockResolvedValue([MOCK_HERO_IMAGE, ...MOCK_NON_HERO_IMAGES]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      const body = response.json();
+      expect(body.images.heroImage.imageUrl).toBe(MOCK_HERO_IMAGE.image_url);
+      expect(body.images.heroImage.isHero).toBe(true);
+    });
+
+    it('should fallback hero to lowest rank when no is_hero row exists', async () => {
+      vi.mocked(repository.getAirportImages).mockResolvedValue(MOCK_IMAGES_NO_HERO);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      const body = response.json();
+      expect(body.images.heroImage).not.toBeNull();
+      expect(body.images.heroImage.imageUrl).toBe('https://example.com/low-rank.jpg');
+      expect(body.images.heroImage.rank).toBe(5);
+    });
+
+    it('should order items by is_hero desc, rank asc', async () => {
+      const sorted = [MOCK_HERO_IMAGE, ...MOCK_IMAGES_NO_HERO];
+      vi.mocked(repository.getAirportImages).mockResolvedValue(sorted);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      const body = response.json();
+      expect(body.images.items[0].isHero).toBe(true);
+      expect(body.images.items[1].rank).toBeLessThan(body.images.items[2].rank);
+    });
+
+    it('should return image metadata fields correctly', async () => {
+      vi.mocked(repository.getAirportImages).mockResolvedValue([MOCK_HERO_IMAGE]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      const body = response.json();
+      const img = body.images.heroImage;
+      expect(img.imageUrl).toBe(MOCK_HERO_IMAGE.image_url);
+      expect(img.thumbnailUrl).toBe(MOCK_HERO_IMAGE.thumbnail_url);
+      expect(img.caption).toBe(MOCK_HERO_IMAGE.caption);
+      expect(img.description).toBe(MOCK_HERO_IMAGE.description);
+      expect(img.imageKind).toBe(MOCK_HERO_IMAGE.image_kind);
+      expect(img.sourceType).toBe(MOCK_HERO_IMAGE.source_type);
+      expect(img.sourceName).toBe(MOCK_HERO_IMAGE.source_name);
+      expect(img.sourceUrl).toBe(MOCK_HERO_IMAGE.source_url);
+      expect(img.attributionText).toBe(MOCK_HERO_IMAGE.attribution_text);
+      expect(img.licenseName).toBe(MOCK_HERO_IMAGE.license_name);
+      expect(img.licenseUrl).toBe(MOCK_HERO_IMAGE.license_url);
+      expect(img.widthPx).toBe(MOCK_HERO_IMAGE.width_px);
+      expect(img.heightPx).toBe(MOCK_HERO_IMAGE.height_px);
+      expect(img.rank).toBe(MOCK_HERO_IMAGE.rank);
+      expect(img.isHero).toBe(true);
+    });
+
+    it('should not expose raw_metadata or diagnostics in image response', async () => {
+      const mockWithRaw = {
+        ...MOCK_HERO_IMAGE,
+        raw_metadata: { some: 'data' },
+        diagnostics: { some: 'diag' },
+      };
+      vi.mocked(repository.getAirportImages).mockResolvedValue([mockWithRaw]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      const body = response.json();
+      expect(body.images.heroImage).not.toHaveProperty('raw_metadata');
+      expect(body.images.heroImage).not.toHaveProperty('diagnostics');
+    });
+
+    it('should set mapPopup.imageUrl from hero image when no other imageUrl exists', async () => {
+      vi.mocked(repository.getAirportImages).mockResolvedValue([MOCK_HERO_IMAGE]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/airports/5209e070-54e7-45af-a2ef-afa20905085c/intelligence',
+      });
+
+      const body = response.json();
+      expect(body.images.heroImage.imageUrl).toBe(MOCK_HERO_IMAGE.image_url);
     });
 
     it('should handle live-like DB row shape from ingest worker without crash', async () => {

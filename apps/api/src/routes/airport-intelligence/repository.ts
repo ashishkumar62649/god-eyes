@@ -165,6 +165,41 @@ export async function getCapacityProfile(airportId: string): Promise<CapacityPro
   return rows.length > 0 ? rows[0] : null;
 }
 
+export interface AirportImageAssetRow {
+  id: string;
+  airport_id: string;
+  source_type: string;
+  source_name: string | null;
+  source_url: string | null;
+  image_url: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  description: string | null;
+  attribution_text: string | null;
+  license_name: string | null;
+  license_url: string | null;
+  width_px: number | null;
+  height_px: number | null;
+  image_kind: string;
+  is_hero: boolean;
+  rank: number;
+  created_at: Date | string;
+}
+
+export async function getAirportImages(airportId: string, limit: number = 12): Promise<AirportImageAssetRow[]> {
+  return query<AirportImageAssetRow>(
+    `SELECT id, airport_id, source_type, source_name, source_url,
+            image_url, thumbnail_url, caption, description,
+            attribution_text, license_name, license_url,
+            width_px, height_px, image_kind, is_hero, rank, created_at
+     FROM airport_image_assets
+     WHERE airport_id = $1
+     ORDER BY is_hero DESC, rank ASC, created_at ASC
+     LIMIT $2`,
+    [airportId, limit]
+  );
+}
+
 export async function getTrafficMetrics(airportId: string): Promise<TrafficMetricRow[]> {
   return query<TrafficMetricRow>(
     `SELECT id, airport_id, metric_type, period_year, metric_value, metric_unit,

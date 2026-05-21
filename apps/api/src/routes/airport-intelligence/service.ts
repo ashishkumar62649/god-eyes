@@ -9,6 +9,8 @@ import {
   Traffic,
   Sources,
   Advanced,
+  Images,
+  ImageAssetItem,
   ModuleStatusEntry,
   SourceItem,
   TrafficMetric,
@@ -380,6 +382,69 @@ function buildSources(sourceLinks: repository.SourceLinkRow[]): Sources {
   };
 }
 
+function buildImages(rows: repository.AirportImageAssetRow[]): Images {
+  if (rows.length === 0) {
+    return {
+      status: 'no_data',
+      heroImage: null,
+      items: [],
+    };
+  }
+
+  const hero = rows.find((r) => r.is_hero) ?? rows.reduce<repository.AirportImageAssetRow | null>(
+    (best, r) => (!best || r.rank < best.rank ? r : best),
+    null,
+  );
+
+  const sorted = [...rows].sort((a, b) => {
+    if (a.is_hero !== b.is_hero) return a.is_hero ? -1 : 1;
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
+
+  const items: ImageAssetItem[] = sorted.map((r) => ({
+    imageUrl: r.image_url,
+    thumbnailUrl: r.thumbnail_url,
+    caption: r.caption,
+    description: r.description,
+    imageKind: r.image_kind,
+    sourceType: r.source_type,
+    sourceName: r.source_name,
+    sourceUrl: r.source_url,
+    attributionText: r.attribution_text,
+    licenseName: r.license_name,
+    licenseUrl: r.license_url,
+    widthPx: r.width_px,
+    heightPx: r.height_px,
+    rank: r.rank,
+    isHero: r.is_hero,
+  }));
+
+  return {
+    status: 'ok',
+    heroImage: hero
+      ? {
+          imageUrl: hero.image_url,
+          thumbnailUrl: hero.thumbnail_url,
+          caption: hero.caption,
+          description: hero.description,
+          imageKind: hero.image_kind,
+          sourceType: hero.source_type,
+          sourceName: hero.source_name,
+          sourceUrl: hero.source_url,
+          attributionText: hero.attribution_text,
+          licenseName: hero.license_name,
+          licenseUrl: hero.license_url,
+          widthPx: hero.width_px,
+          heightPx: hero.height_px,
+          rank: hero.rank,
+          isHero: hero.is_hero,
+        }
+      : null,
+    items,
+  };
+}
+
 function buildAdvanced(modules: repository.IntelligenceModuleRow[]): Advanced {
   const moduleStatuses: ModuleStatusEntry[] = modules.map((m) => ({
     moduleKey: m.module_key,
@@ -470,17 +535,19 @@ export async function getAirportIntelligence(airportId: string): Promise<Airport
       capacity: { status: 'no_data', data: null },
       traffic: { status: 'no_data', data: [] },
       sources: { status: 'missing', items: [] },
+      images: { status: 'no_data', heroImage: null, items: [] },
       advanced: { moduleStatuses: [], cache: {}, confidence: {} },
     };
   }
 
-  const [modules, sourceLinks, derived, capacityProfile, trafficMetrics, publicProfile] = await Promise.all([
+  const [modules, sourceLinks, derived, capacityProfile, trafficMetrics, publicProfile, imageRows] = await Promise.all([
     repository.getIntelligenceModules(airportId),
     repository.getSourceLinks(airportId),
     repository.getDerivedIntelligence(airportId),
     repository.getCapacityProfile(airportId),
     repository.getTrafficMetrics(airportId),
     repository.getPublicProfile(airportId),
+    repository.getAirportImages(airportId),
   ]);
 
   const overviewModule = modules.find((m) => m.module_key === 'overview') ?? null;
@@ -496,6 +563,11 @@ export async function getAirportIntelligence(airportId: string): Promise<Airport
     mapPopup = buildMapPopupFromFallback(airportBase, publicProfile, derived);
   }
 
+  const images = buildImages(imageRows);
+  if (images.heroImage && !mapPopup.imageUrl) {
+    mapPopup = { ...mapPopup, imageUrl: images.heroImage.thumbnailUrl ?? images.heroImage.imageUrl };
+  }
+
   const status = determineResponseStatus(airportBase, modules, sourceLinks, derived, capacityProfile, trafficMetrics);
 
   return {
@@ -509,6 +581,7 @@ export async function getAirportIntelligence(airportId: string): Promise<Airport
     capacity: buildCapacity(capacityProfile),
     traffic: buildTraffic(trafficMetrics),
     sources: buildSources(sourceLinks),
+    images,
     advanced: buildAdvanced(modules),
   };
 }

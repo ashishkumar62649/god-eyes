@@ -107,6 +107,30 @@ export interface ModuleStatusEntry {
   confidenceScore: number | null;
 }
 
+export interface ImageAssetItem {
+  imageUrl: string;
+  thumbnailUrl: string | null;
+  caption: string | null;
+  description: string | null;
+  imageKind: string;
+  sourceType: string;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  attributionText: string | null;
+  licenseName: string | null;
+  licenseUrl: string | null;
+  widthPx: number | null;
+  heightPx: number | null;
+  rank: number;
+  isHero: boolean;
+}
+
+export interface Images {
+  status: ModuleStatus;
+  heroImage: ImageAssetItem | null;
+  items: ImageAssetItem[];
+}
+
 export interface Advanced {
   moduleStatuses: ModuleStatusEntry[];
   cache: Record<string, unknown>;
@@ -124,5 +148,6 @@ export interface AirportIntelligenceResponse {
   capacity: Capacity;
   traffic: Traffic;
   sources: Sources;
+  images: Images;
   advanced: Advanced;
 }
