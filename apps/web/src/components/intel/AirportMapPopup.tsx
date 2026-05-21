@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { AirportObject } from '@god-eyes/contracts';
 import { useAirportIntelligence } from '../../lib/useAirportIntelligence';
-import type { AirportIntelMapPopup } from '../../lib/airportIntelligenceTypes';
+import type { AirportIntelMapPopup, AirportIntelImages } from '../../lib/airportIntelligenceTypes';
+import AirportImageSlider from './AirportImageSlider';
 
 interface AirportMapPopupProps {
   airport: AirportObject;
@@ -71,20 +72,42 @@ function StatRow({ label, value }: { label: string; value: string | number }) {
 }
 
 // ── popup content when data is loaded ────────────────────────────────────────
-function PopupContent({ popup, airport }: { popup: AirportIntelMapPopup; airport: AirportObject }) {
+function PopupContent({
+  popup,
+  airport,
+  images,
+}: {
+  popup: AirportIntelMapPopup;
+  airport: AirportObject;
+  images: AirportIntelImages | null;
+}) {
   const code = popup.iataCode ?? popup.icaoCode ?? airport.ident ?? '';
   const codes = [popup.iataCode, popup.icaoCode].filter(Boolean).join(' / ');
   const location = [popup.city, popup.country].filter(Boolean).join(', ');
 
-  const badges = popup.badges?.length
-    ? popup.badges
-    : [];
-
+  const badges = popup.badges?.length ? popup.badges : [];
   const openedLabel = popup.openedDate ?? (popup.openedYear ? String(popup.openedYear) : null);
+
+  // Build ordered image list: heroImage first, then remaining items
+  const sliderItems = (() => {
+    if (!images || images.status !== 'ok') return [];
+    const hero = images.heroImage;
+    const rest = images.items.filter(i => !i.isHero);
+    return hero ? [hero, ...rest] : images.items;
+  })();
 
   return (
     <>
-      <PopupImage src={popup.imageUrl} code={code} />
+      {/* Image slider or fallback */}
+      <AirportImageSlider
+        items={sliderItems}
+        height={90}
+        fallbackCode={sliderItems.length === 0 ? (popup.imageUrl ? '' : code) : code}
+      />
+      {/* Legacy single imageUrl fallback when no slider images */}
+      {sliderItems.length === 0 && popup.imageUrl && (
+        <PopupImage src={popup.imageUrl} code={code} />
+      )}
 
       {/* Name */}
       <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: '2px' }}>
@@ -225,7 +248,7 @@ const AirportMapPopup: React.FC<AirportMapPopupProps> = ({ airport, screenX, scr
         )}
 
         {intel.phase === 'ok' && intel.data.mapPopup && (
-          <PopupContent popup={intel.data.mapPopup} airport={airport} />
+          <PopupContent popup={intel.data.mapPopup} airport={airport} images={intel.data.images ?? null} />
         )}
 
         {intel.phase === 'ok' && !intel.data.mapPopup && (
