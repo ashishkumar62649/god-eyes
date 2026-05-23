@@ -79,7 +79,6 @@ export async function fetchAllAviationCategories(
   abortSignal: AbortSignal,
   onBatch: PreloadBatchCallback,
 ): Promise<number> {
-  console.log('[AVIATION DEBUG] preload start');
   console.log('[AVIATION] fetchAllAviationCategories called, categories:', PRELOAD_CATEGORIES.map(c => c.apiCat));
   let totalLoaded = 0;
   const categoryCounts: Record<string, number> = {};
@@ -93,20 +92,11 @@ export async function fetchAllAviationCategories(
         const { apiCat, label } = queue.shift()!;
         if (!apiCat) continue;
 
-        console.log('[AVIATION DEBUG] fetching category:', apiCat);
         try {
           const response = await fetchAviationPreload(apiCat, abortSignal);
           if (abortSignal.aborted) return;
 
-          console.log('[AVIATION DEBUG] response keys:', Object.keys(response));
-
           const rawItems = response.items || [];
-          console.log('[AVIATION DEBUG] raw items count:', rawItems.length);
-
-          if (rawItems.length > 0) {
-            console.log('[AVIATION DEBUG] sample raw item keys:', Object.keys(rawItems[0]));
-            console.log('[AVIATION DEBUG] sample raw item:', JSON.stringify(rawItems[0]).substring(0, 300));
-          }
 
           const airports: AirportObject[] = [];
           for (const raw of rawItems) {
@@ -116,19 +106,10 @@ export async function fetchAllAviationCategories(
             }
           }
 
-          console.log('[AVIATION DEBUG] parsed count:', airports.length, 'from raw:', rawItems.length);
-
-          if (airports.length > 0) {
-            console.log('[AVIATION DEBUG] sample normalized airport:', JSON.stringify(airports[0]).substring(0, 300));
-          }
-
           storeObjects(airports);
           const catCount = airports.length;
           categoryCounts[apiCat] = catCount;
           totalLoaded += catCount;
-
-          const storeCount = getAllObjects().length;
-          console.log('[AVIATION DEBUG] store count after', apiCat, ':', storeCount);
 
           onBatch(airports, {
             category: apiCat,
@@ -140,7 +121,7 @@ export async function fetchAllAviationCategories(
           });
         } catch (err: any) {
           if (err.name === 'AbortError') return;
-          console.error('[AVIATION DEBUG] Preload failed for category', apiCat, ':', err);
+          console.error('Preload failed for category', apiCat, ':', err);
           categoryCounts[apiCat] = 0;
           onBatch([], {
             category: apiCat,
@@ -168,7 +149,6 @@ export async function fetchAllAviationCategories(
     });
   }
 
-  console.log('[AVIATION DEBUG] fetchAllAviationCategories done, total:', totalLoaded, 'store size:', getAllObjects().length);
   return totalLoaded;
 }
 

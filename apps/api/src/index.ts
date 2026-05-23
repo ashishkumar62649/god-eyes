@@ -36,7 +36,7 @@ async function start() {
 
     // Start server
     await fastify.listen({ port: config.port, host: '0.0.0.0' });
-    console.log(`Server running on http://localhost:${config.port}`);
+    fastify.log.info(`Server running on http://localhost:${config.port}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
