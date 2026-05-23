@@ -6,6 +6,7 @@ import type {
 } from '@god-eyes/contracts';
 import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
 import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
+import type { AirportLayoutFeaturesResponse } from './airportLayoutTypes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const CACHE_TTL_MS = 60_000;
@@ -245,4 +246,16 @@ export async function getAirportIntelligence(
   }
 
   return body as AirportIntelligenceResponse;
+}
+
+export async function getAirportLayoutFeatures(
+  airportId: string,
+  abortSignal?: AbortSignal,
+): Promise<AirportLayoutFeaturesResponse> {
+  const url = `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/layout-features`;
+  const response = await fetch(url, { signal: abortSignal });
+  const body = await response.json().catch(() => {
+    throw new Error(`Failed to fetch airport layout features: ${response.status}`);
+  });
+  return body as AirportLayoutFeaturesResponse;
 }

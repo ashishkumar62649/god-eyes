@@ -10,6 +10,8 @@ import { useAirportPublicProfile } from '../lib/useAirportPublicProfile';
 import { useAirportIntelligence } from '../lib/useAirportIntelligence';
 import type { PublicProfileData, PublicProfileAttribution } from '../lib/airportPublicProfileTypes';
 import type { AirportIntelImages } from '../lib/airportIntelligenceTypes';
+import AirportLayoutOverlayToggle from './intel/AirportLayoutOverlayToggle';
+import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;
@@ -18,6 +20,7 @@ interface DetailPanelProps {
   detailError: string | null;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  layoutPhase: LayoutPhase;
 }
 
 // ── error boundary ────────────────────────────────────────────────────────────
@@ -260,6 +263,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   detailError,
   isCollapsed,
   setIsCollapsed,
+  layoutPhase,
 }) => {
   const { state: profileState, retry } = useAirportPublicProfile(selectedObject?.id ?? null);
   const intelState = useAirportIntelligence(selectedObject?.id ?? null);
@@ -326,6 +330,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     intelImages={intelImages}
                   />
                 </IntelSection>
+
+                {/* ── LAYOUT OVERLAY INDICATOR ── */}
+                <div style={{ padding: '0 0 8px 0' }}>
+                  <AirportLayoutOverlayToggle layoutPhase={layoutPhase} />
+                </div>
 
                 {/* ── RUNWAYS / FREQUENCIES / NAVAIDS ── */}
                 {detailError && !detailLoading && (
