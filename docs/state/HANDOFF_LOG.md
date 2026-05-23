@@ -2303,3 +2303,37 @@ All agents must append to this file after completing work.
 - Existing tables changed: NO
 - Known issues: None.
 - Next recommended task: WO-051-FETCHING-AIRPORT-IMAGE-GALLERY-MVP
+
+### 2026-05-22T22:49:29Z Codex - WO-054-DB-AIRPORT-LAYOUT-FEATURES Airport Infrastructure Layout Database Foundation
+
+- Work order: WO-054-DB-AIRPORT-LAYOUT-FEATURES - Airport Infrastructure Layout Database Foundation
+- Agent: Codex
+- LLM model: ChatGPT 5.5 Codex
+- Tool/CLI used: Codex
+- Working directory: E:\god-eyes-layout-database
+- Branch: agent/database-airport-layout-features
+- Start time UTC: 2026-05-22T22:35:00Z
+- End time UTC: 2026-05-22T22:49:29Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 4 files (2 new, 2 modified)
+  - NEW: database/migrations/layers/layer_01_aviation/011_airport_layout_features.sql
+  - NEW: tests/data/layer_01_aviation/test_airport_layout_features_migration.py
+  - MODIFIED: docs/data/layer_01_aviation/AIRPORT_INTELLIGENCE_SCHEMA_PLAN.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+- Commands run:
+  - python -m pytest tests/data/layer_01_aviation/test_airport_layout_features_migration.py -q
+  - python -m pytest tests/data/layer_01_aviation -q
+  - pnpm --filter @god-eyes/contracts build
+  - pnpm --filter api build
+  - git diff --check
+  - docker ps --format "{{.Names}}\t{{.Status}}\t{{.Ports}}"
+  - Get-Content database/migrations/layers/layer_01_aviation/011_airport_layout_features.sql -Raw | docker exec -i god-eyes-postgis psql -U god_eyes -d god_eyes_dev -v ON_ERROR_STOP=1
+  - PostgreSQL catalog queries for airport_layout_features and airport_layout_fetch_runs tables, FK, checks, SRID 4326 geometry columns, GiST indexes, JSONB GIN indexes, unique dedupe indexes, and zero inserted rows
+- Review status: Ready for Database Kiro review
+- Build/test results: PASS. Focused migration test 10 passed. Layer 01 aviation data tests 312 passed. Contracts build PASS. API build PASS. git diff --check PASS with markdown line-ending warning only.
+- Live migration apply result: PASS against local Docker PostGIS container god-eyes-postgis/god_eyes_dev. airport_layout_features and airport_layout_fetch_runs created. FK to aviation_airports verified. 15 feature check constraints and 7 fetch-run check constraints verified. Geometry, centroid, and bbox columns are SRID 4326. GiST spatial indexes, JSONB GIN indexes, and both partial unique dedupe indexes verified. Feature and fetch-run row counts remained 0.
+- Forbidden folders touched: NO
+- Existing tables changed: NO
+- Known issues: None.
+- Next recommended task: WO-055-FETCHING-AIRPORT-LAYOUT-FEATURES-MVP

@@ -5,6 +5,7 @@ import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from './lib/searchTypes';
 import { fetchAirportDetail } from './lib/api';
 import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategories';
+import { useAirportLayoutFeatures } from './lib/useAirportLayoutFeatures';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -44,6 +45,8 @@ const App: React.FC = () => {
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
+
+  const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -138,6 +141,7 @@ const App: React.FC = () => {
         cameraTarget={cameraTarget}
         aviationFilters={aviationFilters}
         selectedAirport={selectedObject}
+        layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
       />
 
       <div style={{
@@ -156,6 +160,7 @@ const App: React.FC = () => {
           onSearchResultSelect={handleSearchResultSelect}
           aviationFilters={aviationFilters}
           onFiltersChange={handleFiltersChange}
+          layoutPhase={layoutPhase}
         />
       </div>
     </div>

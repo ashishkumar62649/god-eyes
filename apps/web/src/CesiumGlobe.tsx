@@ -4,7 +4,9 @@ import {
   Ion,
   Cartesian2,
   Cartesian3,
+  Color,
   Entity,
+  PolylineGraphics,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
@@ -14,6 +16,7 @@ import {
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
 import type { AirportObject } from '@god-eyes/contracts';
+import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
 
 import {
   fetchAllAviationCategories,
@@ -58,6 +61,7 @@ interface CesiumGlobeProps {
   } | null;
   aviationFilters: AviationFilters;
   selectedAirport?: AirportObject | null;
+  layoutFeatures?: AirportLayoutFeaturesResponse | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -67,6 +71,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   cameraTarget,
   aviationFilters,
   selectedAirport,
+  layoutFeatures,
 }) => {
 
   /**
@@ -88,6 +93,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const [tokenMissing, setTokenMissing] = useState(false);
   const [viewerReady, setViewerReady] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
+  const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -341,6 +347,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       aviationDataSourceRef.current = dataSource;
       viewer.dataSources.add(dataSource);
 
+      const layoutDataSource = new CustomDataSource('airport-layout');
+      layoutDataSourceRef.current = layoutDataSource;
+      viewer.dataSources.add(layoutDataSource);
+
       // FPS tracking
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
@@ -548,6 +558,44 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       return () => clearInterval(id);
     }
   }, [cameraTarget]);
+
+  // Render airport layout features (runways) on the globe
+  useEffect(() => {
+    const ds = layoutDataSourceRef.current;
+    if (!ds) return;
+
+    // Clear previous overlay
+    ds.entities.removeAll();
+
+    if (!layoutFeatures || layoutFeatures.status !== 'ok') return;
+
+    const runways = layoutFeatures.features.filter(
+      (f) => f.featureType === 'runway' && f.geometryType === 'line' && f.geometry.type === 'LineString',
+    );
+
+    for (const feature of runways) {
+      const coords = feature.geometry.coordinates as number[][];
+      if (!Array.isArray(coords) || coords.length < 2) continue;
+
+      const positions: Cartesian3[] = [];
+      for (const [lon, lat] of coords) {
+        if (typeof lon === 'number' && typeof lat === 'number') {
+          positions.push(Cartesian3.fromDegrees(lon, lat, 0));
+        }
+      }
+      if (positions.length < 2) continue;
+
+      ds.entities.add(new Entity({
+        id: `layout-runway-${feature.id}`,
+        polyline: new PolylineGraphics({
+          positions,
+          width: 4,
+          material: Color.fromCssColorString('#00e5ff').withAlpha(0.85),
+          clampToGround: true,
+        }),
+      }));
+    }
+  }, [layoutFeatures]);
 
   if (error) {
     return (

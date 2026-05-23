@@ -7,6 +7,7 @@ import '../styles/shell.css';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
 import { AviationFilters } from '../lib/aviationCategories';
+import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
 
 interface AviationStats {
   loaded: number;
@@ -27,6 +28,7 @@ interface ShellProps {
   onSearchResultSelect: (result: SearchResult) => void;
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;
+  layoutPhase: LayoutPhase;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -40,6 +42,7 @@ const Shell: React.FC<ShellProps> = ({
   onSearchResultSelect,
   aviationFilters,
   onFiltersChange,
+  layoutPhase,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -68,6 +71,7 @@ const Shell: React.FC<ShellProps> = ({
           detailError={detailError}
           isCollapsed={detailPanelCollapsed}
           setIsCollapsed={setDetailPanelCollapsed}
+          layoutPhase={layoutPhase}
         />
       </main>
 

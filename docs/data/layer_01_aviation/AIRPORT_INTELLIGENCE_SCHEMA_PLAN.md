@@ -1237,6 +1237,27 @@ Source-specific metadata and parser diagnostics are stored in JSONB fields:
 Both fields have GIN indexes for later inspection and troubleshooting queries.
 No images are fetched in this work order.
 
+## WO-054 Airport Layout Features
+
+WO-054 implements the airport infrastructure layout database foundation. The
+migration file is:
+
+`database/migrations/layers/layer_01_aviation/011_airport_layout_features.sql`
+
+This table stores source-backed airport infrastructure geometry for future
+visual layout overlays, including runways, taxiways, aprons, terminals,
+gates/stands, towers, helipads, boundaries, service roads, parking areas,
+hangars, fuel areas, and navigation aids.
+
+Future fetchers will populate `airport_layout_features` from OurAirports runway coordinates, OpenStreetMap/Overpass, Wikidata, and official sources. The future
+API will later expose layout features by airport. Frontend will later render visual infrastructure overlays from that API response.
+
+WO-054 also creates `airport_layout_fetch_runs` to track future layout
+fetch/backfill jobs independently from feature rows.
+
+No source fetching or frontend rendering is part of this work order. No fake
+layout rows are inserted by the migration.
+
 ## Open Questions
 
 - Should `airport_intelligence_fetch_runs` replace future module-specific fetch
