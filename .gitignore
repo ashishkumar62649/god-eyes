@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 node_modules/
 .pnpm-store/
 
@@ -59,4 +59,17 @@ apps/web/.vite/
 
 # Local Claude Code settings
 .claude/
+
+# Kiro local settings
+.kiro/settings.local.json
+
+# Compiled contracts artifacts (build output belongs in dist/, not src/)
+packages/contracts/src/*.js
+packages/contracts/src/*.js.map
+packages/contracts/src/*.d.ts
+packages/contracts/src/*.d.ts.map
+
+# Vim swap files
+*.swp
+*.swo
 

@@ -8,13 +8,15 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Status
 
-**MVP Phase 1 Complete:** Layer 0 Globe Core + Layer 1 Aviation Resident Global Renderer with Preload
+**MVP Phase 1 Complete:** Layer 0 Globe Core + Layer 1 Aviation with Airport Intelligence, Gallery, and Layout Overlay
 
 ### Completed Work Orders
 - ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
 - ✅ WO-030A: Aviation API Preload/Resident Cache Mode
 - ✅ WO-031-FE: Aviation Simple Global Category Renderer
 - ✅ HOTFIX-2: Frontend Fetch/Render/Status Fixes
+- ✅ WO-060: Repository Health Audit (score: 74/100)
+- ✅ WO-061: Repository Safe Cleanup (Phase 1)
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -25,6 +27,10 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
   - Object Intel detail view
   - StatusPanel with preload progress, loaded/visible counts
   - No FPS loss at 85k+ airports
+  - Airport intelligence panel (ICAO, IATA, elevation, timezone, region)
+  - Airport image gallery
+  - Airport layout runway overlay (OSM-sourced)
+  - Closed runways hidden by default via `is_active = false`
 
 ## What Exists
 
@@ -34,7 +40,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - [x] docs/work-orders/ (all completed work orders)
 - [x] specs/001-layer-zero-globe-core/spec.md
 - [x] specs/002-layer-one-aviation/spec.md
-- [x] apps/api/ (Fastify API with preload endpoint)
+- [x] apps/api/ (Fastify API with preload, intelligence, layout endpoints)
 - [x] apps/web/ (React + Cesium frontend with resident renderer)
 - [x] packages/contracts/ (TypeScript type contracts)
 - [x] database/ (PostgreSQL schema with 85k+ airports)
@@ -60,8 +66,8 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 2. **Fabric Aggregation (WO-033):** Implement fabric-based clustering for performance
 3. **Layer 2 Satellite (WO-040+):** Add satellite imagery layer
 4. **Layer 3 Maritime (WO-050+):** Add maritime traffic layer
-5. **Real-time Updates (WO-060+):** Implement live data refresh
+5. **Repository Cleanup Phase 2 (WO-062+):** Address remaining audit items (score 74/100)
 
 ## Last Updated
 
-2026-05-17T19:31:19Z — Kiro CLI (WO-030A + WO-031-FE + HOTFIX-2 integration review PASS)
+2026-05-23T16:05:04Z — Kiro CLI (WO-061 repository safe cleanup)

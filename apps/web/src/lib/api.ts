@@ -166,8 +166,6 @@ export async function fetchAviationPreload(
   url.searchParams.append('mode', 'preload');
   url.searchParams.append('category', category);
 
-  console.log('[AVIATION DEBUG] fetch URL:', url.toString());
-
   const response = await fetch(url.toString(), { signal: abortSignal });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
