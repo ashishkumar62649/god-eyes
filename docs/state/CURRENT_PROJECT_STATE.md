@@ -23,6 +23,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-073 / WO-073A: Earth Events API + timestamp fix
 - ✅ WO-074 / WO-074A: Earth Events frontend globe layer + occlusion fix
 - ✅ WO-075-076: Earth Events closeout + Borders & Boundaries policy plan
+- ✅ WO-076A: Borders & Boundaries implementation gate review
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -78,13 +79,17 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Next Safe Steps
 
-1. **Borders & Boundaries database schema (WO-077):** Only after all implementation gates
-   in `docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md` Section 9 are cleared.
-2. **Borders source ingestion (WO-078):** After WO-077.
-3. **Borders API (WO-079):** After WO-078.
-4. **Borders frontend (WO-080):** After WO-079.
-5. **Borders compliance review (WO-081):** Mandatory before layer_02 goes active.
+1. **[HUMAN ACTION REQUIRED] Survey of India contact:** Human must contact Survey of India
+   to request licensing for digital vector boundary data. Clears G2, G3.
+2. **[HUMAN ACTION REQUIRED] Non-India source license review:** Human must review Natural
+   Earth India-conflict status, UN Cartographic license, and GADM license. Clears G4.
+3. **[HUMAN ACTION REQUIRED] Survey of India guidelines review:** Human must read
+   https://onlinemaps.surveyofindia.gov.in/GeospatialGuidelines.aspx. Clears G1.
+4. **WO-077 Borders database schema (schema-only):** May be drafted now under strict
+   schema-only scope. No data, no India geometry, no source ingestion.
+   See `docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md` Section 9.
+5. **Borders source ingestion (WO-078):** Blocked until G1–G6 cleared.
 
 ## Last Updated
 
-2026-05-26 — Kiro CLI (WO-075-076-EARTH-EVENTS-CLOSEOUT-AND-BORDERS-POLICY-PLAN)
+2026-05-26 — Kiro CLI (WO-076A-BORDERS-BOUNDARIES-GATE-AND-SOURCE-REVIEW)

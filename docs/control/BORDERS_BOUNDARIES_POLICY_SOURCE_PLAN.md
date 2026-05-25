@@ -145,14 +145,17 @@ Before any boundary dataset is ingested, the following must be confirmed and doc
 
 | Gate | Requirement | Status |
 |------|-------------|--------|
-| G1 | Survey of India Geospatial Guidelines reviewed | PENDING |
-| G2 | India boundary source identified and licensed | PENDING |
-| G3 | India boundary covers J&K, Ladakh, PoK, Aksai Chin per official depiction | PENDING |
-| G4 | Non-India source identified, licensed, and India-conflict-checked | PENDING |
-| G5 | Disputed territory handling policy written and approved | PENDING |
-| G6 | Data licensing checklist (Section 8) fully completed | PENDING |
-| G7 | Database schema work order (WO-077) drafted and approved | PENDING |
-| G8 | No agent has started writing code or ingesting data | PENDING |
+| G1 | Survey of India Geospatial Guidelines reviewed | **BLOCKED** — requires human review |
+| G2 | India boundary source identified and licensed | **BLOCKED** — requires human to contact Survey of India |
+| G3 | India boundary covers J&K, Ladakh, PoK, Aksai Chin per official depiction | **BLOCKED** — depends on G2 |
+| G4 | Non-India source identified, licensed, and India-conflict-checked | **BLOCKED** — requires human license review |
+| G5 | Disputed territory handling policy written and approved | **BLOCKED** — requires human decision |
+| G6 | Data licensing checklist (Section 8) fully completed | **BLOCKED** — depends on G2 and G4 |
+| G7 | Database schema work order (WO-077) drafted and approved | PENDING — can be cleared by drafting WO-077 schema-only |
+| G8 | No agent has started writing code or ingesting data | **PASS** — confirmed by WO-076A review |
+
+*Gate statuses last reviewed: 2026-05-26 by Kiro CLI (WO-076A). See
+`docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md` for full assessment.*
 
 ---
 
