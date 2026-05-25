@@ -25,6 +25,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-075-076: Earth Events closeout + Borders & Boundaries policy plan
 - ✅ WO-076A: Borders & Boundaries implementation gate review
 - ✅ WO-077: Borders & Boundaries database schema foundation (schema-only, no data)
+- ✅ WO-078A: Borders source license clearance kit created
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -80,15 +81,18 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Next Safe Steps
 
-1. **[HUMAN ACTION REQUIRED] Survey of India contact:** Human must contact Survey of India
-   to request licensing for digital vector boundary data. Clears G2, G3.
-2. **[HUMAN ACTION REQUIRED] Non-India source license review:** Human must review Natural
-   Earth India-conflict status, UN Cartographic license, and GADM license. Clears G4.
-3. **[HUMAN ACTION REQUIRED] Survey of India guidelines review:** Human must read
-   https://onlinemaps.surveyofindia.gov.in/GeospatialGuidelines.aspx. Clears G1.
-4. **Borders source ingestion (WO-078):** Blocked until G1–G6 cleared.
-   The WO-077 schema exists, but it does not approve any source or geometry.
+1. **[HUMAN ACTION REQUIRED] Read Survey of India Geospatial Guidelines:**
+   https://onlinemaps.surveyofindia.gov.in/GeospatialGuidelines.aspx — Clears G1.
+2. **[HUMAN ACTION REQUIRED] Contact Survey of India for vector data licensing:**
+   Use template in `docs/control/BORDERS_BOUNDARIES_SURVEY_OF_INDIA_REQUEST_TEMPLATE.md`.
+   Save response in `docs/data/layer_02_borders_boundaries/`. Clears G2, G3.
+3. **[HUMAN ACTION REQUIRED] Review non-India source licenses:**
+   Natural Earth India-conflict, UN Cartographic license, GADM commercial use.
+   Update `docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md`. Clears G4.
+4. **[HUMAN ACTION REQUIRED] Write disputed territory handling policy.** Clears G5.
+5. **WO-078B Borders ingestion plan:** Cannot start until at least one source reaches
+   `approved` status in the source review tracker and G1–G6 are cleared.
 
 ## Last Updated
 
-2026-05-26 — Codex (WO-077-BORDERS-BOUNDARIES-DATABASE-SCHEMA)
+2026-05-26 — Kiro CLI (WO-078A-BORDERS-SOURCE-LICENSE-CLEARANCE-KIT)
