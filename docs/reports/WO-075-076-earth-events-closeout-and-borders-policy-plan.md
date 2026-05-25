@@ -26,7 +26,7 @@ No application code was written. No boundary data was downloaded or committed.
 
 | Component | Work Order | Commit |
 |-----------|------------|--------|
-| DB migration (earth_events, earth_events_history) | WO-071 | — |
+| DB migration (earth_events_latest, earth_events_history) | WO-071 | — |
 | USGS fetcher | WO-072 | — |
 | API endpoint | WO-073 | — |
 | API timestamp fix | WO-073A | 0efa371 / b9836db |

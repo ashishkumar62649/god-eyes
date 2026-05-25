@@ -24,9 +24,9 @@ The Earth Events layer (`layer_03_earth_events`) is now working end-to-end:
 
 | Component | Status | Work Order |
 |-----------|--------|------------|
-| Database tables (earth_events, earth_events_history) | DONE | WO-071 |
+| Database tables (earth_events_latest, earth_events_history) | DONE | WO-071 |
 | USGS earthquake fetcher | DONE | WO-072 |
-| API endpoint (`GET /api/layers/layer_03_earth_events/objects`) | DONE | WO-073 |
+| API endpoint (`GET /api/earth-events/latest`) | DONE | WO-073 |
 | API timestamp serialization fix | DONE | WO-073A |
 | Frontend globe layer (Cesium markers, color by severity) | DONE | WO-074 |
 | Globe depth/occlusion fix (markers behind globe) | DONE | WO-074A |

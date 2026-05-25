@@ -38,9 +38,9 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
   - Airport layout runway overlay (OSM-sourced)
   - Closed runways hidden by default via `is_active = false`
 - ✅ Layer 3 Earth Events: USGS earthquake feed end-to-end
-  - Database tables: earth_events + earth_events_history
+  - Database tables: earth_events_latest + earth_events_history
   - USGS fetcher (magnitude, location, time, coordinates)
-  - API endpoint: `GET /api/layers/layer_03_earth_events/objects`
+  - API endpoint: `GET /api/earth-events/latest`
   - Frontend Cesium markers, color-coded by severity
   - Globe depth/occlusion correct (markers behind globe hidden)
 
