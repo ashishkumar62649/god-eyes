@@ -4,6 +4,7 @@ import type {
   AirportDetailResponse,
   LayerStatusResponse,
   LayerRegistryResponse,
+  EarthEventsLatestResponse,
 } from '@god-eyes/contracts';
 import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
 import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
@@ -167,6 +168,19 @@ export async function fetchLayerRegistry(): Promise<LayerRegistryResponse> {
   return response.json();
 }
 
+export async function fetchEarthEventsLatest(
+  params: { limit?: number; event_type?: string } = {},
+  abortSignal?: AbortSignal,
+): Promise<EarthEventsLatestResponse> {
+  const url = new URL(`${API_BASE_URL}/api/earth-events/latest`);
+  url.searchParams.set('event_type', params.event_type ?? 'earthquake');
+  url.searchParams.set('limit', String(Math.min(params.limit ?? 200, 200)));
+  const response = await fetch(url.toString(), { signal: abortSignal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch earth events: ${response.status}`);
+  }
+  return response.json();
+}
 export async function fetchAviationPreload(
   category: string,
   abortSignal?: AbortSignal,

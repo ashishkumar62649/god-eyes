@@ -8,6 +8,7 @@ import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
 import { AviationFilters } from '../lib/aviationCategories';
 import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
+import type { EarthEventsPhase } from '../lib/useEarthEvents';
 
 interface AviationStats {
   loaded: number;
@@ -29,6 +30,9 @@ interface ShellProps {
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;
   layoutPhase: LayoutPhase;
+  earthEventsLayerActive: boolean;
+  setEarthEventsLayerActive: (active: boolean) => void;
+  earthEventsPhase: EarthEventsPhase;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -43,6 +47,9 @@ const Shell: React.FC<ShellProps> = ({
   aviationFilters,
   onFiltersChange,
   layoutPhase,
+  earthEventsLayerActive,
+  setEarthEventsLayerActive,
+  earthEventsPhase,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -63,6 +70,9 @@ const Shell: React.FC<ShellProps> = ({
           aviationStats={aviationStats}
           aviationFilters={aviationFilters}
           onFiltersChange={onFiltersChange}
+          earthEventsLayerActive={earthEventsLayerActive}
+          setEarthEventsLayerActive={setEarthEventsLayerActive}
+          earthEventsPhase={earthEventsPhase}
         />
         <DetailPanel
           selectedObject={selectedObject}

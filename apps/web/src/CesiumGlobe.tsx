@@ -12,10 +12,13 @@ import {
   CustomDataSource,
   PointPrimitiveCollection,
   SceneTransforms,
+  ConstantProperty,
+  PointGraphics,
+  ConstantPositionProperty,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
-import type { AirportObject } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
 
 import {
@@ -62,6 +65,7 @@ interface CesiumGlobeProps {
   aviationFilters: AviationFilters;
   selectedAirport?: AirportObject | null;
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
+  earthEvents?: EarthEvent[];
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -72,6 +76,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   aviationFilters,
   selectedAirport,
   layoutFeatures,
+  earthEvents,
 }) => {
 
   /**
@@ -94,6 +99,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const [viewerReady, setViewerReady] = useState(false);
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
+  const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -108,6 +114,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   // Popup screen-space position tracking
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
   const selectedAirportRef = useRef(selectedAirport);
+
+  // Selected earthquake for minimal info overlay
+  const [selectedEarthquake, setSelectedEarthquake] = useState<EarthEvent | null>(null);
 
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
@@ -331,6 +340,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       layoutDataSourceRef.current = layoutDataSource;
       viewer.dataSources.add(layoutDataSource);
 
+      const earthEventsDataSource = new CustomDataSource('earth-events');
+      earthEventsDataSourceRef.current = earthEventsDataSource;
+      viewer.dataSources.add(earthEventsDataSource);
+
       // FPS tracking
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
@@ -407,6 +420,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const position = entity.position?.getValue(viewer!.clock.currentTime);
         if (position && !isPositionVisible(viewer!, position)) {
           onObjectSelectRef.current(null);
+          return;
+        }
+
+        // Earthquake entity click
+        if (entity.properties && entity.properties.earthquakeData) {
+          setSelectedEarthquake(entity.properties.earthquakeData.getValue() as EarthEvent);
           return;
         }
 
@@ -564,6 +583,46 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [layoutFeatures]);
 
+  // Render earthquake events on the globe
+  useEffect(() => {
+    const ds = earthEventsDataSourceRef.current;
+    if (!ds) return;
+
+    ds.entities.removeAll();
+
+    if (!earthEvents || earthEvents.length === 0) return;
+
+    for (const event of earthEvents) {
+      const [lon, lat] = event.geometry.coordinates;
+      if (typeof lon !== 'number' || typeof lat !== 'number') continue;
+
+      // Color by magnitude: green < 3, yellow 3-5, orange 5-6, red >= 6
+      const mag = event.magnitude ?? 0;
+      let color: Color;
+      if (mag >= 6) color = Color.fromCssColorString('#ff3d00').withAlpha(0.9);
+      else if (mag >= 5) color = Color.fromCssColorString('#ff9100').withAlpha(0.85);
+      else if (mag >= 3) color = Color.fromCssColorString('#ffd600').withAlpha(0.8);
+      else color = Color.fromCssColorString('#69f0ae').withAlpha(0.75);
+
+      const pixelSize = Math.max(5, Math.min(18, 4 + mag * 2));
+
+      const entity = new Entity({
+        id: `earthquake-${event.id}`,
+        position: new ConstantPositionProperty(Cartesian3.fromDegrees(lon, lat, 0)),
+        point: new PointGraphics({
+          pixelSize: new ConstantProperty(pixelSize),
+          color: new ConstantProperty(color),
+          outlineColor: new ConstantProperty(Color.BLACK.withAlpha(0.5)),
+          outlineWidth: new ConstantProperty(1),
+          disableDepthTestDistance: new ConstantProperty(Number.POSITIVE_INFINITY),
+        }),
+      });
+      // Store event data for click handler
+      (entity as any).properties = { earthquakeData: new ConstantProperty(event) };
+      ds.entities.add(entity);
+    }
+  }, [earthEvents]);
+
   if (error) {
     return (
       <div style={{
@@ -602,6 +661,38 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           screenY={popupPos.y}
           onClose={() => onObjectSelectRef.current(null)}
         />
+      )}
+      {selectedEarthquake && (
+        <div style={{
+          position: 'absolute', bottom: '80px', right: '20px',
+          background: 'rgba(10, 14, 20, 0.92)',
+          border: '1px solid rgba(255, 61, 0, 0.4)',
+          color: '#e0e0e0', padding: '10px 14px', borderRadius: '4px',
+          fontSize: '0.68rem', fontFamily: 'JetBrains Mono, monospace',
+          letterSpacing: '0.5px', zIndex: 1000, maxWidth: '260px',
+          lineHeight: '1.6',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ color: '#ff3d00', fontWeight: 700, letterSpacing: '1px' }}>
+              EARTHQUAKE M{selectedEarthquake.magnitude?.toFixed(1) ?? '?'}
+            </span>
+            <button
+              onClick={() => setSelectedEarthquake(null)}
+              style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
+            >✕</button>
+          </div>
+          {selectedEarthquake.place && <div>{selectedEarthquake.place}</div>}
+          {selectedEarthquake.depthKm != null && <div>DEPTH: {selectedEarthquake.depthKm} km</div>}
+          <div>TIME: {new Date(selectedEarthquake.observedAt).toUTCString()}</div>
+          {selectedEarthquake.sourceUrl && (
+            <div style={{ marginTop: '4px' }}>
+              <a href={selectedEarthquake.sourceUrl} target="_blank" rel="noopener noreferrer"
+                style={{ color: '#64b5f6', textDecoration: 'none' }}>
+                SOURCE ↗
+              </a>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
