@@ -1,3 +1,60 @@
+### 2026-05-25T23:27:46Z MiniMax — WO-072-FIX USGS updated_at Bug Fix
+
+- Work order: WO-072-EARTH-EVENTS-USGS-FETCHER-FIX
+- Agent: MiniMax
+- Role: Fetching/data ingestion engineer
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/earth-events-fetcher
+- Start time UTC: 2026-05-25T23:27:46Z
+- End time UTC: 2026-05-25T23:30:00Z
+- Commit hash: 4dc543d
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed critical bug in earth_events_db.py upsert logic. Changed `updated_at = NOW()` to `updated_at = EXCLUDED.updated_at` to preserve the source/USGS timestamp. Added tests for updated_at preservation and older timestamp protection. Fixed dry-run test to use mock instead of live internet.
+- Files modified: services/fetch-orchestrator/src/layers/layer_03_earth_events/earth_events_db.py, tests/data/layer_03_earth_events/test_usgs_earthquakes_worker.py
+- Commands run: git diff --check, python -m pytest tests/data/layer_03_earth_events -q, python -m compileall, git add, git commit
+- Tests result: 16 passed
+- Critical updated_at bug fixed: YES
+- updated_at uses EXCLUDED.updated_at: YES
+- Older updated_at protection tested: YES
+- Source updated_at preservation tested: YES
+- Dry-run test avoids live internet: YES
+- No destructive DB operations: YES
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Known issues: None
+- Next safe task: Kiro review, then push to origin if approved
+### 2026-05-25T14:38:40Z MiniMax — WO-072 USGS Earth Events Fetcher Complete
+
+- Work order: WO-072-EARTH-EVENTS-USGS-FETCHER
+- Agent: MiniMax
+- Role: Fetching/data ingestion engineer
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/earth-events-fetcher
+- Start time UTC: 2026-05-25T14:38:40Z
+- End time UTC: 2026-05-25T14:45:00Z
+- Commit hash: 0053899
+- Push status: local only (awaiting Kiro review)
+- What was done: Created Earth Events fetcher for USGS earthquake GeoJSON data. Fetcher fetches from public USGS feed, validates GeoJSON, normalizes to internal Earth Events shape, and persists to earth_events_latest and earth_events_history tables. Supports dry-run (default) and --persist mode. Upsert logic prevents overwriting newer records with older data.
+- Files created: services/fetch-orchestrator/src/layers/layer_03_earth_events/__init__.py, services/fetch-orchestrator/src/layers/layer_03_earth_events/earth_events_db.py, services/fetch-orchestrator/src/layers/layer_03_earth_events/usgs_earthquakes_worker.py, tests/data/layer_03_earth_events/fixtures/usgs_earthquake_feature.json, tests/data/layer_03_earth_events/test_usgs_earthquakes_worker.py
+- Commands run: git diff --check, python -m pytest tests/data/layer_03_earth_events -q, python services/fetch-orchestrator/src/layers/layer_03_earth_events/usgs_earthquakes_worker.py (dry-run), python services/fetch-orchestrator/src/layers/layer_03_earth_events/usgs_earthquakes_worker.py --persist (persist), git add, git commit
+- Tests result: 14 passed
+- Dry-run result: 200 features fetched and normalized
+- Persist result: 200 records written to earth_events_latest, 200 records appended to earth_events_history
+- Validation results: git diff --check PASS, pytest PASS (14/14), compileall PASS, dry-run PASS, persist PASS
+- Source: USGS Earthquake Hazards Program (https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson)
+- API key/token needed: NO
+- No fake data: YES
+- No destructive DB operations: YES
+- External calls only in fetcher: YES
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Known issues: None
+- Forbidden folders touched: NO (only services/fetch-orchestrator/src/layers/layer_03_earth_events/, tests/data/layer_03_earth_events/)
+- Next safe task: Kiro review, then push to origin if approved
 ﻿### 2026-05-17T23:05:00Z Claude API 1 â€” WO-030A Aviation API Preload/Resident Cache Mode Complete
 
 - Work order: WO-030A Aviation API support for Global Resident Cache Mode

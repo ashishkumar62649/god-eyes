@@ -1,0 +1,1 @@
+"""Layer 03 Earth Events - USGS Earthquake fetcher."""
