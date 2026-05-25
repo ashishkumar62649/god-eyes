@@ -2701,3 +2701,44 @@ All agents must append to this file after completing work.
 - PostGIS geometry SRID 4326: YES
 - Indexes included: YES
 - Known issues: None. WO-077 does not clear G1-G6; WO-078 ingestion remains blocked.
+
+### 2026-05-25T21:55:53Z Kiro CLI - WO-078A-BORDERS-SOURCE-LICENSE-CLEARANCE-KIT
+
+- Work order: WO-078A-BORDERS-SOURCE-LICENSE-CLEARANCE-KIT
+- Agent: Kiro CLI
+- LLM model: Claude Sonnet 4.5
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/borders-source-license-clearance
+- Start time UTC: 2026-05-25T21:30:00Z
+- End time UTC: 2026-05-25T21:55:53Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 7 files (5 new, 2 modified)
+  - NEW: docs/control/BORDERS_BOUNDARIES_SOURCE_LICENSE_CLEARANCE_KIT.md
+  - NEW: docs/control/BORDERS_BOUNDARIES_SURVEY_OF_INDIA_REQUEST_TEMPLATE.md
+  - NEW: docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md
+  - NEW: docs/work-orders/WO-078A-borders-source-license-clearance-kit.md
+  - NEW: docs/reports/WO-078A-borders-source-license-clearance-kit.md
+  - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+- Commands run:
+  - git branch --show-current
+  - git status --short
+  - git log --oneline -5
+  - git diff --check
+  - git add docs/control docs/work-orders docs/reports docs/state
+  - git commit -m "docs(control): add Borders source license clearance kit (WO-078A)"
+- Review status: Ready for Kiro review
+- Clearance kit created: YES
+- Survey of India request template created: YES
+- Source review tracker created: YES
+- India ingestion remains blocked: YES
+- Non-India ingestion remains blocked: YES
+- No source approval claimed: YES
+- Code touched: NO
+- Database touched: NO
+- Data files added: NO
+- Boundary datasets downloaded: NO
+- Forbidden folders touched: NO
+- Known issues: None.
+- Next recommended task: Human to read Survey of India guidelines, contact Survey of India, review non-India source licenses, update source review tracker
