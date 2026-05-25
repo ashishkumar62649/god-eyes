@@ -2742,3 +2742,39 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None.
 - Next recommended task: Human to read Survey of India guidelines, contact Survey of India, review non-India source licenses, update source review tracker
+
+
+### 2026-05-25T22:22:03Z Kiro CLI - WO-078A1-BORDERS-MVP-BOUNDARY-MODE-DECISION
+
+- Work order: WO-078A1-BORDERS-MVP-BOUNDARY-MODE-DECISION
+- Agent: Kiro CLI
+- LLM model: Claude Sonnet 4.5
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/borders-mvp-boundary-mode
+- Start time UTC: 2026-05-25T22:10:00Z
+- End time UTC: 2026-05-25T22:22:03Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 6 files (3 new, 3 modified)
+  - NEW: docs/control/BORDERS_BOUNDARIES_MVP_BOUNDARY_MODE_DECISION.md
+  - NEW: docs/work-orders/WO-078A1-borders-mvp-boundary-mode-decision.md
+  - NEW: docs/reports/WO-078A1-borders-mvp-boundary-mode-decision.md
+  - MODIFIED: docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md (production_deferred note)
+  - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+- Commands run:
+  - git branch --show-current
+  - git status --short
+  - git diff --check
+  - git add docs/control docs/work-orders docs/reports docs/state
+  - git commit -m "docs(control): record Borders MVP boundary mode decision (WO-078A1)"
+- Review status: Ready for Kiro review
+- MVP boundary mode decision documented: YES
+- Survey of India email deferred to production stage: YES
+- Production India compliance still blocked: YES
+- Source approval claimed: NO
+- Data files added: NO
+- Boundary datasets downloaded: NO
+- Code touched: NO
+- Database touched: NO
+- Next step: WO-078B Country Boundary Source Evaluation

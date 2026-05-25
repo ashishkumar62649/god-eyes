@@ -55,7 +55,7 @@ and Kiro sign-off.**
 | Disputed territory reviewed | NO |
 | Approved for India | NO |
 | Approved for non-India | N/A |
-| Decision status | `blocked` — human contact required |
+| Decision status | `blocked` — human contact required; production contact deferred to deployment stage (WO-078A1) |
 | Human reviewer | NOT ASSIGNED |
 | Review date | — |
 | Evidence location | None yet. Save to: `docs/data/layer_02_borders_boundaries/SOI_RESPONSE_[YYYYMMDD].md` |
