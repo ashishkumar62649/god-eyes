@@ -81,7 +81,7 @@ and Kiro sign-off.**
 | Human reviewer | NOT ASSIGNED |
 | Review date | — |
 | Evidence location | None yet |
-| Notes | Natural Earth is public domain but its India boundary depiction conflicts with Survey of India standard. If used for non-India boundaries, it must be clipped/replaced at India borders. India conflict check is mandatory before any use. |
+| Notes | **Selected for MVP/local/dev source path in WO-078B.** Not approved for India production. Not production-approved. India conflict caveat remains — Natural Earth uses de facto boundaries, not Survey of India depiction. Future ingestion requires WO-078C. Natural Earth is public domain; verify at https://www.naturalearthdata.com/about/terms-of-use/ during WO-078C. |
 
 ---
 
