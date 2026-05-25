@@ -1,3 +1,30 @@
+### 2026-05-25T23:27:46Z MiniMax — WO-072-FIX USGS updated_at Bug Fix
+
+- Work order: WO-072-EARTH-EVENTS-USGS-FETCHER-FIX
+- Agent: MiniMax
+- Role: Fetching/data ingestion engineer
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/earth-events-fetcher
+- Start time UTC: 2026-05-25T23:27:46Z
+- End time UTC: 2026-05-25T23:30:00Z
+- Commit hash: 4dc543d
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed critical bug in earth_events_db.py upsert logic. Changed `updated_at = NOW()` to `updated_at = EXCLUDED.updated_at` to preserve the source/USGS timestamp. Added tests for updated_at preservation and older timestamp protection. Fixed dry-run test to use mock instead of live internet.
+- Files modified: services/fetch-orchestrator/src/layers/layer_03_earth_events/earth_events_db.py, tests/data/layer_03_earth_events/test_usgs_earthquakes_worker.py
+- Commands run: git diff --check, python -m pytest tests/data/layer_03_earth_events -q, python -m compileall, git add, git commit
+- Tests result: 16 passed
+- Critical updated_at bug fixed: YES
+- updated_at uses EXCLUDED.updated_at: YES
+- Older updated_at protection tested: YES
+- Source updated_at preservation tested: YES
+- Dry-run test avoids live internet: YES
+- No destructive DB operations: YES
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Known issues: None
+- Next safe task: Kiro review, then push to origin if approved
 ### 2026-05-25T14:38:40Z MiniMax — WO-072 USGS Earth Events Fetcher Complete
 
 - Work order: WO-072-EARTH-EVENTS-USGS-FETCHER
