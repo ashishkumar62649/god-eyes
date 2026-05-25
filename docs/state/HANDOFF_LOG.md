@@ -2651,3 +2651,53 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None.
 - Next recommended task: Human to contact Survey of India for vector data licensing; WO-077 schema-only may be drafted in parallel
+
+
+### 2026-05-25T21:29:54Z Codex - WO-077-BORDERS-BOUNDARIES-DATABASE-SCHEMA
+
+- Work order: WO-077-BORDERS-BOUNDARIES-DATABASE-SCHEMA
+- Agent: Codex
+- LLM model: Codex
+- Tool/CLI used: Codex CLI
+- Working directory: E:\god-eyes-mvp-database
+- Branch: agent/borders-boundaries-schema
+- Start time UTC: 2026-05-25T21:20:00Z
+- End time UTC: 2026-05-25T21:29:54Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 6 files (4 new, 2 modified)
+  - NEW: database/migrations/layers/layer_02_borders_boundaries/001_borders_boundaries_schema.sql
+  - NEW: tests/data/layer_02_borders_boundaries/test_borders_boundaries_schema_migration.py
+  - NEW: docs/work-orders/WO-077-borders-boundaries-database-schema.md
+  - NEW: docs/reports/WO-077-borders-boundaries-database-schema.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+  - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
+- Commands run:
+  - git branch --show-current
+  - git status --short
+  - git rev-parse --short HEAD
+  - Get-Content docs\control\BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md
+  - Get-Content docs\control\BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md
+  - Get-Content docs\control\MVP_LAYER_REGISTRY.md
+  - Get-Content docs\state\CURRENT_PROJECT_STATE.md
+  - Get-Content database\migrations\layers\layer_03_earth_events\001_earth_events_tables.sql
+  - python -m pytest tests/data/layer_02_borders_boundaries -q
+  - python -m pytest tests/data/layer_03_earth_events -q
+  - Get-Content database\migrations\layers\layer_02_borders_boundaries\001_borders_boundaries_schema.sql -Raw | docker exec -i god-eyes-postgis psql -v ON_ERROR_STOP=1 -U god_eyes -d god_eyes_dev
+  - docker exec god-eyes-postgis psql catalog checks for Borders tables, indexes, and row counts
+- Review status: Ready for Database Kiro review
+- Build/test results: PASS. Borders schema tests passed, Earth Events tests passed, local PostGIS migration apply passed twice, catalog checks confirmed tables/indexes, and row counts remained 0.
+- Migration created: YES
+- Schema-only: YES
+- Rows inserted: NO
+- Boundary data added: NO
+- India geometry added: NO
+- Source ingestion added: NO
+- API touched: NO
+- Frontend touched: NO
+- Fetcher touched: NO
+- India compliance columns included: YES
+- Compliance review table included: YES
+- PostGIS geometry SRID 4326: YES
+- Indexes included: YES
+- Known issues: None. WO-077 does not clear G1-G6; WO-078 ingestion remains blocked.

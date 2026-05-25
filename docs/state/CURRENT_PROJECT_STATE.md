@@ -8,7 +8,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Status
 
-**MVP Phase 2 In Progress:** Layer 3 Earth Events complete. Layer 2 Borders & Boundaries policy planned.
+**MVP Phase 2 In Progress:** Layer 3 Earth Events complete. Layer 2 Borders & Boundaries schema foundation added; source ingestion remains blocked.
 
 ### Completed Work Orders
 - ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
@@ -24,6 +24,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-074 / WO-074A: Earth Events frontend globe layer + occlusion fix
 - ✅ WO-075-076: Earth Events closeout + Borders & Boundaries policy plan
 - ✅ WO-076A: Borders & Boundaries implementation gate review
+- ✅ WO-077: Borders & Boundaries database schema foundation (schema-only, no data)
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -63,7 +64,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## What Does Not Exist Yet
 
-- [ ] Layer 2 Borders & Boundaries (policy planned — implementation pending WO-077+)
+- [ ] Layer 2 Borders & Boundaries (schema foundation added; source ingestion blocked)
 - [ ] Layer 4 Public Military & Security
 - [ ] Layer 5 Space & Satellites
 - [ ] Layer 6 Maritime
@@ -85,11 +86,9 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
    Earth India-conflict status, UN Cartographic license, and GADM license. Clears G4.
 3. **[HUMAN ACTION REQUIRED] Survey of India guidelines review:** Human must read
    https://onlinemaps.surveyofindia.gov.in/GeospatialGuidelines.aspx. Clears G1.
-4. **WO-077 Borders database schema (schema-only):** May be drafted now under strict
-   schema-only scope. No data, no India geometry, no source ingestion.
-   See `docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md` Section 9.
-5. **Borders source ingestion (WO-078):** Blocked until G1–G6 cleared.
+4. **Borders source ingestion (WO-078):** Blocked until G1–G6 cleared.
+   The WO-077 schema exists, but it does not approve any source or geometry.
 
 ## Last Updated
 
-2026-05-26 — Kiro CLI (WO-076A-BORDERS-BOUNDARIES-GATE-AND-SOURCE-REVIEW)
+2026-05-26 — Codex (WO-077-BORDERS-BOUNDARIES-DATABASE-SCHEMA)
