@@ -131,7 +131,7 @@ def upsert_earth_event(
                 geometry = EXCLUDED.geometry,
                 source_url = EXCLUDED.source_url,
                 observed_at = EXCLUDED.observed_at,
-                updated_at = NOW(),
+                updated_at = EXCLUDED.updated_at,
                 fetched_at = EXCLUDED.fetched_at,
                 properties_json = EXCLUDED.properties_json
             RETURNING id
