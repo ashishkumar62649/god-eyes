@@ -90,12 +90,46 @@ describe('Earth Events API', () => {
     expect(event.tsunami).toBe(false);
     expect(event.geometry).toEqual({ type: 'Point', coordinates: [139.7, 35.7] });
     expect(event.sourceUrl).toBe(MOCK_EVENTS[0].sourceUrl);
-    expect(event.observedAt).toBeDefined();
-    expect(event.updatedAt).toBeDefined();
-    expect(event.fetchedAt).toBeDefined();
+    expect(event.observedAt).toBeTypeOf('string');
+    expect(event.updatedAt).toBeTypeOf('string');
+    expect(event.fetchedAt).toBeTypeOf('string');
+    expect(new Date(event.observedAt).toISOString()).toBe(event.observedAt);
+    expect(new Date(event.updatedAt).toISOString()).toBe(event.updatedAt);
+    expect(new Date(event.fetchedAt).toISOString()).toBe(event.fetchedAt);
   });
 
-  it('2. GET /api/earth-events/latest should filter by bbox', async () => {
+  it('2. GET /api/earth-events/latest handles Date objects from Postgres without Zod error', async () => {
+    const dateRows = [
+      {
+        ...MOCK_EVENTS[0],
+        observedAt: new Date('2026-05-25T12:00:00.000Z'),
+        updatedAt: new Date('2026-05-25T12:05:00.000Z'),
+        fetchedAt: new Date('2026-05-25T12:06:00.000Z'),
+      },
+      {
+        ...MOCK_EVENTS[1],
+        observedAt: new Date('2026-05-25T10:00:00.000Z'),
+        updatedAt: new Date('2026-05-25T10:03:00.000Z'),
+        fetchedAt: new Date('2026-05-25T10:05:00.000Z'),
+      },
+    ];
+    vi.mocked(query).mockResolvedValueOnce(dateRows);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/earth-events/latest',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.events).toHaveLength(2);
+    expect(body.events[0].observedAt).toBeTypeOf('string');
+    expect(body.events[1].updatedAt).toBeTypeOf('string');
+    expect(body.events[0].fetchedAt).toBeTypeOf('string');
+    expect(body.events[0].observedAt).toBe('2026-05-25T12:00:00.000Z');
+  });
+
+  it('3. GET /api/earth-events/latest should filter by bbox', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
 
     const response = await app.inject({
@@ -108,7 +142,7 @@ describe('Earth Events API', () => {
     expect(body.events).toBeDefined();
   });
 
-  it('3. GET /api/earth-events/latest should use default limit', async () => {
+  it('4. GET /api/earth-events/latest should use default limit', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
 
     const response = await app.inject({
@@ -119,7 +153,7 @@ describe('Earth Events API', () => {
     expect(response.statusCode).toBe(200);
   });
 
-  it('4. GET /api/earth-events/latest should cap maximum limit', async () => {
+  it('5. GET /api/earth-events/latest should cap maximum limit', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
 
     const response = await app.inject({
@@ -136,7 +170,7 @@ describe('Earth Events API', () => {
     expect(lastParam).toBe(200);
   });
 
-  it('5. GET /api/earth-events/latest should filter by event_type', async () => {
+  it('6. GET /api/earth-events/latest should filter by event_type', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
 
     const response = await app.inject({
@@ -149,7 +183,7 @@ describe('Earth Events API', () => {
     expect(body.events).toBeDefined();
   });
 
-  it('6. GET /api/earth-events/latest should filter by since', async () => {
+  it('7. GET /api/earth-events/latest should filter by since', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
 
     const response = await app.inject({
@@ -162,7 +196,7 @@ describe('Earth Events API', () => {
     expect(body.events).toBeDefined();
   });
 
-  it('7. GET /api/earth-events/latest should return 400 for invalid bbox', async () => {
+  it('8. GET /api/earth-events/latest should return 400 for invalid bbox', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/earth-events/latest?bbox=invalid',
@@ -176,7 +210,7 @@ describe('Earth Events API', () => {
     expect(body.error.details).toBeDefined();
   });
 
-  it('8. GET /api/earth-events/latest should return 400 for invalid since', async () => {
+  it('9. GET /api/earth-events/latest should return 400 for invalid since', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/earth-events/latest?since=not-a-date',
@@ -190,7 +224,7 @@ describe('Earth Events API', () => {
     expect(body.error.details).toBeDefined();
   });
 
-  it('9. GET /api/earth-events/latest should return safe internal error on DB failure', async () => {
+  it('10. GET /api/earth-events/latest should return safe internal error on DB failure', async () => {
     vi.mocked(query).mockRejectedValueOnce(new Error('connection refused'));
 
     const response = await app.inject({
@@ -207,7 +241,7 @@ describe('Earth Events API', () => {
     expect(body.error.message).not.toContain('connection');
   });
 
-  it('10. No external API calls from earth events endpoint', async () => {
+  it('11. No external API calls from earth events endpoint', async () => {
     // Spy on global fetch to verify no external calls
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
