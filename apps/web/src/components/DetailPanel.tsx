@@ -315,6 +315,9 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
             }}>
               <div style={{ opacity: 0.5, marginBottom: '16px', fontSize: '2rem' }}>{'\u2316'}</div>
               SELECT AN AIRPORT OR SEARCH TO INSPECT OBJECT INTELLIGENCE
+              <div style={{ marginTop: '12px', fontSize: '0.6rem', opacity: 0.45, letterSpacing: '0.5px', lineHeight: 1.6 }}>
+                Enable Aviation [L1] in the layer panel<br />to explore global airport intelligence.
+              </div>
             </div>
           ) : (
             <IntelBoundary key={selectedObject.id}>

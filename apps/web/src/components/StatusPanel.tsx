@@ -30,14 +30,14 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           {isCollapsed ? '▲' : '▼'}
         </button>
       </div>
-      
+
       {!isCollapsed && (
         <div className="panel-content" style={{ display: 'flex', gap: '32px', alignItems: 'center', padding: '16px 20px' }}>
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Node Status</div>
             <div className="detail-value" style={{ color: 'var(--shell-accent)' }}>CONNECTED</div>
           </div>
-          
+
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Active Layers</div>
             <div className="detail-value">
@@ -45,7 +45,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
               {aviationLayerActive && ' / L1'}
             </div>
           </div>
-          
+
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Render Mode</div>
             <div className="detail-value" style={{ color: aviationLayerActive ? 'var(--shell-accent)' : 'inherit' }}>
@@ -61,7 +61,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
               </div>
             </div>
           )}
-          
+
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">FPS</div>
             <div className="detail-value" style={{
@@ -75,7 +75,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Data Stream</div>
             <div className="detail-value" style={{ opacity: 0.8 }}>
-              {aviationLayerActive ? `L1 [${aviationStats.loaded}]` : 'AWAITING L1'}
+              {aviationLayerActive ? `L1 [${aviationStats.loaded}]` : 'STANDBY — ENABLE AVIATION LAYER'}
             </div>
           </div>
 

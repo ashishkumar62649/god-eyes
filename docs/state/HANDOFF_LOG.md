@@ -2412,3 +2412,31 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Reviewer status: passed
 - Ready to integrate: yes
+
+---
+
+## WO-068-MVP-DEMO-POLISH-FINAL-FIX
+
+- Agent: Frontend CLI
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI: kiro-cli chat
+- Branch: agent/frontend-mvp-demo-polish
+- Commit hash: 02315be
+- Merge target: main
+- Merge status: merged during MVP integration
+- Files updated:
+  - apps/web/src/components/LayerPanel.tsx
+  - apps/web/src/components/StatusPanel.tsx
+  - apps/web/src/components/DetailPanel.tsx
+  - apps/web/src/components/intel/AirportMapPopup.tsx
+  - docs/state/HANDOFF_LOG.md
+- Frontend result:
+  - All 10 MVP layers visible
+  - L0 and L1 active/ready
+  - L2-L9 coming soon
+  - No fake data
+  - No new external frontend calls
+- Build status: passed
+- Reviewer status: passed
+- Forbidden folders touched: no
+- Ready to integrate: yes
