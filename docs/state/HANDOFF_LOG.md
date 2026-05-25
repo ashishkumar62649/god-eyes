@@ -2778,3 +2778,37 @@ All agents must append to this file after completing work.
 - Code touched: NO
 - Database touched: NO
 - Next step: WO-078B Country Boundary Source Evaluation
+
+
+### 2026-05-25T22:52:36Z Kiro CLI - WO-078B-BORDERS-NATURAL-EARTH-MVP-SOURCE-SELECTION
+
+- Work order: WO-078B-BORDERS-NATURAL-EARTH-MVP-SOURCE-SELECTION
+- Agent: Kiro CLI
+- LLM model: Claude Sonnet 4.5
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/borders-natural-earth-source-selection
+- Start time UTC: 2026-05-25T22:40:00Z
+- End time UTC: 2026-05-25T22:52:36Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 6 files (3 new, 3 modified)
+  - NEW: docs/control/BORDERS_BOUNDARIES_NATURAL_EARTH_MVP_SOURCE_SELECTION.md
+  - NEW: docs/work-orders/WO-078B-borders-natural-earth-mvp-source-selection.md
+  - NEW: docs/reports/WO-078B-borders-natural-earth-mvp-source-selection.md
+  - MODIFIED: docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md
+  - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+- Commands run:
+  - git diff --check
+  - git add docs/control docs/work-orders docs/reports docs/state
+  - git commit -m "docs(control): select Natural Earth for Borders MVP source (WO-078B)"
+- Review status: Ready for Kiro review
+- Natural Earth selected for MVP/local/dev: YES
+- Scale: 1:50m
+- Production India compliance still blocked: YES
+- No source marked production-approved: YES
+- No India compliance claimed: YES
+- Data downloaded: NO
+- Code touched: NO
+- Database touched: NO
+- Next step: WO-078C Natural Earth MVP ingestion

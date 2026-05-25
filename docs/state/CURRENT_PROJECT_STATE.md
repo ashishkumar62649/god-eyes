@@ -27,6 +27,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-077: Borders & Boundaries database schema foundation (schema-only, no data)
 - ✅ WO-078A: Borders source license clearance kit created
 - ✅ WO-078A1: Borders MVP boundary mode decision recorded
+- ✅ WO-078B: Natural Earth Admin-0 Countries 1:50m selected for MVP/local/dev
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -82,14 +83,13 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Next Safe Steps
 
-1. **WO-078B Country Boundary Source Evaluation:** Review public country-boundary
-   sources (Natural Earth, UN Cartographic, GADM). Review license, attribution, and
-   India conflict risk. Recommend one MVP/dev source path. No ingestion.
-2. **[PRODUCTION STAGE — DEFERRED] Survey of India contact:** Must be completed before
-   any India boundary data is served in a deployed/production environment.
-3. **Borders ingestion/API/frontend:** Not started. Requires separate approved work
-   order after WO-078B findings are reviewed.
+1. **WO-078C Natural Earth MVP Ingestion:** Download Natural Earth 1:50m Admin-0
+   Countries, insert into `border_boundary_sources` and `border_boundaries`, mark as
+   `mvp_local_dev` only. No API or frontend in WO-078C.
+2. **[PRODUCTION STAGE — DEFERRED] Survey of India contact:** Required before any
+   India boundary data is served in a deployed/production environment.
+3. **Borders API/frontend:** Not started. Requires separate work orders after ingestion.
 
 ## Last Updated
 
-2026-05-26 — Kiro CLI (WO-078A1-BORDERS-MVP-BOUNDARY-MODE-DECISION)
+2026-05-26 — Kiro CLI (WO-078B-BORDERS-NATURAL-EARTH-MVP-SOURCE-SELECTION)
