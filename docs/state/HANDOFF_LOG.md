@@ -2467,3 +2467,50 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Review status: self-reviewed (planning only)
 - Ready to integrate: yes
+
+---
+
+## WO-071-EARTH-EVENTS-DATABASE-MIGRATION
+
+- Work order: WO-071-EARTH-EVENTS-DATABASE-MIGRATION
+- Agent: Codex
+- LLM model: Codex
+- Tool/CLI used: Codex CLI
+- Working directory: E:\god-eyes-mvp-database
+- Branch: agent/earth-events-database
+- Start time UTC: 2026-05-25T08:00:00Z
+- End time UTC: 2026-05-25T08:10:55Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 5 files (4 new, 1 modified)
+  - NEW: database/migrations/layers/layer_03_earth_events/001_earth_events_tables.sql
+  - NEW: tests/data/layer_03_earth_events/test_earth_events_migration.py
+  - NEW: docs/work-orders/WO-071-earth-events-database-migration.md
+  - NEW: docs/reports/WO-071-earth-events-database-migration.md
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+- Commands run:
+  - git branch --show-current
+  - git status --short
+  - git rev-parse --short HEAD
+  - Get-Content docs\control\EARTH_EVENTS_LAYER_PLAN.md
+  - rg --files database\migrations tests\data docs\control
+  - python -m pytest tests/data/layer_03_earth_events/test_earth_events_migration.py -q
+  - docker ps --format "{{.Names}}\t{{.Status}}"
+  - Get-Content database\migrations\layers\layer_03_earth_events\001_earth_events_tables.sql -Raw | docker exec -i god-eyes-postgis psql -v ON_ERROR_STOP=1 -U god_eyes -d god_eyes_dev
+  - docker exec god-eyes-postgis psql catalog checks for Earth Events tables and indexes
+  - pnpm --filter @god-eyes/contracts build
+- Review status: Ready for Database Kiro review
+- Build/test results: PASS. Static Earth Events migration tests passed, local PostGIS migration apply passed twice, catalog checks confirmed tables/indexes, contracts build passed.
+- Migration created: YES
+- Latest table created: YES
+- History table created: YES
+- PostGIS geometry used: YES
+- Indexes created: YES
+- No seed/fake data: YES
+- API touched: NO
+- Frontend touched: NO
+- Services touched: NO
+- External calls made: NO
+- Forbidden folders touched: NO
+- Known issues: None.
+- Ready to integrate: YES
