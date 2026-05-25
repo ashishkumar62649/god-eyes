@@ -377,6 +377,60 @@ export const AirportPreloadListResponseSchema = z.object({
 
 export type AirportPreloadListResponse = z.infer<typeof AirportPreloadListResponseSchema>;
 
+// ==================== Layer Registry (WO-064) ====================
+
+export const LayerRegistryStatuses = {
+  ACTIVE: 'active',
+  COMING_SOON: 'coming_soon',
+  NO_DATA: 'no_data',
+} as const;
+
+export type LayerRegistryStatus = typeof LayerRegistryStatuses[keyof typeof LayerRegistryStatuses];
+
+export const LayerDataStatuses = {
+  STATIC: 'static',
+  LIVE: 'live',
+} as const;
+
+export type LayerDataStatus = typeof LayerDataStatuses[keyof typeof LayerDataStatuses];
+
+export const LayerRegistryEntrySchema = z.object({
+  layerId: z.string(),
+  name: z.string(),
+  category: z.string(),
+  status: z.enum(['active', 'coming_soon', 'no_data']),
+  dataStatus: z.enum(['static', 'live']),
+  description: z.string(),
+  sourceRule: z.string(),
+  apiStatus: z.string(),
+  frontendStatus: z.string(),
+  safetyNotes: z.string(),
+  isEnabled: z.boolean(),
+  isImplemented: z.boolean(),
+});
+
+export type LayerRegistryEntry = z.infer<typeof LayerRegistryEntrySchema>;
+
+export const LayerRegistryMetadataSchema = z.object({
+  total: z.number().int().nonnegative(),
+  generatedAt: z.string().datetime(),
+});
+
+export type LayerRegistryMetadata = z.infer<typeof LayerRegistryMetadataSchema>;
+
+export const LayerRegistryResponseSchema = z.object({
+  layers: z.array(LayerRegistryEntrySchema),
+  metadata: LayerRegistryMetadataSchema,
+});
+
+export type LayerRegistryResponse = z.infer<typeof LayerRegistryResponseSchema>;
+
+export const LayerRegistrySingleResponseSchema = z.object({
+  layer: LayerRegistryEntrySchema,
+});
+
+export type LayerRegistrySingleResponse = z.infer<typeof LayerRegistrySingleResponseSchema>;
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {
