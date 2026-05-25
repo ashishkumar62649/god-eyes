@@ -49,7 +49,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         setError(null);
       } catch (err) {
         console.error('Failed to fetch aviation status:', err);
-        setError('API OFFLINE');
+        setError('LAYER OFFLINE — DEMO MODE');
       } finally {
         setLoading(false);
       }
@@ -85,13 +85,13 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
             onClick={() => !error && setAviationLayerActive(!aviationLayerActive)}
             style={{
               cursor: error ? 'not-allowed' : 'pointer',
-              borderColor: error ? 'rgba(255, 77, 77, 0.3)' : undefined,
+              borderColor: error ? 'rgba(255, 171, 0, 0.3)' : undefined,
             }}
           >
             <div className="layer-name">Aviation / Airports [L1]</div>
             <div className="layer-status">
               {error ? (
-                <span style={{ color: '#ff4d4d', fontWeight: 600 }}>{error}</span>
+                <span style={{ color: '#ffab00', fontWeight: 600 }}>{error}</span>
               ) : loading ? (
                 <span style={{ opacity: 0.7 }}>SYNCING...</span>
               ) : aviationLayerActive ? (
@@ -108,10 +108,29 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   )}
                 </div>
               ) : (
-                <span style={{ opacity: 0.7 }}>READY — CLICK TO ENABLE</span>
+                <span style={{ opacity: 0.7 }}>READY — CLICK TO ACTIVATE</span>
               )}
             </div>
           </div>
+
+          {/* Coming Soon layers */}
+          {([
+            'Borders & Boundaries [L2]',
+            'Earth Events [L3]',
+            'Public / Military Security [L4]',
+            'Space & Satellites [L5]',
+            'Maritime [L6]',
+            'Infrastructure [L7]',
+            'News & OSINT [L8]',
+            'User Shapes [L9]',
+          ] as const).map((label) => (
+            <div key={label} className="layer-item" style={{ cursor: 'default', opacity: 0.45 }}>
+              <div className="layer-name">{label}</div>
+              <div className="layer-status">
+                <span style={{ color: '#ffab00', fontSize: '0.6rem', letterSpacing: '1px' }}>COMING SOON</span>
+              </div>
+            </div>
+          ))}
 
           {aviationLayerActive && (
             <>

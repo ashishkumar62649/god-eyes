@@ -2337,3 +2337,23 @@ All agents must append to this file after completing work.
 - Existing tables changed: NO
 - Known issues: None.
 - Next recommended task: WO-055-FETCHING-AIRPORT-LAYOUT-FEATURES-MVP
+
+### 2026-05-25T03:10:23Z Kiro CLI - WO-068-MVP-DEMO-POLISH-FINAL-FIX Frontend Demo Polish Complete
+
+- Work order: WO-068-MVP-DEMO-POLISH-FINAL-FIX
+- Agent: Kiro CLI
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Frontend CLI (kiro-cli chat)
+- Branch: agent/frontend-mvp-demo-polish
+- Start time UTC: 2026-05-25T01:00:00Z
+- End time UTC: 2026-05-25T03:10:23Z
+- Commit hash: (local only - pending Kiro review)
+- Push status: local only
+- What was done: Demo polish + review fixes. LayerPanel shows all 10 official MVP layers: L0 Globe Core (active), L1 Aviation (active/ready), L2 Borders and Boundaries through L9 User Shapes (all COMING SOON). StatusPanel: AWAITING L1 changed to STANDBY - ENABLE AVIATION LAYER. DetailPanel empty state: added aviation layer hint. AirportMapPopup: softened two error messages. All 4 tsx files converted from CRLF to LF; trailing whitespace removed.
+- Files modified: apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx, apps/web/src/components/DetailPanel.tsx, apps/web/src/components/intel/AirportMapPopup.tsx, docs/state/HANDOFF_LOG.md
+- Forbidden folders touched: NO
+- No fake data: YES
+- All 10 layers visible: YES
+- Web build result: PASS (tsc + vite, 60 modules, no errors)
+- git diff --check result: CLEAN (scoped to modified files)
+- Ready for reviewer: YES

@@ -272,7 +272,7 @@ const AirportMapPopup: React.FC<AirportMapPopupProps> = ({ airport, screenX, scr
         {intel.phase === 'not_found' && (
           <div>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{airport.name}</div>
-            <div style={{ fontSize: '0.65rem', color: '#f87171' }}>Airport intelligence not found.</div>
+            <div style={{ fontSize: '0.65rem', color: '#f87171' }}>Intelligence not yet indexed.</div>
           </div>
         )}
 
@@ -280,7 +280,7 @@ const AirportMapPopup: React.FC<AirportMapPopupProps> = ({ airport, screenX, scr
           <div>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{airport.name}</div>
             <div style={{ fontSize: '0.65rem', color: '#f87171' }}>
-              {intel.phase === 'unavailable' ? 'Airport intelligence unavailable.' : intel.message}
+              {intel.phase === 'unavailable' ? 'Intelligence offline — try again.' : intel.message}
             </div>
           </div>
         )}
