@@ -2610,3 +2610,44 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None.
 - Next recommended task: WO-077 Borders & Boundaries database schema (after implementation gates cleared)
+
+
+### 2026-05-25T21:14:57Z Kiro CLI - WO-076A-BORDERS-BOUNDARIES-GATE-AND-SOURCE-REVIEW
+
+- Work order: WO-076A-BORDERS-BOUNDARIES-GATE-AND-SOURCE-REVIEW
+- Agent: Kiro CLI
+- LLM model: Claude Sonnet 4.5
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/borders-boundaries-gate-review
+- Start time UTC: 2026-05-25T21:00:00Z
+- End time UTC: 2026-05-25T21:14:57Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 6 files (3 new, 3 modified)
+  - NEW: docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md
+  - NEW: docs/work-orders/WO-076A-borders-boundaries-gate-and-source-review.md
+  - NEW: docs/reports/WO-076A-borders-boundaries-gate-and-source-review.md
+  - MODIFIED: docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md (gate statuses updated)
+  - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md (gate review noted, next steps updated)
+  - MODIFIED: docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git branch --show-current
+  - git status --short
+  - git log --oneline -3
+  - git diff --check
+  - git add docs/control docs/work-orders docs/reports docs/state
+  - git commit -m "docs(control): review Borders implementation gates (WO-076A)"
+- Review status: Ready for Kiro review
+- Gate review created: YES
+- India compliance reaffirmed: YES
+- Survey of India licensing gap documented: YES
+- Can WO-077 schema start: CONDITIONAL (schema-only, no data)
+- Can India data ingestion start: NO
+- Can non-India planning start: CONDITIONAL (schema planning only)
+- Recommendation: D — proceed only after human obtains Survey of India licensing/data confirmation
+- Code touched: NO
+- Data files added: NO
+- Boundary datasets downloaded: NO
+- Forbidden folders touched: NO
+- Known issues: None.
+- Next recommended task: Human to contact Survey of India for vector data licensing; WO-077 schema-only may be drafted in parallel
