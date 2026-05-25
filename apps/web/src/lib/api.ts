@@ -2,7 +2,8 @@ import type {
   LayerObjectsListResponse,
   AirportObject,
   AirportDetailResponse,
-  LayerStatusResponse
+  LayerStatusResponse,
+  LayerRegistryResponse,
 } from '@god-eyes/contracts';
 import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
 import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
@@ -154,6 +155,15 @@ export async function fetchLayerStatus(layerId: string): Promise<LayerStatusResp
     throw new Error(`Failed to fetch layer status: ${response.status}`);
   }
 
+  return response.json();
+}
+
+export async function fetchLayerRegistry(): Promise<LayerRegistryResponse> {
+  const url = `${API_BASE_URL}/api/layers/registry`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch layer registry: ${response.status}`);
+  }
   return response.json();
 }
 

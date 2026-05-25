@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { fetchLayerStatus } from '../lib/api';
+import React, { useState } from 'react';
+import type { LayerRegistryEntry } from '@god-eyes/contracts';
 import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
+import { useLayerRegistry } from '../lib/useLayerRegistry';
 
 interface AviationStats {
   loaded: number;
@@ -20,15 +21,14 @@ interface LayerPanelProps {
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
-  'major',
-  'regional',
-  'local',
-  'heliport',
-  'seaplane',
-  'balloonport',
-  'unknown',
-  'closed',
+  'major', 'regional', 'local', 'heliport', 'seaplane', 'balloonport', 'unknown', 'closed',
 ];
+
+function statusLabel(entry: LayerRegistryEntry): string {
+  if (entry.status === 'active') return 'ACTIVE';
+  if (entry.status === 'coming_soon') return 'COMING SOON';
+  return 'NO DATA YET';
+}
 
 const LayerPanel: React.FC<LayerPanelProps> = ({
   aviationLayerActive,
@@ -38,28 +38,10 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   onFiltersChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    async function loadStatus() {
-      setLoading(true);
-      try {
-        await fetchLayerStatus('layer_01_aviation');
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch aviation status:', err);
-        setError('LAYER OFFLINE — DEMO MODE');
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadStatus();
-  }, []);
+  const { layers, apiAvailable, loading } = useLayerRegistry();
 
   const toggleFilter = (key: keyof AviationFilters) => {
-    const next = { ...aviationFilters, [key]: !aviationFilters[key] };
-    onFiltersChange(next);
+    onFiltersChange({ ...aviationFilters, [key]: !aviationFilters[key] });
   };
 
   return (
@@ -75,62 +57,75 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         <div className="collapsed-label">OPERATIONS</div>
       ) : (
         <div className="panel-content">
-          <div className="layer-item active" style={{ cursor: 'default' }}>
-            <div className="layer-name">Globe Core [L0]</div>
-            <div className="layer-status" style={{ opacity: 0.8 }}>ONLINE — ACTIVE</div>
-          </div>
+          {/* Subtle offline indicator — only shown when API registry is unavailable */}
+          {!loading && !apiAvailable && (
+            <div style={{ fontSize: '0.55rem', color: '#ffab00', opacity: 0.7, marginBottom: '6px', letterSpacing: '0.5px' }}>
+              REGISTRY OFFLINE — LOCAL DATA
+            </div>
+          )}
 
-          <div
-            className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
-            onClick={() => !error && setAviationLayerActive(!aviationLayerActive)}
-            style={{
-              cursor: error ? 'not-allowed' : 'pointer',
-              borderColor: error ? 'rgba(255, 171, 0, 0.3)' : undefined,
-            }}
-          >
-            <div className="layer-name">Aviation / Airports [L1]</div>
-            <div className="layer-status">
-              {error ? (
-                <span style={{ color: '#ffab00', fontWeight: 600 }}>{error}</span>
-              ) : loading ? (
-                <span style={{ opacity: 0.7 }}>SYNCING...</span>
-              ) : aviationLayerActive ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                  <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE — RESIDENT GLOBAL</span>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', opacity: 0.8 }}>
-                    <span>LOADED: {aviationStats.loaded.toLocaleString()}</span>
-                    <span>VISIBLE: {aviationStats.visible.toLocaleString()}</span>
-                  </div>
-                  {aviationStats.preloadStatus && (
-                    <div style={{ fontSize: '0.6rem', opacity: 0.7, marginTop: '2px' }}>
-                      STATUS: {aviationStats.preloadStatus}
-                    </div>
-                  )}
+          {layers.map((entry) => {
+            const isGlobeCore = entry.layerId === 'layer_00_globe_core';
+            const isAviation = entry.layerId === 'layer_01_aviation';
+            const isInactive = entry.status !== 'active';
+
+            if (isGlobeCore) {
+              return (
+                <div key={entry.layerId} className="layer-item active" style={{ cursor: 'default' }}>
+                  <div className="layer-name">{entry.name} [L0]</div>
+                  <div className="layer-status" style={{ opacity: 0.8 }}>ONLINE — ACTIVE</div>
                 </div>
-              ) : (
-                <span style={{ opacity: 0.7 }}>READY — CLICK TO ACTIVATE</span>
-              )}
-            </div>
-          </div>
+              );
+            }
 
-          {/* Coming Soon layers */}
-          {([
-            'Borders & Boundaries [L2]',
-            'Earth Events [L3]',
-            'Public / Military Security [L4]',
-            'Space & Satellites [L5]',
-            'Maritime [L6]',
-            'Infrastructure [L7]',
-            'News & OSINT [L8]',
-            'User Shapes [L9]',
-          ] as const).map((label) => (
-            <div key={label} className="layer-item" style={{ cursor: 'default', opacity: 0.45 }}>
-              <div className="layer-name">{label}</div>
-              <div className="layer-status">
-                <span style={{ color: '#ffab00', fontSize: '0.6rem', letterSpacing: '1px' }}>COMING SOON</span>
+            if (isAviation) {
+              return (
+                <div
+                  key={entry.layerId}
+                  className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
+                  onClick={() => setAviationLayerActive(!aviationLayerActive)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="layer-name">{entry.name} [L1]</div>
+                  <div className="layer-status">
+                    {aviationLayerActive ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                        <span style={{ color: 'var(--shell-accent)', fontWeight: 600 }}>ACTIVE — RESIDENT GLOBAL</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', opacity: 0.8 }}>
+                          <span>LOADED: {aviationStats.loaded.toLocaleString()}</span>
+                          <span>VISIBLE: {aviationStats.visible.toLocaleString()}</span>
+                        </div>
+                        {aviationStats.preloadStatus && (
+                          <div style={{ fontSize: '0.6rem', opacity: 0.7, marginTop: '2px' }}>
+                            STATUS: {aviationStats.preloadStatus}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ opacity: 0.7 }}>READY — CLICK TO ACTIVATE</span>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // All other layers: coming_soon or no_data
+            const layerIndex = entry.layerId.match(/layer_(\d+)/)?.[1] ?? '';
+            return (
+              <div key={entry.layerId} className="layer-item" style={{ cursor: 'default', opacity: 0.45 }}>
+                <div className="layer-name">{entry.name}{layerIndex ? ` [L${parseInt(layerIndex, 10)}]` : ''}</div>
+                <div className="layer-status">
+                  <span style={{
+                    color: isInactive ? '#ffab00' : 'var(--shell-accent)',
+                    fontSize: '0.6rem',
+                    letterSpacing: '1px',
+                  }}>
+                    {statusLabel(entry)}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {aviationLayerActive && (
             <>
@@ -147,10 +142,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     >
                       <span
                         className="filter-toggle-dot"
-                        style={{
-                          background: active ? info.markerColor : info.dimColor,
-                          opacity: active ? 1 : 0.4,
-                        }}
+                        style={{ background: active ? info.markerColor : info.dimColor, opacity: active ? 1 : 0.4 }}
                       />
                       <span className="filter-toggle-label">{info.label}</span>
                     </div>
@@ -164,18 +156,11 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   const info = AVIATION_CATEGORIES[key];
                   return (
                     <div key={key} className="legend-item">
-                      <span
-                        className="legend-marker"
-                        style={{
-                          display: 'inline-block',
-                          width: '10px', height: '10px',
-                          borderRadius: '50%',
-                          background: info.color,
-                          marginRight: '8px',
-                          verticalAlign: 'middle',
-                          opacity: 0.8,
-                        }}
-                      />
+                      <span style={{
+                        display: 'inline-block', width: '10px', height: '10px',
+                        borderRadius: '50%', background: info.color,
+                        marginRight: '8px', verticalAlign: 'middle', opacity: 0.8,
+                      }} />
                       <span className="legend-label">{info.label}</span>
                     </div>
                   );
