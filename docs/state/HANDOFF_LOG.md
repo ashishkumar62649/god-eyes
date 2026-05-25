@@ -404,6 +404,30 @@
 - Commit hash (review document): (pending commit)
 - Next recommended task: Push branch to origin. Merge to main. Proceed with next work order or additional layer implementation.
 
+### 2026-05-25T15:30:00Z MiniMax CLI — WO-069 MVP Live Source Research and Catalog Plan Complete
+
+- Work order: WO-069-MVP-LIVE-SOURCE-RESEARCH-AND-CATALOG-PLAN
+- Agent: MiniMax CLI
+- Role: Live data source researcher / source catalog planner
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/research-mvp-live-sources
+- Start time UTC: 2026-05-25T15:20:00Z
+- End time UTC: 2026-05-25T15:30:00Z
+- Commit hash: (pending commit)
+- Push status: local only (awaiting review)
+- What was done: Researched and documented safe public live/static data sources for GOD EYES MVP layers. Created comprehensive catalog plan recommending Earth Events (layer_03_earth_events) as first live layer. Analyzed 9 sources across 6 layers (Earth Events, Space Satellites, Maritime, News OSINT, Military Security, Borders). Created source catalog JSON templates and technical specifications. No implementation code created. No forbidden folders touched.
+- Files modified: docs/reports/WO-069-mvp-live-source-research-and-catalog-plan.md (new research report), docs/work-orders/WO-069-mvp-live-source-research-and-catalog-plan.md (new work order), docs/state/HANDOFF_LOG.md (updated)
+- Commands run: git status, git diff --check, git add
+- Tests/build result: N/A (research only)
+- Key behaviors: Earth Events recommended first (USGS + NASA FIRMS), clear source catalog JSON templates, database/API/frontend patterns documented, safety rules established, implementation work orders identified
+- Source evaluation: USGS Earthquakes (✅ Public Domain, Live, GeoJSON, Use Now), NASA FIRMS (✅ Public Domain, Live, CSV/KML, Use Now), Natural Earth (✅ Public Domain, Static, Shapefile, Use Now), GDELT (⚠️ Public Domain, Live, BigQuery, Use Later), Space-Track (⚠️ Government, Live, TLE, Use Later), VesselFinder (⚠️ Commercial, Live, API, Use Later)
+- Safety assessment: All sources analyzed for privacy/security/safety risks. Military/security layer restricted to public static data only. No sensitive data or live military tracking.
+- Implementation roadmap: WO-070 (Source Catalog), WO-071 (USGS Fetcher), WO-072 (Database Schema), WO-073 (API Endpoints), WO-074 (Frontend Markers)
+- Known issues: None (research document only)
+- Forbidden folders touched: no
+- Next safe task: Kiro review, then commit if approved. Ready for Earth Events layer implementation.
+
 
 ### 2026-05-17T02:55:48Z Kiro CLI — WO-026 Object Intel Airport Detail API Integration PASS, branch pushed to origin
 
