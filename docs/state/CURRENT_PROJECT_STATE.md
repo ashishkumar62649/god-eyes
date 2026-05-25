@@ -26,6 +26,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-076A: Borders & Boundaries implementation gate review
 - ✅ WO-077: Borders & Boundaries database schema foundation (schema-only, no data)
 - ✅ WO-078A: Borders source license clearance kit created
+- ✅ WO-078A1: Borders MVP boundary mode decision recorded
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -81,18 +82,14 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Next Safe Steps
 
-1. **[HUMAN ACTION REQUIRED] Read Survey of India Geospatial Guidelines:**
-   https://onlinemaps.surveyofindia.gov.in/GeospatialGuidelines.aspx — Clears G1.
-2. **[HUMAN ACTION REQUIRED] Contact Survey of India for vector data licensing:**
-   Use template in `docs/control/BORDERS_BOUNDARIES_SURVEY_OF_INDIA_REQUEST_TEMPLATE.md`.
-   Save response in `docs/data/layer_02_borders_boundaries/`. Clears G2, G3.
-3. **[HUMAN ACTION REQUIRED] Review non-India source licenses:**
-   Natural Earth India-conflict, UN Cartographic license, GADM commercial use.
-   Update `docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md`. Clears G4.
-4. **[HUMAN ACTION REQUIRED] Write disputed territory handling policy.** Clears G5.
-5. **WO-078B Borders ingestion plan:** Cannot start until at least one source reaches
-   `approved` status in the source review tracker and G1–G6 are cleared.
+1. **WO-078B Country Boundary Source Evaluation:** Review public country-boundary
+   sources (Natural Earth, UN Cartographic, GADM). Review license, attribution, and
+   India conflict risk. Recommend one MVP/dev source path. No ingestion.
+2. **[PRODUCTION STAGE — DEFERRED] Survey of India contact:** Must be completed before
+   any India boundary data is served in a deployed/production environment.
+3. **Borders ingestion/API/frontend:** Not started. Requires separate approved work
+   order after WO-078B findings are reviewed.
 
 ## Last Updated
 
-2026-05-26 — Kiro CLI (WO-078A-BORDERS-SOURCE-LICENSE-CLEARANCE-KIT)
+2026-05-26 — Kiro CLI (WO-078A1-BORDERS-MVP-BOUNDARY-MODE-DECISION)
