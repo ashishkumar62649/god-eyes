@@ -1,0 +1,27 @@
+{
+  "type": "Feature",
+  "properties": {
+    "mag": 4.5,
+    "magType": "md",
+    "place": "54km NNE of Cruz Bay, U.S. Virgin Islands",
+    "time": 1748164800000,
+    "updated": 1748165423000,
+    "tz": -240,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/pr2025145000",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+    "felt": 2,
+    "cdi": 3.4,
+    "mmi": null,
+    "alert": "green",
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 312,
+    "type": "earthquake",
+    "title": "M 4.5 - 54km NNE of Cruz Bay, U.S. Virgin Islands"
+  },
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-64.7125, 18.4898, 32.41]
+  },
+  "id": "pr2025145000"
+}
