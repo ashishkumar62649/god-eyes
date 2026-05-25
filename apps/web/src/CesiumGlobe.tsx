@@ -614,7 +614,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           color: new ConstantProperty(color),
           outlineColor: new ConstantProperty(Color.BLACK.withAlpha(0.5)),
           outlineWidth: new ConstantProperty(1),
-          disableDepthTestDistance: new ConstantProperty(Number.POSITIVE_INFINITY),
         }),
       });
       // Store event data for click handler
