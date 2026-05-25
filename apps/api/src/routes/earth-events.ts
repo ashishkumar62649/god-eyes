@@ -60,6 +60,12 @@ function isValidIsoDatetime(raw: string): boolean {
   return d instanceof Date && !isNaN(d.getTime()) && raw.includes('T');
 }
 
+function toIsoString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
 interface EarthEventRow {
   id: string;
   layerId: string;
@@ -75,9 +81,9 @@ interface EarthEventRow {
   tsunami: boolean;
   geometry: { type: 'Point'; coordinates: [number, number] };
   sourceUrl: string | null;
-  observedAt: string;
-  updatedAt: string;
-  fetchedAt: string;
+  observedAt: string | Date;
+  updatedAt: string | Date;
+  fetchedAt: string | Date;
 }
 
 function rowToEvent(row: EarthEventRow) {
@@ -96,9 +102,9 @@ function rowToEvent(row: EarthEventRow) {
     tsunami: row.tsunami,
     geometry: row.geometry,
     sourceUrl: row.sourceUrl,
-    observedAt: row.observedAt,
-    updatedAt: row.updatedAt,
-    fetchedAt: row.fetchedAt,
+    observedAt: toIsoString(row.observedAt),
+    updatedAt: toIsoString(row.updatedAt),
+    fetchedAt: toIsoString(row.fetchedAt),
   };
 }
 
