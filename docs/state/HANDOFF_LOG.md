@@ -2571,3 +2571,42 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None.
 - Ready to integrate: YES
+
+### 2026-05-25T20:57:23Z Kiro CLI - WO-075-076-EARTH-EVENTS-CLOSEOUT-AND-BORDERS-POLICY-PLAN
+
+- Work order: WO-075-076-EARTH-EVENTS-CLOSEOUT-AND-BORDERS-POLICY-PLAN
+- Agent: Kiro CLI
+- LLM model: Claude Sonnet 4.5
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/borders-boundaries-policy-plan
+- Start time UTC: 2026-05-25T20:30:00Z
+- End time UTC: 2026-05-25T20:57:23Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 6 files (3 new, 3 modified)
+  - NEW: docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md
+  - NEW: docs/work-orders/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
+  - NEW: docs/reports/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
+  - MODIFIED: docs/control/MVP_LAYER_REGISTRY.md (layer_03 active, layer_02 next focus + India compliance note)
+  - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md (Earth Events complete, Borders policy planned, next steps updated)
+  - MODIFIED: docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git branch --show-current
+  - git status --short
+  - git log --oneline -5
+  - git diff --check
+  - git add docs/control docs/work-orders docs/reports docs/state
+  - git commit -m "docs(control): close Earth Events and plan Borders boundaries policy (WO-075-076)"
+- Review status: Ready for Kiro review
+- Earth Events closeout documented: YES
+- Borders policy plan created: YES
+- India official boundary rule documented: YES
+- Survey of India source hierarchy documented: YES
+- Stop conditions documented: YES
+- Future Borders WO sequence documented: YES
+- Code touched: NO
+- Data files added: NO
+- Boundary datasets downloaded: NO
+- Forbidden folders touched: NO
+- Known issues: None.
+- Next recommended task: WO-077 Borders & Boundaries database schema (after implementation gates cleared)

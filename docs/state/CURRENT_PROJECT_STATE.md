@@ -8,7 +8,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Status
 
-**MVP Phase 1 Complete:** Layer 0 Globe Core + Layer 1 Aviation with Airport Intelligence, Gallery, and Layout Overlay
+**MVP Phase 2 In Progress:** Layer 3 Earth Events complete. Layer 2 Borders & Boundaries policy planned.
 
 ### Completed Work Orders
 - ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
@@ -17,6 +17,12 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ HOTFIX-2: Frontend Fetch/Render/Status Fixes
 - ✅ WO-060: Repository Health Audit (score: 74/100)
 - ✅ WO-061: Repository Safe Cleanup (Phase 1)
+- ✅ WO-063: MVP Layer Registry (10-layer authoritative registry)
+- ✅ WO-071: Earth Events database migration
+- ✅ WO-072: Earth Events USGS fetcher
+- ✅ WO-073 / WO-073A: Earth Events API + timestamp fix
+- ✅ WO-074 / WO-074A: Earth Events frontend globe layer + occlusion fix
+- ✅ WO-075-076: Earth Events closeout + Borders & Boundaries policy plan
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -31,6 +37,12 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
   - Airport image gallery
   - Airport layout runway overlay (OSM-sourced)
   - Closed runways hidden by default via `is_active = false`
+- ✅ Layer 3 Earth Events: USGS earthquake feed end-to-end
+  - Database tables: earth_events_latest + earth_events_history
+  - USGS fetcher (magnitude, location, time, coordinates)
+  - API endpoint: `GET /api/earth-events/latest`
+  - Frontend Cesium markers, color-coded by severity
+  - Globe depth/occlusion correct (markers behind globe hidden)
 
 ## What Exists
 
@@ -50,30 +62,29 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## What Does Not Exist Yet
 
-- [ ] Layer 2 Borders & Boundaries
-- [ ] Layer 3 Earth Events
+- [ ] Layer 2 Borders & Boundaries (policy planned — implementation pending WO-077+)
 - [ ] Layer 4 Public Military & Security
 - [ ] Layer 5 Space & Satellites
 - [ ] Layer 6 Maritime
 - [ ] Layer 7 Infrastructure
 - [ ] Layer 8 News & OSINT
 - [ ] Layer 9 User Shapes
-- [ ] Real-time data updates (beyond aviation cache)
+- [ ] Real-time data updates (beyond aviation cache and Earth Events)
 - [ ] Live aircraft tracking (real-time position streaming)
 - [ ] User authentication
 - [ ] Data export/sharing
 - [ ] Generic layer API endpoints
+- [ ] Earth Events: bbox support, clustering, refresh controls, timeline replay (deferred)
 
 ## Next Safe Steps
 
-1. **MVP Layer Registry (WO-063):** Create authoritative 10-layer registry — **DONE**
-2. **Density View (WO-032):** Implement global density heatmap for aviation
-3. **Fabric Aggregation (WO-033):** Implement fabric-based clustering for performance
-4. **Layer 2 Borders & Boundaries (WO-064+):** Add borders layer with static GeoJSON
-5. **Layer 3 Earth Events (WO-065+):** Add USGS earthquake feed and event layer
-6. **Layer 4 Public Military & Security (WO-066+):** Add public-only static military layer
-7. **Repository Cleanup Phase 2 (WO-062+):** Address remaining audit items (score 74/100)
+1. **Borders & Boundaries database schema (WO-077):** Only after all implementation gates
+   in `docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md` Section 9 are cleared.
+2. **Borders source ingestion (WO-078):** After WO-077.
+3. **Borders API (WO-079):** After WO-078.
+4. **Borders frontend (WO-080):** After WO-079.
+5. **Borders compliance review (WO-081):** Mandatory before layer_02 goes active.
 
 ## Last Updated
 
-2026-05-25 — Kiro CLI (WO-063-MVP-LAYER-REGISTRY-CONTROL)
+2026-05-26 — Kiro CLI (WO-075-076-EARTH-EVENTS-CLOSEOUT-AND-BORDERS-POLICY-PLAN)
