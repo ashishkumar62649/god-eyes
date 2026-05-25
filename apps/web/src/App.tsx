@@ -6,6 +6,7 @@ import { SearchResult } from './lib/searchTypes';
 import { fetchAirportDetail } from './lib/api';
 import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategories';
 import { useAirportLayoutFeatures } from './lib/useAirportLayoutFeatures';
+import { useEarthEvents } from './lib/useEarthEvents';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -29,6 +30,7 @@ interface AviationStats {
 const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
   const [aviationLayerActive, setAviationLayerActive] = useState(false);
+  const [earthEventsLayerActive, setEarthEventsLayerActive] = useState(false);
   const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -47,6 +49,7 @@ const App: React.FC = () => {
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
 
   const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
+  const earthEventsPhase = useEarthEvents(earthEventsLayerActive);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -142,6 +145,7 @@ const App: React.FC = () => {
         aviationFilters={aviationFilters}
         selectedAirport={selectedObject}
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
+        earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
       />
 
       <div style={{
@@ -161,6 +165,9 @@ const App: React.FC = () => {
           aviationFilters={aviationFilters}
           onFiltersChange={handleFiltersChange}
           layoutPhase={layoutPhase}
+          earthEventsLayerActive={earthEventsLayerActive}
+          setEarthEventsLayerActive={setEarthEventsLayerActive}
+          earthEventsPhase={earthEventsPhase}
         />
       </div>
     </div>

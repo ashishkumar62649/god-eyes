@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { LayerRegistryEntry } from '@god-eyes/contracts';
 import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
 import { useLayerRegistry } from '../lib/useLayerRegistry';
+import type { EarthEventsPhase } from '../lib/useEarthEvents';
 
 interface AviationStats {
   loaded: number;
@@ -18,6 +19,9 @@ interface LayerPanelProps {
   aviationStats: AviationStats;
   aviationFilters: AviationFilters;
   onFiltersChange: (filters: AviationFilters) => void;
+  earthEventsLayerActive: boolean;
+  setEarthEventsLayerActive: (active: boolean) => void;
+  earthEventsPhase: EarthEventsPhase;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -36,6 +40,9 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   aviationStats,
   aviationFilters,
   onFiltersChange,
+  earthEventsLayerActive,
+  setEarthEventsLayerActive,
+  earthEventsPhase,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -43,6 +50,17 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   const toggleFilter = (key: keyof AviationFilters) => {
     onFiltersChange({ ...aviationFilters, [key]: !aviationFilters[key] });
   };
+
+  function earthEventsStatusText(): string {
+    if (!earthEventsLayerActive) return 'READY — CLICK TO ACTIVATE';
+    switch (earthEventsPhase.phase) {
+      case 'loading': return 'LOADING...';
+      case 'ok': return `ACTIVE — ${earthEventsPhase.events.length} EVENTS`;
+      case 'empty': return 'ACTIVE — NO DATA';
+      case 'error': return 'ERROR — LAYER OFFLINE';
+      default: return 'ACTIVE';
+    }
+  }
 
   return (
     <aside className={`shell-panel shell-panel-left shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -57,7 +75,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         <div className="collapsed-label">OPERATIONS</div>
       ) : (
         <div className="panel-content">
-          {/* Subtle offline indicator — only shown when API registry is unavailable */}
+          {/* Subtle offline indicator */}
           {!loading && !apiAvailable && (
             <div style={{ fontSize: '0.55rem', color: '#ffab00', opacity: 0.7, marginBottom: '6px', letterSpacing: '0.5px' }}>
               REGISTRY OFFLINE — LOCAL DATA
@@ -67,6 +85,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           {layers.map((entry) => {
             const isGlobeCore = entry.layerId === 'layer_00_globe_core';
             const isAviation = entry.layerId === 'layer_01_aviation';
+            const isEarthEvents = entry.layerId === 'layer_03_earth_events';
             const isInactive = entry.status !== 'active';
 
             if (isGlobeCore) {
@@ -104,6 +123,28 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     ) : (
                       <span style={{ opacity: 0.7 }}>READY — CLICK TO ACTIVATE</span>
                     )}
+                  </div>
+                </div>
+              );
+            }
+
+            if (isEarthEvents) {
+              return (
+                <div
+                  key={entry.layerId}
+                  className={`layer-item ${earthEventsLayerActive ? 'active' : ''}`}
+                  onClick={() => setEarthEventsLayerActive(!earthEventsLayerActive)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="layer-name">{entry.name} [L3]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: earthEventsLayerActive ? 'var(--shell-accent)' : undefined,
+                      fontWeight: earthEventsLayerActive ? 600 : undefined,
+                      opacity: earthEventsLayerActive ? 1 : 0.7,
+                    }}>
+                      {earthEventsStatusText()}
+                    </span>
                   </div>
                 </div>
               );
