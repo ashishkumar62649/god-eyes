@@ -1,4 +1,4 @@
-# Layer Architecture
+﻿# Layer Architecture
 
 ## Concept
 
@@ -6,15 +6,20 @@ GOD EYES is built as a stack of visual layers on a 3D globe. Each layer represen
 
 ## Layer Registry
 
-| Layer ID | Name | Description | Status |
-|----------|------|-------------|--------|
-| `layer_00_globe_core` | Globe Core | 3D globe, camera, base map, layer registry, selection system | Next |
-| `layer_01_aviation` | Aviation | Aircraft positions, airports, flight routes, details panel | Next |
-| `layer_02_satellite` | Satellite | Satellite objects, orbits, tracks | Future |
-| `layer_03_maritime` | Maritime | Vessel positions, ports, vessel details | Future |
-| `layer_04_weather_disasters` | Weather/Disasters | Weather alerts, natural disasters | Future |
-| `layer_05_cyber_infrastructure` | Cyber/Infrastructure | Network infrastructure, cyber events | Future |
-| `layer_06_ai_intelligence` | AI Intelligence | AI-generated reports, pattern detection | Future |
+> **Note:** The authoritative layer registry is now `MVP_LAYER_REGISTRY.md`. This table is a summary; see the registry for full per-layer rules.
+
+| # | Layer ID | Name | Description | MVP Status | Type |
+|---|----------|------|-------------|------------|------|
+| 0 | `layer_00_globe_core` | Globe Core | 3D globe, camera, base map, layer registry, selection system | active | static |
+| 1 | `layer_01_aviation` | Aviation | Aircraft positions, airports, flight routes, details panel | active | live |
+| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | Country borders, administrative boundaries, disputed areas | coming_soon | static |
+| 3 | `layer_03_earth_events` | Earth Events | Earthquakes, volcanic activity, weather alerts, natural disasters | coming_soon | live |
+| 4 | `layer_04_public_military_security` | Public Military & Security | Public defense installations, open-source military data | coming_soon | static (MVP) |
+| 5 | `layer_05_space_satellites` | Space & Satellites | Satellite objects, orbits, tracks, debris | coming_soon | live |
+| 6 | `layer_06_maritime` | Maritime | Vessel positions, ports, vessel details | coming_soon | live |
+| 7 | `layer_07_infrastructure` | Infrastructure | Power grids, fiber optics, water systems, transport networks | coming_soon | static |
+| 8 | `layer_08_news_osint` | News & OSINT | Geotagged news, open-source intelligence feeds | coming_soon | live |
+| 9 | `layer_09_user_shapes` | User Shapes | User-created polygons, lines, markers | coming_soon | static |
 
 ## Layer 0: Globe Core
 
@@ -31,7 +36,7 @@ Components:
 
 ## Layer 1: Aviation
 
-First data layer. Proves the full pipeline from source → raw → normalized → DB → API → frontend.
+First data layer. Proves the full pipeline from source â†’ raw â†’ normalized â†’ DB â†’ API â†’ frontend.
 
 Components:
 - Aircraft position layer (map markers)
@@ -45,28 +50,93 @@ Components:
 - Aviation API endpoints
 - Aviation frontend layer folder
 
-## Layer 2: Satellite (Future)
+## Layer 2: Borders & Boundaries (Coming Soon)
 
-- Satellite objects
-- Satellite orbits/tracks
-- Satellite source catalog
-- Satellite raw data rules
-- Satellite frontend layer
+Layer for rendering country borders, administrative boundaries, and disputed territories.
 
-## Layer 3: Maritime (Future)
+Components:
+- Country border polygons
+- Administrative boundary lines
+- Disputed territory markers (with disclaimers)
+- Static GeoJSON source (Natural Earth, UN)
+- Single snapshot DB table
 
-- Vessel positions
-- Ports
-- Vessel detail panel
-- Maritime source catalog
-- Maritime raw data rules
-- Maritime frontend layer
+## Layer 3: Earth Events (Coming Soon)
 
-## Later Layers (Future)
+Real-time natural event tracking from authoritative public feeds.
 
-- Weather/Disasters
-- Cyber/Infrastructure
-- AI Intelligence/Reports
+Components:
+- Earthquake markers (USGS feed)
+- Volcanic activity alerts
+- Weather event overlays
+- Timeline scrubber support
+- Latest snapshot + history DB tables
+
+## Layer 4: Public Military & Security (Coming Soon)
+
+Public-only, static-only layer for open-source military and security data.
+
+Components:
+- Public defense installation markers
+- Open-source military base locations
+- Static markers only â€” no live tracking, no animation
+- Read-only API â€” no write endpoints
+- UI disclaimer: "Publicly available information only"
+
+## Layer 5: Space & Satellites (Coming Soon)
+
+Satellite tracking and orbital visualization.
+
+Components:
+- Satellite object markers
+- Orbital path rendering (3D)
+- TLE feed sources (Space-Track, CelesTrak)
+- Latest snapshot + history DB tables
+
+## Layer 6: Maritime (Coming Soon)
+
+Vessel tracking and port database.
+
+Components:
+- Vessel position markers (heading-aware icons)
+- Port markers
+- Route lines
+- AIS data feeds
+- Latest snapshot + history DB tables
+
+## Layer 7: Infrastructure (Coming Soon)
+
+Critical infrastructure visualization from public datasets.
+
+Components:
+- Power grid line overlays
+- Fiber optic cable routes
+- Water system nodes
+- Transportation network lines
+- Static GeoJSON sources
+- Single snapshot DB table
+
+## Layer 8: News & OSINT (Coming Soon)
+
+Geotagged news and open-source intelligence aggregation.
+
+Components:
+- News markers with headline display
+- Expandable cards on click
+- Timeline view
+- RSS/API news feed fetchers
+- Latest snapshot + history DB tables
+
+## Layer 9: User Shapes (Coming Soon)
+
+User-created geometry persisted across sessions.
+
+Components:
+- Draw polygon/line/marker tools
+- Edit and delete controls
+- Visibility toggle
+- Authenticated write API
+- User shapes DB table with user_id, geometry, properties
 
 ## Rules
 

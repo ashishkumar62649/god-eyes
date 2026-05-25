@@ -50,24 +50,30 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## What Does Not Exist Yet
 
-- [ ] Layer 2 Satellite
-- [ ] Layer 3 Maritime
-- [ ] Layer 4 Weather/Disasters
-- [ ] Layer 5 Cyber/Infrastructure
-- [ ] Layer 6 AI Intelligence
-- [ ] Real-time data updates
-- [ ] Live aircraft tracking
+- [ ] Layer 2 Borders & Boundaries
+- [ ] Layer 3 Earth Events
+- [ ] Layer 4 Public Military & Security
+- [ ] Layer 5 Space & Satellites
+- [ ] Layer 6 Maritime
+- [ ] Layer 7 Infrastructure
+- [ ] Layer 8 News & OSINT
+- [ ] Layer 9 User Shapes
+- [ ] Real-time data updates (beyond aviation cache)
+- [ ] Live aircraft tracking (real-time position streaming)
 - [ ] User authentication
 - [ ] Data export/sharing
+- [ ] Generic layer API endpoints
 
 ## Next Safe Steps
 
-1. **Density View (WO-032):** Implement global density heatmap for aviation
-2. **Fabric Aggregation (WO-033):** Implement fabric-based clustering for performance
-3. **Layer 2 Satellite (WO-040+):** Add satellite imagery layer
-4. **Layer 3 Maritime (WO-050+):** Add maritime traffic layer
-5. **Repository Cleanup Phase 2 (WO-062+):** Address remaining audit items (score 74/100)
+1. **MVP Layer Registry (WO-063):** Create authoritative 10-layer registry — **DONE**
+2. **Density View (WO-032):** Implement global density heatmap for aviation
+3. **Fabric Aggregation (WO-033):** Implement fabric-based clustering for performance
+4. **Layer 2 Borders & Boundaries (WO-064+):** Add borders layer with static GeoJSON
+5. **Layer 3 Earth Events (WO-065+):** Add USGS earthquake feed and event layer
+6. **Layer 4 Public Military & Security (WO-066+):** Add public-only static military layer
+7. **Repository Cleanup Phase 2 (WO-062+):** Address remaining audit items (score 74/100)
 
 ## Last Updated
 
-2026-05-23T16:05:04Z — Kiro CLI (WO-061 repository safe cleanup)
+2026-05-25 — Kiro CLI (WO-063-MVP-LAYER-REGISTRY-CONTROL)
