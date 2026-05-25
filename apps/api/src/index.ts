@@ -7,6 +7,7 @@ import { objectRoutes } from './routes/objects.js';
 import { publicProfileRoutes } from './routes/public-profile/index.js';
 import { airportIntelligenceRoutes } from './routes/airport-intelligence/index.js';
 import { airportLayoutFeaturesRoutes } from './routes/airport-layout-features/index.js';
+import { earthEventsRoutes } from './routes/earth-events.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -28,6 +29,7 @@ async function start() {
     await fastify.register(publicProfileRoutes);
     await fastify.register(airportIntelligenceRoutes);
     await fastify.register(airportLayoutFeaturesRoutes);
+    await fastify.register(earthEventsRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {
