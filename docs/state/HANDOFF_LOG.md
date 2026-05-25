@@ -2812,3 +2812,33 @@ All agents must append to this file after completing work.
 - Code touched: NO
 - Database touched: NO
 - Next step: WO-078C Natural Earth MVP ingestion
+
+### 2026-05-26T05:10:00Z DeepSeek (API CLI) — WO-078D Borders Boundaries API Complete
+
+- Work order: WO-078D-BORDERS-BOUNDARIES-API
+- Agent: DeepSeek CLI
+- Role: API/contracts backend engineer
+- LLM model: DeepSeek
+- Tool/CLI used: DeepSeek CLI
+- Branch: agent/borders-boundaries-api
+- Start time UTC: 2026-05-26T04:30:00Z
+- End time UTC: 2026-05-26T05:10:00Z
+- Commit hash: 788a584
+- Push status: NOT PUSHED
+- Files changed: 4 files (2 new, 2 modified)
+  - NEW: apps/api/src/routes/borders-boundaries.ts
+  - NEW: apps/api/tests/borders-boundaries.test.ts
+  - MODIFIED: apps/api/src/index.ts
+  - MODIFIED: packages/contracts/src/index.ts
+- Endpoint: GET /api/borders-boundaries/countries
+- Contracts added: BordersBoundariesFeatureCollectionSchema, BordersBoundariesPropertiesSchema, BordersBoundariesMetaSchema
+- Tests added: 16 tests (FeatureCollection shape, defaults, bbox, simplify, limit, India sensitivity, empty result, DB error, parameterized SQL, no writes, no external calls)
+- Validation:
+  - contracts build: PASS
+  - api build: PASS
+  - api:test: 214 tests PASS (all 10 suites, 16 borders + 198 existing)
+  - web build: PASS
+  - git diff --check: Clean (CRLF false positives)
+- Forbidden folders touched: NO
+- Known issues: None
+- Ready to integrate: YES
