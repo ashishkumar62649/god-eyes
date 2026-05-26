@@ -197,6 +197,22 @@ export async function fetchBordersBoundariesCountries(
   return response.json();
 }
 
+export async function fetchBordersBoundaryLines(
+  params: { limit?: number; simplify?: number; bbox?: string; line_type?: string } = {},
+  abortSignal?: AbortSignal,
+): Promise<{ type: string; features: Array<{ type: string; geometry: any; properties: any }>; meta: any }> {
+  const url = new URL(`${API_BASE_URL}/api/borders-boundaries/lines`);
+  url.searchParams.set('limit', String(params.limit ?? 250));
+  if (params.simplify !== undefined) url.searchParams.set('simplify', String(params.simplify));
+  if (params.bbox) url.searchParams.set('bbox', params.bbox);
+  if (params.line_type) url.searchParams.set('line_type', params.line_type);
+  const response = await fetch(url.toString(), { signal: abortSignal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch boundary lines: ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function fetchAviationPreload(
   category: string,
   abortSignal?: AbortSignal,

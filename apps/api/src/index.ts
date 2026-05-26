@@ -9,6 +9,7 @@ import { airportIntelligenceRoutes } from './routes/airport-intelligence/index.j
 import { airportLayoutFeaturesRoutes } from './routes/airport-layout-features/index.js';
 import { earthEventsRoutes } from './routes/earth-events.js';
 import { bordersBoundariesRoutes } from './routes/borders-boundaries.js';
+import { bordersBoundaryLinesRoutes } from './routes/borders-boundary-lines.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -32,6 +33,7 @@ async function start() {
     await fastify.register(airportLayoutFeaturesRoutes);
     await fastify.register(earthEventsRoutes);
     await fastify.register(bordersBoundariesRoutes);
+    await fastify.register(bordersBoundaryLinesRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {

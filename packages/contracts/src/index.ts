@@ -527,6 +527,36 @@ export const BordersBoundariesFeatureCollectionSchema = z.object({
 
 export type BordersBoundariesFeatureCollection = z.infer<typeof BordersBoundariesFeatureCollectionSchema>;
 
+// ==================== Borders Boundary Lines (WO-078E8) ====================
+
+export const BordersBoundaryLinesMetaSchema = z.object({
+  count: z.number().int().nonnegative(),
+  sourceId: z.string(),
+  sourceName: z.string(),
+  mvpLocalDevOnly: z.literal(true),
+  productionApproved: z.literal(false),
+  indiaCompliant: z.literal(false),
+  caveat: z.string(),
+});
+
+export type BordersBoundaryLinesMeta = z.infer<typeof BordersBoundaryLinesMetaSchema>;
+
+export const BordersBoundaryLineFeatureSchema = z.object({
+  type: z.literal('Feature'),
+  geometry: z.record(z.unknown()),
+  properties: z.record(z.unknown()),
+});
+
+export type BordersBoundaryLineFeature = z.infer<typeof BordersBoundaryLineFeatureSchema>;
+
+export const BordersBoundaryLinesResponseSchema = z.object({
+  type: z.literal('FeatureCollection'),
+  features: z.array(BordersBoundaryLineFeatureSchema),
+  meta: BordersBoundaryLinesMetaSchema,
+});
+
+export type BordersBoundaryLinesResponse = z.infer<typeof BordersBoundaryLinesResponseSchema>;
+
 // ==================== Error Codes ====================
 
 export const ErrorCodes = {

@@ -20,9 +20,9 @@ import {
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
-import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
-import { fetchBordersBoundariesCountries } from './lib/api';
+import { fetchBordersBoundaryLines } from './lib/api';
 
 import {
   fetchAllAviationCategories,
@@ -109,9 +109,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   // LOD: tier 0=global(>8M), 1=regional(2.5M-8M), 2=local(<2.5M)
   const [bordersTier, setBordersTier] = useState<0 | 1 | 2>(0);
   const bordersTierRef = useRef<0 | 1 | 2>(0);
-  // Cache fetched data and built collections per tier
-  const bordersDataCache = useRef<Map<number, BordersBoundariesFeatureCollection>>(new Map());
-  const bordersCollectionCache = useRef<Map<number, PolylineCollection>>(new Map());
+  // Cache fetched data per tier (plain GeoJSON only — never cache Cesium primitives)
+  const bordersDataCache = useRef<Map<number, any>>(new Map());
   const bordersAbortRef = useRef<AbortController | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
@@ -482,7 +481,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       }
       bordersDataSourceRef.current = null;
       bordersAbortRef.current?.abort();
-      bordersCollectionCache.current.clear();
       bordersDataCache.current.clear();
     };
   }, []);
@@ -612,14 +610,44 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [layoutFeatures]);
 
-  // Borders LOD renderer — fetches per tier, caches data + geometry, one PolylineCollection
+  // Build a fresh PolylineCollection from cached GeoJSON data (never reuse destroyed primitives)
+  function buildBordersCollection(data: { features: Array<{ geometry: any }> }): PolylineCollection {
+    const collection = new PolylineCollection();
+    const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
+
+    for (const feature of data.features) {
+      const geom = feature.geometry;
+      if (!geom) continue;
+
+      const lines: number[][][] =
+        geom.type === 'LineString' ? [geom.coordinates] :
+        geom.type === 'MultiLineString' ? geom.coordinates : [];
+
+      for (const coords of lines) {
+        if (!coords || coords.length < 2) continue;
+        const positions = coords.map((c: number[]) => Cartesian3.fromDegrees(c[0], c[1], 0));
+        collection.add({
+          positions,
+          width: 1,
+          material: Material.fromType('Color', { color: borderColor }),
+        });
+      }
+    }
+    return collection;
+  }
+
+  // Borders LOD renderer — fetches boundary lines per tier, caches GeoJSON data only
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
 
     // Remove current collection from scene
     if (bordersDataSourceRef.current) {
-      viewer.scene.primitives.remove(bordersDataSourceRef.current);
+      try {
+        if (viewer && !viewer.isDestroyed()) {
+          viewer.scene.primitives.remove(bordersDataSourceRef.current);
+        }
+      } catch { /* already destroyed */ }
       bordersDataSourceRef.current = null;
     }
 
@@ -629,11 +657,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const SIMPLIFY: Record<number, number> = { 0: 0.08, 1: 0.03, 2: 0.01 };
     const simplify = SIMPLIFY[bordersTier];
 
-    // If we have a cached collection for this tier, reuse it
-    const cached = bordersCollectionCache.current.get(bordersTier);
-    if (cached) {
-      viewer.scene.primitives.add(cached);
-      bordersDataSourceRef.current = cached;
+    // Build collection from cached GeoJSON data if available
+    const cachedData = bordersDataCache.current.get(bordersTier);
+    if (cachedData) {
+      if (!viewer.isDestroyed()) {
+        const collection = buildBordersCollection(cachedData);
+        viewer.scene.primitives.add(collection);
+        bordersDataSourceRef.current = collection;
+      }
       return;
     }
 
@@ -642,66 +673,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const ctrl = new AbortController();
     bordersAbortRef.current = ctrl;
 
-    fetchBordersBoundariesCountries({ limit: 250, simplify }, ctrl.signal)
+    fetchBordersBoundaryLines({ limit: 250, simplify }, ctrl.signal)
       .then((data) => {
-        if (ctrl.signal.aborted || !viewerRef.current) return;
+        if (ctrl.signal.aborted) return;
+        const v = viewerRef.current;
+        if (!v || v.isDestroyed()) return;
+        if (bordersTierRef.current !== bordersTier) return;
 
-        // Shared-segment filter
-        const R = simplify === 0 ? 5 : 4;
-        const r = (n: number) => Math.round(n * 10 ** R) / 10 ** R;
-        const segKey = (ax: number, ay: number, bx: number, by: number): string => {
-          const a = `${r(ax)},${r(ay)}`;
-          const b = `${r(bx)},${r(by)}`;
-          return a < b ? `${a}|${b}` : `${b}|${a}`;
-        };
-        const segCount = new Map<string, number>();
-        const segCoords = new Map<string, [[number, number], [number, number]]>();
-
-        function countRing(coords: number[][]): void {
-          for (let i = 0; i < coords.length - 1; i++) {
-            const [ax, ay] = coords[i];
-            const [bx, by] = coords[i + 1];
-            const key = segKey(ax, ay, bx, by);
-            segCount.set(key, (segCount.get(key) ?? 0) + 1);
-            if (!segCoords.has(key)) segCoords.set(key, [[ax, ay], [bx, by]]);
-          }
-        }
-
-        for (const feature of data.features) {
-          const geom = feature.geometry as { type: string; coordinates: unknown };
-          if (!geom) continue;
-          if (geom.type === 'Polygon') {
-            for (const ring of (geom.coordinates as number[][][])) countRing(ring);
-          } else if (geom.type === 'MultiPolygon') {
-            for (const poly of (geom.coordinates as number[][][][]))
-              for (const ring of poly) countRing(ring);
-          }
-        }
-
-        const HEIGHT = 1500;
-        const collection = new PolylineCollection();
-        const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
-
-        for (const [key, count] of segCount) {
-          if (count < 2) continue;
-          const [[ax, ay], [bx, by]] = segCoords.get(key)!;
-          collection.add({
-            positions: [
-              Cartesian3.fromDegrees(ax, ay, HEIGHT),
-              Cartesian3.fromDegrees(bx, by, HEIGHT),
-            ],
-            width: 1,
-            material: Material.fromType('Color', { color: borderColor }),
-          });
-        }
-
-        // Cache collection and data for this tier
-        bordersCollectionCache.current.set(bordersTier, collection);
+        // Cache plain GeoJSON data only (NOT Cesium primitives)
         bordersDataCache.current.set(bordersTier, data);
 
-        // Only show if still active and same tier
-        if (!viewerRef.current || bordersTierRef.current !== bordersTier) return;
-        viewerRef.current.scene.primitives.add(collection);
+        const collection = buildBordersCollection(data);
+        v.scene.primitives.add(collection);
         bordersDataSourceRef.current = collection;
       })
       .catch((err: Error) => {
