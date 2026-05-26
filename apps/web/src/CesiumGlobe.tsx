@@ -22,6 +22,7 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
 import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
+import { fetchBordersBoundariesCountries } from './lib/api';
 
 import {
   fetchAllAviationCategories,
@@ -68,7 +69,7 @@ interface CesiumGlobeProps {
   selectedAirport?: AirportObject | null;
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
   earthEvents?: EarthEvent[];
-  bordersData?: BordersBoundariesFeatureCollection | null;
+  bordersLayerActive?: boolean;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -80,7 +81,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   selectedAirport,
   layoutFeatures,
   earthEvents,
-  bordersData,
+  bordersLayerActive = false,
 }) => {
 
   /**
@@ -105,6 +106,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
   const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
+  // LOD: tier 0=global(>8M), 1=regional(2.5M-8M), 2=local(<2.5M)
+  const [bordersTier, setBordersTier] = useState<0 | 1 | 2>(0);
+  const bordersTierRef = useRef<0 | 1 | 2>(0);
+  // Cache fetched data and built collections per tier
+  const bordersDataCache = useRef<Map<number, BordersBoundariesFeatureCollection>>(new Map());
+  const bordersCollectionCache = useRef<Map<number, PolylineCollection>>(new Map());
+  const bordersAbortRef = useRef<AbortController | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -381,6 +389,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           cameraHeightRef.current = height;
           filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
         }
+        // LOD tier update for borders (no geometry rebuild here — triggers useEffect)
+        if (viewerRef.current) {
+          const h = viewerRef.current.camera.positionCartographic.height;
+          const newTier: 0 | 1 | 2 = h > 8_000_000 ? 0 : h > 2_500_000 ? 1 : 2;
+          if (newTier !== bordersTierRef.current) {
+            bordersTierRef.current = newTier;
+            setBordersTier(newTier);
+          }
+        }
       };
 
       viewer.camera.percentageChanged = 0.05;
@@ -464,6 +481,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
       }
       bordersDataSourceRef.current = null;
+      bordersAbortRef.current?.abort();
+      bordersCollectionCache.current.clear();
+      bordersDataCache.current.clear();
     };
   }, []);
 
@@ -592,70 +612,104 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [layoutFeatures]);
 
-  // Render country border outlines (Borders & Boundaries layer)
-  // Uses shared-segment filtering + single PolylineCollection for 60 FPS performance.
+  // Borders LOD renderer — fetches per tier, caches data + geometry, one PolylineCollection
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
+
+    // Remove current collection from scene
     if (bordersDataSourceRef.current) {
       viewer.scene.primitives.remove(bordersDataSourceRef.current);
       bordersDataSourceRef.current = null;
     }
-    if (!bordersData || bordersData.features.length === 0) return;
 
-    // Shared-segment filter: segments in 2+ rings = land borders (not coastlines)
-    const R = 5; // rounding precision for unsimplified coordinates
-    const r = (n: number) => Math.round(n * 10 ** R) / 10 ** R;
-    const segKey = (ax: number, ay: number, bx: number, by: number): string => {
-      const a = `${r(ax)},${r(ay)}`;
-      const b = `${r(bx)},${r(by)}`;
-      return a < b ? `${a}|${b}` : `${b}|${a}`;
-    };
-    const segCount = new Map<string, number>();
-    const segCoords = new Map<string, [[number, number], [number, number]]>();
+    if (!bordersLayerActive) return;
 
-    function countRing(coords: number[][]): void {
-      for (let i = 0; i < coords.length - 1; i++) {
-        const [ax, ay] = coords[i];
-        const [bx, by] = coords[i + 1];
-        const key = segKey(ax, ay, bx, by);
-        segCount.set(key, (segCount.get(key) ?? 0) + 1);
-        if (!segCoords.has(key)) segCoords.set(key, [[ax, ay], [bx, by]]);
-      }
+    // LOD simplify values per tier
+    const SIMPLIFY: Record<number, number> = { 0: 0.08, 1: 0.03, 2: 0.01 };
+    const simplify = SIMPLIFY[bordersTier];
+
+    // If we have a cached collection for this tier, reuse it
+    const cached = bordersCollectionCache.current.get(bordersTier);
+    if (cached) {
+      viewer.scene.primitives.add(cached);
+      bordersDataSourceRef.current = cached;
+      return;
     }
 
-    for (const feature of bordersData.features) {
-      const geom = feature.geometry as { type: string; coordinates: unknown };
-      if (!geom) continue;
-      if (geom.type === 'Polygon') {
-        for (const ring of (geom.coordinates as number[][][])) countRing(ring);
-      } else if (geom.type === 'MultiPolygon') {
-        for (const poly of (geom.coordinates as number[][][][]))
-          for (const ring of poly) countRing(ring);
-      }
-    }
+    // Fetch data for this tier (abort any in-flight request)
+    bordersAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    bordersAbortRef.current = ctrl;
 
-    // Single PolylineCollection — one draw call, no per-entity React overhead
-    const HEIGHT = 1500;
-    const collection = new PolylineCollection();
-    const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
+    fetchBordersBoundariesCountries({ limit: 250, simplify }, ctrl.signal)
+      .then((data) => {
+        if (ctrl.signal.aborted || !viewerRef.current) return;
 
-    for (const [key, count] of segCount) {
-      if (count < 2) continue;
-      const [[ax, ay], [bx, by]] = segCoords.get(key)!;
-      collection.add({
-        positions: [
-          Cartesian3.fromDegrees(ax, ay, HEIGHT),
-          Cartesian3.fromDegrees(bx, by, HEIGHT),
-        ],
-        width: 1.5,
-        material: Material.fromType('Color', { color: borderColor }),
+        // Shared-segment filter
+        const R = simplify === 0 ? 5 : 4;
+        const r = (n: number) => Math.round(n * 10 ** R) / 10 ** R;
+        const segKey = (ax: number, ay: number, bx: number, by: number): string => {
+          const a = `${r(ax)},${r(ay)}`;
+          const b = `${r(bx)},${r(by)}`;
+          return a < b ? `${a}|${b}` : `${b}|${a}`;
+        };
+        const segCount = new Map<string, number>();
+        const segCoords = new Map<string, [[number, number], [number, number]]>();
+
+        function countRing(coords: number[][]): void {
+          for (let i = 0; i < coords.length - 1; i++) {
+            const [ax, ay] = coords[i];
+            const [bx, by] = coords[i + 1];
+            const key = segKey(ax, ay, bx, by);
+            segCount.set(key, (segCount.get(key) ?? 0) + 1);
+            if (!segCoords.has(key)) segCoords.set(key, [[ax, ay], [bx, by]]);
+          }
+        }
+
+        for (const feature of data.features) {
+          const geom = feature.geometry as { type: string; coordinates: unknown };
+          if (!geom) continue;
+          if (geom.type === 'Polygon') {
+            for (const ring of (geom.coordinates as number[][][])) countRing(ring);
+          } else if (geom.type === 'MultiPolygon') {
+            for (const poly of (geom.coordinates as number[][][][]))
+              for (const ring of poly) countRing(ring);
+          }
+        }
+
+        const HEIGHT = 1500;
+        const collection = new PolylineCollection();
+        const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
+
+        for (const [key, count] of segCount) {
+          if (count < 2) continue;
+          const [[ax, ay], [bx, by]] = segCoords.get(key)!;
+          collection.add({
+            positions: [
+              Cartesian3.fromDegrees(ax, ay, HEIGHT),
+              Cartesian3.fromDegrees(bx, by, HEIGHT),
+            ],
+            width: 1,
+            material: Material.fromType('Color', { color: borderColor }),
+          });
+        }
+
+        // Cache collection and data for this tier
+        bordersCollectionCache.current.set(bordersTier, collection);
+        bordersDataCache.current.set(bordersTier, data);
+
+        // Only show if still active and same tier
+        if (!viewerRef.current || bordersTierRef.current !== bordersTier) return;
+        viewerRef.current.scene.primitives.add(collection);
+        bordersDataSourceRef.current = collection;
+      })
+      .catch((err: Error) => {
+        if (err.name !== 'AbortError') console.error('[BORDERS] fetch error:', err);
       });
-    }
 
-    viewer.scene.primitives.add(collection);
-    bordersDataSourceRef.current = collection;
-  }, [bordersData]);
+    return () => ctrl.abort();
+  }, [bordersLayerActive, bordersTier]);
 
   // Render earthquake events on the globe
   useEffect(() => {
