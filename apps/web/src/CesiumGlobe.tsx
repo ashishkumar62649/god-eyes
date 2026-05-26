@@ -598,10 +598,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
     if (!bordersData || bordersData.features.length === 0) return;
     GeoJsonDataSource.load(bordersData as unknown as object, {
-      stroke: Color.fromCssColorString('#4fc3f7').withAlpha(0.55),
+      stroke: Color.RED.withAlpha(0.95),
       fill: Color.TRANSPARENT,
-      strokeWidth: 1,
-      clampToGround: false,
+      strokeWidth: 2,
+      clampToGround: true,
     }).then((ds) => {
       if (!viewerRef.current) return;
       bordersDataSourceRef.current = ds;
