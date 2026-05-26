@@ -3,6 +3,7 @@ import type { LayerRegistryEntry } from '@god-eyes/contracts';
 import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
 import { useLayerRegistry } from '../lib/useLayerRegistry';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
+import type { BordersPhase } from '../lib/useBordersBoundaries';
 
 interface AviationStats {
   loaded: number;
@@ -22,6 +23,9 @@ interface LayerPanelProps {
   earthEventsLayerActive: boolean;
   setEarthEventsLayerActive: (active: boolean) => void;
   earthEventsPhase: EarthEventsPhase;
+  bordersLayerActive: boolean;
+  setBordersLayerActive: (active: boolean) => void;
+  bordersPhase: BordersPhase;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -35,21 +39,16 @@ function statusLabel(entry: LayerRegistryEntry): string {
 }
 
 const LayerPanel: React.FC<LayerPanelProps> = ({
-  aviationLayerActive,
-  setAviationLayerActive,
-  aviationStats,
-  aviationFilters,
-  onFiltersChange,
-  earthEventsLayerActive,
-  setEarthEventsLayerActive,
-  earthEventsPhase,
+  aviationLayerActive, setAviationLayerActive,
+  aviationStats, aviationFilters, onFiltersChange,
+  earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
+  bordersLayerActive, setBordersLayerActive, bordersPhase,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
 
-  const toggleFilter = (key: keyof AviationFilters) => {
+  const toggleFilter = (key: keyof AviationFilters) =>
     onFiltersChange({ ...aviationFilters, [key]: !aviationFilters[key] });
-  };
 
   function earthEventsStatusText(): string {
     if (!earthEventsLayerActive) return 'READY — CLICK TO ACTIVATE';
@@ -57,6 +56,16 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       case 'loading': return 'LOADING...';
       case 'ok': return `ACTIVE — ${earthEventsPhase.events.length} EVENTS`;
       case 'empty': return 'ACTIVE — NO DATA';
+      case 'error': return 'ERROR — LAYER OFFLINE';
+      default: return 'ACTIVE';
+    }
+  }
+
+  function bordersStatusText(): string {
+    if (!bordersLayerActive) return 'READY — CLICK TO ACTIVATE';
+    switch (bordersPhase.phase) {
+      case 'loading': return 'LOADING...';
+      case 'ok': return `ACTIVE — ${bordersPhase.data.features.length} COUNTRIES`;
       case 'error': return 'ERROR — LAYER OFFLINE';
       default: return 'ACTIVE';
     }
@@ -75,7 +84,6 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         <div className="collapsed-label">OPERATIONS</div>
       ) : (
         <div className="panel-content">
-          {/* Subtle offline indicator */}
           {!loading && !apiAvailable && (
             <div style={{ fontSize: '0.55rem', color: '#ffab00', opacity: 0.7, marginBottom: '6px', letterSpacing: '0.5px' }}>
               REGISTRY OFFLINE — LOCAL DATA
@@ -85,8 +93,10 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           {layers.map((entry) => {
             const isGlobeCore = entry.layerId === 'layer_00_globe_core';
             const isAviation = entry.layerId === 'layer_01_aviation';
+            const isBorders = entry.layerId === 'layer_02_borders_boundaries';
             const isEarthEvents = entry.layerId === 'layer_03_earth_events';
             const isInactive = entry.status !== 'active';
+            const layerIndex = entry.layerId.match(/layer_(\d+)/)?.[1] ?? '';
 
             if (isGlobeCore) {
               return (
@@ -99,12 +109,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
 
             if (isAviation) {
               return (
-                <div
-                  key={entry.layerId}
-                  className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
-                  onClick={() => setAviationLayerActive(!aviationLayerActive)}
-                  style={{ cursor: 'pointer' }}
-                >
+                <div key={entry.layerId} className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
+                  onClick={() => setAviationLayerActive(!aviationLayerActive)} style={{ cursor: 'pointer' }}>
                   <div className="layer-name">{entry.name} [L1]</div>
                   <div className="layer-status">
                     {aviationLayerActive ? (
@@ -128,14 +134,33 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               );
             }
 
+            if (isBorders) {
+              return (
+                <div key={entry.layerId} className={`layer-item ${bordersLayerActive ? 'active' : ''}`}
+                  onClick={() => setBordersLayerActive(!bordersLayerActive)} style={{ cursor: 'pointer' }}>
+                  <div className="layer-name">Borders &amp; Boundaries [L2]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: bordersLayerActive ? 'var(--shell-accent)' : undefined,
+                      fontWeight: bordersLayerActive ? 600 : undefined,
+                      opacity: bordersLayerActive ? 1 : 0.7,
+                    }}>
+                      {bordersStatusText()}
+                    </span>
+                  </div>
+                  {bordersLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      Natural Earth MVP/local/dev boundaries. Not production-approved. Not Survey of India compliant.
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             if (isEarthEvents) {
               return (
-                <div
-                  key={entry.layerId}
-                  className={`layer-item ${earthEventsLayerActive ? 'active' : ''}`}
-                  onClick={() => setEarthEventsLayerActive(!earthEventsLayerActive)}
-                  style={{ cursor: 'pointer' }}
-                >
+                <div key={entry.layerId} className={`layer-item ${earthEventsLayerActive ? 'active' : ''}`}
+                  onClick={() => setEarthEventsLayerActive(!earthEventsLayerActive)} style={{ cursor: 'pointer' }}>
                   <div className="layer-name">{entry.name} [L3]</div>
                   <div className="layer-status">
                     <span style={{
@@ -150,17 +175,11 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               );
             }
 
-            // All other layers: coming_soon or no_data
-            const layerIndex = entry.layerId.match(/layer_(\d+)/)?.[1] ?? '';
             return (
               <div key={entry.layerId} className="layer-item" style={{ cursor: 'default', opacity: 0.45 }}>
                 <div className="layer-name">{entry.name}{layerIndex ? ` [L${parseInt(layerIndex, 10)}]` : ''}</div>
                 <div className="layer-status">
-                  <span style={{
-                    color: isInactive ? '#ffab00' : 'var(--shell-accent)',
-                    fontSize: '0.6rem',
-                    letterSpacing: '1px',
-                  }}>
+                  <span style={{ color: isInactive ? '#ffab00' : 'var(--shell-accent)', fontSize: '0.6rem', letterSpacing: '1px' }}>
                     {statusLabel(entry)}
                   </span>
                 </div>
@@ -176,21 +195,14 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   const info = AVIATION_CATEGORIES[key];
                   const active = aviationFilters[key];
                   return (
-                    <div
-                      key={key}
-                      className={`filter-toggle ${active ? 'active' : ''}`}
-                      onClick={() => toggleFilter(key)}
-                    >
-                      <span
-                        className="filter-toggle-dot"
-                        style={{ background: active ? info.markerColor : info.dimColor, opacity: active ? 1 : 0.4 }}
-                      />
+                    <div key={key} className={`filter-toggle ${active ? 'active' : ''}`} onClick={() => toggleFilter(key)}>
+                      <span className="filter-toggle-dot"
+                        style={{ background: active ? info.markerColor : info.dimColor, opacity: active ? 1 : 0.4 }} />
                       <span className="filter-toggle-label">{info.label}</span>
                     </div>
                   );
                 })}
               </div>
-
               <div className="legend-section">
                 <div className="legend-section-header">MARKER LEGEND</div>
                 {FILTER_KEYS.map((key) => {

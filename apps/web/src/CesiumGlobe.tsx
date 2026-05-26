@@ -10,6 +10,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
+  GeoJsonDataSource,
   PointPrimitiveCollection,
   SceneTransforms,
   ConstantProperty,
@@ -18,7 +19,7 @@ import {
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
-import type { AirportObject, EarthEvent } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
 
 import {
@@ -66,6 +67,7 @@ interface CesiumGlobeProps {
   selectedAirport?: AirportObject | null;
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
   earthEvents?: EarthEvent[];
+  bordersData?: BordersBoundariesFeatureCollection | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -77,6 +79,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   selectedAirport,
   layoutFeatures,
   earthEvents,
+  bordersData,
 }) => {
 
   /**
@@ -100,6 +103,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
+  const bordersDataSourceRef = useRef<GeoJsonDataSource | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -455,6 +459,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      bordersDataSourceRef.current = null;
     };
   }, []);
 
@@ -582,6 +587,27 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       }));
     }
   }, [layoutFeatures]);
+
+  // Render country border outlines (Borders & Boundaries layer)
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    if (bordersDataSourceRef.current) {
+      viewer.dataSources.remove(bordersDataSourceRef.current, true);
+      bordersDataSourceRef.current = null;
+    }
+    if (!bordersData || bordersData.features.length === 0) return;
+    GeoJsonDataSource.load(bordersData as unknown as object, {
+      stroke: Color.fromCssColorString('#4fc3f7').withAlpha(0.55),
+      fill: Color.TRANSPARENT,
+      strokeWidth: 1,
+      clampToGround: false,
+    }).then((ds) => {
+      if (!viewerRef.current) return;
+      bordersDataSourceRef.current = ds;
+      viewerRef.current.dataSources.add(ds);
+    }).catch((err) => console.error('[BORDERS] load error:', err));
+  }, [bordersData]);
 
   // Render earthquake events on the globe
   useEffect(() => {

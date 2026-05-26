@@ -9,6 +9,7 @@ import { SearchResult } from '../lib/searchTypes';
 import { AviationFilters } from '../lib/aviationCategories';
 import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
+import type { BordersPhase } from '../lib/useBordersBoundaries';
 
 interface AviationStats {
   loaded: number;
@@ -33,36 +34,28 @@ interface ShellProps {
   earthEventsLayerActive: boolean;
   setEarthEventsLayerActive: (active: boolean) => void;
   earthEventsPhase: EarthEventsPhase;
+  bordersLayerActive: boolean;
+  setBordersLayerActive: (active: boolean) => void;
+  bordersPhase: BordersPhase;
 }
 
 const Shell: React.FC<ShellProps> = ({
-  aviationLayerActive,
-  setAviationLayerActive,
-  selectedObject,
-  airportDetail,
-  detailLoading,
-  detailError,
-  aviationStats,
-  onSearchResultSelect,
-  aviationFilters,
-  onFiltersChange,
+  aviationLayerActive, setAviationLayerActive,
+  selectedObject, airportDetail, detailLoading, detailError,
+  aviationStats, onSearchResultSelect, aviationFilters, onFiltersChange,
   layoutPhase,
-  earthEventsLayerActive,
-  setEarthEventsLayerActive,
-  earthEventsPhase,
+  earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
+  bordersLayerActive, setBordersLayerActive, bordersPhase,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
   React.useEffect(() => {
-    if (selectedObject) {
-      setDetailPanelCollapsed(false);
-    }
+    if (selectedObject) setDetailPanelCollapsed(false);
   }, [selectedObject]);
 
   return (
     <div className="shell-container">
       <Header onSearchResultSelect={onSearchResultSelect} />
-
       <main className="shell-main">
         <LayerPanel
           aviationLayerActive={aviationLayerActive}
@@ -73,6 +66,9 @@ const Shell: React.FC<ShellProps> = ({
           earthEventsLayerActive={earthEventsLayerActive}
           setEarthEventsLayerActive={setEarthEventsLayerActive}
           earthEventsPhase={earthEventsPhase}
+          bordersLayerActive={bordersLayerActive}
+          setBordersLayerActive={setBordersLayerActive}
+          bordersPhase={bordersPhase}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -84,10 +80,13 @@ const Shell: React.FC<ShellProps> = ({
           layoutPhase={layoutPhase}
         />
       </main>
-
       <StatusPanel
         aviationLayerActive={aviationLayerActive}
         aviationStats={aviationStats}
+        bordersLayerActive={bordersLayerActive}
+        bordersPhase={bordersPhase}
+        earthEventsLayerActive={earthEventsLayerActive}
+        earthEventsPhase={earthEventsPhase}
       />
     </div>
   );

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import type { BordersPhase } from '../lib/useBordersBoundaries';
+import type { EarthEventsPhase } from '../lib/useEarthEvents';
 
 interface AviationStats {
   loaded: number;
@@ -17,10 +19,23 @@ interface AviationStats {
 interface StatusPanelProps {
   aviationLayerActive: boolean;
   aviationStats: AviationStats;
+  bordersLayerActive: boolean;
+  bordersPhase: BordersPhase;
+  earthEventsLayerActive: boolean;
+  earthEventsPhase: EarthEventsPhase;
 }
 
-const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviationStats }) => {
+const StatusPanel: React.FC<StatusPanelProps> = ({
+  aviationLayerActive, aviationStats,
+  bordersLayerActive, bordersPhase,
+  earthEventsLayerActive, earthEventsPhase,
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const activeLayers = ['L0'];
+  if (aviationLayerActive) activeLayers.push('L1');
+  if (bordersLayerActive) activeLayers.push('L2');
+  if (earthEventsLayerActive) activeLayers.push('L3');
 
   return (
     <footer className={`shell-panel shell-footer shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -40,10 +55,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
 
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
             <div className="detail-label">Active Layers</div>
-            <div className="detail-value">
-              L0
-              {aviationLayerActive && ' / L1'}
-            </div>
+            <div className="detail-value">{activeLayers.join(' / ')}</div>
           </div>
 
           <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
@@ -58,6 +70,34 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
               <div className="detail-label">Preload</div>
               <div className="detail-value" style={{ color: aviationStats.preloadStatus === 'CACHE_READY' ? '#00e676' : '#ffab00', fontWeight: 600 }}>
                 {aviationStats.preloadStatus}
+              </div>
+            </div>
+          )}
+
+          {bordersLayerActive && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Borders</div>
+              <div className="detail-value" style={{
+                color: bordersPhase.phase === 'ok' ? 'var(--shell-accent)' : bordersPhase.phase === 'error' ? '#ff4d4d' : '#ffab00',
+              }}>
+                {bordersPhase.phase === 'ok' ? `${bordersPhase.data.features.length} COUNTRIES`
+                  : bordersPhase.phase === 'loading' ? 'LOADING...'
+                  : bordersPhase.phase === 'error' ? 'ERROR'
+                  : 'IDLE'}
+              </div>
+            </div>
+          )}
+
+          {earthEventsLayerActive && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Earth Events</div>
+              <div className="detail-value" style={{
+                color: earthEventsPhase.phase === 'ok' ? 'var(--shell-accent)' : earthEventsPhase.phase === 'error' ? '#ff4d4d' : '#ffab00',
+              }}>
+                {earthEventsPhase.phase === 'ok' ? `${earthEventsPhase.events.length} EVENTS`
+                  : earthEventsPhase.phase === 'loading' ? 'LOADING...'
+                  : earthEventsPhase.phase === 'error' ? 'ERROR'
+                  : 'IDLE'}
               </div>
             </div>
           )}
@@ -79,17 +119,10 @@ const StatusPanel: React.FC<StatusPanelProps> = ({ aviationLayerActive, aviation
             </div>
           </div>
 
-          <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
-            <div className="detail-label">Visible</div>
-            <div className="detail-value" style={{ opacity: 0.8 }}>
-              {aviationLayerActive ? aviationStats.visible : '--'}
-            </div>
-          </div>
-
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-             <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.3 : 0.1 }}></div>
-             <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.6 : 0.3 }}></div>
-             <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 1.0 : 0.5 }}></div>
+            <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.3 : 0.1 }}></div>
+            <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 0.6 : 0.3 }}></div>
+            <div style={{ width: '4px', height: '14px', background: 'var(--shell-accent)', opacity: aviationLayerActive ? 1.0 : 0.5 }}></div>
           </div>
         </div>
       )}
