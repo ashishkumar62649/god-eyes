@@ -16,6 +16,7 @@ import {
   ConstantProperty,
   PointGraphics,
   ConstantPositionProperty,
+  ColorMaterialProperty,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
@@ -592,21 +593,44 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
+    // Clean up previous borders
     if (bordersDataSourceRef.current) {
       viewer.dataSources.remove(bordersDataSourceRef.current, true);
       bordersDataSourceRef.current = null;
     }
     if (!bordersData || bordersData.features.length === 0) return;
-    GeoJsonDataSource.load(bordersData as unknown as object, {
-      stroke: Color.RED.withAlpha(0.95),
-      fill: Color.TRANSPARENT,
-      strokeWidth: 2,
-      clampToGround: true,
-    }).then((ds) => {
-      if (!viewerRef.current) return;
-      bordersDataSourceRef.current = ds;
-      viewerRef.current.dataSources.add(ds);
-    }).catch((err) => console.error('[BORDERS] load error:', err));
+
+    const ds = new CustomDataSource('borders');
+    const HEIGHT = 2000; // metres above surface to avoid z-fighting
+
+    function addRing(coords: number[][]): void {
+      if (coords.length < 2) return;
+      const positions = coords.map(([lon, lat]) =>
+        Cartesian3.fromDegrees(lon as number, lat as number, HEIGHT)
+      );
+      ds.entities.add(new Entity({
+        polyline: new PolylineGraphics({
+          positions: new ConstantProperty(positions),
+          width: new ConstantProperty(3),
+          material: new ColorMaterialProperty(Color.RED.withAlpha(1.0)),
+          clampToGround: new ConstantProperty(false),
+        }),
+      }));
+    }
+
+    for (const feature of bordersData.features) {
+      const geom = feature.geometry as { type: string; coordinates: unknown };
+      if (!geom) continue;
+      if (geom.type === 'Polygon') {
+        for (const ring of (geom.coordinates as number[][][])) addRing(ring);
+      } else if (geom.type === 'MultiPolygon') {
+        for (const poly of (geom.coordinates as number[][][][]))
+          for (const ring of poly) addRing(ring);
+      }
+    }
+
+    bordersDataSourceRef.current = ds as unknown as GeoJsonDataSource;
+    viewer.dataSources.add(ds);
   }, [bordersData]);
 
   // Render earthquake events on the globe
