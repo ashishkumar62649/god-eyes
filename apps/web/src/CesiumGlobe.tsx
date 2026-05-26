@@ -10,12 +10,13 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
-  GeoJsonDataSource,
   PointPrimitiveCollection,
   SceneTransforms,
   ConstantProperty,
   PointGraphics,
   ConstantPositionProperty,
+  PolylineCollection,
+  Material,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
@@ -103,7 +104,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
-  const bordersDataSourceRef = useRef<GeoJsonDataSource | null>(null);
+  const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -460,7 +461,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         abortControllerRef.current.abort();
       }
       if (bordersDataSourceRef.current && viewerRef.current) {
-        viewerRef.current.dataSources.remove(bordersDataSourceRef.current, true);
+        viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
       }
       bordersDataSourceRef.current = null;
     };
@@ -594,22 +595,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   // Render country border outlines (Borders & Boundaries layer)
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer) return;
+    if (!viewer || viewer.isDestroyed()) return;
     if (bordersDataSourceRef.current) {
-      viewer.dataSources.remove(bordersDataSourceRef.current, true);
+      viewer.scene.primitives.remove(bordersDataSourceRef.current);
       bordersDataSourceRef.current = null;
     }
     if (!bordersData || bordersData.features.length === 0) return;
-    GeoJsonDataSource.load(bordersData as unknown as object, {
-      stroke: Color.fromCssColorString('#e05050').withAlpha(0.85),
-      fill: Color.TRANSPARENT,
-      strokeWidth: 1.5,
-      clampToGround: true,
-    }).then((ds) => {
-      if (!viewerRef.current || viewerRef.current.isDestroyed()) return;
-      bordersDataSourceRef.current = ds;
-      viewerRef.current.dataSources.add(ds);
-    }).catch((err) => console.error('[BORDERS] load error:', err));
+
+    const collection = new PolylineCollection();
+    const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
+
+    for (const feature of bordersData.features) {
+      const geom = feature.geometry as { type: string; coordinates: unknown };
+      if (!geom) continue;
+      const rings: number[][][] =
+        geom.type === 'Polygon' ? (geom.coordinates as number[][][]) :
+        geom.type === 'MultiPolygon' ? (geom.coordinates as number[][][][]).flat() : [];
+      for (const ring of rings) {
+        if (ring.length < 2) continue;
+        collection.add({
+          positions: ring.map(([lon, lat]) => Cartesian3.fromDegrees(lon, lat, 0)),
+          width: 1.5,
+          material: Material.fromType('Color', { color: borderColor }),
+        });
+      }
+    }
+
+    viewer.scene.primitives.add(collection);
+    bordersDataSourceRef.current = collection;
   }, [bordersData]);
 
   // Render earthquake events on the globe
