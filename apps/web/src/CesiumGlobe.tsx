@@ -10,13 +10,13 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
-  GeoJsonDataSource,
   PointPrimitiveCollection,
   SceneTransforms,
   ConstantProperty,
   PointGraphics,
   ConstantPositionProperty,
-  PolylineDashMaterialProperty,
+  PolylineCollection,
+  Material,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
@@ -104,7 +104,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
-  const bordersDataSourceRef = useRef<GeoJsonDataSource | null>(null);
+  const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -374,21 +374,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
       };
 
-      // Camera moveEnd — NO data fetching, just update occlusion + border width
+      // Camera moveEnd — NO data fetching, just update occlusion
       moveEndHandler = () => {
         if (globalDotCollectionRef.current && viewerRef.current) {
           const height = viewerRef.current.camera.positionCartographic.height;
           cameraHeightRef.current = height;
           filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
-        }
-        // Update border polyline widths based on zoom level
-        if (bordersDataSourceRef.current && viewerRef.current) {
-          const h = viewerRef.current.camera.positionCartographic.height;
-          const w = h > 5_000_000 ? 2.5 : h > 1_000_000 ? 2 : 1.5;
-          const entities = (bordersDataSourceRef.current as unknown as CustomDataSource).entities.values;
-          for (const e of entities) {
-            if (e.polyline) e.polyline.width = new ConstantProperty(w);
-          }
         }
       };
 
@@ -468,6 +459,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      if (bordersDataSourceRef.current && viewerRef.current) {
+        viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
       }
       bordersDataSourceRef.current = null;
     };
@@ -599,26 +593,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }, [layoutFeatures]);
 
   // Render country border outlines (Borders & Boundaries layer)
-  // Uses shared-segment filtering: only segments shared by 2+ features are land borders.
+  // Uses shared-segment filtering + single PolylineCollection for 60 FPS performance.
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
     if (bordersDataSourceRef.current) {
-      viewer.dataSources.remove(bordersDataSourceRef.current, true);
+      viewer.scene.primitives.remove(bordersDataSourceRef.current);
       bordersDataSourceRef.current = null;
     }
     if (!bordersData || bordersData.features.length === 0) return;
 
-    // Round coordinate to stable precision for segment key matching
-    const R = 4;
+    // Shared-segment filter: segments in 2+ rings = land borders (not coastlines)
+    const R = 3; // rounding precision — coarser than R=4 to tolerate simplify=0.02 gaps
     const r = (n: number) => Math.round(n * 10 ** R) / 10 ** R;
     const segKey = (ax: number, ay: number, bx: number, by: number): string => {
       const a = `${r(ax)},${r(ay)}`;
       const b = `${r(bx)},${r(by)}`;
       return a < b ? `${a}|${b}` : `${b}|${a}`;
     };
-
-    // Count segment appearances across all rings of all features
     const segCount = new Map<string, number>();
     const segCoords = new Map<string, [[number, number], [number, number]]>();
 
@@ -643,36 +635,26 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       }
     }
 
-    // Only keep segments shared by 2+ rings (land borders, not coastlines)
+    // Single PolylineCollection — one draw call, no per-entity React overhead
     const HEIGHT = 1500;
-    const ds = new CustomDataSource('borders');
-    const dashMat = new PolylineDashMaterialProperty({
-      color: Color.fromCssColorString('#ff2b2b').withAlpha(0.95),
-      dashLength: 16,
-    });
-    const currentWidth = () => {
-      const h = viewerRef.current?.camera.positionCartographic.height ?? 10_000_000;
-      return h > 5_000_000 ? 2.5 : h > 1_000_000 ? 2 : 1.5;
-    };
+    const collection = new PolylineCollection();
+    const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
 
     for (const [key, count] of segCount) {
       if (count < 2) continue;
       const [[ax, ay], [bx, by]] = segCoords.get(key)!;
-      ds.entities.add(new Entity({
-        polyline: new PolylineGraphics({
-          positions: new ConstantProperty([
-            Cartesian3.fromDegrees(ax, ay, HEIGHT),
-            Cartesian3.fromDegrees(bx, by, HEIGHT),
-          ]),
-          width: new ConstantProperty(currentWidth()),
-          material: dashMat,
-          clampToGround: new ConstantProperty(false),
-        }),
-      }));
+      collection.add({
+        positions: [
+          Cartesian3.fromDegrees(ax, ay, HEIGHT),
+          Cartesian3.fromDegrees(bx, by, HEIGHT),
+        ],
+        width: 1.5,
+        material: Material.fromType('Color', { color: borderColor }),
+      });
     }
 
-    bordersDataSourceRef.current = ds as unknown as GeoJsonDataSource;
-    viewer.dataSources.add(ds);
+    viewer.scene.primitives.add(collection);
+    bordersDataSourceRef.current = collection;
   }, [bordersData]);
 
   // Render earthquake events on the globe
