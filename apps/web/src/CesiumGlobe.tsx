@@ -604,7 +604,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (!bordersData || bordersData.features.length === 0) return;
 
     // Shared-segment filter: segments in 2+ rings = land borders (not coastlines)
-    const R = 3; // rounding precision — coarser than R=4 to tolerate simplify=0.02 gaps
+    const R = 5; // rounding precision for unsimplified coordinates
     const r = (n: number) => Math.round(n * 10 ** R) / 10 ** R;
     const segKey = (ax: number, ay: number, bx: number, by: number): string => {
       const a = `${r(ax)},${r(ay)}`;
