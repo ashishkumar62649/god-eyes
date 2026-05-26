@@ -16,7 +16,7 @@ import {
   ConstantProperty,
   PointGraphics,
   ConstantPositionProperty,
-  ColorMaterialProperty,
+  PolylineDashMaterialProperty,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
@@ -374,12 +374,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
       };
 
-      // Camera moveEnd — NO data fetching, just update occlusion
+      // Camera moveEnd — NO data fetching, just update occlusion + border width
       moveEndHandler = () => {
         if (globalDotCollectionRef.current && viewerRef.current) {
           const height = viewerRef.current.camera.positionCartographic.height;
           cameraHeightRef.current = height;
           filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
+        }
+        // Update border polyline widths based on zoom level
+        if (bordersDataSourceRef.current && viewerRef.current) {
+          const h = viewerRef.current.camera.positionCartographic.height;
+          const w = h > 5_000_000 ? 2.5 : h > 1_000_000 ? 2 : 1.5;
+          const entities = (bordersDataSourceRef.current as unknown as CustomDataSource).entities.values;
+          for (const e of entities) {
+            if (e.polyline) e.polyline.width = new ConstantProperty(w);
+          }
         }
       };
 
@@ -590,43 +599,76 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }, [layoutFeatures]);
 
   // Render country border outlines (Borders & Boundaries layer)
+  // Uses shared-segment filtering: only segments shared by 2+ features are land borders.
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
-    // Clean up previous borders
     if (bordersDataSourceRef.current) {
       viewer.dataSources.remove(bordersDataSourceRef.current, true);
       bordersDataSourceRef.current = null;
     }
     if (!bordersData || bordersData.features.length === 0) return;
 
-    const ds = new CustomDataSource('borders');
-    const HEIGHT = 2000; // metres above surface to avoid z-fighting
+    // Round coordinate to stable precision for segment key matching
+    const R = 4;
+    const r = (n: number) => Math.round(n * 10 ** R) / 10 ** R;
+    const segKey = (ax: number, ay: number, bx: number, by: number): string => {
+      const a = `${r(ax)},${r(ay)}`;
+      const b = `${r(bx)},${r(by)}`;
+      return a < b ? `${a}|${b}` : `${b}|${a}`;
+    };
 
-    function addRing(coords: number[][]): void {
-      if (coords.length < 2) return;
-      const positions = coords.map(([lon, lat]) =>
-        Cartesian3.fromDegrees(lon as number, lat as number, HEIGHT)
-      );
-      ds.entities.add(new Entity({
-        polyline: new PolylineGraphics({
-          positions: new ConstantProperty(positions),
-          width: new ConstantProperty(3),
-          material: new ColorMaterialProperty(Color.RED.withAlpha(1.0)),
-          clampToGround: new ConstantProperty(false),
-        }),
-      }));
+    // Count segment appearances across all rings of all features
+    const segCount = new Map<string, number>();
+    const segCoords = new Map<string, [[number, number], [number, number]]>();
+
+    function countRing(coords: number[][]): void {
+      for (let i = 0; i < coords.length - 1; i++) {
+        const [ax, ay] = coords[i];
+        const [bx, by] = coords[i + 1];
+        const key = segKey(ax, ay, bx, by);
+        segCount.set(key, (segCount.get(key) ?? 0) + 1);
+        if (!segCoords.has(key)) segCoords.set(key, [[ax, ay], [bx, by]]);
+      }
     }
 
     for (const feature of bordersData.features) {
       const geom = feature.geometry as { type: string; coordinates: unknown };
       if (!geom) continue;
       if (geom.type === 'Polygon') {
-        for (const ring of (geom.coordinates as number[][][])) addRing(ring);
+        for (const ring of (geom.coordinates as number[][][])) countRing(ring);
       } else if (geom.type === 'MultiPolygon') {
         for (const poly of (geom.coordinates as number[][][][]))
-          for (const ring of poly) addRing(ring);
+          for (const ring of poly) countRing(ring);
       }
+    }
+
+    // Only keep segments shared by 2+ rings (land borders, not coastlines)
+    const HEIGHT = 1500;
+    const ds = new CustomDataSource('borders');
+    const dashMat = new PolylineDashMaterialProperty({
+      color: Color.fromCssColorString('#ff2b2b').withAlpha(0.95),
+      dashLength: 16,
+    });
+    const currentWidth = () => {
+      const h = viewerRef.current?.camera.positionCartographic.height ?? 10_000_000;
+      return h > 5_000_000 ? 2.5 : h > 1_000_000 ? 2 : 1.5;
+    };
+
+    for (const [key, count] of segCount) {
+      if (count < 2) continue;
+      const [[ax, ay], [bx, by]] = segCoords.get(key)!;
+      ds.entities.add(new Entity({
+        polyline: new PolylineGraphics({
+          positions: new ConstantProperty([
+            Cartesian3.fromDegrees(ax, ay, HEIGHT),
+            Cartesian3.fromDegrees(bx, by, HEIGHT),
+          ]),
+          width: new ConstantProperty(currentWidth()),
+          material: dashMat,
+          clampToGround: new ConstantProperty(false),
+        }),
+      }));
     }
 
     bordersDataSourceRef.current = ds as unknown as GeoJsonDataSource;

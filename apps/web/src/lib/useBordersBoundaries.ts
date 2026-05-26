@@ -27,7 +27,7 @@ export function useBordersBoundaries(active: boolean): BordersPhase {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setState({ phase: 'loading' });
-    fetchBordersBoundariesCountries({ limit: 250, simplify: 0.05 }, ctrl.signal)
+    fetchBordersBoundariesCountries({ limit: 250, simplify: 0 }, ctrl.signal)
       .then((res) => {
         if (ctrl.signal.aborted) return;
         cacheRef.current = res;
