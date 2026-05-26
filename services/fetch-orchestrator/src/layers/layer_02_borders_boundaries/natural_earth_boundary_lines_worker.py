@@ -54,7 +54,12 @@ def fetch_shapefile_zip(url: str = NATURAL_EARTH_URL, timeout: int = 60) -> byte
 
 def parse_boundary_lines(zip_bytes: bytes) -> list[dict[str, Any]]:
     """Parse LineString/MultiLineString geometries from shapefile ZIP."""
-    import shapefile
+    try:
+        import shapefile
+    except ImportError:
+        print("[ERROR] Missing dependency: pyshp. Install with: pip install pyshp==2.3.1")
+        print("[ERROR] Or run: pip install -r requirements-data.txt")
+        sys.exit(1)
 
     records: list[dict[str, Any]] = []
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
@@ -72,22 +77,25 @@ def parse_boundary_lines(zip_bytes: bytes) -> list[dict[str, Any]]:
                     zf.extract(fname, tmpdir)
 
             sf = shapefile.Reader(str(Path(tmpdir) / shp_name))
-            for i, shape_rec in enumerate(sf.iterShapeRecords()):
-                geom = shape_rec.shape.__geo_interface__
-                geom_type = geom.get("type", "")
-                if geom_type not in ("LineString", "MultiLineString"):
-                    continue
+            try:
+                for i, shape_rec in enumerate(sf.iterShapeRecords()):
+                    geom = shape_rec.shape.__geo_interface__
+                    geom_type = geom.get("type", "")
+                    if geom_type not in ("LineString", "MultiLineString"):
+                        continue
 
-                props = {}
-                for j, field in enumerate(sf.fields[1:]):
-                    props[field[0]] = shape_rec.record[j]
+                    props = {}
+                    for j, field in enumerate(sf.fields[1:]):
+                        props[field[0]] = shape_rec.record[j]
 
-                records.append({
-                    "source_object_id": f"ne_50m_bdry_line_{i:05d}",
-                    "line_type": "land",
-                    "geometry": geom,
-                    "properties": props,
-                })
+                    records.append({
+                        "source_object_id": f"ne_50m_bdry_line_{i:05d}",
+                        "line_type": "land",
+                        "geometry": geom,
+                        "properties": props,
+                    })
+            finally:
+                sf.close()  # Explicit close required on Windows to release file locks
 
     return records
 

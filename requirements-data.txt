@@ -1,3 +1,4 @@
 boto3==1.40.70
 psycopg[binary]==3.2.13
+pyshp==2.3.1
 pytest==9.0.3
