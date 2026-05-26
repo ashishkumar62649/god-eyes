@@ -10,19 +10,17 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   CustomDataSource,
+  GeoJsonDataSource,
   PointPrimitiveCollection,
   SceneTransforms,
   ConstantProperty,
   PointGraphics,
   ConstantPositionProperty,
-  PolylineCollection,
-  Material,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
-import type { AirportObject, EarthEvent } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
-import { fetchBordersBoundaryLines } from './lib/api';
 
 import {
   fetchAllAviationCategories,
@@ -69,7 +67,7 @@ interface CesiumGlobeProps {
   selectedAirport?: AirportObject | null;
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
   earthEvents?: EarthEvent[];
-  bordersLayerActive?: boolean;
+  bordersData?: BordersBoundariesFeatureCollection | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -81,7 +79,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   selectedAirport,
   layoutFeatures,
   earthEvents,
-  bordersLayerActive = false,
+  bordersData,
 }) => {
 
   /**
@@ -105,13 +103,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
-  const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
-  // LOD: tier 0=global(>8M), 1=regional(2.5M-8M), 2=local(<2.5M)
-  const [bordersTier, setBordersTier] = useState<0 | 1 | 2>(0);
-  const bordersTierRef = useRef<0 | 1 | 2>(0);
-  // Cache fetched data per tier (plain GeoJSON only — never cache Cesium primitives)
-  const bordersDataCache = useRef<Map<number, any>>(new Map());
-  const bordersAbortRef = useRef<AbortController | null>(null);
+  const bordersDataSourceRef = useRef<GeoJsonDataSource | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -388,15 +380,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           cameraHeightRef.current = height;
           filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
         }
-        // LOD tier update for borders (no geometry rebuild here — triggers useEffect)
-        if (viewerRef.current) {
-          const h = viewerRef.current.camera.positionCartographic.height;
-          const newTier: 0 | 1 | 2 = h > 8_000_000 ? 0 : h > 2_500_000 ? 1 : 2;
-          if (newTier !== bordersTierRef.current) {
-            bordersTierRef.current = newTier;
-            setBordersTier(newTier);
-          }
-        }
       };
 
       viewer.camera.percentageChanged = 0.05;
@@ -477,11 +460,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         abortControllerRef.current.abort();
       }
       if (bordersDataSourceRef.current && viewerRef.current) {
-        viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
+        viewerRef.current.dataSources.remove(bordersDataSourceRef.current, true);
       }
       bordersDataSourceRef.current = null;
-      bordersAbortRef.current?.abort();
-      bordersDataCache.current.clear();
     };
   }, []);
 
@@ -610,89 +591,26 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [layoutFeatures]);
 
-  // Build a fresh PolylineCollection from cached GeoJSON data (never reuse destroyed primitives)
-  function buildBordersCollection(data: { features: Array<{ geometry: any }> }): PolylineCollection {
-    const collection = new PolylineCollection();
-    const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
-
-    for (const feature of data.features) {
-      const geom = feature.geometry;
-      if (!geom) continue;
-
-      const lines: number[][][] =
-        geom.type === 'LineString' ? [geom.coordinates] :
-        geom.type === 'MultiLineString' ? geom.coordinates : [];
-
-      for (const coords of lines) {
-        if (!coords || coords.length < 2) continue;
-        const positions = coords.map((c: number[]) => Cartesian3.fromDegrees(c[0], c[1], 0));
-        collection.add({
-          positions,
-          width: 1,
-          material: Material.fromType('Color', { color: borderColor }),
-        });
-      }
-    }
-    return collection;
-  }
-
-  // Borders LOD renderer — fetches boundary lines per tier, caches GeoJSON data only
+  // Render country border outlines (Borders & Boundaries layer)
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
-
-    // Remove current collection from scene
     if (bordersDataSourceRef.current) {
-      try {
-        if (viewer && !viewer.isDestroyed()) {
-          viewer.scene.primitives.remove(bordersDataSourceRef.current);
-        }
-      } catch { /* already destroyed */ }
+      viewer.dataSources.remove(bordersDataSourceRef.current, true);
       bordersDataSourceRef.current = null;
     }
-
-    if (!bordersLayerActive) return;
-
-    // LOD simplify values per tier
-    const SIMPLIFY: Record<number, number> = { 0: 0.08, 1: 0.03, 2: 0.01 };
-    const simplify = SIMPLIFY[bordersTier];
-
-    // Build collection from cached GeoJSON data if available
-    const cachedData = bordersDataCache.current.get(bordersTier);
-    if (cachedData) {
-      if (!viewer.isDestroyed()) {
-        const collection = buildBordersCollection(cachedData);
-        viewer.scene.primitives.add(collection);
-        bordersDataSourceRef.current = collection;
-      }
-      return;
-    }
-
-    // Fetch data for this tier (abort any in-flight request)
-    bordersAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    bordersAbortRef.current = ctrl;
-
-    fetchBordersBoundaryLines({ limit: 250, simplify }, ctrl.signal)
-      .then((data) => {
-        if (ctrl.signal.aborted) return;
-        const v = viewerRef.current;
-        if (!v || v.isDestroyed()) return;
-        if (bordersTierRef.current !== bordersTier) return;
-
-        // Cache plain GeoJSON data only (NOT Cesium primitives)
-        bordersDataCache.current.set(bordersTier, data);
-
-        const collection = buildBordersCollection(data);
-        v.scene.primitives.add(collection);
-        bordersDataSourceRef.current = collection;
-      })
-      .catch((err: Error) => {
-        if (err.name !== 'AbortError') console.error('[BORDERS] fetch error:', err);
-      });
-
-    return () => ctrl.abort();
-  }, [bordersLayerActive, bordersTier]);
+    if (!bordersData || bordersData.features.length === 0) return;
+    GeoJsonDataSource.load(bordersData as unknown as object, {
+      stroke: Color.fromCssColorString('#e05050').withAlpha(0.85),
+      fill: Color.TRANSPARENT,
+      strokeWidth: 1.5,
+      clampToGround: true,
+    }).then((ds) => {
+      if (!viewerRef.current || viewerRef.current.isDestroyed()) return;
+      bordersDataSourceRef.current = ds;
+      viewerRef.current.dataSources.add(ds);
+    }).catch((err) => console.error('[BORDERS] load error:', err));
+  }, [bordersData]);
 
   // Render earthquake events on the globe
   useEffect(() => {

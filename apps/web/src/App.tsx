@@ -149,7 +149,7 @@ const App: React.FC = () => {
         selectedAirport={selectedObject}
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
         earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
-        bordersLayerActive={bordersLayerActive}
+        bordersData={bordersPhase.phase === 'ok' ? bordersPhase.data : null}
       />
 
       <div style={{
