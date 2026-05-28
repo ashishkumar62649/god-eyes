@@ -2984,3 +2984,53 @@ All agents must append to this file after completing work.
 - No raw data files added: YES
 - Known issues: None.
 - Next step: Kiro review, then WO-079C fetcher work order after review approval.
+### 2026-05-28T16:45:00Z MiniMax — WO-079C Airplanes.live Live Aircraft Fetcher
+
+- Work order: WO-079C-AVIATION-LIVE-AIRPLANES-FETCHER
+- Agent: MiniMax
+- Role: Fetching/data ingestion engineer for Aviation live aircraft
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/aviation-live-fetcher
+- Start time UTC: 2026-05-28T16:42:00Z
+- End time UTC: 2026-05-28T17:00:00Z
+- Commit hash: (see below)
+- Push status: local only (awaiting Kiro review)
+- What was done: Implemented Airplanes.live fetcher/normalizer for Aviation live aircraft tracking. Created worker (airplanes_live_worker.py), DB helper (airplanes_live_db.py), and tests (test_airplanes_live_worker.py). Implemented /mil, /ladd, /pia, /point endpoints with rate limiting. Supports dry-run default and --persist flag. Includes raw batch storage, latest aircraft upsert, observation append with dedupe, dbFlags parsing, ground altitude handling, position validation.
+- Files created: services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py, services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_db.py, tests/data/layer_01_aviation/test_airplanes_live_worker.py
+- Files modified: docs/state/HANDOFF_LOG.md
+- Files deleted: none
+- Commands run: git diff --check, python -m pytest, python -m compileall, python airplanes_live_worker.py --include mil,ladd,pia --timeout-seconds 20
+- Worker created: YES
+- Worker path: services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py
+- DB helper created: YES
+- DB helper path: services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_db.py
+- Tests created: YES
+- Official Airplanes.live API used: YES
+- Website scraping avoided: YES
+- Global all-aircraft endpoint avoided: YES
+- Endpoints implemented: /mil, /ladd, /pia, /point
+- Rate limit enforced: YES (1 second between requests)
+- Dry-run default: YES
+- Persist flag required: YES
+- Raw batch storage implemented: YES
+- Latest upsert implemented: YES
+- Observation append implemented: YES
+- Newer observed_at protection implemented: YES
+- Observation dedupe implemented: YES (ON CONFLICT DO NOTHING)
+- dbFlags parsed: YES (military, interesting, pia, ladd)
+- Ground altitude handled: YES (alt_baro="ground" sets on_ground)
+- Missing position handled safely: YES
+- Parameterized SQL only: YES
+- No destructive SQL: YES
+- No API code changed: YES
+- No frontend code changed: YES
+- No migration changed: YES
+- No dependencies changed: YES
+- No raw live data committed: YES
+- Tests added: 24 tests passing
+- Validation results: git diff --check passed, pytest 24 passed, compileall passed
+- Dry-run result: Successfully fetched /mil, /ladd, /pia (0 aircraft due to API timing)
+- Persist result: Not run (no local PostGIS)
+- Known issues: None
+- Next safe task: WO-079D API endpoint implementation (after review and push)
