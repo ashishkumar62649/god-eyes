@@ -1,3 +1,27 @@
+### 2026-05-28T07:09:11Z Kiro CLI — WO-079A1 Aviation Live Plan Consistency Patch
+
+- Work order: WO-079A1-AVIATION-LIVE-PLAN-CONSISTENCY-PATCH
+- Agent: Kiro CLI
+- Role: Planning documentation consistency fixer
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/aviation-live-source-schema-plan
+- Start time UTC: 2026-05-28T07:09:11Z
+- End time UTC: 2026-05-28T07:15:00Z
+- Commit hash: (see below)
+- Push status: local only (awaiting Kiro review)
+- What was done: Patched WO-079A planning docs for consistency. Corrected agent assignments (GPT-5.5/Codex for DB, MiniMax for fetcher, DeepSeek for API, Claude Sonnet 4.6 for frontend, Claude Haiku 4.5 for review). Corrected layer order (Layer 4=Space, 5=Maritime, 6=Infrastructure, 7=News/OSINT, 8=Military). Updated project state to reflect Borders MVP complete and pushed (e6639e9). Kept WO-079A original model attribution honest (Claude Sonnet 4.5 initial plan). No implementation files changed.
+- Files modified: docs/state/AVIATION_LIVE_SOURCE_DECISION.md, docs/work-orders/WO-079A-aviation-live-source-schema-plan.md, docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md
+- Files created: none
+- Files deleted: none
+- No implementation files changed: YES
+- No migrations created: YES
+- No API code changed: YES
+- No frontend code changed: YES
+- No fetcher code changed: YES
+- Known issues: None
+
+
 ### 2026-05-28T06:52:02Z Kiro CLI — WO-079A Aviation Live Source and Schema Plan
 
 - Work order: WO-079A-AVIATION-LIVE-SOURCE-SCHEMA-PLAN

@@ -2,7 +2,7 @@
 
 **Layer:** layer_01_aviation  
 **Decision Date:** 2026-05-28T06:52:02Z  
-**Decision Author:** Kiro CLI (Claude Sonnet 4.5)  
+**Decision Author:** Kiro CLI (Claude Sonnet 4.5 — initial plan; architecture going forward uses Claude Sonnet 4.6)
 **Work Order:** WO-079A-AVIATION-LIVE-SOURCE-SCHEMA-PLAN  
 **Status:** DECIDED — Ready for implementation
 
@@ -144,8 +144,9 @@ When the aviation live layer is active, the following caveat MUST be displayed:
 
 ## Next Steps
 
-1. ✅ Planning complete (WO-079A)
-2. ⬜ WO-079B: Database migrations (Codex)
-3. ⬜ WO-079C: Airplanes.live fetcher (Codex)
-4. ⬜ WO-079D: API endpoints (Claude Code CLI)
-5. ⬜ WO-079E: Frontend markers (Gemini CLI)
+1. ✅ Planning complete (WO-079A — Claude Sonnet 4.5 initial plan)
+2. ⬜ WO-079B: Database migrations — **Agent: GPT-5.5 (Codex)**
+3. ⬜ WO-079C: Airplanes.live fetcher/normalizer — **Agent: MiniMax**
+4. ⬜ WO-079D: Aviation live API endpoints — **Agent: DeepSeek**
+5. ⬜ WO-079E: Frontend heading-arrow renderer — **Agent: Claude Sonnet 4.6**
+6. ⬜ WO-079 Review — **Agent: Claude Haiku 4.5 / Reviewer CLI**

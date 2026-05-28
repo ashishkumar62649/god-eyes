@@ -4,7 +4,7 @@
 **Layer:** layer_01_aviation  
 **Status:** PLANNING COMPLETE — Ready for implementation work orders  
 **Created:** 2026-05-28T06:52:02Z  
-**Author:** Kiro CLI (Claude Sonnet 4.5)  
+**Author:** Kiro CLI (Claude Sonnet 4.5 — initial plan; architecture going forward uses Claude Sonnet 4.6)
 **Branch:** agent/aviation-live-source-schema-plan
 
 ---
@@ -628,10 +628,11 @@ After this planning document is approved:
 
 | Work Order | Owner | Description |
 |------------|-------|-------------|
-| WO-079B | Codex | Database migrations: create aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches |
-| WO-079C | Codex | Fetcher: Airplanes.live worker (/mil + /ladd + /pia + /point), normalization, upsert, observation append |
-| WO-079D | Claude Code CLI | API: GET /api/aviation/aircraft/latest, bbox filter, single aircraft endpoint |
-| WO-079E | Gemini CLI | Frontend: heading arrow markers, 5s poll, interpolation, caveat display |
+| WO-079B | GPT-5.5 (Codex) | Database migrations: create aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches |
+| WO-079C | MiniMax | Fetcher: Airplanes.live worker (/mil + /ladd + /pia + /point), normalization, upsert, observation append |
+| WO-079D | DeepSeek | API: GET /api/aviation/aircraft/latest, bbox filter, single aircraft endpoint |
+| WO-079E | Claude Sonnet 4.6 | Frontend: heading arrow markers, 5s poll, interpolation, caveat display |
+| WO-079 Review | Claude Haiku 4.5 / Reviewer CLI | Integration review and merge |
 
 ---
 
