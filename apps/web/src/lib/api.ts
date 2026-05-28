@@ -5,6 +5,7 @@ import type {
   LayerStatusResponse,
   LayerRegistryResponse,
   EarthEventsLatestResponse,
+  BordersBoundariesFeatureCollection,
 } from '@god-eyes/contracts';
 import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
 import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
@@ -181,6 +182,21 @@ export async function fetchEarthEventsLatest(
   }
   return response.json();
 }
+
+export async function fetchBordersBoundariesCountries(
+  params: { limit?: number; simplify?: number } = {},
+  abortSignal?: AbortSignal,
+): Promise<BordersBoundariesFeatureCollection> {
+  const url = new URL(`${API_BASE_URL}/api/borders-boundaries/countries`);
+  url.searchParams.set('limit', String(params.limit ?? 250));
+  url.searchParams.set('simplify', String(params.simplify ?? 0.05));
+  const response = await fetch(url.toString(), { signal: abortSignal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch borders: ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function fetchAviationPreload(
   category: string,
   abortSignal?: AbortSignal,

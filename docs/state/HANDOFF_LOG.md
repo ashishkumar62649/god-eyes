@@ -1,3 +1,44 @@
+### 2026-05-28T11:15:41Z Kiro CLI — WO-078E FINAL Borders MVP Closeout Review
+
+- Work order: WO-078E-FINAL-BORDERS-MVP-CLOSEOUT-REVIEW
+- Agent: Kiro CLI
+- Role: Strict final Borders MVP reviewer and safe local merge operator
+- LLM model: Claude Haiku 4.5
+- Tool/CLI used: Kiro CLI / Reviewer CLI
+- Branch: agent/borders-frontend-red-visibility-fix
+- Start time UTC: 2026-05-28T11:15:41Z
+- End time UTC: 2026-05-28T11:20:00Z
+- Commit hash reviewed: 30a22da
+- Push status: local only (awaiting final boss approval for push)
+- What was done: Final closeout review of Borders & Boundaries MVP frontend. Confirmed working tree clean, verified Borders toggle visible and functional, confirmed red polyline rendering with no fill/labels, validated MVP caveat visible, confirmed no production/India compliance claims, ran all builds and tests, verified Aviation and Earth Events layers preserved, created integration review document.
+- Files reviewed: apps/web/src/components/LayerPanel.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/lib/useBordersBoundaries.ts, apps/web/src/lib/api.ts, apps/api/tests/borders-boundaries.test.ts, tests/data/layer_02_borders_boundaries/
+- Commands run: git status --short, git branch --show-current, git log --oneline -15, git diff --check, pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm run api:test, pytest tests/data/layer_02_borders_boundaries -q, pytest tests/data/layer_03_earth_events -q, python -m compileall services tests/data/layer_02_borders_boundaries
+- Validation results: git diff --check PASS, contracts build PASS, web build PASS, api build PASS, api tests PASS (214/214), layer_02 tests PASS (20/20), layer_03 tests PASS (16/16), compileall PASS
+- Borders toggle visible: YES
+- Borders activatable: YES
+- Borders render accepted by final boss: YES
+- Countries endpoint used: YES (GET /api/borders-boundaries/countries)
+- MVP caveat visible: YES
+- No production approval claimed: YES
+- No India compliance claimed: YES
+- No fill: YES
+- No labels: YES
+- Aviation preserved: YES
+- Earth Events preserved: YES
+- Known limitations documented: YES
+- No further Borders polish recommended for MVP: YES
+- Integration review doc created: YES
+- Ready for merge and push: YES
+- No destructive operations: YES
+- No new features added: YES
+- No new dependencies: YES
+- No new migrations: YES
+- No new API endpoints: YES
+- No new fetchers: YES
+- No raw Natural Earth files committed: YES
+- No boundary-lines experiment code: YES
+
+
 ### 2026-05-25T23:27:46Z MiniMax — WO-072-FIX USGS updated_at Bug Fix
 
 - Work order: WO-072-EARTH-EVENTS-USGS-FETCHER-FIX

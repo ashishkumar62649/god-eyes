@@ -7,6 +7,7 @@ import { fetchAirportDetail } from './lib/api';
 import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategories';
 import { useAirportLayoutFeatures } from './lib/useAirportLayoutFeatures';
 import { useEarthEvents } from './lib/useEarthEvents';
+import { useBordersBoundaries } from './lib/useBordersBoundaries';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
   const [aviationLayerActive, setAviationLayerActive] = useState(false);
   const [earthEventsLayerActive, setEarthEventsLayerActive] = useState(false);
+  const [bordersLayerActive, setBordersLayerActive] = useState(false);
   const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -50,6 +52,7 @@ const App: React.FC = () => {
 
   const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
   const earthEventsPhase = useEarthEvents(earthEventsLayerActive);
+  const bordersPhase = useBordersBoundaries(bordersLayerActive);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -146,6 +149,7 @@ const App: React.FC = () => {
         selectedAirport={selectedObject}
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
         earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
+        bordersData={bordersPhase.phase === 'ok' ? bordersPhase.data : null}
       />
 
       <div style={{
@@ -168,6 +172,9 @@ const App: React.FC = () => {
           earthEventsLayerActive={earthEventsLayerActive}
           setEarthEventsLayerActive={setEarthEventsLayerActive}
           earthEventsPhase={earthEventsPhase}
+          bordersLayerActive={bordersLayerActive}
+          setBordersLayerActive={setBordersLayerActive}
+          bordersPhase={bordersPhase}
         />
       </div>
     </div>

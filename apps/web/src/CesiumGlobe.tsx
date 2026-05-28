@@ -15,10 +15,12 @@ import {
   ConstantProperty,
   PointGraphics,
   ConstantPositionProperty,
+  PolylineCollection,
+  Material,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
-import type { AirportObject, EarthEvent } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
 
 import {
@@ -66,6 +68,7 @@ interface CesiumGlobeProps {
   selectedAirport?: AirportObject | null;
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
   earthEvents?: EarthEvent[];
+  bordersData?: BordersBoundariesFeatureCollection | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -77,6 +80,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   selectedAirport,
   layoutFeatures,
   earthEvents,
+  bordersData,
 }) => {
 
   /**
@@ -100,6 +104,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
+  const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
   const onStatsChangeRef = useRef(onAviationStatsChange);
@@ -455,6 +460,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      if (bordersDataSourceRef.current && viewerRef.current) {
+        viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
+      }
+      bordersDataSourceRef.current = null;
     };
   }, []);
 
@@ -582,6 +591,39 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       }));
     }
   }, [layoutFeatures]);
+
+  // Render country border outlines (Borders & Boundaries layer)
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    if (bordersDataSourceRef.current) {
+      viewer.scene.primitives.remove(bordersDataSourceRef.current);
+      bordersDataSourceRef.current = null;
+    }
+    if (!bordersData || bordersData.features.length === 0) return;
+
+    const collection = new PolylineCollection();
+    const borderColor = Color.fromCssColorString('#e05050').withAlpha(0.85);
+
+    for (const feature of bordersData.features) {
+      const geom = feature.geometry as { type: string; coordinates: unknown };
+      if (!geom) continue;
+      const rings: number[][][] =
+        geom.type === 'Polygon' ? (geom.coordinates as number[][][]) :
+        geom.type === 'MultiPolygon' ? (geom.coordinates as number[][][][]).flat() : [];
+      for (const ring of rings) {
+        if (ring.length < 2) continue;
+        collection.add({
+          positions: ring.map(([lon, lat]) => Cartesian3.fromDegrees(lon, lat, 0)),
+          width: 1.5,
+          material: Material.fromType('Color', { color: borderColor }),
+        });
+      }
+    }
+
+    viewer.scene.primitives.add(collection);
+    bordersDataSourceRef.current = collection;
+  }, [bordersData]);
 
   // Render earthquake events on the globe
   useEffect(() => {
