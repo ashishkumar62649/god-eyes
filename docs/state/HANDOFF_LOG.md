@@ -1,3 +1,55 @@
+### 2026-05-28T07:09:11Z Kiro CLI — WO-079A1 Aviation Live Plan Consistency Patch
+
+- Work order: WO-079A1-AVIATION-LIVE-PLAN-CONSISTENCY-PATCH
+- Agent: Kiro CLI
+- Role: Planning documentation consistency fixer
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/aviation-live-source-schema-plan
+- Start time UTC: 2026-05-28T07:09:11Z
+- End time UTC: 2026-05-28T07:15:00Z
+- Commit hash: (see below)
+- Push status: local only (awaiting Kiro review)
+- What was done: Patched WO-079A planning docs for consistency. Corrected agent assignments (GPT-5.5/Codex for DB, MiniMax for fetcher, DeepSeek for API, Claude Sonnet 4.6 for frontend, Claude Haiku 4.5 for review). Corrected layer order (Layer 4=Space, 5=Maritime, 6=Infrastructure, 7=News/OSINT, 8=Military). Updated project state to reflect Borders MVP complete and pushed (e6639e9). Kept WO-079A original model attribution honest (Claude Sonnet 4.5 initial plan). No implementation files changed.
+- Files modified: docs/state/AVIATION_LIVE_SOURCE_DECISION.md, docs/work-orders/WO-079A-aviation-live-source-schema-plan.md, docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md
+- Files created: none
+- Files deleted: none
+- No implementation files changed: YES
+- No migrations created: YES
+- No API code changed: YES
+- No frontend code changed: YES
+- No fetcher code changed: YES
+- Known issues: None
+
+
+### 2026-05-28T06:52:02Z Kiro CLI — WO-079A Aviation Live Source and Schema Plan
+
+- Work order: WO-079A-AVIATION-LIVE-SOURCE-SCHEMA-PLAN
+- Agent: Kiro CLI
+- Role: Aviation live-data source, database, and API architecture planner
+- LLM model: Claude Sonnet 4.5
+- Tool/CLI used: Kiro CLI
+- Branch: agent/aviation-live-source-schema-plan
+- Start time UTC: 2026-05-28T06:52:02Z
+- End time UTC: 2026-05-28T07:05:00Z
+- Commit hash: (see below)
+- Push status: local only (awaiting Kiro review)
+- What was done: Inspected Airplanes.live official API docs and OpenSky Network Trino docs. Confirmed no global endpoint exists in Airplanes.live. Designed MVP fetch strategy (/mil + /ladd + /pia + /point). Designed 4-table database schema (aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches). Documented normalization field mapping, upsert algorithm, staleness thresholds, API endpoint plan, frontend render plan, and OpenSky historical plan. Created work order doc and source decision doc.
+- Files created: docs/work-orders/WO-079A-aviation-live-source-schema-plan.md, docs/state/AVIATION_LIVE_SOURCE_DECISION.md
+- Files modified: docs/state/HANDOFF_LOG.md, docs/state/CURRENT_PROJECT_STATE.md
+- Commands run: git checkout -b agent/aviation-live-source-schema-plan, git diff --check, git add, git commit
+- Airplanes.live global endpoint: DOES NOT EXIST (confirmed from official docs)
+- MVP fetch scope: /mil + /ladd + /pia (global) + /point (camera 250nm)
+- Rate limit compliance: 4 req per 5s cycle = 0.8 req/sec average (within 1 req/sec limit)
+- OpenSky: historical only, requires application, not for MVP live
+- No migrations created: YES (planning only)
+- No fetcher implemented: YES (planning only)
+- No API implemented: YES (planning only)
+- No frontend implemented: YES (planning only)
+- Known issues: None
+- Next safe task: WO-079B database migrations (Codex)
+
+
 ### 2026-05-28T11:15:41Z Kiro CLI — WO-078E FINAL Borders MVP Closeout Review
 
 - Work order: WO-078E-FINAL-BORDERS-MVP-CLOSEOUT-REVIEW

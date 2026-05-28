@@ -8,7 +8,7 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Status
 
-**MVP Phase 2 In Progress:** Layer 3 Earth Events complete. Layer 2 Borders & Boundaries schema foundation added; source ingestion remains blocked.
+**MVP Phase 2 In Progress:** Layer 2 Borders & Boundaries MVP complete and pushed (e6639e9). Layer 3 Earth Events complete. Aviation static airports complete. Aviation live aircraft architecture planned (WO-079A); implementation next.
 
 ### Completed Work Orders
 - ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
@@ -28,10 +28,12 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-078A: Borders source license clearance kit created
 - ✅ WO-078A1: Borders MVP boundary mode decision recorded
 - ✅ WO-078B: Natural Earth Admin-0 Countries 1:50m selected for MVP/local/dev
+- ✅ WO-078C through WO-078E10: Natural Earth ingestion, Borders frontend, MVP closeout
+- ✅ WO-079A: Aviation live-data source, database, and API architecture planned
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
-- ✅ Layer 1 Aviation: 85,377 airports globally
+- ✅ Layer 1 Aviation: 85,377 airports globally (static); live aircraft architecture planned (WO-079A)
   - 8 category support (international, regional, local, heliport, seaplane, balloonport, closed, unknown)
   - Resident global cache mode (no tile/bbox/zoom loading)
   - Category filtering with instant updates
@@ -42,6 +44,11 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
   - Airport image gallery
   - Airport layout runway overlay (OSM-sourced)
   - Closed runways hidden by default via `is_active = false`
+- ✅ Layer 2 Borders & Boundaries: Natural Earth MVP/local/dev frontend complete (pushed e6639e9)
+  - Red polyline outlines on globe
+  - Toggle in LayerPanel
+  - MVP caveat displayed
+  - Not production-approved; not Survey of India compliant
 - ✅ Layer 3 Earth Events: USGS earthquake feed end-to-end
   - Database tables: earth_events_latest + earth_events_history
   - USGS fetcher (magnitude, location, time, coordinates)
@@ -67,15 +74,13 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## What Does Not Exist Yet
 
-- [ ] Layer 2 Borders & Boundaries (schema foundation added; source ingestion blocked)
-- [ ] Layer 4 Public Military & Security
-- [ ] Layer 5 Space & Satellites
-- [ ] Layer 6 Maritime
-- [ ] Layer 7 Infrastructure
-- [ ] Layer 8 News & OSINT
-- [ ] Layer 9 User Shapes
-- [ ] Real-time data updates (beyond aviation cache and Earth Events)
-- [ ] Live aircraft tracking (real-time position streaming)
+- [ ] Layer 4 Space & Satellites
+- [ ] Layer 5 Maritime
+- [ ] Layer 6 Infrastructure
+- [ ] Layer 7 News & OSINT
+- [ ] Layer 8 Public Military & Security
+- [ ] Layer 9 User Shapes / Drawings / Custom Overlays
+- [ ] Live aircraft tracking (real-time position streaming) — **architecture planned in WO-079A; implementation next**
 - [ ] User authentication
 - [ ] Data export/sharing
 - [ ] Generic layer API endpoints
@@ -83,13 +88,12 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Next Safe Steps
 
-1. **WO-078C Natural Earth MVP Ingestion:** Download Natural Earth 1:50m Admin-0
-   Countries, insert into `border_boundary_sources` and `border_boundaries`, mark as
-   `mvp_local_dev` only. No API or frontend in WO-078C.
-2. **[PRODUCTION STAGE — DEFERRED] Survey of India contact:** Required before any
-   India boundary data is served in a deployed/production environment.
-3. **Borders API/frontend:** Not started. Requires separate work orders after ingestion.
+1. **WO-079B Aviation DB Migrations (GPT-5.5 / Codex):** Create aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches tables.
+2. **WO-079C Aviation Fetcher (MiniMax):** Airplanes.live worker (/mil + /ladd + /pia + /point), normalization, upsert, observation append.
+3. **WO-079D Aviation API (DeepSeek):** GET /api/aviation/aircraft/latest, bbox filter, single aircraft endpoint.
+4. **WO-079E Aviation Frontend (Claude Sonnet 4.6):** Heading arrow markers, 5s poll, interpolation, caveat display.
+5. **WO-079 Review (Claude Haiku 4.5 / Reviewer CLI):** Integration review and merge.
 
 ## Last Updated
 
-2026-05-26 — Kiro CLI (WO-078B-BORDERS-NATURAL-EARTH-MVP-SOURCE-SELECTION)
+2026-05-28 — Kiro CLI (WO-079A1-AVIATION-LIVE-PLAN-CONSISTENCY-PATCH)
