@@ -2935,3 +2935,52 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None
 - Ready to integrate: YES
+
+### 2026-05-28T13:29:17Z Codex CLI - WO-079B Aviation Live Aircraft Database Migrations
+
+- Work order: WO-079B-AVIATION-LIVE-DATABASE-MIGRATIONS
+- Agent: Codex
+- Role: Database migration engineer for Aviation live aircraft time-series schema
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex CLI
+- Branch: agent/aviation-live-db-migrations
+- Start time UTC: 2026-05-28T13:19:00Z
+- End time UTC: 2026-05-28T13:29:17Z
+- Commit hash: (pending local commit)
+- Push status: NOT PUSHED
+- Files changed: 3 files (2 new, 1 modified)
+  - NEW: database/migrations/layers/layer_01_aviation/012_aviation_live_aircraft_tables.sql
+  - NEW: tests/data/layer_01_aviation/test_aviation_live_aircraft_migration.py
+  - MODIFIED: docs/state/HANDOFF_LOG.md
+- Commands run:
+  - git status --short
+  - git pull origin main
+  - git switch -c agent/aviation-live-db-migrations
+  - python -m pytest tests/data/layer_01_aviation/test_aviation_live_aircraft_migration.py -q
+  - git diff --check
+  - python -m pytest tests/data/layer_01_aviation -q
+  - python -m compileall services tests/data/layer_01_aviation
+  - docker ps --format "{{.Names}}"
+  - Get-Content database\migrations\layers\layer_01_aviation\012_aviation_live_aircraft_tables.sql -Raw | docker exec -i god-eyes-postgis psql -v ON_ERROR_STOP=1 -U god_eyes -d god_eyes_dev
+  - docker exec god-eyes-postgis psql catalog checks for live aircraft tables, source rows, and indexes
+- Review status: Ready for Kiro review
+- Build/test results: PASS. Migration contract test passed, aviation data tests passed, compileall passed, and local PostGIS apply passed twice.
+- Migration created: YES
+- Schema-only: YES
+- Source seed rows added: YES
+- Airplanes.live source row added: YES
+- OpenSky source row added: YES
+- Latest table created: YES
+- Observations table created: YES
+- Raw batches table created: YES
+- PostGIS geom/geography indexes added: YES
+- Latest unique key added: YES
+- Observation dedupe key added: YES
+- No destructive SQL: YES
+- No fetcher implemented: YES
+- No API implemented: YES
+- No frontend implemented: YES
+- No dependencies changed: YES
+- No raw data files added: YES
+- Known issues: None.
+- Next step: Kiro review, then WO-079C fetcher work order after review approval.
