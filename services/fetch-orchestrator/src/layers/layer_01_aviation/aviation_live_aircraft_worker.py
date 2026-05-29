@@ -42,6 +42,7 @@ from aviation_live_aircraft_db import (
     insert_raw_batch,
     upsert_latest_aircraft,
     insert_observation,
+    upsert_live_snapshot,
 )
 
 BASE_URL = "http://api.airplanes.live/v2"
@@ -542,6 +543,86 @@ def run_global_web_json_worker(
                         insert_observation(conn, DEFAULT_SOURCE_ID, normalized)
                     except Exception as db_err:
                         print(f"[WORKER] ERROR inserting observation: {db_err}")
+
+        # Publish live snapshot for WebSocket/API (WO-080A)
+        if persist and conn and result["aircraft_processed"] > 0:
+            try:
+                # Build compact aircraft payload
+                compact_aircraft = []
+                valid_count = 0
+                for raw_ac in aircraft_list:
+                    hex_val = raw_ac.get("hex")
+                    if not hex_val:
+                        continue
+                    
+                    lat_raw = raw_ac.get("lat")
+                    lon_raw = raw_ac.get("lon")
+                    lat = lon = None
+                    has_pos = False
+                    if lat_raw is not None and lon_raw is not None:
+                        try:
+                            lat = float(lat_raw)
+                            lon = float(lon_raw)
+                            has_pos = True
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    if has_pos:
+                        valid_count += 1
+                    
+                    # Calculate observed_at from seen
+                    seen = raw_ac.get("seen")
+                    seen_seconds = _safe_float(seen)
+                    aircraft_observed_at = observed_at
+                    if seen_seconds is not None and seen_seconds > 0:
+                        aircraft_observed_at = observed_at - timedelta(seconds=seen_seconds)
+                    
+                    stale_after = aircraft_observed_at + timedelta(seconds=STALE_FADE_THRESHOLD)
+                    
+                    compact_aircraft.append({
+                        "id": hex_val,
+                        "sourceObjectId": hex_val,
+                        "callsign": raw_ac.get("flight", "").strip() if raw_ac.get("flight") else None,
+                        "lat": lat,
+                        "lon": lon,
+                        "altitudeFt": raw_ac.get("alt_baro") if not isinstance(raw_ac.get("alt_baro"), str) else None,
+                        "speedKt": raw_ac.get("gs"),
+                        "trackDeg": raw_ac.get("track"),
+                        "headingDeg": raw_ac.get("true_heading") or raw_ac.get("mag_heading"),
+                        "verticalRateFpm": raw_ac.get("baro_rate"),
+                        "onGround": raw_ac.get("alt_baro") == "ground" if raw_ac.get("alt_baro") else False,
+                        "aircraftType": raw_ac.get("t"),
+                        "registration": raw_ac.get("r"),
+                        "observedAt": aircraft_observed_at.isoformat() if aircraft_observed_at else None,
+                        "receivedAt": received_at.isoformat() if received_at else None,
+                        "staleAfter": stale_after.isoformat() if stale_after else None,
+                    })
+                
+                # Create snapshot metadata
+                snapshot_time = observed_at if source_now is None else datetime.fromtimestamp(source_now, tz=timezone.utc)
+                snapshot_id = f"snap_{int(time.time() * 1000)}"
+                
+                snapshot_metadata = {
+                    "sourceMode": "global-web-json",
+                    "upstream": "globe.airplanes.live/data/aircraft.json.gz",
+                    "caveat": "experimental/dev globe web JSON source; no SLA/completeness claims",
+                    "messages": source_messages,
+                }
+                
+                upsert_live_snapshot(
+                    conn=conn,
+                    source_id=DEFAULT_SOURCE_ID,
+                    source_name="Airplanes.live REST API v2",
+                    snapshot_id=snapshot_id,
+                    snapshot_time=snapshot_time,
+                    aircraft_count=result["aircraft_processed"],
+                    valid_position_count=valid_count,
+                    aircraft_json=compact_aircraft,
+                    metadata=snapshot_metadata,
+                )
+                print(f"[WORKER] Published live snapshot: {valid_count} aircraft with positions")
+            except Exception as snap_err:
+                print(f"[WORKER] ERROR publishing snapshot: {snap_err}")
 
         print(f"[WORKER] Done. Processed {result['aircraft_processed']} aircraft, "
               f"{result['aircraft_valid_position']} with valid position")

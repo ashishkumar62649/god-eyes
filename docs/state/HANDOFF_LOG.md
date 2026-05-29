@@ -3206,3 +3206,32 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, docs/state/ modified)
 - Known issues: Global web JSON is experimental; uses Referer/Origin headers for compatibility; rate limited to 30s minimum interval
 - Next safe task: WO-079 final browser verification
+
+### 2026-05-29T19:25:00Z MiniMax — WO-080A Live Aircraft Snapshot Publisher
+
+- Work order: WO-080A-LIVE-AIRCRAFT-SNAPSHOT-PUBLISHER
+- Agent: MiniMax
+- Role: Fetching/snapshot publisher for live aircraft WebSocket
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a-live-aircraft-snapshot-publisher
+- Start time UTC: 2026-05-29T19:00:00Z
+- End time UTC: 2026-05-29T19:25:00Z
+- Commit hash: e1525f2
+- Push status: local only (awaiting Kiro review)
+- What was done: Added live aircraft snapshot publishing for WebSocket/API. Created migration for aviation_aircraft_live_snapshots table. Added DB helper upsert_live_snapshot with NOTIFY. Updated worker to build compact aircraft payload and publish snapshot after each global-web-json fetch cycle.
+- Files created: database/migrations/layers/layer_01_aviation/013_aviation_live_aircraft_snapshots.sql
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_db.py, services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Migration added: YES (aviation_aircraft_live_snapshots table)
+- Snapshot table: aviation_aircraft_live_snapshots with source_id PRIMARY KEY, compact aircraft_json JSONB
+- Notify channel: aviation_live_aircraft_snapshot
+- Fetcher behavior: --source-mode global-web-json --loop --interval-seconds 5 publishes snapshots
+- History behavior: Existing raw batches and observations preserved (unchanged)
+- Metadata includes: sourceMode=global-web-json, upstream URL, experimental/dev caveat
+- Compact payload includes: id, sourceObjectId, callsign, lat, lon, altitudeFt, speedKt, trackDeg, headingDeg, verticalRateFpm, onGround, aircraftType, registration, observedAt, receivedAt, staleAfter
+- Tests added: 5 new tests (40 total passing)
+- Commands run: pytest, compileall, git commit
+- Test result: 40 passed
+- Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, database/migrations/, docs/state/)
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster

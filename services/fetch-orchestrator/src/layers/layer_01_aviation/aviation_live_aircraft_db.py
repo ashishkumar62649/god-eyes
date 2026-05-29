@@ -277,3 +277,85 @@ def insert_observation(
             ]
         )
         conn.commit()
+
+
+# WO-080A: Live Aircraft Snapshot Publisher
+
+SNAPSHOT_NOTIFY_CHANNEL = "aviation_live_aircraft_snapshot"
+
+
+def upsert_live_snapshot(
+    conn: Any,
+    source_id: str,
+    source_name: str,
+    snapshot_id: str,
+    snapshot_time: datetime,
+    aircraft_count: int,
+    valid_position_count: int,
+    aircraft_json: dict[str, Any],
+    metadata: dict[str, Any],
+) -> None:
+    """Upsert live aircraft snapshot for WebSocket/API consumption.
+    
+    Only one latest row per source_id is stored.
+    Publishes NOTIFY after successful write.
+    """
+    now = datetime.now()
+    aircraft_json_str = json.dumps(aircraft_json)
+    metadata_str = json.dumps(metadata)
+    
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO aviation_aircraft_live_snapshots (
+                source_id,
+                source_name,
+                snapshot_id,
+                snapshot_time,
+                received_at,
+                aircraft_count,
+                valid_position_count,
+                aircraft_json,
+                metadata,
+                updated_at
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            ON CONFLICT (source_id) DO UPDATE SET
+                source_name = EXCLUDED.source_name,
+                snapshot_id = EXCLUDED.snapshot_id,
+                snapshot_time = EXCLUDED.snapshot_time,
+                received_at = EXCLUDED.received_at,
+                aircraft_count = EXCLUDED.aircraft_count,
+                valid_position_count = EXCLUDED.valid_position_count,
+                aircraft_json = EXCLUDED.aircraft_json,
+                metadata = EXCLUDED.metadata,
+                updated_at = EXCLUDED.updated_at
+            """,
+            [
+                source_id,
+                source_name,
+                snapshot_id,
+                snapshot_time,
+                now,
+                aircraft_count,
+                valid_position_count,
+                aircraft_json_str,
+                metadata_str,
+                now,
+            ]
+        )
+        conn.commit()
+    
+    # Publish NOTIFY after successful write
+    notify_payload = json.dumps({
+        "sourceId": source_id,
+        "snapshotId": snapshot_id,
+        "snapshotTime": snapshot_time.isoformat() if snapshot_time else None,
+        "aircraftCount": aircraft_count,
+        "validPositionCount": valid_position_count,
+    })
+    
+    with conn.cursor() as cur:
+        cur.execute(f"NOTIFY {SNAPSHOT_NOTIFY_CHANNEL}, %s", [notify_payload])
+        conn.commit()
