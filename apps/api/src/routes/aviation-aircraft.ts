@@ -7,7 +7,7 @@ import {
 } from '@god-eyes/contracts';
 
 const DEFAULT_LIMIT = 1000;
-const MAX_LIMIT = 5000;
+const MAX_LIMIT = 20000;
 
 interface LatestAircraftQuerystring {
   limit?: string;
