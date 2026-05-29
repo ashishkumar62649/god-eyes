@@ -1,4 +1,27 @@
-<<<<<<< HEAD
+### 2026-05-29T19:40:00Z DeepSeek — WO-080B Aviation Live Aircraft WebSocket Stream
+
+- Work order: WO-080B — Aviation Live Aircraft WebSocket Stream
+- Folder: E:\god-eyes-api
+- Agent: DeepSeek
+- Role: API implementation
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/deepseek-wo-079g-api-aircraft-limit
+- Start time UTC: 2026-05-29T19:00:00Z
+- End time UTC: 2026-05-29T19:40:00Z
+- Commit hash: (local only, awaiting review)
+- Push status: local only
+- What was done: Implemented WebSocket live aircraft stream using `ws` library. Created `LiveAircraftBroadcaster` class that polls `aviation_aircraft_latest` every 5s with parameterized SQL, generates deltas (upserts/removes) by comparing in-memory maps, and emits full snapshot every 12 cycles (~60s). Created WebSocket route handler with per-client bbox filtering, subscribe/bbox/ping message protocol, and broadcaster callback wiring. Attached to Fastify HTTP server via `upgrade` event at path `/ws/aviation/aircraft/live`. Existing REST endpoint preserved. Added `ws` 8.17.1 dep and `@types/ws` 8.5.10 dev dep.
+- Files modified: apps/api/package.json, apps/api/src/index.ts, pnpm-lock.yaml
+- Files created: apps/api/src/lib/live-aircraft-broadcaster.ts, apps/api/src/routes/live-aircraft.ts, apps/api/tests/live-aircraft.test.ts
+- Files deleted: none
+- Commands run: pnpm --filter api build, pnpm --filter api test, git diff --check
+- Validation results: API build PASS, API tests PASS (255/255: 234 existing + 21 new), git diff --check PASS
+- Security/privacy result: PASS (no .env, no API keys, no secrets, parameterized SQL queries, no direct upstream fetches)
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080C frontend WebSocket client integration
+
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
 - Work order: WO-079G-B — Aviation Live Aircraft Frontend Performance + No Flicker
@@ -32,7 +55,7 @@
   - Static aviation airports, earth events, and borders layers are untouched and unaffected.
   - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
 - Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
-=======
+
 ### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
 
 - Work order: WO-079G-A — Aviation Live Aircraft API Limit Increase
@@ -56,7 +79,6 @@
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-079G-B frontend stable renderer
->>>>>>> origin/main
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
 
