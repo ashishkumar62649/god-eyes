@@ -10,7 +10,7 @@ import { AviationFilters } from '../lib/aviationCategories';
 import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { LiveAircraftPhase } from '../lib/useLiveAircraft';
+import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;
@@ -40,7 +40,7 @@ interface ShellProps {
   bordersPhase: BordersPhase;
   liveAircraftLayerActive: boolean;
   setLiveAircraftLayerActive: (active: boolean) => void;
-  liveAircraftPhase: LiveAircraftPhase;
+  liveAircraftPhase: LiveAircraftStatus;
 }
 
 const Shell: React.FC<ShellProps> = ({

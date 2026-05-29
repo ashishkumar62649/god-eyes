@@ -1,3 +1,55 @@
+
+### 2026-05-29T14:00:00Z Claude Sonnet 4.6 — WO-080B Live Aircraft WebSocket Radar Renderer
+
+- Work order: WO-080B — Frontend Live Aircraft WebSocket Radar Renderer
+- Folder: E:\god-eyes-frontend
+- Agent: Claude Sonnet 4.6
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/claude-wo-080b-live-aircraft-websocket-radar
+- Start time UTC: 2026-05-29T13:30:00Z
+- End time UTC: 2026-05-29T14:00:00Z
+- Commit hash: local commit on branch (HEAD; see git log)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- What was done: Replaced REST polling live aircraft with WebSocket-driven radar renderer. Created useLiveAircraftSocket.ts. Updated App.tsx, CesiumGlobe.tsx, LayerPanel, StatusPanel, Shell. Added dead reckoning rAF loop. Added delta handler. Old useLiveAircraft.ts kept as fallback/debug but not wired into active layer.
+- Files created: apps/web/src/lib/useLiveAircraftSocket.ts
+- Files modified: apps/web/src/App.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/StatusPanel.tsx, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 225.77 kB JS), git diff --check (PASS)
+- Old polling removed: YES — useLiveAircraft polling hook no longer wired into active layer; App.tsx uses useLiveAircraftSocket exclusively
+- WebSocket client strategy: useLiveAircraftSocket connects to /ws/aviation/aircraft/live (ws:// or wss:// derived from VITE_API_BASE_URL); sends subscribe on open; handles aircraft.ready/snapshot/delta/error/pong; reconnects with exponential backoff [1s,2s,4s,8s,15s]; closes on layer OFF; sendBboxRef populated for camera bbox forwarding
+- Renderer strategy: BillboardCollection (single primitive) + Map<sourceObjectId, AircraftRecord>; snapshot via chunked rAF apply loop (500/frame); delta via direct upsert/remove; no removeAll() except layer OFF
+- Dead reckoning strategy: separate rAF loop at ~20 FPS; moves billboard along trackDeg using speedKt * elapsed; clamps to 10s; stops on stale/onGround/invalid heading; display-only (never writes back to AircraftRecord real data)
+- BBox subscription strategy: CesiumGlobe populates onGetBboxCbRef via viewer.camera.computeViewRectangle(); App.tsx debounces (500ms) and forwards to sendBboxRef (WS send); global fallback if null
+- Status behavior: connecting/live/reconnecting/error phases; count never resets to 0 during normal operation; error with prior data shows last-snapshot age
+- Browser verification: not performed (build/type-check only); requires WO-080A backend WebSocket endpoint
+- Forbidden folders touched: NO
+- Known issues: Browser/runtime verification requires WO-080A backend. Dead reckoning uses approximate Cartesian bearing math (sufficient for display). Old useLiveAircraft.ts kept in repo as fallback/debug.
+- Next safe task: WO-080 final WebSocket integration review
+
+### 2026-05-29T13:25:00Z Claude Sonnet 4.6 — WO-079H Live Aircraft Renderer Engine Fix
+
+- Work order: WO-079H — Live Aircraft Renderer Engine Fix
+- Folder: E:\god-eyes-frontend
+- Agent: Claude Sonnet 4.6
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/claude-wo-079h-live-aircraft-renderer-engine
+- Start time UTC: 2026-05-29T13:00:00Z
+- End time UTC: 2026-05-29T13:25:00Z
+- Commit hash: local commit on branch (HEAD; see git log)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- What was done: Redesigned live aircraft renderer to eliminate count-ramp-from-zero, globe stutter, and 5s blink. Moved snapshot delivery out of React state into a callback ref (no React re-render per poll). Replaced Entity-per-aircraft with BillboardCollection (single primitive). Chunked rAF apply loop (500/frame). Interpolation via CallbackProperty (lerp between prev/curr observed positions). Stable last-good snapshot (loading/error keeps previous markers). Camera bbox from Cesium viewer. Apply-guard prevents concurrent apply loops. Status shows updating/error-with-snapshot states.
+- Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 221.91 kB JS), git diff --check (PASS)
+- Renderer strategy: BillboardCollection + Map<sourceObjectId, AircraftRecord>; update in place, add new, hide gone
+- Snapshot strategy: callback ref delivery (no React re-render per poll); React state only for status scalars; loading/error keeps previous markers
+- Chunking strategy: 500 aircraft per rAF frame; apply-guard prevents concurrent loops
+- Interpolation strategy: CallbackProperty lerps prevPos→currPos over observedAt span; no extrapolation past staleAfter; snaps to currPos if timestamps identical
+- BBox strategy: onGetBboxRef wired to viewer.camera.computeViewRectangle(); global fallback if null
+- Forbidden folders touched: NO
+- Known issues: Browser/runtime verification not performed (build/type-check only). API server-side limit raised to 20000 by WO-079G-A (DeepSeek).
+- Next safe task: WO-079 final integration / browser verification
+=======
 ### 2026-05-29T20:00:00Z DeepSeek — WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
 
 - Work order: WO-080B — Live Aircraft WebSocket Broadcaster Fix
@@ -21,6 +73,7 @@
 - Forbidden folders touched: NO
 - Known issues: aviation_aircraft_live_snapshots table must exist from WO-080A migration before WebSocket live stream can serve snapshots. Table must have columns: source_id (PK), source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at.
 - Next safe task: Kiro review WO-080B
+>>>>>>> origin/main
 
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
@@ -36,6 +89,13 @@
 - Commit hash: local commit on branch agent/claude-wo-079g-live-aircraft-performance (HEAD; see git log)
 - Push status: local only (NOT pushed — awaiting Kiro review)
 - What was done: Eliminated the 5-second live-aircraft blink and raised capacity. Removed the per-poll removeAll()/recreate; markers are now diffed by sourceObjectId and updated in place. Raised the request limit and render cap to 20000. Added an in-flight guard so polls never overlap. Stale/disappeared aircraft are removed by key only. Status now reports rendered/total when capped. Frontend still calls only the GOD EYES API.
+<<<<<<< HEAD
+- Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/lib/api.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Known issues: WO-079D API route capped server-side at 5000 (fixed by WO-079G-A).
+- Next safe task: WO-079H renderer engine fix
+=======
 - Files modified:
   - apps/web/src/lib/useLiveAircraft.ts — RENDER_CAP=20000 (exported); requests limit=20000; in-flight guard (inFlightRef) skips a tick while a request is still running; phase 'ok' now carries both `aircraft` (capped slice) and `total` (full returned count); 5s cadence preserved; aborts on disable/unmount.
   - apps/web/src/lib/api.ts — fetchLiveAircraft limit cap raised 5000 → 20000 (still only /api/aviation/aircraft/latest?bbox=...&limit=20000; no direct Airplanes.live calls).
@@ -55,6 +115,7 @@
   - Static aviation airports, earth events, and borders layers are untouched and unaffected.
   - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
 - Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
+>>>>>>> origin/main
 
 ### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
 
@@ -71,14 +132,14 @@
 - Push status: local only
 - What was done: Increased aviation live aircraft API max limit from 5000 to 20000. Updated constant in route file. Updated existing limit cap test to verify 20000 ceiling. Added new test for limit=20000 accepted and limit above 20000 capped to 20000. Default limit unchanged (1000). Bbox, staleness, detail endpoint, and raw_json behavior all unchanged.
 - Files modified: apps/api/src/routes/aviation-aircraft.ts, apps/api/tests/aviation-aircraft.test.ts
-- Files created: none
-- Files deleted: none
 - Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, git diff --check
-- Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234: 214 existing + 20 aviation), git diff --check PASS
-- Security/privacy result: PASS (no .env, no API keys, no secrets, parameterized SQL unchanged, no new endpoints)
+- Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234), git diff --check PASS
 - Forbidden folders touched: NO
-- Known issues: None
 - Next safe task: WO-079G-B frontend stable renderer
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/main
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
 
