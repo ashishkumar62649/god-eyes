@@ -476,6 +476,70 @@ export const EarthEventsLatestResponseSchema = z.object({
 
 export type EarthEventsLatestResponse = z.infer<typeof EarthEventsLatestResponseSchema>;
 
+// ==================== Aviation Live Aircraft (WO-079D) ====================
+
+export const AircraftLatestSchema = z.object({
+  sourceId: z.string(),
+  sourceObjectId: z.string(),
+  callsign: z.string().nullable(),
+  registration: z.string().nullable(),
+  aircraftType: z.string().nullable(),
+  dbFlags: z.number().int().nullable(),
+  isMilitary: z.boolean(),
+  isInteresting: z.boolean(),
+  isPia: z.boolean(),
+  isLadd: z.boolean(),
+  sourceMessageType: z.string().nullable(),
+  lat: z.number().nullable(),
+  lon: z.number().nullable(),
+  altitudeBaroFt: z.number().nullable(),
+  altitudeGeomFt: z.number().nullable(),
+  onGround: z.boolean().nullable(),
+  groundSpeedKt: z.number().nullable(),
+  trackDeg: z.number().nullable(),
+  headingMagDeg: z.number().nullable(),
+  headingTrueDeg: z.number().nullable(),
+  verticalRateFpm: z.number().nullable(),
+  geomRateFpm: z.number().nullable(),
+  squawk: z.string().nullable(),
+  emergency: z.string().nullable(),
+  seenSeconds: z.number().nullable(),
+  seenPosSeconds: z.number().nullable(),
+  observedAt: z.string(),
+  receivedAt: z.string(),
+  staleAfter: z.string().nullable(),
+  firstSeenAt: z.string(),
+  lastSeenAt: z.string(),
+});
+
+export type AircraftLatest = z.infer<typeof AircraftLatestSchema>;
+
+export const AircraftLatestDetailSchema = AircraftLatestSchema.extend({
+  rawJson: z.record(z.unknown()).nullable().optional(),
+});
+
+export type AircraftLatestDetail = z.infer<typeof AircraftLatestDetailSchema>;
+
+export const AircraftLatestMetadataSchema = z.object({
+  count: z.number().int().nonnegative(),
+  generatedAt: z.string().datetime(),
+});
+
+export type AircraftLatestMetadata = z.infer<typeof AircraftLatestMetadataSchema>;
+
+export const AircraftLatestListResponseSchema = z.object({
+  aircraft: z.array(AircraftLatestSchema),
+  metadata: AircraftLatestMetadataSchema,
+});
+
+export type AircraftLatestListResponse = z.infer<typeof AircraftLatestListResponseSchema>;
+
+export const AircraftDetailResponseSchema = z.object({
+  aircraft: AircraftLatestDetailSchema,
+});
+
+export type AircraftDetailResponse = z.infer<typeof AircraftDetailResponseSchema>;
+
 // ==================== Borders & Boundaries (WO-078D) ====================
 
 export const BordersBoundariesPropertiesSchema = z.object({
