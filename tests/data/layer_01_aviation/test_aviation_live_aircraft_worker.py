@@ -604,12 +604,10 @@ def test_insert_raw_batch_error_path_no_duplicate_fetch_params():
     
     source = inspect.getsource(run_global_web_json_worker)
     
-    # Error path should have: None, received_at, with keyword fetch_params after
-    assert 'None, received_at,' in source
-    # Should NOT have: {"sourceMode": "global-web-json"}, received_at (duplicate)
-    # The pattern we fixed: positional {} + keyword fetch_params
-    # Check that error path uses None as 4th arg
-    assert 'conn, source_id, "/data/aircraft.json.gz", \n                        None, received_at,' in source
+    # Check error path uses fetch_params as 4th positional, NOT as keyword
+    # Error path pattern: insert_raw_batch(conn, source_id, endpoint, fetch_params, fetched_at, ...)
+    assert 'insert_raw_batch(\n                        conn,\n                        source_id,\n                        "/data/aircraft.json.gz",\n                        {"sourceMode": "global-web-json"},\n                        received_at,' in source or \
+           'insert_raw_batch(\n                        conn, source_id,\n                        "/data/aircraft.json.gz",\n                        {"sourceMode": "global-web-json"}, received_at,' in source
 
 
 def test_insert_raw_batch_success_path_no_duplicate_fetch_params():
@@ -619,8 +617,9 @@ def test_insert_raw_batch_success_path_no_duplicate_fetch_params():
     
     source = inspect.getsource(run_global_web_json_worker)
     
-    # Success path also uses None as 4th arg
-    assert 'conn, source_id, "/data/aircraft.json.gz",\n                    None, received_at,' in source
+    # Success path should also use fetch_params as 4th positional only
+    assert 'insert_raw_batch(\n                    conn,\n                    source_id,\n                    "/data/aircraft.json.gz",\n                    {"sourceMode": "global-web-json", "messages": source_messages},\n                    received_at,' in source or \
+           'insert_raw_batch(\n                    conn, source_id,\n                    "/data/aircraft.json.gz",\n                    {"sourceMode": "global-web-json", "messages": source_messages}, received_at,' in source
 
 
 def test_snapshot_notify_uses_pg_notify():
