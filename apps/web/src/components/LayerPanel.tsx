@@ -82,7 +82,11 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       case 'loading': return 'LOADING...';
       case 'ok': {
         const secs = Math.max(0, Math.round((Date.now() - liveAircraftPhase.updatedAt) / 1000));
-        return `ACTIVE — ${liveAircraftPhase.aircraft.length} AIRCRAFT (${secs}s AGO)`;
+        const { aircraft, total } = liveAircraftPhase;
+        if (total > aircraft.length) {
+          return `ACTIVE — ${aircraft.length} / ${total} AIRCRAFT RENDERED (${secs}s AGO)`;
+        }
+        return `ACTIVE — ${aircraft.length} AIRCRAFT (${secs}s AGO)`;
       }
       case 'empty': return 'ACTIVE — NO LIVE AIRCRAFT IN VIEW';
       case 'error': return 'API UNAVAILABLE';

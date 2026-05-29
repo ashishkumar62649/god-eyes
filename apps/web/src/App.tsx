@@ -153,7 +153,12 @@ const App: React.FC = () => {
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
         earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
         bordersData={bordersPhase.phase === 'ok' ? bordersPhase.data : null}
-        liveAircraft={liveAircraftPhase.phase === 'ok' ? liveAircraftPhase.aircraft : undefined}
+        liveAircraft={
+          liveAircraftPhase.phase === 'ok' ? liveAircraftPhase.aircraft
+          : liveAircraftPhase.phase === 'empty' ? []
+          : undefined
+        }
+        liveAircraftLayerActive={liveAircraftLayerActive}
       />
 
       <div style={{

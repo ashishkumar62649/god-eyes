@@ -36,6 +36,7 @@ import {
   headingToBillboardRotation,
   AIRCRAFT_BILLBOARD_SCALE,
 } from './lib/aircraftMarker';
+import { RENDER_CAP } from './lib/useLiveAircraft';
 import {
   AviationFilters,
 } from './lib/aviationCategories';
@@ -79,6 +80,7 @@ interface CesiumGlobeProps {
   earthEvents?: EarthEvent[];
   bordersData?: BordersBoundariesFeatureCollection | null;
   liveAircraft?: AircraftLatest[];
+  liveAircraftLayerActive?: boolean;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -92,6 +94,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   earthEvents,
   bordersData,
   liveAircraft,
+  liveAircraftLayerActive,
 }) => {
 
   /**
@@ -116,6 +119,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
   const aircraftDataSourceRef = useRef<CustomDataSource | null>(null);
+  // Live aircraft markers keyed by sourceObjectId for in-place diff updates (WO-079G-B).
+  const aircraftEntityMapRef = useRef<Map<string, Entity>>(new Map());
   const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
@@ -689,56 +694,100 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [earthEvents]);
 
-  // Render live aircraft on the globe (WO-079E).
-  // Rebuilt on each poll from real observed positions only — no dead reckoning,
-  // no predicted movement. Stale aircraft are excluded by the API by default and
-  // also filtered client-side defensively. Capped at 5000 markers.
-  // INTERPOLATION: safe placeholder — markers snap to each newly observed position.
+  // Render live aircraft on the globe (WO-079G-B).
+  // Diff-based update keyed by sourceObjectId — NO removeAll() per poll, which
+  // eliminates the 5s disappear/reappear flicker. Existing markers are updated
+  // in place (position/heading/color); new aircraft get a marker; aircraft that
+  // vanished from the feed or went stale are removed by key only.
+  // Positions are real observed positions only — no dead reckoning, no prediction.
   // TODO(WO-079 follow-up): smooth visual interpolation strictly between two real
   // observed positions for the same sourceObjectId (no extrapolation past staleAfter).
   useEffect(() => {
     const ds = aircraftDataSourceRef.current;
     if (!ds) return;
 
-    ds.entities.removeAll();
-
-    if (!liveAircraft || liveAircraft.length === 0) return;
+    const map = aircraftEntityMapRef.current;
+    // undefined => transient state (loading/error/idle): keep existing markers, do nothing.
+    if (!liveAircraft) return;
+    if (liveAircraft.length === 0) {
+      // Empty feed: remove all live markers by key.
+      if (map.size > 0) {
+        for (const entity of map.values()) ds.entities.remove(entity);
+        map.clear();
+      }
+      return;
+    }
 
     const now = Date.now();
     const arrowSprite = getAircraftArrowSprite();
     const dotSprite = getAircraftDotSprite();
+    const seen = new Set<string>();
     let rendered = 0;
 
     for (const ac of liveAircraft) {
-      if (rendered >= 5000) break;
+      if (rendered >= RENDER_CAP) break;
       if (ac.lat === null || ac.lon === null) continue;
       // Defensive client-side stale filter (API already excludes stale by default).
       if (ac.staleAfter && new Date(ac.staleAfter).getTime() < now) continue;
 
+      const key = ac.sourceObjectId;
       const heading = getAircraftHeadingDeg(ac);
       const color = getAircraftColor(ac);
       const altMeters = typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt * 0.3048 : 0;
+      const position = Cartesian3.fromDegrees(ac.lon, ac.lat, Math.max(0, altMeters));
+      const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
+      const image = heading !== null ? arrowSprite : dotSprite;
 
-      const entity = new Entity({
-        id: `aircraft-${ac.sourceObjectId}`,
-        position: new ConstantPositionProperty(
-          Cartesian3.fromDegrees(ac.lon, ac.lat, Math.max(0, altMeters)),
-        ),
-        billboard: new BillboardGraphics({
-          image: new ConstantProperty(heading !== null ? arrowSprite : dotSprite),
-          color: new ConstantProperty(color),
-          scale: new ConstantProperty(AIRCRAFT_BILLBOARD_SCALE),
-          rotation: new ConstantProperty(
-            heading !== null ? headingToBillboardRotation(heading) : 0,
-          ),
-          alignedAxis: new ConstantProperty(Cartesian3.ZERO), // screen-space rotation
-        }),
-      });
-      (entity as any).properties = { aircraftData: new ConstantProperty(ac) };
-      ds.entities.add(entity);
+      const existing = map.get(key);
+      if (existing) {
+        // Update in place — no remove/re-add, so the marker never blinks.
+        (existing.position as ConstantPositionProperty).setValue(position);
+        const bb = existing.billboard!;
+        (bb.image as ConstantProperty).setValue(image);
+        (bb.color as ConstantProperty).setValue(color);
+        (bb.rotation as ConstantProperty).setValue(rotation);
+        (existing as any).properties.aircraftData.setValue(ac);
+      } else {
+        const entity = new Entity({
+          id: `aircraft-${key}`,
+          position: new ConstantPositionProperty(position),
+          billboard: new BillboardGraphics({
+            image: new ConstantProperty(image),
+            color: new ConstantProperty(color),
+            scale: new ConstantProperty(AIRCRAFT_BILLBOARD_SCALE),
+            rotation: new ConstantProperty(rotation),
+            alignedAxis: new ConstantProperty(Cartesian3.ZERO), // screen-space rotation
+          }),
+        });
+        (entity as any).properties = { aircraftData: new ConstantProperty(ac) };
+        ds.entities.add(entity);
+        map.set(key, entity);
+      }
+      seen.add(key);
       rendered++;
     }
+
+    // Remove only markers no longer present in the feed (gone or stale).
+    for (const [key, entity] of map) {
+      if (!seen.has(key)) {
+        ds.entities.remove(entity);
+        map.delete(key);
+      }
+    }
   }, [liveAircraft]);
+
+  // Clear all live aircraft markers when the layer is turned OFF (WO-079G-B).
+  useEffect(() => {
+    if (liveAircraftLayerActive) return;
+    const ds = aircraftDataSourceRef.current;
+    const map = aircraftEntityMapRef.current;
+    if (ds && map.size > 0) {
+      for (const entity of map.values()) ds.entities.remove(entity);
+    }
+    map.clear();
+    setSelectedAircraft(null);
+  }, [liveAircraftLayerActive]);
+
 
   if (error) {
     return (
