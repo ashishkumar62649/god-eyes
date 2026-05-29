@@ -2996,15 +2996,15 @@ All agents must append to this file after completing work.
 - End time UTC: 2026-05-28T17:00:00Z
 - Commit hash: (see below)
 - Push status: local only (awaiting Kiro review)
-- What was done: Implemented Airplanes.live fetcher/normalizer for Aviation live aircraft tracking. Created worker (airplanes_live_worker.py), DB helper (airplanes_live_db.py), and tests (test_airplanes_live_worker.py). Implemented /mil, /ladd, /pia, /point endpoints with rate limiting. Supports dry-run default and --persist flag. Includes raw batch storage, latest aircraft upsert, observation append with dedupe, dbFlags parsing, ground altitude handling, position validation.
-- Files created: services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py, services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_db.py, tests/data/layer_01_aviation/test_airplanes_live_worker.py
+- What was done: Implemented Airplanes.live fetcher/normalizer for Aviation live aircraft tracking. Created worker (aviation_live_aircraft_worker.py), DB helper (aviation_live_aircraft_db.py), and tests (test_aviation_live_aircraft_worker.py). Implemented /mil, /ladd, /pia, /point endpoints with rate limiting. Supports dry-run default and --persist flag. Includes raw batch storage, latest aircraft upsert, observation append with dedupe, dbFlags parsing, ground altitude handling, position validation.
+- Files created: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_db.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
 - Files modified: docs/state/HANDOFF_LOG.md
 - Files deleted: none
-- Commands run: git diff --check, python -m pytest, python -m compileall, python airplanes_live_worker.py --include mil,ladd,pia --timeout-seconds 20
+- Commands run: git diff --check, python -m pytest, python -m compileall, python aviation_live_aircraft_worker.py --include mil,ladd,pia --timeout-seconds 20
 - Worker created: YES
-- Worker path: services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py
+- Worker path: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
 - DB helper created: YES
-- DB helper path: services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_db.py
+- DB helper path: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_db.py
 - Tests created: YES
 - Official Airplanes.live API used: YES
 - Website scraping avoided: YES
