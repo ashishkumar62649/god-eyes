@@ -8,7 +8,8 @@ import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategor
 import { useAirportLayoutFeatures } from './lib/useAirportLayoutFeatures';
 import { useEarthEvents } from './lib/useEarthEvents';
 import { useBordersBoundaries } from './lib/useBordersBoundaries';
-import { useLiveAircraft } from './lib/useLiveAircraft';
+import { useLiveAircraft, LiveAircraftStatus } from './lib/useLiveAircraft';
+import type { AircraftLatest } from '@god-eyes/contracts';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -52,15 +53,41 @@ const App: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
 
+  // Callback refs for CesiumGlobe ↔ useLiveAircraft bridge (no React re-render per poll).
+  const onSnapshotRef = useRef<((aircraft: AircraftLatest[]) => void) | undefined>(undefined);
+  const onGetBboxRef = useRef<(() => string | null) | undefined>(undefined);
+  // renderedCount fed back from the renderer to the status hook.
+  const [renderedCount, setRenderedCount] = useState(0);
+
   const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
   const earthEventsPhase = useEarthEvents(earthEventsLayerActive);
   const bordersPhase = useBordersBoundaries(bordersLayerActive);
-  const liveAircraftPhase = useLiveAircraft(liveAircraftLayerActive);
+
+  // Stable callback wrappers that delegate to the refs CesiumGlobe sets.
+  const handleSnapshot = useCallback((aircraft: AircraftLatest[]) => {
+    onSnapshotRef.current?.(aircraft);
+  }, []);
+  const handleGetBbox = useCallback((): string | null => {
+    return onGetBboxRef.current?.() ?? null;
+  }, []);
+  const handleAircraftRendered = useCallback((count: number) => {
+    setRenderedCount(count);
+  }, []);
+
+  const liveAircraftStatus = useLiveAircraft(
+    liveAircraftLayerActive,
+    handleSnapshot,
+    handleGetBbox,
+  );
+
+  // Merge renderedCount from renderer into the status for display.
+  const liveAircraftPhase: LiveAircraftStatus = {
+    ...liveAircraftStatus,
+    renderedCount,
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsBooting(false);
-    }, 1500);
+    const timer = setTimeout(() => setIsBooting(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -73,7 +100,6 @@ const App: React.FC = () => {
 
     const airportId = selectedObject.id;
     const now = Date.now();
-
     const cached = detailCacheRef.current.get(airportId);
     if (cached && now - cached.timestamp < CACHE_DURATION_MS) {
       setAirportDetail(cached.data);
@@ -82,10 +108,7 @@ const App: React.FC = () => {
       return;
     }
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
+    abortControllerRef.current?.abort();
     setDetailLoading(true);
     setDetailError(null);
     setAirportDetail(null);
@@ -123,11 +146,7 @@ const App: React.FC = () => {
     } else {
       setSelectedObject(null);
     }
-    setCameraTarget({
-      position: result.position,
-      type: result.type,
-      timestamp: Date.now(),
-    });
+    setCameraTarget({ position: result.position, type: result.type, timestamp: Date.now() });
   }, []);
 
   const handleFiltersChange = useCallback((filters: AviationFilters) => {
@@ -153,11 +172,9 @@ const App: React.FC = () => {
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
         earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
         bordersData={bordersPhase.phase === 'ok' ? bordersPhase.data : null}
-        liveAircraft={
-          liveAircraftPhase.phase === 'ok' ? liveAircraftPhase.aircraft
-          : liveAircraftPhase.phase === 'empty' ? []
-          : undefined
-        }
+        onAircraftSnapshot={handleSnapshot}
+        onAircraftRendered={handleAircraftRendered}
+        onGetBbox={handleGetBbox}
         liveAircraftLayerActive={liveAircraftLayerActive}
       />
 

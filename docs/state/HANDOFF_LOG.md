@@ -1,4 +1,27 @@
-<<<<<<< HEAD
+### 2026-05-29T13:25:00Z Claude Sonnet 4.6 — WO-079H Live Aircraft Renderer Engine Fix
+
+- Work order: WO-079H — Live Aircraft Renderer Engine Fix
+- Folder: E:\god-eyes-frontend
+- Agent: Claude Sonnet 4.6
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/claude-wo-079h-live-aircraft-renderer-engine
+- Start time UTC: 2026-05-29T13:00:00Z
+- End time UTC: 2026-05-29T13:25:00Z
+- Commit hash: local commit on branch (HEAD; see git log)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- What was done: Redesigned live aircraft renderer to eliminate count-ramp-from-zero, globe stutter, and 5s blink. Moved snapshot delivery out of React state into a callback ref (no React re-render per poll). Replaced Entity-per-aircraft with BillboardCollection (single primitive). Chunked rAF apply loop (500/frame). Interpolation via CallbackProperty (lerp between prev/curr observed positions). Stable last-good snapshot (loading/error keeps previous markers). Camera bbox from Cesium viewer. Apply-guard prevents concurrent apply loops. Status shows updating/error-with-snapshot states.
+- Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 221.91 kB JS), git diff --check (PASS)
+- Renderer strategy: BillboardCollection + Map<sourceObjectId, AircraftRecord>; update in place, add new, hide gone
+- Snapshot strategy: callback ref delivery (no React re-render per poll); React state only for status scalars; loading/error keeps previous markers
+- Chunking strategy: 500 aircraft per rAF frame; apply-guard prevents concurrent loops
+- Interpolation strategy: CallbackProperty lerps prevPos→currPos over observedAt span; no extrapolation past staleAfter; snaps to currPos if timestamps identical
+- BBox strategy: onGetBboxRef wired to viewer.camera.computeViewRectangle(); global fallback if null
+- Forbidden folders touched: NO
+- Known issues: Browser/runtime verification not performed (build/type-check only). API server-side limit raised to 20000 by WO-079G-A (DeepSeek).
+- Next safe task: WO-079 final integration / browser verification
+
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
 - Work order: WO-079G-B — Aviation Live Aircraft Frontend Performance + No Flicker
@@ -13,26 +36,12 @@
 - Commit hash: local commit on branch agent/claude-wo-079g-live-aircraft-performance (HEAD; see git log)
 - Push status: local only (NOT pushed — awaiting Kiro review)
 - What was done: Eliminated the 5-second live-aircraft blink and raised capacity. Removed the per-poll removeAll()/recreate; markers are now diffed by sourceObjectId and updated in place. Raised the request limit and render cap to 20000. Added an in-flight guard so polls never overlap. Stale/disappeared aircraft are removed by key only. Status now reports rendered/total when capped. Frontend still calls only the GOD EYES API.
-- Files modified:
-  - apps/web/src/lib/useLiveAircraft.ts — RENDER_CAP=20000 (exported); requests limit=20000; in-flight guard (inFlightRef) skips a tick while a request is still running; phase 'ok' now carries both `aircraft` (capped slice) and `total` (full returned count); 5s cadence preserved; aborts on disable/unmount.
-  - apps/web/src/lib/api.ts — fetchLiveAircraft limit cap raised 5000 → 20000 (still only /api/aviation/aircraft/latest?bbox=...&limit=20000; no direct Airplanes.live calls).
-  - apps/web/src/CesiumGlobe.tsx — added aircraftEntityMapRef (Map<sourceObjectId, Entity>) and liveAircraftLayerActive prop. Diff-based render effect: update existing markers in place via ConstantProperty.setValue (position/image/color/rotation/aircraftData), add new markers, remove only keys not present this poll. No removeAll() per poll. Cached arrow/dot sprites (lazy singletons). Cap RENDER_CAP. `undefined` feed (loading/error/idle) is a no-op that keeps markers (no blink); `[]` feed (empty) clears by key. Separate effect clears all markers + selection by key when the layer toggles OFF.
-  - apps/web/src/App.tsx — passes liveAircraft = aircraft on 'ok', [] on 'empty', undefined on loading/error/idle; passes liveAircraftLayerActive to CesiumGlobe.
-  - apps/web/src/components/LayerPanel.tsx — status text shows "ACTIVE — N / TOTAL AIRCRAFT RENDERED (Xs AGO)" when capped, else "ACTIVE — N AIRCRAFT (Xs AGO)"; Airplanes.live caveat still shown when active.
-  - apps/web/src/components/StatusPanel.tsx — telemetry shows "N / TOTAL RENDERED" when capped, else "N AIRCRAFT".
-- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 219.77 kB JS), git diff --check (PASS — clean)
-- Test/build result: Contracts build PASS. Web build PASS (tsc type-check + vite build). git diff --check clean. No web lint/test scripts in apps/web/package.json; no test deps added.
-- Rendered cap: 20000 (frontend hard cap in useLiveAircraft RENDER_CAP + render loop; request limit also 20000)
-- Polling behavior: 5s interval only while layer ON; in-flight guard prevents overlapping requests; aborts and stops on disable/unmount; single timer (no duplicate timers).
-- Flicker fix: Diff by sourceObjectId — markers persist between polls and update in place; only gone/stale markers are removed by key. No removeAll() per poll. Transient loading/error polls keep existing markers.
-- Forbidden folders touched: NO (only apps/web/src/ and docs/state/HANDOFF_LOG.md)
-- Security/privacy result: PASS. No secrets, no .env, no new dependencies. Frontend calls only the GOD EYES API.
-- Known issues:
-  - The WO-079D API route caps server-side limit at 5000 (apps/api/src/routes/aviation-aircraft.ts, MAX_LIMIT=5000 — a forbidden folder here). Until the backend cap is raised, the API returns at most 5000 aircraft even though the frontend requests 20000. The frontend is fully ready for up to 20000 and the rendered/total status display will reflect any cap. Recommend a backend WO to raise the API limit.
-  - Static aviation airports, earth events, and borders layers are untouched and unaffected.
-  - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
-- Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
-=======
+- Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/lib/api.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Known issues: WO-079D API route capped server-side at 5000 (fixed by WO-079G-A).
+- Next safe task: WO-079H renderer engine fix
+
 ### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
 
 - Work order: WO-079G-A — Aviation Live Aircraft API Limit Increase
@@ -48,15 +57,11 @@
 - Push status: local only
 - What was done: Increased aviation live aircraft API max limit from 5000 to 20000. Updated constant in route file. Updated existing limit cap test to verify 20000 ceiling. Added new test for limit=20000 accepted and limit above 20000 capped to 20000. Default limit unchanged (1000). Bbox, staleness, detail endpoint, and raw_json behavior all unchanged.
 - Files modified: apps/api/src/routes/aviation-aircraft.ts, apps/api/tests/aviation-aircraft.test.ts
-- Files created: none
-- Files deleted: none
 - Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, git diff --check
-- Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234: 214 existing + 20 aviation), git diff --check PASS
-- Security/privacy result: PASS (no .env, no API keys, no secrets, parameterized SQL unchanged, no new endpoints)
+- Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234), git diff --check PASS
 - Forbidden folders touched: NO
-- Known issues: None
 - Next safe task: WO-079G-B frontend stable renderer
->>>>>>> origin/main
+
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
 

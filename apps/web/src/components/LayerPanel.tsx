@@ -4,7 +4,7 @@ import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories'
 import { useLayerRegistry } from '../lib/useLayerRegistry';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { LiveAircraftPhase } from '../lib/useLiveAircraft';
+import type { LiveAircraftStatus } from '../lib/useLiveAircraft';
 
 interface AviationStats {
   loaded: number;
@@ -29,7 +29,7 @@ interface LayerPanelProps {
   bordersPhase: BordersPhase;
   liveAircraftLayerActive: boolean;
   setLiveAircraftLayerActive: (active: boolean) => void;
-  liveAircraftPhase: LiveAircraftPhase;
+  liveAircraftPhase: LiveAircraftStatus;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -78,18 +78,25 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
 
   function liveAircraftStatusText(): string {
     if (!liveAircraftLayerActive) return 'READY — CLICK TO ACTIVATE';
-    switch (liveAircraftPhase.phase) {
+    const { phase, renderedCount, totalReceived, lastSuccessAt, errorMessage } = liveAircraftPhase;
+    const secs = lastSuccessAt > 0 ? Math.max(0, Math.round((Date.now() - lastSuccessAt) / 1000)) : null;
+    const ago = secs !== null ? ` (UPDATED ${secs}s AGO)` : '';
+    switch (phase) {
       case 'loading': return 'LOADING...';
-      case 'ok': {
-        const secs = Math.max(0, Math.round((Date.now() - liveAircraftPhase.updatedAt) / 1000));
-        const { aircraft, total } = liveAircraftPhase;
-        if (total > aircraft.length) {
-          return `ACTIVE — ${aircraft.length} / ${total} AIRCRAFT RENDERED (${secs}s AGO)`;
+      case 'updating':
+        return renderedCount > 0
+          ? `UPDATING — ${renderedCount} AIRCRAFT VISIBLE`
+          : 'UPDATING...';
+      case 'ok':
+        if (totalReceived > renderedCount && renderedCount > 0) {
+          return `ACTIVE — ${renderedCount} / ${totalReceived} AIRCRAFT RENDERED${ago}`;
         }
-        return `ACTIVE — ${aircraft.length} AIRCRAFT (${secs}s AGO)`;
-      }
-      case 'empty': return 'ACTIVE — NO LIVE AIRCRAFT IN VIEW';
-      case 'error': return 'API UNAVAILABLE';
+        return `ACTIVE — ${renderedCount} AIRCRAFT${ago}`;
+      case 'empty': return `ACTIVE — NO LIVE AIRCRAFT IN VIEW${ago}`;
+      case 'error':
+        return renderedCount > 0
+          ? `API UNAVAILABLE — SHOWING LAST GOOD SNAPSHOT FROM ${secs ?? '?'}s AGO`
+          : `API UNAVAILABLE — ${errorMessage}`;
       default: return 'ACTIVE';
     }
   }
