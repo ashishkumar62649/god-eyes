@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WebSocket, WebSocketServer as WSServer } from 'ws';
-import { query } from '../src/lib/db.js';
+import { query, listen } from '../src/lib/db.js';
 import {
   LiveAircraftBroadcaster,
   CompactAircraft,
@@ -9,6 +9,7 @@ import {
   determineRemoves,
   SnapshotData,
   DeltaData,
+  aircraftArrayToMap,
 } from '../src/lib/live-aircraft-broadcaster.js';
 import {
   attachLiveAircraftWebSocket,
@@ -39,26 +40,19 @@ function makeAc(id: string, overrides: Partial<CompactAircraft> = {}): CompactAi
   };
 }
 
-function mockRow(id: string, overrides: Record<string, unknown> = {}) {
+function makeSnapshotRow(id: number, aircraft: CompactAircraft[], overrides: Record<string, unknown> = {}) {
   return {
     id,
-    lat: 35,
-    lon: 139,
-    altitudeFt: 30000,
-    speedKt: 450,
-    trackDeg: 270,
-    headingDeg: 268,
-    verticalRateFpm: 0,
-    onGround: false,
-    callsign: 'TEST',
-    aircraftType: 'B738',
-    registration: 'N123',
-    observedAt: '2026-05-29T10:00:00.000Z',
-    receivedAt: '2026-05-29T10:00:05.000Z',
-    staleAfter: '2026-05-29T10:01:30.000Z',
+    source_id: 'airplanes_live_v2',
+    snapshot_id: `snap-${id}`,
+    aircraft,
+    aircraft_count: aircraft.length,
+    created_at: '2026-05-29T10:00:00.000Z',
     ...overrides,
   };
 }
+
+// --- Pure function tests ---
 
 describe('Delta generation', () => {
   it('generates upserts for new aircraft', () => {
@@ -161,87 +155,48 @@ describe('determineRemoves', () => {
   });
 });
 
+// --- Broadcaster tests ---
+
 describe('LiveAircraftBroadcaster', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('loads snapshot on first poll and emits ready + snapshot', async () => {
-    vi.useFakeTimers();
-    const rows = [mockRow('ac1')];
-    vi.mocked(query).mockResolvedValueOnce(rows);
+  function captureNotifyCb(): Promise<(payload: string) => void> {
+    return new Promise((resolve) => {
+      vi.mocked(listen).mockImplementation((_channel: string, cb: (payload: string) => void) => {
+        resolve(cb);
+        return Promise.resolve(vi.fn());
+      });
+    });
+  }
+
+  it('loads snapshot on start and emits ready + snapshot', async () => {
+    const ac1 = makeAc('ac1');
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [ac1])]);
 
     const bc = new LiveAircraftBroadcaster();
     const events: string[] = [];
 
     bc.onReady = () => { events.push('ready'); };
     bc.onSnapshot = () => { events.push('snapshot'); };
-    bc.onDelta = () => { events.push('delta'); };
 
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
+    await bc.start();
 
     expect(events).toEqual(['ready', 'snapshot']);
     expect(bc.getLatestSnapshot()).not.toBeNull();
     expect(bc.getLatestSnapshot()!.aircraftCount).toBe(1);
     expect(bc.getLatestSnapshot()!.aircraft[0].id).toBe('ac1');
-    bc.stop();
+    await bc.stop();
   });
 
-  it('emits delta on subsequent polls', async () => {
-    vi.useFakeTimers();
-    const rows1 = [mockRow('ac1')];
-    const rows2 = [mockRow('ac1'), mockRow('ac2')];
-    vi.mocked(query).mockResolvedValueOnce(rows1);
-    vi.mocked(query).mockResolvedValueOnce(rows2);
-
-    const bc = new LiveAircraftBroadcaster();
-    const deltas: DeltaData[] = [];
-
-    bc.onReady = () => {};
-    bc.onSnapshot = () => {};
-    bc.onDelta = (d) => { deltas.push(d); };
-
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
-    await vi.advanceTimersToNextTimerAsync();
-
-    expect(deltas).toHaveLength(1);
-    expect(deltas[0].upserts).toHaveLength(1);
-    expect(deltas[0].upserts[0].id).toBe('ac2');
-    bc.stop();
-  });
-
-  it('emits removes for disappeared aircraft', async () => {
-    vi.useFakeTimers();
-    const rows1 = [mockRow('ac1'), mockRow('ac2')];
-    const rows2 = [mockRow('ac1')];
-    vi.mocked(query).mockResolvedValueOnce(rows1);
-    vi.mocked(query).mockResolvedValueOnce(rows2);
-
-    const bc = new LiveAircraftBroadcaster();
-    const deltas: DeltaData[] = [];
-
-    bc.onReady = () => {};
-    bc.onSnapshot = () => {};
-    bc.onDelta = (d) => { deltas.push(d); };
-
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
-    await vi.advanceTimersToNextTimerAsync();
-
-    expect(deltas).toHaveLength(1);
-    expect(deltas[0].removes).toEqual(['ac2']);
-    bc.stop();
-  });
-
-  it('emits error on db failure and backs off', async () => {
-    vi.useFakeTimers();
-    vi.mocked(query).mockRejectedValueOnce(new Error('DB down'));
+  it('emits error when no snapshot exists', async () => {
+    vi.mocked(query).mockResolvedValueOnce([]);
 
     const bc = new LiveAircraftBroadcaster();
     const errors: string[] = [];
@@ -250,74 +205,157 @@ describe('LiveAircraftBroadcaster', () => {
     bc.onSnapshot = () => {};
     bc.onError = (e) => { errors.push(e.code); };
 
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
+    await bc.start();
 
-    expect(errors).toContain('SOURCE_UNAVAILABLE');
-    bc.stop();
+    expect(errors).toContain('NO_SNAPSHOT');
+    expect(bc.getLatestSnapshot()).toBeNull();
+    await bc.stop();
   });
 
-  it('recovers after db error', async () => {
-    vi.useFakeTimers();
-    vi.mocked(query).mockRejectedValueOnce(new Error('DB down'));
-    vi.mocked(query).mockResolvedValueOnce([mockRow('ac1')]);
+  it('emits error on db failure', async () => {
+    vi.mocked(query).mockRejectedValueOnce(new Error('DB connection failed'));
+
+    const bc = new LiveAircraftBroadcaster();
+    const errors: string[] = [];
+
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+    bc.onError = (e) => { errors.push(e.code); };
+
+    await bc.start();
+
+    expect(errors).toContain('SOURCE_UNAVAILABLE');
+    await bc.stop();
+  });
+
+  it('emits delta on notification after initial snapshot', async () => {
+    const ac1 = makeAc('ac1');
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [ac1])]);
+
+    const bc = new LiveAircraftBroadcaster();
+    const deltas: DeltaData[] = [];
+
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+    bc.onDelta = (d) => { deltas.push(d); };
+
+    const notifyPromise = captureNotifyCb();
+    await bc.start();
+    const notifyCb = await notifyPromise;
+
+    expect(bc.getLatestSnapshot()!.aircraftCount).toBe(1);
+
+    const ac2 = makeAc('ac2');
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(2, [ac1, ac2])]);
+
+    notifyCb('');
+
+    await vi.waitFor(() => expect(deltas.length).toBeGreaterThanOrEqual(1));
+
+    expect(deltas[0].upserts).toHaveLength(1);
+    expect(deltas[0].upserts[0].id).toBe('ac2');
+    expect(deltas[0].removes).toHaveLength(0);
+    await bc.stop();
+  });
+
+  it('emits removes on notification when aircraft disappear', async () => {
+    const ac1 = makeAc('ac1');
+    const ac2 = makeAc('ac2');
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [ac1, ac2])]);
+
+    const bc = new LiveAircraftBroadcaster();
+    const deltas: DeltaData[] = [];
+
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+    bc.onDelta = (d) => { deltas.push(d); };
+
+    const notifyPromise = captureNotifyCb();
+    await bc.start();
+    const notifyCb = await notifyPromise;
+
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(2, [ac1])]);
+
+    notifyCb('');
+
+    await vi.waitFor(() => expect(deltas.length).toBeGreaterThanOrEqual(1));
+
+    expect(deltas[0].removes).toEqual(['ac2']);
+    await bc.stop();
+  });
+
+  it('sends full snapshot on resync timer', async () => {
+    const ac1 = makeAc('ac1');
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [ac1])]);
 
     const bc = new LiveAircraftBroadcaster();
     const snapshots: SnapshotData[] = [];
 
     bc.onReady = () => {};
     bc.onSnapshot = (s) => { snapshots.push(s); };
-    bc.onDelta = () => {};
 
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
-    await vi.advanceTimersToNextTimerAsync();
+    await bc.start();
 
     expect(snapshots).toHaveLength(1);
-    expect(snapshots[0].aircraftCount).toBe(1);
-    bc.stop();
+
+    vi.advanceTimersByTime(61000);
+
+    expect(snapshots.length).toBeGreaterThanOrEqual(2);
+    expect(snapshots[1].snapshotId).toBe('snap-1');
+    await bc.stop();
   });
 
   it('getStatus returns current state', async () => {
-    vi.useFakeTimers();
-    vi.mocked(query).mockResolvedValueOnce([mockRow('ac1')]);
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [makeAc('ac1')])]);
 
     const bc = new LiveAircraftBroadcaster();
     bc.onReady = () => {};
     bc.onSnapshot = () => {};
 
-    expect(bc.getStatus().aircraftCount).toBe(0);
+    const statusBefore = bc.getStatus();
+    expect(statusBefore.aircraftCount).toBe(0);
+    expect(statusBefore.snapshotId).toBeNull();
 
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
+    await bc.start();
 
     const status = bc.getStatus();
     expect(status.aircraftCount).toBe(1);
-    expect(status.pollCount).toBe(1);
+    expect(status.snapshotId).toBeTypeOf('string');
     expect(status.lastSuccessAt).toBeTypeOf('number');
-    bc.stop();
+    await bc.stop();
   });
 
-  it('uses parameterized SQL', async () => {
-    vi.useFakeTimers();
-    vi.mocked(query).mockResolvedValueOnce([mockRow('ac1')]);
+  it('does not query aviation_aircraft_latest table', async () => {
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [makeAc('ac1')])]);
 
     const bc = new LiveAircraftBroadcaster();
     bc.onReady = () => {};
     bc.onSnapshot = () => {};
 
-    bc.start();
-    await vi.advanceTimersToNextTimerAsync();
+    await bc.start();
 
-    const callArgs = vi.mocked(query).mock.calls[0];
-    const sql = callArgs[0] as string;
-    const params = callArgs[1] as unknown[];
-    expect(sql).toContain('$1');
-    expect(sql).toContain('aviation_aircraft_latest');
+    const sqlCall = vi.mocked(query).mock.calls[0][0] as string;
+    expect(sqlCall).not.toContain('aviation_aircraft_latest');
+    expect(sqlCall).toContain('aviation_aircraft_live_snapshots');
+    await bc.stop();
+  });
+
+  it('uses parameterized SQL', async () => {
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [makeAc('ac1')])]);
+
+    const bc = new LiveAircraftBroadcaster();
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+
+    await bc.start();
+
+    const params = vi.mocked(query).mock.calls[0][1] as unknown[];
     expect(params).toEqual(['airplanes_live_v2']);
-    bc.stop();
+    await bc.stop();
   });
 });
+
+// --- WebSocket integration tests ---
 
 describe('WebSocket integration', () => {
   function createTestWss(): Promise<{ wss: WSServer; port: number }> {
@@ -331,7 +369,7 @@ describe('WebSocket integration', () => {
   }
 
   it('sends ready and snapshot on connect when snapshot exists', async () => {
-    vi.mocked(query).mockResolvedValueOnce([mockRow('ac1')]);
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [makeAc('ac1')])]);
     const bc = new LiveAircraftBroadcaster();
     const { wss, port } = await createTestWss();
 
@@ -351,8 +389,7 @@ describe('WebSocket integration', () => {
       });
     });
 
-    bc.start();
-    await vi.waitFor(() => expect(bc.getLatestSnapshot()).not.toBeNull(), { timeout: 3000 });
+    await bc.start();
 
     const ws = new WebSocket(`ws://localhost:${port}`);
     ws.on('message', (raw) => received.push(raw.toString()));
@@ -373,22 +410,22 @@ describe('WebSocket integration', () => {
   });
 
   it('pong responds to ping', async () => {
-    vi.mocked(query).mockResolvedValueOnce([]);
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [makeAc('ac1')])]);
     const bc = new LiveAircraftBroadcaster();
     const { wss, port } = await createTestWss();
     const received: string[] = [];
 
-    wss.on('connection', (ws: WebSocket) => {
-      ws.send(JSON.stringify({ type: 'aircraft.ready', serverTime: new Date().toISOString() }));
-      ws.on('message', (raw: Buffer) => {
+    wss.on('connection', (serverWs: WebSocket) => {
+      serverWs.send(JSON.stringify({ type: 'aircraft.ready', serverTime: new Date().toISOString() }));
+      serverWs.on('message', (raw: Buffer) => {
         try {
           const data = JSON.parse(raw.toString());
-          if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong', serverTime: new Date().toISOString() }));
+          if (data.type === 'ping') serverWs.send(JSON.stringify({ type: 'pong', serverTime: new Date().toISOString() }));
         } catch { /* ignore */ }
       });
     });
 
-    bc.start();
+    await bc.start();
 
     const ws = new WebSocket(`ws://localhost:${port}`);
     ws.on('message', (raw) => received.push(raw.toString()));
@@ -411,23 +448,23 @@ describe('WebSocket integration', () => {
   });
 
   it('invalid json returns error', async () => {
-    vi.mocked(query).mockResolvedValueOnce([]);
+    vi.mocked(query).mockResolvedValueOnce([makeSnapshotRow(1, [makeAc('ac1')])]);
     const bc = new LiveAircraftBroadcaster();
     const { wss, port } = await createTestWss();
     const received: string[] = [];
 
-    wss.on('connection', (ws: WebSocket) => {
-      ws.send(JSON.stringify({ type: 'aircraft.ready', serverTime: new Date().toISOString() }));
-      ws.on('message', (raw: Buffer) => {
+    wss.on('connection', (serverWs: WebSocket) => {
+      serverWs.send(JSON.stringify({ type: 'aircraft.ready', serverTime: new Date().toISOString() }));
+      serverWs.on('message', (raw: Buffer) => {
         try {
           JSON.parse(raw.toString());
         } catch {
-          ws.send(JSON.stringify({ type: 'aircraft.error', code: 'PARSE_ERROR', message: 'Parse error' }));
+          serverWs.send(JSON.stringify({ type: 'aircraft.error', code: 'PARSE_ERROR', message: 'Parse error' }));
         }
       });
     });
 
-    bc.start();
+    await bc.start();
 
     const ws = new WebSocket(`ws://localhost:${port}`);
     ws.on('message', (raw) => received.push(raw.toString()));
@@ -455,5 +492,14 @@ describe('Existing REST endpoint still works', () => {
   it('can import aviation-aircraft routes module', async () => {
     const mod = await import('../src/routes/aviation-aircraft.js');
     expect(mod.aviationAircraftRoutes).toBeTypeOf('function');
+  });
+});
+
+describe('No upstream fetch', () => {
+  it('broadcaster does not reference Airplanes.live URLs', async () => {
+    const mod = await import('../src/lib/live-aircraft-broadcaster.js');
+    const exportedKeys = Object.keys(mod);
+    expect(exportedKeys).not.toContain('__testableFetch');
+    expect(exportedKeys).not.toContain('fetchLatestAircraft');
   });
 });

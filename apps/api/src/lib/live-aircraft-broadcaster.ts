@@ -1,26 +1,9 @@
-import { query } from './db.js';
+import { query, listen, UnlistenFn } from './db.js';
 
-const POLL_INTERVAL_MS = 5000;
-const BACKOFF_MS = 30000;
-const FULL_RESYNC_INTERVAL = 12;
-
-interface AircraftRow {
-  id: string;
-  lat: number | null;
-  lon: number | null;
-  altitudeFt: number | null;
-  speedKt: number | null;
-  trackDeg: number | null;
-  headingDeg: number | null;
-  verticalRateFpm: number | null;
-  onGround: boolean | null;
-  callsign: string | null;
-  aircraftType: string | null;
-  registration: string | null;
-  observedAt: Date | string;
-  receivedAt: Date | string;
-  staleAfter: Date | string | null;
-}
+const NOTIFY_CHANNEL = 'aviation_live_aircraft_snapshot';
+const SOURCE_ID = 'airplanes_live_v2';
+const RESYNC_INTERVAL_MS = 60000;
+const FULL_RESYNC_NOTIFY_COUNT = 12;
 
 export interface CompactAircraft {
   id: string;
@@ -62,33 +45,22 @@ export interface ClientView {
   lastVisibleIds: Set<string>;
 }
 
-function toIsoString(val: Date | string): string {
-  if (val instanceof Date) return val.toISOString();
-  return String(val);
+interface SnapshotRow {
+  id: number;
+  source_id: string;
+  snapshot_id: string;
+  aircraft: CompactAircraft[];
+  aircraft_count: number;
+  created_at: string;
 }
 
-function rowToCompact(row: AircraftRow): CompactAircraft {
-  return {
-    id: row.id,
-    sourceObjectId: row.id,
-    callsign: row.callsign,
-    lat: row.lat,
-    lon: row.lon,
-    altitudeFt: row.altitudeFt,
-    speedKt: row.speedKt,
-    trackDeg: row.trackDeg,
-    headingDeg: row.headingDeg,
-    verticalRateFpm: row.verticalRateFpm,
-    onGround: row.onGround,
-    aircraftType: row.aircraftType,
-    registration: row.registration,
-    origin: null,
-    destination: null,
-    observedAt: toIsoString(row.observedAt),
-    receivedAt: toIsoString(row.receivedAt),
-    staleAfter: row.staleAfter ? toIsoString(row.staleAfter) : null,
-  };
-}
+const FETCH_SNAPSHOT_SQL = `
+  SELECT id, source_id, snapshot_id, aircraft, aircraft_count, created_at
+  FROM aviation_aircraft_live_snapshots
+  WHERE source_id = $1
+  ORDER BY id DESC
+  LIMIT 1
+`;
 
 function isChanged(a: CompactAircraft, b: CompactAircraft): boolean {
   return (
@@ -152,44 +124,15 @@ export function determineRemoves(
   return removes;
 }
 
-const FETCH_SQL = `
-  SELECT
-    source_object_id AS id,
-    lat,
-    lon,
-    altitude_baro_ft AS "altitudeFt",
-    ground_speed_kt AS "speedKt",
-    COALESCE(heading_mag_deg, heading_true_deg) AS "headingDeg",
-    track_deg AS "trackDeg",
-    vertical_rate_fpm AS "verticalRateFpm",
-    on_ground AS "onGround",
-    callsign,
-    aircraft_type AS "aircraftType",
-    registration,
-    observed_at AS "observedAt",
-    received_at AS "receivedAt",
-    stale_after AS "staleAfter"
-  FROM aviation_aircraft_latest
-  WHERE source_id = $1
-    AND stale_after > NOW()
-`;
-
-async function fetchLatestAircraft(): Promise<CompactAircraft[]> {
-  const rows = await query<AircraftRow>(FETCH_SQL, ['airplanes_live_v2']);
-  return rows.map(rowToCompact);
-}
-
-export { fetchLatestAircraft as __testableFetch };
-
 export class LiveAircraftBroadcaster {
-  private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
-  private pollCount = 0;
+  private unlistenFn: UnlistenFn | null = null;
+  private resyncTimer: ReturnType<typeof setInterval> | null = null;
+  private notifyCount = 0;
 
-  private currentMap: Map<string, CompactAircraft> = new Map();
+  private currentSnapshot: SnapshotData | null = null;
   private previousMap: Map<string, CompactAircraft> = new Map();
-  private latestSnapshot: SnapshotData | null = null;
-  private snapshotSeq = 0;
+  private currentMap: Map<string, CompactAircraft> = new Map();
 
   private _lastError: string | null = null;
   private _lastSuccessAt: number | null = null;
@@ -200,7 +143,7 @@ export class LiveAircraftBroadcaster {
   onError: ((err: { code: string; message: string }) => void) | null = null;
 
   getLatestSnapshot(): SnapshotData | null {
-    return this.latestSnapshot;
+    return this.currentSnapshot;
   }
 
   getCurrentMap(): Map<string, CompactAircraft> {
@@ -212,83 +155,126 @@ export class LiveAircraftBroadcaster {
       lastSuccessAt: this._lastSuccessAt,
       lastError: this._lastError,
       aircraftCount: this.currentMap.size,
-      snapshotId: this.latestSnapshot?.snapshotId ?? null,
-      pollCount: this.pollCount,
+      snapshotId: this.currentSnapshot?.snapshotId ?? null,
+      notifyCount: this.notifyCount,
     };
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
-    this.scheduleNext(0);
-  }
-
-  stop(): void {
-    this.running = false;
-    if (this.pollTimer !== null) {
-      clearTimeout(this.pollTimer);
-      this.pollTimer = null;
-    }
-  }
-
-  private scheduleNext(delayMs: number): void {
-    if (!this.running) return;
-    this.pollTimer = setTimeout(() => this.doPoll(), delayMs);
-  }
-
-  private async doPoll(): Promise<void> {
-    if (!this.running) return;
 
     try {
-      const aircraft = await fetchLatestAircraft();
-      const now = new Date();
-      const snapshotTime = now.toISOString();
-      this.pollCount++;
-
-      this.snapshotSeq++;
-      const snapshotId = `${Date.now()}-${this.snapshotSeq}`;
-
-      this.previousMap = this.currentMap;
-      const newMap = new Map<string, CompactAircraft>();
-      for (const ac of aircraft) {
-        newMap.set(ac.id, ac);
-      }
-      this.currentMap = newMap;
-
-      this._lastSuccessAt = Date.now();
-      this._lastError = null;
-
-      const snapshot: SnapshotData = {
-        snapshotId,
-        snapshotTime,
-        aircraft: Array.from(newMap.values()),
-        aircraftCount: newMap.size,
-      };
-
-      this.latestSnapshot = snapshot;
-
-      if (this.pollCount === 1) {
-        this.onReady?.(snapshotTime);
-        this.onSnapshot?.(snapshot);
-      } else {
-        const delta = generateDelta(this.previousMap, this.currentMap, snapshotId, snapshotTime);
-        if (this.pollCount % FULL_RESYNC_INTERVAL === 0) {
-          this.onSnapshot?.(snapshot);
-        } else {
-          this.onDelta?.(delta);
-        }
-      }
-
-      this.scheduleNext(POLL_INTERVAL_MS);
+      await this.loadSnapshot();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this._lastError = message;
+      this.onError?.({ code: 'SOURCE_UNAVAILABLE', message });
+    }
 
-      if (this.running) {
-        this.onError?.({ code: 'SOURCE_UNAVAILABLE', message });
-      }
+    this.startListening();
+    this.startResyncTimer();
+  }
 
-      this.scheduleNext(BACKOFF_MS);
+  async stop(): Promise<void> {
+    this.running = false;
+
+    if (this.unlistenFn) {
+      await this.unlistenFn();
+      this.unlistenFn = null;
+    }
+
+    if (this.resyncTimer !== null) {
+      clearInterval(this.resyncTimer);
+      this.resyncTimer = null;
     }
   }
+
+  private async loadSnapshot(): Promise<void> {
+    const rows = await query<SnapshotRow>(FETCH_SNAPSHOT_SQL, [SOURCE_ID]);
+
+    if (rows.length === 0) {
+      this.currentSnapshot = null;
+      this.previousMap = this.currentMap;
+      this.currentMap = new Map();
+      this._lastError = 'No snapshot available';
+      this.onError?.({ code: 'NO_SNAPSHOT', message: 'No live aircraft snapshot available yet' });
+      return;
+    }
+
+    const row = rows[0];
+    const aircraft: CompactAircraft[] = (row.aircraft || []).map((ac) => ({
+      ...ac,
+      sourceObjectId: ac.id,
+      observedAt: ac.observedAt || row.created_at,
+      receivedAt: ac.receivedAt || row.created_at,
+    }));
+
+    const snapshotId = String(row.snapshot_id || row.id);
+    const snapshotTime = row.created_at;
+    const snapshot: SnapshotData = {
+      snapshotId,
+      snapshotTime,
+      aircraft,
+      aircraftCount: row.aircraft_count,
+    };
+
+    this._lastSuccessAt = Date.now();
+    this._lastError = null;
+
+    const hadPreviousSnapshot = this.currentSnapshot !== null;
+    this.currentSnapshot = snapshot;
+
+    this.previousMap = this.currentMap;
+    const newMap = new Map<string, CompactAircraft>();
+    for (const ac of aircraft) {
+      newMap.set(ac.id, ac);
+    }
+    this.currentMap = newMap;
+
+    if (!hadPreviousSnapshot) {
+      this.onReady?.(snapshotTime);
+      this.onSnapshot?.(snapshot);
+    } else {
+      const delta = generateDelta(this.previousMap, this.currentMap, snapshotId, snapshotTime);
+      this.onDelta?.(delta);
+    }
+  }
+
+  private startListening(): void {
+    listen(NOTIFY_CHANNEL, () => {
+      if (!this.running) return;
+      this.notifyCount++;
+
+      this.loadSnapshot().catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this._lastError = message;
+        this.onError?.({ code: 'SOURCE_UNAVAILABLE', message });
+      });
+    }).then((fn) => {
+      this.unlistenFn = fn;
+    }).catch((err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      this._lastError = message;
+      this.onError?.({ code: 'LISTEN_FAILED', message });
+    });
+  }
+
+  private startResyncTimer(): void {
+    this.resyncTimer = setInterval(() => {
+      if (!this.running) return;
+
+      if (this.currentSnapshot) {
+        this.onSnapshot?.(this.currentSnapshot);
+      }
+    }, RESYNC_INTERVAL_MS);
+  }
+}
+
+export function aircraftArrayToMap(aircraft: CompactAircraft[]): Map<string, CompactAircraft> {
+  const map = new Map<string, CompactAircraft>();
+  for (const ac of aircraft) {
+    map.set(ac.id, ac);
+  }
+  return map;
 }
