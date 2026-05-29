@@ -473,14 +473,21 @@ def test_global_web_json_min_interval():
     """Global web JSON min interval should be enforced."""
     from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS
     
-    assert GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS == 30
+    assert GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS == 5
 
 
 def test_global_web_json_default_interval():
-    """Global web JSON default interval should be conservative."""
+    """Global web JSON default interval should be aggressive."""
     from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS
     
-    assert GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS == 60
+    assert GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS == 5
+
+
+def test_global_web_json_backoff_interval():
+    """Global web JSON backoff should be at least 30 seconds."""
+    from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_BACKOFF_SECONDS
+    
+    assert GLOBAL_WEB_JSON_BACKOFF_SECONDS >= 30
 
 
 def test_global_mode_does_not_require_lat_lon():

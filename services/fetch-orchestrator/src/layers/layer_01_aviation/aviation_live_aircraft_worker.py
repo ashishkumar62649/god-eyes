@@ -12,7 +12,7 @@ Usage (global web JSON mode):
 
 Usage with loop mode:
     python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py \
-        --source-mode global-web-json --loop --interval-seconds 60 --persist
+        --source-mode global-web-json --loop --interval-seconds 5 --persist
 """
 
 from __future__ import annotations
@@ -57,8 +57,10 @@ STALE_PURGE_THRESHOLD = 300
 
 DEFAULT_TIMEOUT = 20
 RATE_LIMIT_SECONDS = 1.0
-GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS = 30
-GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS = 60
+GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS = 5
+GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS = 5
+GLOBAL_WEB_JSON_BACKOFF_SECONDS = 30
+GLOBAL_WEB_JSON_RETRY_STATUSES = {403, 429, 500, 502, 503, 504}
 
 
 def parse_db_flags(flags: int | None) -> dict[str, bool]:
@@ -456,7 +458,7 @@ def run_global_web_json_worker(
 
         if error:
             print(f"[WORKER] ERROR fetching global web JSON: {error}")
-            result["errors"].append({"endpoint": "/data/aircraft.json.gz", "error": error})
+            result["errors"].append({"endpoint": "/data/aircraft.json.gz", "error": error, "http_status": status})
             if conn:
                 try:
                     insert_raw_batch(
@@ -630,7 +632,7 @@ def main() -> None:
         "--interval-seconds",
         type=int,
         default=GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS,
-        help="Interval between cycles in seconds (default: 60, min 30 for global-web-json)",
+        help="Interval between cycles in seconds (default: 5 for global-web-json, min 5)",
     )
     args = parser.parse_args()
 
@@ -665,23 +667,57 @@ def main() -> None:
         )
     else:
         # Global web JSON mode
+        if run_loop:
+            print("[WORKER] WARNING: global-web-json uses Airplanes.live globe web data. Polling every 5s may be blocked or rate-limited. Use only where permitted.")
+        
         cycle_count = 0
-        while True:
-            cycle_count += 1
-            print(f"[WORKER] === Cycle {cycle_count} ===")
-            
-            result = run_worker(
-                timeout=args.timeout_seconds,
-                persist=args.persist,
-                database_url=args.database_url,
-                source_mode=args.source_mode,
-            )
-            
-            if not run_loop:
-                break
+        consecutive_failures = 0
+        try:
+            while True:
+                cycle_count += 1
+                print(f"[WORKER] === Cycle {cycle_count} ===")
                 
-            print(f"[WORKER] Sleeping {args.interval_seconds}s until next cycle...")
-            time.sleep(args.interval_seconds)
+                try:
+                    result = run_worker(
+                        timeout=args.timeout_seconds,
+                        persist=args.persist,
+                        database_url=args.database_url,
+                        source_mode=args.source_mode,
+                    )
+                    
+                    # Check for failure/backoff condition
+                    if result.get("errors"):
+                        last_error = result["errors"][-1]
+                        error_msg = last_error.get("error", "")
+                        # Check HTTP status in errors if available
+                        http_status = last_error.get("http_status")
+                        
+                        should_backoff = False
+                        if http_status in GLOBAL_WEB_JSON_RETRY_STATUSES:
+                            should_backoff = True
+                        elif "403" in error_msg or "429" in error_msg:
+                            should_backoff = True
+                        
+                        if should_backoff:
+                            consecutive_failures += 1
+                            print(f"[WORKER] ERROR: Got retryable status, backing off {GLOBAL_WEB_JSON_BACKOFF_SECONDS}s (failure {consecutive_failures})")
+                            time.sleep(GLOBAL_WEB_JSON_BACKOFF_SECONDS)
+                            continue
+                    
+                    # Success - reset failure counter
+                    consecutive_failures = 0
+                    
+                except KeyboardInterrupt:
+                    print("[WORKER] Interrupted by user, exiting...")
+                    break
+                
+                if not run_loop:
+                    break
+                    
+                print(f"[WORKER] Sleeping {args.interval_seconds}s until next cycle...")
+                time.sleep(args.interval_seconds)
+        except KeyboardInterrupt:
+            print("[WORKER] Interrupted by user, exiting cleanly...")
 
 
 if __name__ == "__main__":
