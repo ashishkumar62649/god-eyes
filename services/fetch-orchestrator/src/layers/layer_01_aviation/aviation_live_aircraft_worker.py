@@ -427,7 +427,9 @@ def run_global_web_json_worker(
     db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
     
     # Use global web JSON source ID
-    source_id = GLOBAL_WEB_JSON_SOURCE_ID
+    # Use DEFAULT_SOURCE_ID (airplanes_live_v2) for DB operations to align with API WebSocket
+    # Source mode is preserved in fetch_params/metadata
+    source_id = DEFAULT_SOURCE_ID
     
     if persist:
         print("[WORKER] GLOBAL-WEB-JSON MODE: Will write to database")
