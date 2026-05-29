@@ -10,6 +10,7 @@ import { AviationFilters } from '../lib/aviationCategories';
 import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
+import type { LiveAircraftPhase } from '../lib/useLiveAircraft';
 
 interface AviationStats {
   loaded: number;
@@ -37,6 +38,9 @@ interface ShellProps {
   bordersLayerActive: boolean;
   setBordersLayerActive: (active: boolean) => void;
   bordersPhase: BordersPhase;
+  liveAircraftLayerActive: boolean;
+  setLiveAircraftLayerActive: (active: boolean) => void;
+  liveAircraftPhase: LiveAircraftPhase;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -46,6 +50,7 @@ const Shell: React.FC<ShellProps> = ({
   layoutPhase,
   earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
   bordersLayerActive, setBordersLayerActive, bordersPhase,
+  liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -69,6 +74,9 @@ const Shell: React.FC<ShellProps> = ({
           bordersLayerActive={bordersLayerActive}
           setBordersLayerActive={setBordersLayerActive}
           bordersPhase={bordersPhase}
+          liveAircraftLayerActive={liveAircraftLayerActive}
+          setLiveAircraftLayerActive={setLiveAircraftLayerActive}
+          liveAircraftPhase={liveAircraftPhase}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -87,6 +95,8 @@ const Shell: React.FC<ShellProps> = ({
         bordersPhase={bordersPhase}
         earthEventsLayerActive={earthEventsLayerActive}
         earthEventsPhase={earthEventsPhase}
+        liveAircraftLayerActive={liveAircraftLayerActive}
+        liveAircraftPhase={liveAircraftPhase}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
+import type { LiveAircraftPhase } from '../lib/useLiveAircraft';
 
 interface AviationStats {
   loaded: number;
@@ -23,12 +24,15 @@ interface StatusPanelProps {
   bordersPhase: BordersPhase;
   earthEventsLayerActive: boolean;
   earthEventsPhase: EarthEventsPhase;
+  liveAircraftLayerActive: boolean;
+  liveAircraftPhase: LiveAircraftPhase;
 }
 
 const StatusPanel: React.FC<StatusPanelProps> = ({
   aviationLayerActive, aviationStats,
   bordersLayerActive, bordersPhase,
   earthEventsLayerActive, earthEventsPhase,
+  liveAircraftLayerActive, liveAircraftPhase,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -97,6 +101,21 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
                 {earthEventsPhase.phase === 'ok' ? `${earthEventsPhase.events.length} EVENTS`
                   : earthEventsPhase.phase === 'loading' ? 'LOADING...'
                   : earthEventsPhase.phase === 'error' ? 'ERROR'
+                  : 'IDLE'}
+              </div>
+            </div>
+          )}
+
+          {liveAircraftLayerActive && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Live Aircraft</div>
+              <div className="detail-value" style={{
+                color: liveAircraftPhase.phase === 'ok' ? 'var(--shell-accent)' : liveAircraftPhase.phase === 'error' ? '#ff4d4d' : '#ffab00',
+              }}>
+                {liveAircraftPhase.phase === 'ok' ? `${liveAircraftPhase.aircraft.length} AIRCRAFT`
+                  : liveAircraftPhase.phase === 'loading' ? 'LOADING...'
+                  : liveAircraftPhase.phase === 'empty' ? 'NONE IN VIEW'
+                  : liveAircraftPhase.phase === 'error' ? 'API UNAVAILABLE'
                   : 'IDLE'}
               </div>
             </div>

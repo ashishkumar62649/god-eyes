@@ -4,6 +4,7 @@ import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories'
 import { useLayerRegistry } from '../lib/useLayerRegistry';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
+import type { LiveAircraftPhase } from '../lib/useLiveAircraft';
 
 interface AviationStats {
   loaded: number;
@@ -26,6 +27,9 @@ interface LayerPanelProps {
   bordersLayerActive: boolean;
   setBordersLayerActive: (active: boolean) => void;
   bordersPhase: BordersPhase;
+  liveAircraftLayerActive: boolean;
+  setLiveAircraftLayerActive: (active: boolean) => void;
+  liveAircraftPhase: LiveAircraftPhase;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -43,6 +47,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   aviationStats, aviationFilters, onFiltersChange,
   earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
   bordersLayerActive, setBordersLayerActive, bordersPhase,
+  liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -67,6 +72,20 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       case 'loading': return 'LOADING...';
       case 'ok': return `ACTIVE — ${bordersPhase.data.features.length} COUNTRIES`;
       case 'error': return 'ERROR — LAYER OFFLINE';
+      default: return 'ACTIVE';
+    }
+  }
+
+  function liveAircraftStatusText(): string {
+    if (!liveAircraftLayerActive) return 'READY — CLICK TO ACTIVATE';
+    switch (liveAircraftPhase.phase) {
+      case 'loading': return 'LOADING...';
+      case 'ok': {
+        const secs = Math.max(0, Math.round((Date.now() - liveAircraftPhase.updatedAt) / 1000));
+        return `ACTIVE — ${liveAircraftPhase.aircraft.length} AIRCRAFT (${secs}s AGO)`;
+      }
+      case 'empty': return 'ACTIVE — NO LIVE AIRCRAFT IN VIEW';
+      case 'error': return 'API UNAVAILABLE';
       default: return 'ACTIVE';
     }
   }
@@ -109,7 +128,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
 
             if (isAviation) {
               return (
-                <div key={entry.layerId} className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
+                <React.Fragment key={entry.layerId}>
+                <div className={`layer-item ${aviationLayerActive ? 'active' : ''}`}
                   onClick={() => setAviationLayerActive(!aviationLayerActive)} style={{ cursor: 'pointer' }}>
                   <div className="layer-name">{entry.name} [L1]</div>
                   <div className="layer-status">
@@ -131,6 +151,28 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     )}
                   </div>
                 </div>
+                <div className={`layer-item ${liveAircraftLayerActive ? 'active' : ''}`}
+                  onClick={() => setLiveAircraftLayerActive(!liveAircraftLayerActive)}
+                  style={{ cursor: 'pointer', marginLeft: '10px' }}>
+                  <div className="layer-name">↳ Live Aircraft [L1]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: liveAircraftLayerActive
+                        ? (liveAircraftPhase.phase === 'error' ? '#ff4d4d' : 'var(--shell-accent)')
+                        : undefined,
+                      fontWeight: liveAircraftLayerActive ? 600 : undefined,
+                      opacity: liveAircraftLayerActive ? 1 : 0.7,
+                    }}>
+                      {liveAircraftStatusText()}
+                    </span>
+                  </div>
+                  {liveAircraftLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      Live aircraft data: Airplanes.live (non-commercial/no-SLA). Not complete global coverage.
+                    </div>
+                  )}
+                </div>
+                </React.Fragment>
               );
             }
 
