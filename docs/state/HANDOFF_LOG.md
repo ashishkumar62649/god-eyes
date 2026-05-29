@@ -3361,3 +3361,26 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-29T21:55:00Z MiniMax — WO-080A2 Align Live Aircraft Source ID for WebSocket Runtime
+
+- Work order: WO-080A2-ALIGN-LIVE-AIRCRAFT-SOURCE-ID-FOR-WEBSOCKET-RUNTIME
+- Agent: MiniMax
+- Role: Align global-web-json source_id with API WebSocket expectation
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:50:00Z
+- End time UTC: 2026-05-29T21:55:00Z
+- Commit hash: 173edd3
+- Push status: local only (awaiting Kiro review)
+- What was done: Changed global-web-json worker to use DEFAULT_SOURCE_ID (airplanes_live_v2) instead of GLOBAL_WEB_JSON_SOURCE_ID (airplanes_live_global_web_json) for all DB operations. This aligns with API WebSocket which expects source_id=airplanes_live_v2. Source mode is preserved in fetch_params and snapshot metadata.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
+- Source id behavior: Now uses airplanes_live_v2 for raw batch, latest, observations, and snapshot
+- Metadata/sourceMode behavior: Preserved in fetch_params {"sourceMode": "global-web-json"} and snapshot_metadata
+- Raw batch behavior: Uses source_id=DEFAULT_SOURCE_ID
+- Snapshot publish behavior: Uses source_id=DEFAULT_SOURCE_ID with sourceMode in metadata
+- Commands run: pytest, compileall, git commit
+- Test result: 44 passed
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
