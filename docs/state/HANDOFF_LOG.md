@@ -3318,3 +3318,25 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, database/migrations/, docs/state/)
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-29T21:35:00Z MiniMax — WO-080A1-R2 Make Live Aircraft Snapshot Runtime Work
+
+- Work order: WO-080A1-R2-MAKE-LIVE-AIRCRAFT-SNAPSHOT-RUNTIME-WORK
+- Agent: MiniMax
+- Role: Fix remaining runtime blockers for global-web-json snapshot publishing
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:20:00Z
+- End time UTC: 2026-05-29T21:35:00Z
+- Commit hash: 11d7e6a
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed remaining runtime blockers. (1) Error path in global-web-json also had duplicate fetch_params - fixed by passing None as 4th positional arg. (2) Changed NOTIFY syntax from unsafe f-string interpolation to pg_notify with parameterized query for safe payload handling.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_db.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Bug 1 fixed: insert_raw_batch error path duplicate fetch_params
+- Bug 2 fixed: NOTIFY syntax - now uses pg_notify(%s, %s) parameterized
+- Tests added: 4 new tests for bug fix coverage (44 total passing)
+- Commands run: pytest, compileall, git commit
+- Test result: 44 passed
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
