@@ -427,7 +427,9 @@ def run_global_web_json_worker(
     db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
     
     # Use global web JSON source ID
-    source_id = GLOBAL_WEB_JSON_SOURCE_ID
+    # Use DEFAULT_SOURCE_ID (airplanes_live_v2) for DB operations to align with API WebSocket
+    # Source mode is preserved in fetch_params/metadata
+    source_id = DEFAULT_SOURCE_ID
     
     if persist:
         print("[WORKER] GLOBAL-WEB-JSON MODE: Will write to database")
@@ -463,10 +465,14 @@ def run_global_web_json_worker(
             if conn:
                 try:
                     insert_raw_batch(
-                        conn, source_id, "/data/aircraft.json.gz", 
-                        {"sourceMode": "global-web-json"}, received_at,
-                        http_status=status, aircraft_count=0,
-                        error_message=error
+                        conn,
+                        source_id,
+                        "/data/aircraft.json.gz",
+                        {"sourceMode": "global-web-json"},
+                        received_at,
+                        http_status=status,
+                        aircraft_count=0,
+                        error_message=error,
                     )
                 except Exception as db_err:
                     print(f"[WORKER] ERROR recording failed batch: {db_err}")
@@ -491,12 +497,15 @@ def run_global_web_json_worker(
             try:
                 raw_sample = aircraft_list[:5] if aircraft_list else []
                 insert_raw_batch(
-                    conn, source_id, "/data/aircraft.json.gz",
-                    {"sourceMode": "global-web-json"}, received_at,
-                    http_status=status, aircraft_count=aircraft_count,
+                    conn,
+                    source_id,
+                    "/data/aircraft.json.gz",
+                    {"sourceMode": "global-web-json", "messages": source_messages},
+                    received_at,
+                    http_status=status,
+                    aircraft_count=aircraft_count,
                     source_now_ts=source_now,
                     error_message=None,
-                    fetch_params={"sourceMode": "global-web-json", "messages": source_messages}
                 )
             except Exception as db_err:
                 print(f"[WORKER] ERROR recording raw batch: {db_err}")

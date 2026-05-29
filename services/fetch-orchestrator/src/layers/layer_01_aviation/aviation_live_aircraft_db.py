@@ -357,5 +357,8 @@ def upsert_live_snapshot(
     })
     
     with conn.cursor() as cur:
-        cur.execute(f"NOTIFY {SNAPSHOT_NOTIFY_CHANNEL}, %s", [notify_payload])
+        cur.execute(
+            "SELECT pg_notify(%s, %s)",
+            [SNAPSHOT_NOTIFY_CHANNEL, notify_payload]
+        )
         conn.commit()

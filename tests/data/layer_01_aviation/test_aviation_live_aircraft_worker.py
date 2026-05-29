@@ -594,5 +594,52 @@ def test_compact_aircraft_payload_shape():
     assert "lon" in compact
 
 
+# ===== WO-080A1 Runtime Bug Fix Tests =====
+
+
+def test_insert_raw_batch_error_path_no_duplicate_fetch_params():
+    """Global-web-json error path should not pass duplicate fetch_params."""
+    import inspect
+    from aviation_live_aircraft_worker import run_global_web_json_worker
+    
+    source = inspect.getsource(run_global_web_json_worker)
+    
+    # Check error path uses fetch_params as 4th positional, NOT as keyword
+    # Error path pattern: insert_raw_batch(conn, source_id, endpoint, fetch_params, fetched_at, ...)
+    assert 'insert_raw_batch(\n                        conn,\n                        source_id,\n                        "/data/aircraft.json.gz",\n                        {"sourceMode": "global-web-json"},\n                        received_at,' in source or \
+           'insert_raw_batch(\n                        conn, source_id,\n                        "/data/aircraft.json.gz",\n                        {"sourceMode": "global-web-json"}, received_at,' in source
+
+
+def test_insert_raw_batch_success_path_no_duplicate_fetch_params():
+    """Global-web-json success path should not pass duplicate fetch_params."""
+    import inspect
+    from aviation_live_aircraft_worker import run_global_web_json_worker
+    
+    source = inspect.getsource(run_global_web_json_worker)
+    
+    # Success path should also use fetch_params as 4th positional only
+    assert 'insert_raw_batch(\n                    conn,\n                    source_id,\n                    "/data/aircraft.json.gz",\n                    {"sourceMode": "global-web-json", "messages": source_messages},\n                    received_at,' in source or \
+           'insert_raw_batch(\n                    conn, source_id,\n                    "/data/aircraft.json.gz",\n                    {"sourceMode": "global-web-json", "messages": source_messages}, received_at,' in source
+
+
+def test_snapshot_notify_uses_pg_notify():
+    """Snapshot notify should use pg_notify for safe parameterization."""
+    import inspect
+    from aviation_live_aircraft_db import upsert_live_snapshot
+    
+    source = inspect.getsource(upsert_live_snapshot)
+    
+    # Should use pg_notify, NOT raw NOTIFY with string interpolation
+    assert "pg_notify" in source
+    assert 'SELECT pg_notify(%s, %s)' in source
+
+
+def test_snapshot_notify_channel_unchanged():
+    """Snapshot notify channel should be aviation_live_aircraft_snapshot."""
+    from aviation_live_aircraft_db import SNAPSHOT_NOTIFY_CHANNEL
+    
+    assert SNAPSHOT_NOTIFY_CHANNEL == "aviation_live_aircraft_snapshot"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

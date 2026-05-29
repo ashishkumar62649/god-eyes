@@ -3268,6 +3268,28 @@ All agents must append to this file after completing work.
 - Known issues: Global web JSON is experimental; uses Referer/Origin headers for compatibility; rate limited to 30s minimum interval
 - Next safe task: WO-079 final browser verification
 
+### 2026-05-29T21:15:00Z MiniMax — WO-080A1 Fix Live Aircraft Runtime Errors
+
+- Work order: WO-080A1-FIX-LIVE-AIRCRAFT-RUNTIME-ERRORS
+- Agent: MiniMax
+- Role: Fix runtime bug in global-web-json raw batch recording
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:00:00Z
+- End time UTC: 2026-05-29T21:15:00Z
+- Commit hash: b3d5c64
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed TypeError in global-web-json mode where insert_raw_batch() received fetch_params both as positional and keyword argument (duplicate). Changed positional placeholder {} to None so keyword fetch_params takes precedence.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
+- Bug fixed: "insert_raw_batch() got multiple values for argument 'fetch_params'"
+- Runtime behavior: Now correctly records raw batch without TypeError
+- Snapshot publish behavior: Unchanged (still calls upsert_live_snapshot if table exists)
+- History behavior: Unchanged (raw batch, observations preserved)
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
+
 ### 2026-05-29T19:25:00Z MiniMax — WO-080A Live Aircraft Snapshot Publisher
 
 - Work order: WO-080A-LIVE-AIRCRAFT-SNAPSHOT-PUBLISHER
@@ -3294,5 +3316,71 @@ All agents must append to this file after completing work.
 - Commands run: pytest, compileall, git commit
 - Test result: 40 passed
 - Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, database/migrations/, docs/state/)
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-29T21:35:00Z MiniMax — WO-080A1-R2 Make Live Aircraft Snapshot Runtime Work
+
+- Work order: WO-080A1-R2-MAKE-LIVE-AIRCRAFT-SNAPSHOT-RUNTIME-WORK
+- Agent: MiniMax
+- Role: Fix remaining runtime blockers for global-web-json snapshot publishing
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:20:00Z
+- End time UTC: 2026-05-29T21:35:00Z
+- Commit hash: 11d7e6a
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed remaining runtime blockers. (1) Error path in global-web-json also had duplicate fetch_params - fixed by passing None as 4th positional arg. (2) Changed NOTIFY syntax from unsafe f-string interpolation to pg_notify with parameterized query for safe payload handling.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_db.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Bug 1 fixed: insert_raw_batch error path duplicate fetch_params
+- Bug 2 fixed: NOTIFY syntax - now uses pg_notify(%s, %s) parameterized
+- Tests added: 4 new tests for bug fix coverage (44 total passing)
+- Commands run: pytest, compileall, git commit
+- Test result: 44 passed
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-29T21:45:00Z MiniMax — WO-080A1-R3 Fix Duplicate fetch_params Correctly
+
+- Work order: WO-080A1-R3-FIX-DUPLICATE-FETCH-PARAMS-CORRECTLY
+- Agent: MiniMax
+- Role: Fix insert_raw_batch() calls to use fetch_params only as positional arg
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:40:00Z
+- End time UTC: 2026-05-29T21:45:00Z
+- Commit hash: 1e5f026
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed both global-web-json insert_raw_batch() calls to use fetch_params only as 4th positional argument (not as keyword). Error path: {"sourceMode": "global-web-json"} as 4th arg. Success path: {"sourceMode": "global-web-json", "messages": source_messages} as 4th arg. Removed keyword fetch_params= from both calls.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Bug fixed: insert_raw_batch() no longer receives duplicate fetch_params
+- Tests: 44 passed
+- Commands run: pytest, compileall, git commit
+- Test result: 44 passed
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-29T21:55:00Z MiniMax — WO-080A2 Align Live Aircraft Source ID for WebSocket Runtime
+
+- Work order: WO-080A2-ALIGN-LIVE-AIRCRAFT-SOURCE-ID-FOR-WEBSOCKET-RUNTIME
+- Agent: MiniMax
+- Role: Align global-web-json source_id with API WebSocket expectation
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:50:00Z
+- End time UTC: 2026-05-29T21:55:00Z
+- Commit hash: 173edd3
+- Push status: local only (awaiting Kiro review)
+- What was done: Changed global-web-json worker to use DEFAULT_SOURCE_ID (airplanes_live_v2) instead of GLOBAL_WEB_JSON_SOURCE_ID (airplanes_live_global_web_json) for all DB operations. This aligns with API WebSocket which expects source_id=airplanes_live_v2. Source mode is preserved in fetch_params and snapshot metadata.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
+- Source id behavior: Now uses airplanes_live_v2 for raw batch, latest, observations, and snapshot
+- Metadata/sourceMode behavior: Preserved in fetch_params {"sourceMode": "global-web-json"} and snapshot_metadata
+- Raw batch behavior: Uses source_id=DEFAULT_SOURCE_ID
+- Snapshot publish behavior: Uses source_id=DEFAULT_SOURCE_ID with sourceMode in metadata
+- Commands run: pytest, compileall, git commit
+- Test result: 44 passed
+- Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
