@@ -17,16 +17,25 @@ import {
   ConstantPositionProperty,
   PolylineCollection,
   Material,
+  BillboardGraphics,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
-import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
 
 import {
   fetchAllAviationCategories,
 } from './lib/aviationPreloader';
 import { isPositionVisible } from './lib/cesiumVisibility';
+import {
+  getAircraftArrowSprite,
+  getAircraftDotSprite,
+  getAircraftColor,
+  getAircraftHeadingDeg,
+  headingToBillboardRotation,
+  AIRCRAFT_BILLBOARD_SCALE,
+} from './lib/aircraftMarker';
 import {
   AviationFilters,
 } from './lib/aviationCategories';
@@ -69,6 +78,7 @@ interface CesiumGlobeProps {
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
   earthEvents?: EarthEvent[];
   bordersData?: BordersBoundariesFeatureCollection | null;
+  liveAircraft?: AircraftLatest[];
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -81,6 +91,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   layoutFeatures,
   earthEvents,
   bordersData,
+  liveAircraft,
 }) => {
 
   /**
@@ -104,6 +115,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
+  const aircraftDataSourceRef = useRef<CustomDataSource | null>(null);
   const bordersDataSourceRef = useRef<PolylineCollection | null>(null);
   const globalDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const onObjectSelectRef = useRef(onObjectSelect);
@@ -122,6 +134,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   // Selected earthquake for minimal info overlay
   const [selectedEarthquake, setSelectedEarthquake] = useState<EarthEvent | null>(null);
+
+  // Selected live aircraft for minimal info overlay (WO-079E)
+  const [selectedAircraft, setSelectedAircraft] = useState<AircraftLatest | null>(null);
 
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
@@ -349,6 +364,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       earthEventsDataSourceRef.current = earthEventsDataSource;
       viewer.dataSources.add(earthEventsDataSource);
 
+      const aircraftDataSource = new CustomDataSource('live-aircraft');
+      aircraftDataSourceRef.current = aircraftDataSource;
+      viewer.dataSources.add(aircraftDataSource);
+
       // FPS tracking
       let fpsFrameCount = 0;
       let fpsLastUpdate = performance.now();
@@ -431,6 +450,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         // Earthquake entity click
         if (entity.properties && entity.properties.earthquakeData) {
           setSelectedEarthquake(entity.properties.earthquakeData.getValue() as EarthEvent);
+          return;
+        }
+
+        // Live aircraft entity click (WO-079E)
+        if (entity.properties && entity.properties.aircraftData) {
+          setSelectedAircraft(entity.properties.aircraftData.getValue() as AircraftLatest);
           return;
         }
 
@@ -664,6 +689,57 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [earthEvents]);
 
+  // Render live aircraft on the globe (WO-079E).
+  // Rebuilt on each poll from real observed positions only — no dead reckoning,
+  // no predicted movement. Stale aircraft are excluded by the API by default and
+  // also filtered client-side defensively. Capped at 5000 markers.
+  // INTERPOLATION: safe placeholder — markers snap to each newly observed position.
+  // TODO(WO-079 follow-up): smooth visual interpolation strictly between two real
+  // observed positions for the same sourceObjectId (no extrapolation past staleAfter).
+  useEffect(() => {
+    const ds = aircraftDataSourceRef.current;
+    if (!ds) return;
+
+    ds.entities.removeAll();
+
+    if (!liveAircraft || liveAircraft.length === 0) return;
+
+    const now = Date.now();
+    const arrowSprite = getAircraftArrowSprite();
+    const dotSprite = getAircraftDotSprite();
+    let rendered = 0;
+
+    for (const ac of liveAircraft) {
+      if (rendered >= 5000) break;
+      if (ac.lat === null || ac.lon === null) continue;
+      // Defensive client-side stale filter (API already excludes stale by default).
+      if (ac.staleAfter && new Date(ac.staleAfter).getTime() < now) continue;
+
+      const heading = getAircraftHeadingDeg(ac);
+      const color = getAircraftColor(ac);
+      const altMeters = typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt * 0.3048 : 0;
+
+      const entity = new Entity({
+        id: `aircraft-${ac.sourceObjectId}`,
+        position: new ConstantPositionProperty(
+          Cartesian3.fromDegrees(ac.lon, ac.lat, Math.max(0, altMeters)),
+        ),
+        billboard: new BillboardGraphics({
+          image: new ConstantProperty(heading !== null ? arrowSprite : dotSprite),
+          color: new ConstantProperty(color),
+          scale: new ConstantProperty(AIRCRAFT_BILLBOARD_SCALE),
+          rotation: new ConstantProperty(
+            heading !== null ? headingToBillboardRotation(heading) : 0,
+          ),
+          alignedAxis: new ConstantProperty(Cartesian3.ZERO), // screen-space rotation
+        }),
+      });
+      (entity as any).properties = { aircraftData: new ConstantProperty(ac) };
+      ds.entities.add(entity);
+      rendered++;
+    }
+  }, [liveAircraft]);
+
   if (error) {
     return (
       <div style={{
@@ -733,6 +809,41 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               </a>
             </div>
           )}
+        </div>
+      )}
+      {selectedAircraft && (
+        <div style={{
+          position: 'absolute', bottom: '80px', right: '20px',
+          background: 'rgba(10, 14, 20, 0.92)',
+          border: '1px solid rgba(0, 229, 255, 0.4)',
+          color: '#e0e0e0', padding: '10px 14px', borderRadius: '4px',
+          fontSize: '0.68rem', fontFamily: 'JetBrains Mono, monospace',
+          letterSpacing: '0.5px', zIndex: 1000, maxWidth: '280px',
+          lineHeight: '1.6',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ color: '#00e5ff', fontWeight: 700, letterSpacing: '1px' }}>
+              {selectedAircraft.callsign?.trim() || selectedAircraft.registration || selectedAircraft.sourceObjectId}
+              {selectedAircraft.isMilitary ? ' • MIL' : ''}
+              {selectedAircraft.emergency && selectedAircraft.emergency !== 'none' ? ' • EMERGENCY' : ''}
+            </span>
+            <button
+              onClick={() => setSelectedAircraft(null)}
+              style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
+            >✕</button>
+          </div>
+          {selectedAircraft.registration && <div>REG: {selectedAircraft.registration}</div>}
+          {selectedAircraft.aircraftType && <div>TYPE: {selectedAircraft.aircraftType}</div>}
+          {selectedAircraft.altitudeBaroFt != null && <div>ALT: {selectedAircraft.altitudeBaroFt.toLocaleString()} ft</div>}
+          {selectedAircraft.groundSpeedKt != null && <div>SPEED: {Math.round(selectedAircraft.groundSpeedKt)} kt</div>}
+          {(selectedAircraft.trackDeg ?? selectedAircraft.headingTrueDeg ?? selectedAircraft.headingMagDeg) != null && (
+            <div>HEADING: {Math.round((selectedAircraft.trackDeg ?? selectedAircraft.headingTrueDeg ?? selectedAircraft.headingMagDeg)!)}°</div>
+          )}
+          <div style={{ opacity: 0.7 }}>ID: {selectedAircraft.sourceObjectId}</div>
+          <div style={{ opacity: 0.7 }}>OBSERVED: {new Date(selectedAircraft.observedAt).toUTCString()}</div>
+          <div style={{ marginTop: '6px', fontSize: '0.55rem', color: '#ffab00', opacity: 0.7, lineHeight: 1.4 }}>
+            Live aircraft data: Airplanes.live (non-commercial/no-SLA). Not complete global coverage.
+          </div>
         </div>
       )}
     </div>

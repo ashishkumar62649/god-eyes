@@ -6,6 +6,8 @@ import type {
   LayerRegistryResponse,
   EarthEventsLatestResponse,
   BordersBoundariesFeatureCollection,
+  AircraftLatestListResponse,
+  AircraftDetailResponse,
 } from '@god-eyes/contracts';
 import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
 import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
@@ -193,6 +195,36 @@ export async function fetchBordersBoundariesCountries(
   const response = await fetch(url.toString(), { signal: abortSignal });
   if (!response.ok) {
     throw new Error(`Failed to fetch borders: ${response.status}`);
+  }
+  return response.json();
+}
+
+// Live aircraft (WO-079E). Frontend calls ONLY the GOD EYES API — never Airplanes.live directly.
+// Stale aircraft are excluded by the API by default (includeStale not sent).
+export async function fetchLiveAircraft(
+  params: { bbox?: string; limit?: number } = {},
+  abortSignal?: AbortSignal,
+): Promise<AircraftLatestListResponse> {
+  const url = new URL(`${API_BASE_URL}/api/aviation/aircraft/latest`);
+  url.searchParams.set('bbox', params.bbox ?? '-180,-90,180,90');
+  url.searchParams.set('limit', String(Math.min(params.limit ?? 5000, 5000)));
+  const response = await fetch(url.toString(), { signal: abortSignal });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Failed to fetch live aircraft: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function fetchAircraftDetail(
+  sourceObjectId: string,
+  abortSignal?: AbortSignal,
+): Promise<AircraftDetailResponse> {
+  const url = `${API_BASE_URL}/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`;
+  const response = await fetch(url, { signal: abortSignal });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Failed to fetch aircraft detail: ${response.status}`);
   }
   return response.json();
 }

@@ -8,6 +8,7 @@ import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategor
 import { useAirportLayoutFeatures } from './lib/useAirportLayoutFeatures';
 import { useEarthEvents } from './lib/useEarthEvents';
 import { useBordersBoundaries } from './lib/useBordersBoundaries';
+import { useLiveAircraft } from './lib/useLiveAircraft';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -33,6 +34,7 @@ const App: React.FC = () => {
   const [aviationLayerActive, setAviationLayerActive] = useState(false);
   const [earthEventsLayerActive, setEarthEventsLayerActive] = useState(false);
   const [bordersLayerActive, setBordersLayerActive] = useState(false);
+  const [liveAircraftLayerActive, setLiveAircraftLayerActive] = useState(false);
   const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -53,6 +55,7 @@ const App: React.FC = () => {
   const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
   const earthEventsPhase = useEarthEvents(earthEventsLayerActive);
   const bordersPhase = useBordersBoundaries(bordersLayerActive);
+  const liveAircraftPhase = useLiveAircraft(liveAircraftLayerActive);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -150,6 +153,7 @@ const App: React.FC = () => {
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
         earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
         bordersData={bordersPhase.phase === 'ok' ? bordersPhase.data : null}
+        liveAircraft={liveAircraftPhase.phase === 'ok' ? liveAircraftPhase.aircraft : undefined}
       />
 
       <div style={{
@@ -175,6 +179,9 @@ const App: React.FC = () => {
           bordersLayerActive={bordersLayerActive}
           setBordersLayerActive={setBordersLayerActive}
           bordersPhase={bordersPhase}
+          liveAircraftLayerActive={liveAircraftLayerActive}
+          setLiveAircraftLayerActive={setLiveAircraftLayerActive}
+          liveAircraftPhase={liveAircraftPhase}
         />
       </div>
     </div>

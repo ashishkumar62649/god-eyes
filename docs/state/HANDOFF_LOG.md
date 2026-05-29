@@ -1,3 +1,42 @@
+### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
+
+- Work order: WO-079E — Aviation Live Aircraft Frontend
+- Folder: E:\god-eyes-frontend
+- Agent: Claude Sonnet 4.6
+- Role: Frontend / Cesium visualization only
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/claude-wo-079e-aviation-live-frontend
+- Start time UTC: 2026-05-29T08:00:00Z
+- End time UTC: 2026-05-29T08:30:46Z
+- Commit hash: local commit on branch agent/claude-wo-079e-aviation-live-frontend (HEAD; see git log)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- What was done: Implemented frontend visualization for live aircraft using the WO-079D API. Added an API client + 5s polling hook, a Live Aircraft layer toggle (sub-layer of Aviation, default OFF), heading-arrow Cesium billboard markers (cap 5000), stale/empty/error-safe handling, a click-to-inspect aircraft detail overlay with the Airplanes.live source caveat, and subtle layer status UX in the Layer and Status panels. Frontend calls ONLY the GOD EYES API; no direct Airplanes.live calls.
+- Files created:
+  - apps/web/src/lib/useLiveAircraft.ts — polling hook (5s setInterval, AbortController, phase union idle/loading/ok/empty/error, cap 5000, global bbox default, aborts when layer disabled or unmounted, keeps prior data during refetch to avoid loading flicker)
+  - apps/web/src/lib/aircraftMarker.ts — white arrow + neutral dot canvas sprites (tinted per aircraft), color logic (emergency red > military amber > neutral cyan), heading resolution (trackDeg || headingTrueDeg || headingMagDeg), heading→billboard rotation helper, AIRCRAFT_BILLBOARD_SCALE (~8px on screen)
+- Files modified:
+  - apps/web/src/lib/api.ts — fetchLiveAircraft({bbox default -180,-90,180,90, limit capped 5000}, signal) and fetchAircraftDetail(sourceObjectId, signal); imported AircraftLatestListResponse + AircraftDetailResponse contracts
+  - apps/web/src/CesiumGlobe.tsx — liveAircraft prop, dedicated 'live-aircraft' CustomDataSource, billboard render effect (arrow when heading known else dot, screen-space rotation via alignedAxis=Cartesian3.ZERO, altitude from altitudeBaroFt, cap 5000, skip null lat/lon, defensive client-side stale skip), click→selectedAircraft overlay (callsign/registration/type/altitude/speed/heading/id/observedAt + source caveat). Native globe occlusion (depthTestAgainstTerrain) + isPositionVisible() click guard reused. Empty/undefined liveAircraft clears markers safely.
+  - apps/web/src/App.tsx — liveAircraftLayerActive state (default false), useLiveAircraft hook, passes liveAircraft to CesiumGlobe and live aircraft props to Shell
+  - apps/web/src/components/Shell.tsx — threads live aircraft props to LayerPanel and StatusPanel
+  - apps/web/src/components/LayerPanel.tsx — Live Aircraft sub-layer toggle nested under Aviation (indented "↳ Live Aircraft [L1]"), status text (READY / LOADING / ACTIVE — N AIRCRAFT (Ns AGO) / NO LIVE AIRCRAFT IN VIEW / API UNAVAILABLE), Airplanes.live caveat shown when active
+  - apps/web/src/components/StatusPanel.tsx — Live Aircraft telemetry entry (AIRCRAFT count / LOADING / NONE IN VIEW / API UNAVAILABLE / IDLE)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS — tsc type-check + vite build, 65 modules), git diff --check (PASS, clean), git status --short
+- Test/build results: Contracts build PASS. Web build PASS (65 modules, 218.86 kB JS, 549ms). git diff --check clean. No web lint/test scripts exist in apps/web/package.json (only dev/build/preview) and no existing frontend test files; adding a test framework would require modifying package.json (forbidden), so verification is via the build's full tsc type-check. No frontend tests added.
+- Security/privacy result: PASS. No .env, no secrets, no API keys. Frontend calls only the GOD EYES API (VITE_API_BASE_URL || http://localhost:4000). No direct Airplanes.live calls. No new dependencies. No PII handling.
+- Forbidden folders touched: NO (only apps/web/src/ and docs/state/HANDOFF_LOG.md)
+- Live API used: GET /api/aviation/aircraft/latest?bbox=...&limit=5000 (polled every 5s while layer enabled); GET /api/aviation/aircraft/:sourceObjectId client function added for future deep Object Intel integration
+- Layer id: layer_01_aviation.live_aircraft (Live Aircraft sub-layer; default OFF)
+- Polling behavior: Polls every 5s only while the Live Aircraft layer is enabled; stops and aborts on disable/unmount
+- Validation checklist: Layer toggle exists ✓ | Calls only GOD EYES API ✓ | No direct Airplanes.live calls ✓ | Polls 5s only when enabled ✓ | BBox query included (global fallback -180,-90,180,90, isolated in hook/api for later viewport upgrade) ✓ | Visible cap ≤ 5000 ✓ | Stale aircraft not rendered (API excludes by default + client-side defensive skip) ✓ | Empty response safe ✓ | API failure safe ✓ | Existing aviation static layer unchanged ✓ | Build passes ✓ | No forbidden folders touched ✓
+- Known limitations:
+  - Interpolation is a safe placeholder: markers SNAP to each newly observed position every 5s poll. No dead reckoning, no prediction past staleAfter. A TODO is in CesiumGlobe.tsx for true smooth visual interpolation strictly between two real observed positions per sourceObjectId.
+  - BBox is global (-180,-90,180,90) by default; the bbox argument is isolated in the hook/api client so a camera-derived viewport can be wired in later without changing callers.
+  - Object Intel for aircraft is a lightweight bottom-right overlay (the existing DetailPanel is airport-specific). fetchAircraftDetail() exists for future deep integration.
+  - Browser/runtime verification (live markers, heading rotation correctness, FPS at high counts) not performed in this environment; build/type-check only.
+- Next recommended task: WO-079 final integration / browser verification (Reviewer / Kiro)
+
 ### 2026-05-29T13:06:00Z DeepSeek — WO-079D Aviation Live Aircraft API
 
 - Work order: WO-079D-AVIATION-LIVE-AIRCRAFT-API
