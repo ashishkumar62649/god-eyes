@@ -10,7 +10,7 @@ import { AviationFilters } from '../lib/aviationCategories';
 import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { LiveAircraftStatus } from '../lib/useLiveAircraft';
+import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;

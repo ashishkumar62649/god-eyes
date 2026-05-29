@@ -4,7 +4,7 @@ import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories'
 import { useLayerRegistry } from '../lib/useLayerRegistry';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { LiveAircraftStatus } from '../lib/useLiveAircraft';
+import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;
@@ -80,19 +80,19 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     if (!liveAircraftLayerActive) return 'READY — CLICK TO ACTIVATE';
     const { phase, renderedCount, totalReceived, lastSuccessAt, errorMessage } = liveAircraftPhase;
     const secs = lastSuccessAt > 0 ? Math.max(0, Math.round((Date.now() - lastSuccessAt) / 1000)) : null;
-    const ago = secs !== null ? ` (UPDATED ${secs}s AGO)` : '';
+    const ago = secs !== null ? ` (${secs}s AGO)` : '';
     switch (phase) {
-      case 'loading': return 'LOADING...';
-      case 'updating':
+      case 'connecting': return 'CONNECTING — LIVE AIRCRAFT';
+      case 'reconnecting':
         return renderedCount > 0
-          ? `UPDATING — ${renderedCount} AIRCRAFT VISIBLE`
-          : 'UPDATING...';
-      case 'ok':
+          ? `RECONNECTING — SHOWING LAST SNAPSHOT FROM ${secs ?? '?'}s AGO`
+          : 'RECONNECTING...';
+      case 'live':
         if (totalReceived > renderedCount && renderedCount > 0) {
-          return `ACTIVE — ${renderedCount} / ${totalReceived} AIRCRAFT RENDERED${ago}`;
+          return `LIVE — ${renderedCount} / ${totalReceived} AIRCRAFT RENDERED${ago}`;
         }
-        return `ACTIVE — ${renderedCount} AIRCRAFT${ago}`;
-      case 'empty': return `ACTIVE — NO LIVE AIRCRAFT IN VIEW${ago}`;
+        return `LIVE — ${renderedCount} AIRCRAFT${ago}`;
+      case 'empty': return `LIVE — NO AIRCRAFT IN VIEW${ago}`;
       case 'error':
         return renderedCount > 0
           ? `API UNAVAILABLE — SHOWING LAST GOOD SNAPSHOT FROM ${secs ?? '?'}s AGO`

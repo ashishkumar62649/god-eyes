@@ -1,3 +1,30 @@
+### 2026-05-29T14:00:00Z Claude Sonnet 4.6 — WO-080B Live Aircraft WebSocket Radar Renderer
+
+- Work order: WO-080B — Frontend Live Aircraft WebSocket Radar Renderer
+- Folder: E:\god-eyes-frontend
+- Agent: Claude Sonnet 4.6
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/claude-wo-080b-live-aircraft-websocket-radar
+- Start time UTC: 2026-05-29T13:30:00Z
+- End time UTC: 2026-05-29T14:00:00Z
+- Commit hash: local commit on branch (HEAD; see git log)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- What was done: Replaced REST polling live aircraft with WebSocket-driven radar renderer. Created useLiveAircraftSocket.ts. Updated App.tsx, CesiumGlobe.tsx, LayerPanel, StatusPanel, Shell. Added dead reckoning rAF loop. Added delta handler. Old useLiveAircraft.ts kept as fallback/debug but not wired into active layer.
+- Files created: apps/web/src/lib/useLiveAircraftSocket.ts
+- Files modified: apps/web/src/App.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/StatusPanel.tsx, docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 225.77 kB JS), git diff --check (PASS)
+- Old polling removed: YES — useLiveAircraft polling hook no longer wired into active layer; App.tsx uses useLiveAircraftSocket exclusively
+- WebSocket client strategy: useLiveAircraftSocket connects to /ws/aviation/aircraft/live (ws:// or wss:// derived from VITE_API_BASE_URL); sends subscribe on open; handles aircraft.ready/snapshot/delta/error/pong; reconnects with exponential backoff [1s,2s,4s,8s,15s]; closes on layer OFF; sendBboxRef populated for camera bbox forwarding
+- Renderer strategy: BillboardCollection (single primitive) + Map<sourceObjectId, AircraftRecord>; snapshot via chunked rAF apply loop (500/frame); delta via direct upsert/remove; no removeAll() except layer OFF
+- Dead reckoning strategy: separate rAF loop at ~20 FPS; moves billboard along trackDeg using speedKt * elapsed; clamps to 10s; stops on stale/onGround/invalid heading; display-only (never writes back to AircraftRecord real data)
+- BBox subscription strategy: CesiumGlobe populates onGetBboxCbRef via viewer.camera.computeViewRectangle(); App.tsx debounces (500ms) and forwards to sendBboxRef (WS send); global fallback if null
+- Status behavior: connecting/live/reconnecting/error phases; count never resets to 0 during normal operation; error with prior data shows last-snapshot age
+- Browser verification: not performed (build/type-check only); requires WO-080A backend WebSocket endpoint
+- Forbidden folders touched: NO
+- Known issues: Browser/runtime verification requires WO-080A backend. Dead reckoning uses approximate Cartesian bearing math (sufficient for display). Old useLiveAircraft.ts kept in repo as fallback/debug.
+- Next safe task: WO-080 final WebSocket integration review
+
 ### 2026-05-29T13:25:00Z Claude Sonnet 4.6 — WO-079H Live Aircraft Renderer Engine Fix
 
 - Work order: WO-079H — Live Aircraft Renderer Engine Fix

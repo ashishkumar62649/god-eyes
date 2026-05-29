@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { BordersPhase } from '../lib/useBordersBoundaries';
 import type { EarthEventsPhase } from '../lib/useEarthEvents';
-import type { LiveAircraftStatus } from '../lib/useLiveAircraft';
+import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;
@@ -110,17 +110,16 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
             <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
               <div className="detail-label">Live Aircraft</div>
               <div className="detail-value" style={{
-                color: liveAircraftPhase.phase === 'ok' ? 'var(--shell-accent)'
+                color: liveAircraftPhase.phase === 'live' ? 'var(--shell-accent)'
                   : liveAircraftPhase.phase === 'error' ? '#ff4d4d'
                   : '#ffab00',
               }}>
-                {liveAircraftPhase.phase === 'ok' || liveAircraftPhase.phase === 'updating'
-                  ? (liveAircraftPhase.totalReceived > liveAircraftPhase.renderedCount && liveAircraftPhase.renderedCount > 0
-                      ? `${liveAircraftPhase.renderedCount} / ${liveAircraftPhase.totalReceived} RENDERED`
-                      : `${liveAircraftPhase.renderedCount} AIRCRAFT`)
-                  : liveAircraftPhase.phase === 'loading' ? 'LOADING...'
+                {liveAircraftPhase.phase === 'live'
+                  ? `${liveAircraftPhase.renderedCount} AIRCRAFT`
+                  : liveAircraftPhase.phase === 'connecting' ? 'CONNECTING...'
+                  : liveAircraftPhase.phase === 'reconnecting' ? 'RECONNECTING...'
                   : liveAircraftPhase.phase === 'empty' ? 'NONE IN VIEW'
-                  : liveAircraftPhase.phase === 'error' ? 'API UNAVAILABLE'
+                  : liveAircraftPhase.phase === 'error' ? 'UNAVAILABLE'
                   : 'IDLE'}
               </div>
             </div>
