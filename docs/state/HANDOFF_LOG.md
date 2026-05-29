@@ -3268,6 +3268,28 @@ All agents must append to this file after completing work.
 - Known issues: Global web JSON is experimental; uses Referer/Origin headers for compatibility; rate limited to 30s minimum interval
 - Next safe task: WO-079 final browser verification
 
+### 2026-05-29T21:15:00Z MiniMax — WO-080A1 Fix Live Aircraft Runtime Errors
+
+- Work order: WO-080A1-FIX-LIVE-AIRCRAFT-RUNTIME-ERRORS
+- Agent: MiniMax
+- Role: Fix runtime bug in global-web-json raw batch recording
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:00:00Z
+- End time UTC: 2026-05-29T21:15:00Z
+- Commit hash: b3d5c64
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed TypeError in global-web-json mode where insert_raw_batch() received fetch_params both as positional and keyword argument (duplicate). Changed positional placeholder {} to None so keyword fetch_params takes precedence.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
+- Bug fixed: "insert_raw_batch() got multiple values for argument 'fetch_params'"
+- Runtime behavior: Now correctly records raw batch without TypeError
+- Snapshot publish behavior: Unchanged (still calls upsert_live_snapshot if table exists)
+- History behavior: Unchanged (raw batch, observations preserved)
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
+
 ### 2026-05-29T19:25:00Z MiniMax — WO-080A Live Aircraft Snapshot Publisher
 
 - Work order: WO-080A-LIVE-AIRCRAFT-SNAPSHOT-PUBLISHER
