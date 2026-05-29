@@ -88,10 +88,10 @@ interface CesiumGlobeProps {
   /** Called by the renderer to report rendered count back to the hook/status. */
   onAircraftRendered?: (count: number) => void;
   liveAircraftLayerActive?: boolean;
-  /** Returns current camera bbox string, or null for global fallback. */
-  onGetBbox?: () => string | null;
+  /** Returns current camera bbox as [minLon,minLat,maxLon,maxLat], or null for global fallback. */
+  onGetBbox?: () => [number, number, number, number] | null;
   /** Ref that CesiumGlobe populates with its bbox getter (for WS bbox updates). */
-  onGetBboxRef?: React.MutableRefObject<(() => string | null) | undefined>;
+  onGetBboxRef?: React.MutableRefObject<(() => [number, number, number, number] | null) | undefined>;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -901,7 +901,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const rect = viewer.camera.computeViewRectangle();
         if (!rect) return null;
         const toDeg = (r: number) => r * (180 / Math.PI);
-        return `${toDeg(rect.west).toFixed(4)},${toDeg(rect.south).toFixed(4)},${toDeg(rect.east).toFixed(4)},${toDeg(rect.north).toFixed(4)}`;
+        const bbox: [number, number, number, number] = [
+          toDeg(rect.west), toDeg(rect.south), toDeg(rect.east), toDeg(rect.north),
+        ];
+        // Validate before returning.
+        if (bbox.some((v) => !isFinite(v))) return null;
+        return bbox;
       } catch {
         return null;
       }

@@ -1,5 +1,19 @@
 
-### 2026-05-29T14:00:00Z Claude Sonnet 4.6 — WO-080B Live Aircraft WebSocket Radar Renderer
+### 2026-05-29T17:30:00Z Claude Sonnet 4.6 — WO-080C1 Fix Live Aircraft WebSocket BBox Protocol
+
+- Work order: WO-080C1
+- Branch: agent/claude-wo-080c1-fix-live-aircraft-websocket-bbox
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Start UTC: 2026-05-29T17:25:00Z / End UTC: 2026-05-29T17:30:00Z
+- Commit hash: da7e311 (local only, not pushed)
+- What was done: Fixed WebSocket bbox protocol mismatch. subscribe now sends bbox as numeric array [-180,-90,180,90]. bbox update message now uses type:'bbox' (not 'bbox_update'). CesiumGlobe bbox callback returns [number,number,number,number] tuple with finite-value validation. App.tsx types updated to match.
+- Files modified: apps/web/src/lib/useLiveAircraftSocket.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx
+- Commands run: pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Known issues: Browser verification requires WO-080A backend running.
+- Next safe task: WO-080 final WebSocket integration review
+
+
 
 - Work order: WO-080B — Frontend Live Aircraft WebSocket Radar Renderer
 - Folder: E:\god-eyes-frontend

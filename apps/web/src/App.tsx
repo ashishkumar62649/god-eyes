@@ -43,9 +43,9 @@ const App: React.FC = () => {
   // Refs for CesiumGlobe ↔ WebSocket hook bridge (no React re-render per message).
   const onSnapshotCbRef = useRef<((aircraft: AircraftLatest[]) => void) | undefined>(undefined);
   const onDeltaCbRef = useRef<((upsert: AircraftLatest[], removes: string[]) => void) | undefined>(undefined);
-  const onGetBboxCbRef = useRef<(() => string | null) | undefined>(undefined);
+  const onGetBboxCbRef = useRef<(() => [number, number, number, number] | null) | undefined>(undefined);
   // sendBboxRef is populated by the socket hook; used to forward camera bbox to WS.
-  const sendBboxRef = useRef<((bbox: string) => void) | null>(null);
+  const sendBboxRef = useRef<((bbox: [number, number, number, number]) => void) | null>(null);
   const bboxDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
@@ -62,7 +62,7 @@ const App: React.FC = () => {
   const handleAircraftRendered = useCallback((count: number) => setRenderedCount(count), []);
 
   // Camera bbox: CesiumGlobe populates onGetBboxCbRef; we debounce-forward to WS.
-  const handleGetBboxForWs = useCallback((): string | null => {
+  const handleGetBboxForWs = useCallback((): [number, number, number, number] | null => {
     const bbox = onGetBboxCbRef.current?.() ?? null;
     if (bbox && sendBboxRef.current) {
       if (bboxDebounceRef.current) clearTimeout(bboxDebounceRef.current);
