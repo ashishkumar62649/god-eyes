@@ -1,3 +1,4 @@
+
 ### 2026-05-29T14:00:00Z Claude Sonnet 4.6 — WO-080B Live Aircraft WebSocket Radar Renderer
 
 - Work order: WO-080B — Frontend Live Aircraft WebSocket Radar Renderer
@@ -48,6 +49,31 @@
 - Forbidden folders touched: NO
 - Known issues: Browser/runtime verification not performed (build/type-check only). API server-side limit raised to 20000 by WO-079G-A (DeepSeek).
 - Next safe task: WO-079 final integration / browser verification
+=======
+### 2026-05-29T20:00:00Z DeepSeek — WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
+
+- Work order: WO-080B — Live Aircraft WebSocket Broadcaster Fix
+- Folder: E:\god-eyes-api
+- Agent: DeepSeek
+- Role: API implementation
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/deepseek-wo-080b-live-aircraft-websocket-broadcaster
+- Start time UTC: 2026-05-29T19:50:00Z
+- End time UTC: 2026-05-29T20:10:00Z
+- Commit hash: (local only, awaiting review)
+- Push status: local only
+- What was done: Replaced polling-based LiveAircraftBroadcaster with NOTIFY/LISTEN architecture aligned to WO-080A migration schema. Broadcaster queries aviation_aircraft_live_snapshots reading: source_id, source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at. No ORDER BY id — uses WHERE source_id = $1 LIMIT 1 (source_id is PK). On startup and each NOTIFY on aviation_live_aircraft_snapshot channel, loads latest row, compares aircraft_json arrays by sourceObjectId/id, emits delta (upserts/removes). Periodic resync every 60s sends full snapshot. Added listen() to db.ts for LISTEN. Removed all aviation_aircraft_latest polling. WebSocket snapshot/delta messages use sourceName from source_name and sourceId from source_id. 26 tests cover schema alignment, no ORDER BY id, no aviation_aircraft_latest, no Airplanes.live URLs. Existing REST endpoint unchanged.
+- Files modified: apps/api/src/lib/db.ts, apps/api/tests/setup.ts, apps/api/src/lib/live-aircraft-broadcaster.ts, apps/api/src/routes/live-aircraft.ts, apps/api/tests/live-aircraft.test.ts
+- Files created: none
+- Files deleted: none
+- Commands run: pnpm --filter api test, git diff --check
+- Validation results: API tests PASS (260/260: 234 existing + 26 new), git diff --check PASS (CRLF cosmetic only)
+- Security/privacy result: PASS (no .env, no API keys, no secrets, no direct upstream fetches)
+- Forbidden folders touched: NO
+- Known issues: aviation_aircraft_live_snapshots table must exist from WO-080A migration before WebSocket live stream can serve snapshots. Table must have columns: source_id (PK), source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at.
+- Next safe task: Kiro review WO-080B
+>>>>>>> origin/main
 
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
@@ -63,11 +89,33 @@
 - Commit hash: local commit on branch agent/claude-wo-079g-live-aircraft-performance (HEAD; see git log)
 - Push status: local only (NOT pushed — awaiting Kiro review)
 - What was done: Eliminated the 5-second live-aircraft blink and raised capacity. Removed the per-poll removeAll()/recreate; markers are now diffed by sourceObjectId and updated in place. Raised the request limit and render cap to 20000. Added an in-flight guard so polls never overlap. Stale/disappeared aircraft are removed by key only. Status now reports rendered/total when capped. Frontend still calls only the GOD EYES API.
+<<<<<<< HEAD
 - Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/lib/api.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
 - Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
 - Forbidden folders touched: NO
 - Known issues: WO-079D API route capped server-side at 5000 (fixed by WO-079G-A).
 - Next safe task: WO-079H renderer engine fix
+=======
+- Files modified:
+  - apps/web/src/lib/useLiveAircraft.ts — RENDER_CAP=20000 (exported); requests limit=20000; in-flight guard (inFlightRef) skips a tick while a request is still running; phase 'ok' now carries both `aircraft` (capped slice) and `total` (full returned count); 5s cadence preserved; aborts on disable/unmount.
+  - apps/web/src/lib/api.ts — fetchLiveAircraft limit cap raised 5000 → 20000 (still only /api/aviation/aircraft/latest?bbox=...&limit=20000; no direct Airplanes.live calls).
+  - apps/web/src/CesiumGlobe.tsx — added aircraftEntityMapRef (Map<sourceObjectId, Entity>) and liveAircraftLayerActive prop. Diff-based render effect: update existing markers in place via ConstantProperty.setValue (position/image/color/rotation/aircraftData), add new markers, remove only keys not present this poll. No removeAll() per poll. Cached arrow/dot sprites (lazy singletons). Cap RENDER_CAP. `undefined` feed (loading/error/idle) is a no-op that keeps markers (no blink); `[]` feed (empty) clears by key. Separate effect clears all markers + selection by key when the layer toggles OFF.
+  - apps/web/src/App.tsx — passes liveAircraft = aircraft on 'ok', [] on 'empty', undefined on loading/error/idle; passes liveAircraftLayerActive to CesiumGlobe.
+  - apps/web/src/components/LayerPanel.tsx — status text shows "ACTIVE — N / TOTAL AIRCRAFT RENDERED (Xs AGO)" when capped, else "ACTIVE — N AIRCRAFT (Xs AGO)"; Airplanes.live caveat still shown when active.
+  - apps/web/src/components/StatusPanel.tsx — telemetry shows "N / TOTAL RENDERED" when capped, else "N AIRCRAFT".
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 219.77 kB JS), git diff --check (PASS — clean)
+- Test/build result: Contracts build PASS. Web build PASS (tsc type-check + vite build). git diff --check clean. No web lint/test scripts in apps/web/package.json; no test deps added.
+- Rendered cap: 20000 (frontend hard cap in useLiveAircraft RENDER_CAP + render loop; request limit also 20000)
+- Polling behavior: 5s interval only while layer ON; in-flight guard prevents overlapping requests; aborts and stops on disable/unmount; single timer (no duplicate timers).
+- Flicker fix: Diff by sourceObjectId — markers persist between polls and update in place; only gone/stale markers are removed by key. No removeAll() per poll. Transient loading/error polls keep existing markers.
+- Forbidden folders touched: NO (only apps/web/src/ and docs/state/HANDOFF_LOG.md)
+- Security/privacy result: PASS. No secrets, no .env, no new dependencies. Frontend calls only the GOD EYES API.
+- Known issues:
+  - The WO-079D API route caps server-side limit at 5000 (apps/api/src/routes/aviation-aircraft.ts, MAX_LIMIT=5000 — a forbidden folder here). Until the backend cap is raised, the API returns at most 5000 aircraft even though the frontend requests 20000. The frontend is fully ready for up to 20000 and the rendered/total status display will reflect any cap. Recommend a backend WO to raise the API limit.
+  - Static aviation airports, earth events, and borders layers are untouched and unaffected.
+  - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
+- Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
+>>>>>>> origin/main
 
 ### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
 
@@ -88,7 +136,10 @@
 - Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234), git diff --check PASS
 - Forbidden folders touched: NO
 - Next safe task: WO-079G-B frontend stable renderer
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
 
@@ -3216,3 +3267,32 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, docs/state/ modified)
 - Known issues: Global web JSON is experimental; uses Referer/Origin headers for compatibility; rate limited to 30s minimum interval
 - Next safe task: WO-079 final browser verification
+
+### 2026-05-29T19:25:00Z MiniMax — WO-080A Live Aircraft Snapshot Publisher
+
+- Work order: WO-080A-LIVE-AIRCRAFT-SNAPSHOT-PUBLISHER
+- Agent: MiniMax
+- Role: Fetching/snapshot publisher for live aircraft WebSocket
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a-live-aircraft-snapshot-publisher
+- Start time UTC: 2026-05-29T19:00:00Z
+- End time UTC: 2026-05-29T19:25:00Z
+- Commit hash: e1525f2
+- Push status: local only (awaiting Kiro review)
+- What was done: Added live aircraft snapshot publishing for WebSocket/API. Created migration for aviation_aircraft_live_snapshots table. Added DB helper upsert_live_snapshot with NOTIFY. Updated worker to build compact aircraft payload and publish snapshot after each global-web-json fetch cycle.
+- Files created: database/migrations/layers/layer_01_aviation/013_aviation_live_aircraft_snapshots.sql
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_db.py, services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Migration added: YES (aviation_aircraft_live_snapshots table)
+- Snapshot table: aviation_aircraft_live_snapshots with source_id PRIMARY KEY, compact aircraft_json JSONB
+- Notify channel: aviation_live_aircraft_snapshot
+- Fetcher behavior: --source-mode global-web-json --loop --interval-seconds 5 publishes snapshots
+- History behavior: Existing raw batches and observations preserved (unchanged)
+- Metadata includes: sourceMode=global-web-json, upstream URL, experimental/dev caveat
+- Compact payload includes: id, sourceObjectId, callsign, lat, lon, altitudeFt, speedKt, trackDeg, headingDeg, verticalRateFpm, onGround, aircraftType, registration, observedAt, receivedAt, staleAfter
+- Tests added: 5 new tests (40 total passing)
+- Commands run: pytest, compileall, git commit
+- Test result: 40 passed
+- Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, database/migrations/, docs/state/)
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster

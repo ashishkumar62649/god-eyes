@@ -10,4 +10,5 @@ vi.mock('../src/lib/db.js', () => ({
   }),
   query: vi.fn(),
   closePool: vi.fn(),
+  listen: vi.fn().mockResolvedValue(vi.fn()),
 }));

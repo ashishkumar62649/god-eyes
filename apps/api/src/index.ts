@@ -10,6 +10,7 @@ import { airportLayoutFeaturesRoutes } from './routes/airport-layout-features/in
 import { earthEventsRoutes } from './routes/earth-events.js';
 import { bordersBoundariesRoutes } from './routes/borders-boundaries.js';
 import { aviationAircraftRoutes } from './routes/aviation-aircraft.js';
+import { attachLiveAircraftWebSocket, upgradeWebSocket } from './routes/live-aircraft.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -43,6 +44,11 @@ async function start() {
     // Start server
     await fastify.listen({ port: config.port, host: '0.0.0.0' });
     fastify.log.info(`Server running on http://localhost:${config.port}`);
+
+    // Attach live aircraft WebSocket broadcaster (non-blocking, no DB required at startup)
+    const { broadcaster, wss } = attachLiveAircraftWebSocket(fastify);
+    upgradeWebSocket(fastify, wss);
+    fastify.log.info('Live aircraft WebSocket broadcaster started on /ws/aviation/aircraft/live');
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
