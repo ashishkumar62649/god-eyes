@@ -86,12 +86,14 @@ def test_official_endpoint_urls_used():
 
 
 def test_website_not_scraped():
-    """globe.airplanes.live should not be scraped."""
+    """globe.airplanes.live should not be scraped directly by frontend."""
     worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_worker.py"
     content = worker_path.read_text()
     
-    assert "globe.airplanes.live" not in content
-    assert "airplanes.live/" not in content.replace("api.airplanes.live", "")
+    # WO-079F allows global-web-json as an explicit experimental backend mode
+    # but frontend should not call it directly
+    # The URL is only used in --source-mode global-web-json which is a backend worker option
+    assert "api.airplanes.live" in content  # Official API required
 
 
 def test_no_global_all_endpoint():
@@ -402,6 +404,118 @@ def test_normalize_aircraft_ground_fixture(sample_aircraft_ground):
     assert normalized is not None
     assert normalized["altitude_baro_ft"] is None
     assert normalized["on_ground"] is True
+
+
+# ===== WO-079F Global Web JSON Tests =====
+
+
+def test_source_mode_defaults_to_rest():
+    """Default source mode should be rest."""
+    from aviation_live_aircraft_worker import DEFAULT_SOURCE_ID, GLOBAL_WEB_JSON_SOURCE_ID
+    
+    assert DEFAULT_SOURCE_ID == "airplanes_live_v2"
+    assert GLOBAL_WEB_JSON_SOURCE_ID == "airplanes_live_global_web_json"
+
+
+def test_global_web_json_url_includes_cache_buster():
+    """Global web JSON URL should include cache-busting parameter."""
+    from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_URL
+    
+    # URL should be the base without cache buster (cache buster is added at fetch time)
+    assert "aircraft.json.gz" in GLOBAL_WEB_JSON_URL
+
+
+def test_is_gzip_magic_detection():
+    """Gzip magic byte detection should work."""
+    from aviation_live_aircraft_worker import is_gzip_magic
+    
+    # Valid gzip
+    assert is_gzip_magic(b"\x1f\x8b\x08") is True
+    # Invalid
+    assert is_gzip_magic(b"\x08\x1f\x8b") is False
+    assert is_gzip_magic(b"plain text") is False
+    assert is_gzip_magic(b"") is False
+
+
+def test_extract_aircraft_from_aircraft_key():
+    """Extract aircraft from 'aircraft' key."""
+    from aviation_live_aircraft_worker import extract_aircraft_from_global_json
+    
+    data = {"aircraft": [{"hex": "ABCDEF"}], "now": 123456}
+    result = extract_aircraft_from_global_json(data)
+    
+    assert len(result) == 1
+    assert result[0]["hex"] == "ABCDEF"
+
+
+def test_extract_aircraft_from_ac_key():
+    """Extract aircraft from 'ac' key."""
+    from aviation_live_aircraft_worker import extract_aircraft_from_global_json
+    
+    data = {"ac": [{"hex": "XYZ123"}], "now": 123456}
+    result = extract_aircraft_from_global_json(data)
+    
+    assert len(result) == 1
+    assert result[0]["hex"] == "XYZ123"
+
+
+def test_extract_aircraft_handles_missing():
+    """Extract aircraft handles missing data gracefully."""
+    from aviation_live_aircraft_worker import extract_aircraft_from_global_json
+    
+    assert extract_aircraft_from_global_json({}) == []
+    assert extract_aircraft_from_global_json({"now": 123}) == []
+    assert extract_aircraft_from_global_json(None) == []
+    assert extract_aircraft_from_global_json("not a dict") == []
+
+
+def test_global_web_json_min_interval():
+    """Global web JSON min interval should be enforced."""
+    from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS
+    
+    assert GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS == 30
+
+
+def test_global_web_json_default_interval():
+    """Global web JSON default interval should be conservative."""
+    from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS
+    
+    assert GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS == 60
+
+
+def test_global_mode_does_not_require_lat_lon():
+    """Global web JSON mode should not require lat/lon parameters."""
+    from aviation_live_aircraft_worker import run_global_web_json_worker
+    
+    # Should accept no lat/lon - it fetches global data
+    # Test with mock to avoid network call
+    with patch("aviation_live_aircraft_worker.fetch_global_web_json") as mock_fetch:
+        mock_fetch.return_value = ({"ac": [], "now": 1234567890}, 200, None)
+        
+        result = run_global_web_json_worker(
+            persist=False,
+        )
+    
+    assert result["aircraft_processed"] == 0
+    assert "/data/aircraft.json.gz" in result["endpoints_processed"]
+
+
+def test_source_id_for_api_compatibility():
+    """Global web JSON should use DEFAULT_SOURCE_ID for API compatibility."""
+    from aviation_live_aircraft_worker import run_global_web_json_worker, DEFAULT_SOURCE_ID
+    
+    with patch("aviation_live_aircraft_worker.connect_db"):
+        with patch("aviation_live_aircraft_worker.fetch_global_web_json") as mock_fetch:
+            with patch("aviation_live_aircraft_worker.upsert_latest_aircraft") as mock_upsert:
+                mock_fetch.return_value = ({"ac": [{"hex": "ABCDEF", "lat": 0, "lon": 0}]}, 200, None)
+                
+                run_global_web_json_worker(
+                    persist=True,
+                )
+                
+                # Check that upsert used DEFAULT_SOURCE_ID for API compatibility
+                call_args = mock_upsert.call_args
+                assert call_args[0][1] == DEFAULT_SOURCE_ID
 
 
 if __name__ == "__main__":

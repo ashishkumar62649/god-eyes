@@ -1,22 +1,24 @@
-"""Airplanes.live Live Aircraft Worker — WO-079C.
+"""Airplanes.live Live Aircraft Worker — WO-079C + WO-079F.
 
-Fetches live aircraft data from Airplanes.live REST API v2.
-Supports /mil, /ladd, /pia, and /point endpoints.
+Fetches live aircraft data from Airplanes.live REST API v2 or
+the experimental globe web JSON snapshot.
 
-Usage (dry-run):
-    python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
-
-Usage (persist):
+Usage (REST mode - default):
     python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py --persist
 
-Usage (with point endpoint):
+Usage (global web JSON mode):
     python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py \
-        --include mil,ladd,pia,point --lat 28.6139 --lon 77.2090 --radius-nm 250
+        --source-mode global-web-json --persist
+
+Usage with loop mode:
+    python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py \
+        --source-mode global-web-json --loop --interval-seconds 60 --persist
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import sys
@@ -43,7 +45,9 @@ from aviation_live_aircraft_db import (
 )
 
 BASE_URL = "http://api.airplanes.live/v2"
+GLOBAL_WEB_JSON_URL = "https://globe.airplanes.live/data/aircraft.json.gz"
 DEFAULT_SOURCE_ID = "airplanes_live_v2"
+GLOBAL_WEB_JSON_SOURCE_ID = "airplanes_live_global_web_json"
 LAYER_ID = "layer_01_aviation"
 
 # Staleness thresholds (seconds)
@@ -53,6 +57,8 @@ STALE_PURGE_THRESHOLD = 300
 
 DEFAULT_TIMEOUT = 20
 RATE_LIMIT_SECONDS = 1.0
+GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS = 30
+GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS = 60
 
 
 def parse_db_flags(flags: int | None) -> dict[str, bool]:
@@ -194,6 +200,62 @@ def fetch_endpoint(endpoint: str, timeout: int = DEFAULT_TIMEOUT) -> tuple[dict[
         return None, None, str(exc)
 
 
+def is_gzip_magic(data: bytes) -> bool:
+    """Detect if data starts with gzip magic bytes (0x1f 0x8b)."""
+    return len(data) >= 2 and data[0] == 0x1f and data[1] == 0x8b
+
+
+def fetch_global_web_json(timeout: int = DEFAULT_TIMEOUT) -> tuple[dict[str, Any] | None, int | None, str | None]:
+    """Fetch the global web JSON snapshot from Airplanes.live globe."""
+    # Append cache buster timestamp
+    cache_buster = int(time.time() * 1000)
+    url = f"{GLOBAL_WEB_JSON_URL}?_={cache_buster}"
+    
+    headers = {
+        "User-Agent": "GodEyes/1.0 (aviation-fetcher; global-web-json-adapter)",
+        "Referer": "https://globe.airplanes.live/",
+        "Origin": "https://globe.airplanes.live",
+    }
+    req = urllib.request.Request(url, headers=headers)
+    
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read()
+            status = resp.status
+            
+            # Handle gzip compression
+            if is_gzip_magic(raw):
+                raw = gzip.decompress(raw)
+            
+            data = json.loads(raw)
+            return data, status, None
+    except urllib.error.HTTPError as exc:
+        return None, exc.code, str(exc)
+    except urllib.error.URLError as exc:
+        return None, None, str(exc)
+    except gzip.BadGzipFile:
+        # Not gzip, try as plain JSON
+        try:
+            data = json.loads(raw)
+            return data, 200, None
+        except json.JSONDecodeError:
+            return None, None, "Invalid JSON after gzip decompression"
+    except json.JSONDecodeError as exc:
+        return None, None, f"JSON decode error: {exc}"
+    except Exception as exc:
+        return None, None, str(exc)
+
+
+def extract_aircraft_from_global_json(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract aircraft array from global web JSON response.
+    
+    Supports both 'aircraft' and 'ac' keys.
+    """
+    if not isinstance(data, dict):
+        return []
+    return data.get("aircraft") or data.get("ac") or []
+
+
 def run_worker(
     include_endpoints: list[str] | None = None,
     lat: float | None = None,
@@ -203,9 +265,22 @@ def run_worker(
     persist: bool = False,
     database_url: str | None = None,
     source_id: str = DEFAULT_SOURCE_ID,
+    source_mode: str = "rest",
 ) -> dict[str, Any]:
-    """Run the Airplanes.live fetcher worker."""
+    """Run the Airplanes.live fetcher worker.
+    
+    Args:
+        source_mode: Either "rest" (default official API) or "global-web-json" (globe snapshot)
+    """
     db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+    
+    # Handle global web JSON mode
+    if source_mode == "global-web-json":
+        return run_global_web_json_worker(
+            timeout=timeout,
+            persist=persist,
+            database_url=db_url,
+        )
 
     if persist:
         print("[WORKER] PERSIST MODE: Will write to database")
@@ -340,6 +415,146 @@ def run_worker(
     return result
 
 
+def run_global_web_json_worker(
+    timeout: int = DEFAULT_TIMEOUT,
+    persist: bool = False,
+    database_url: str | None = None,
+) -> dict[str, Any]:
+    """Run the Airplanes.live global web JSON snapshot fetcher."""
+    db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+    
+    # Use global web JSON source ID
+    source_id = GLOBAL_WEB_JSON_SOURCE_ID
+    
+    if persist:
+        print("[WORKER] GLOBAL-WEB-JSON MODE: Will write to database")
+    else:
+        print("[WORKER] GLOBAL-WEB-JSON MODE: DRY-RUN - No database writes")
+
+    conn = None
+    if persist:
+        try:
+            conn = connect_db(db_url)
+        except Exception as e:
+            print(f"[WORKER] ERROR: Could not connect to database: {e}")
+            return {"error": f"DB connection failed: {e}", "endpoints_processed": [], "aircraft_processed": 0}
+
+    received_at = datetime.now(timezone.utc)
+    result = {
+        "source_id": source_id,
+        "layer_id": LAYER_ID,
+        "endpoints_processed": [],
+        "aircraft_processed": 0,
+        "aircraft_valid_position": 0,
+        "errors": [],
+    }
+
+    try:
+        print(f"[WORKER] Fetching global web JSON snapshot...")
+        
+        data, status, error = fetch_global_web_json(timeout)
+
+        if error:
+            print(f"[WORKER] ERROR fetching global web JSON: {error}")
+            result["errors"].append({"endpoint": "/data/aircraft.json.gz", "error": error})
+            if conn:
+                try:
+                    insert_raw_batch(
+                        conn, source_id, "/data/aircraft.json.gz", 
+                        {"sourceMode": "global-web-json"}, received_at,
+                        http_status=status, aircraft_count=0,
+                        error_message=error
+                    )
+                except Exception as db_err:
+                    print(f"[WORKER] ERROR recording failed batch: {db_err}")
+            return result
+
+        if not data or not isinstance(data, dict):
+            print("[WORKER] ERROR: Invalid global web JSON response")
+            result["errors"].append({"endpoint": "/data/aircraft.json.gz", "error": "Invalid response"})
+            return result
+
+        # Extract aircraft array
+        aircraft_list = extract_aircraft_from_global_json(data)
+        aircraft_count = len(aircraft_list)
+        print(f"[WORKER] Global web JSON: {aircraft_count} aircraft")
+
+        # Extract timing metadata from payload
+        source_now = data.get("now")
+        source_messages = data.get("messages")
+
+        # Log raw batch
+        if conn:
+            try:
+                raw_sample = aircraft_list[:5] if aircraft_list else []
+                insert_raw_batch(
+                    conn, source_id, "/data/aircraft.json.gz",
+                    {"sourceMode": "global-web-json"}, received_at,
+                    http_status=status, aircraft_count=aircraft_count,
+                    source_now_ts=source_now,
+                    error_message=None,
+                    fetch_params={"sourceMode": "global-web-json", "messages": source_messages}
+                )
+            except Exception as db_err:
+                print(f"[WORKER] ERROR recording raw batch: {db_err}")
+
+        result["endpoints_processed"].append("/data/aircraft.json.gz")
+        result["aircraft_processed"] = aircraft_count
+
+        # Determine observed_at from payload or local time
+        observed_at = received_at
+        if source_now is not None:
+            try:
+                observed_at = datetime.fromtimestamp(source_now, tz=timezone.utc)
+            except (ValueError, OSError):
+                pass  # Fall back to received_at
+
+        # Normalize and persist each aircraft
+        for raw_ac in aircraft_list:
+            # Adjust observed_at based on seen seconds
+            seen = raw_ac.get("seen")
+            seen_seconds = _safe_float(seen)
+            final_observed_at = observed_at
+            if seen_seconds is not None and seen_seconds > 0:
+                final_observed_at = observed_at - timedelta(seconds=seen_seconds)
+            
+            # Create a modified received_at for normalization
+            normalized = normalize_aircraft(raw_ac, final_observed_at)
+            if not normalized:
+                continue
+
+            has_position = normalized.get("lat") is not None and normalized.get("lon") is not None
+
+            if has_position:
+                result["aircraft_valid_position"] += 1
+
+            if persist and conn:
+                try:
+                    # Use original source_id for API compatibility
+                    upsert_latest_aircraft(conn, DEFAULT_SOURCE_ID, normalized)
+                except Exception as db_err:
+                    print(f"[WORKER] ERROR upserting latest: {db_err}")
+
+                if has_position:
+                    try:
+                        insert_observation(conn, DEFAULT_SOURCE_ID, normalized)
+                    except Exception as db_err:
+                        print(f"[WORKER] ERROR inserting observation: {db_err}")
+
+        print(f"[WORKER] Done. Processed {result['aircraft_processed']} aircraft, "
+              f"{result['aircraft_valid_position']} with valid position")
+
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[WORKER] ERROR: {error_msg}")
+        result["errors"].append({"error": error_msg})
+    finally:
+        if conn:
+            conn.close()
+
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Airplanes.live Live Aircraft Worker")
     parser.add_argument(
@@ -394,23 +609,79 @@ def main() -> None:
         default=DEFAULT_SOURCE_ID,
         help="Source ID for this fetcher",
     )
+    parser.add_argument(
+        "--source-mode",
+        type=str,
+        choices=["rest", "global-web-json"],
+        default="rest",
+        help="Source mode: rest (official API) or global-web-json (globe snapshot)",
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Run one cycle and exit (default for rest mode)",
+    )
+    parser.add_argument(
+        "--loop",
+        action="store_true",
+        help="Run continuously in a loop",
+    )
+    parser.add_argument(
+        "--interval-seconds",
+        type=int,
+        default=GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS,
+        help="Interval between cycles in seconds (default: 60, min 30 for global-web-json)",
+    )
     args = parser.parse_args()
 
-    include_list = [e.strip() for e in args.include.split(",") if e.strip()]
+    # Validate interval for global-web-json
+    if args.source_mode == "global-web-json" and args.interval_seconds < GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS:
+        print(f"[WORKER] WARNING: interval {args.interval_seconds}s < min {GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS}s, using minimum")
+        args.interval_seconds = GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS
 
-    if args.skip_point:
-        include_list = [e for e in include_list if e != "point"]
+    # Determine run mode
+    run_once = args.once
+    run_loop = args.loop
+    
+    # Default behavior: run once for rest, run once for global-web-json unless --loop specified
+    if not run_once and not run_loop:
+        run_once = True
 
-    run_worker(
-        include_endpoints=include_list,
-        lat=args.lat,
-        lon=args.lon,
-        radius_nm=args.radius_nm,
-        timeout=args.timeout_seconds,
-        persist=args.persist,
-        database_url=args.database_url,
-        source_id=args.source_id,
-    )
+    if args.source_mode == "rest":
+        include_list = [e.strip() for e in args.include.split(",") if e.strip()]
+        if args.skip_point:
+            include_list = [e for e in include_list if e != "point"]
+
+        run_worker(
+            include_endpoints=include_list,
+            lat=args.lat,
+            lon=args.lon,
+            radius_nm=args.radius_nm,
+            timeout=args.timeout_seconds,
+            persist=args.persist,
+            database_url=args.database_url,
+            source_id=args.source_id,
+            source_mode=args.source_mode,
+        )
+    else:
+        # Global web JSON mode
+        cycle_count = 0
+        while True:
+            cycle_count += 1
+            print(f"[WORKER] === Cycle {cycle_count} ===")
+            
+            result = run_worker(
+                timeout=args.timeout_seconds,
+                persist=args.persist,
+                database_url=args.database_url,
+                source_mode=args.source_mode,
+            )
+            
+            if not run_loop:
+                break
+                
+            print(f"[WORKER] Sleeping {args.interval_seconds}s until next cycle...")
+            time.sleep(args.interval_seconds)
 
 
 if __name__ == "__main__":
