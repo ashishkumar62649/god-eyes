@@ -4,13 +4,13 @@ Fetches live aircraft data from Airplanes.live REST API v2.
 Supports /mil, /ladd, /pia, and /point endpoints.
 
 Usage (dry-run):
-    python services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py
+    python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py
 
 Usage (persist):
-    python services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py --persist
+    python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py --persist
 
 Usage (with point endpoint):
-    python services/fetch-orchestrator/src/layers/layer_01_aviation/airplanes_live_worker.py \
+    python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py \
         --include mil,ladd,pia,point --lat 28.6139 --lon 77.2090 --radius-nm 250
 """
 
@@ -34,7 +34,7 @@ if str(REPO_ROOT) not in sys.path:
 
 sys.path.insert(0, str(REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation"))
 
-from airplanes_live_db import (
+from aviation_live_aircraft_db import (
     DEFAULT_DATABASE_URL,
     connect_db,
     insert_raw_batch,

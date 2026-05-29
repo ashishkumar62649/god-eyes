@@ -23,22 +23,22 @@ import pytest
 
 def test_worker_file_exists():
     """Worker file must exist."""
-    worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_worker.py"
+    worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_worker.py"
     assert worker_path.exists()
 
 
 def test_db_helper_file_exists():
     """DB helper file must exist."""
-    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_db.py"
+    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     assert db_path.exists()
 
 
 def test_dry_run_default_does_not_write_to_db():
     """Dry-run default should not write to DB."""
-    from airplanes_live_worker import run_worker
+    from aviation_live_aircraft_worker import run_worker
     
-    with patch("airplanes_live_worker.connect_db") as mock_conn:
-        with patch("airplanes_live_worker.fetch_endpoint") as mock_fetch:
+    with patch("aviation_live_aircraft_worker.connect_db") as mock_conn:
+        with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
             mock_fetch.return_value = ({"aircraft": []}, 200, None)
             
             result = run_worker(
@@ -53,9 +53,9 @@ def test_dry_run_default_does_not_write_to_db():
 
 def test_persist_flag_required_for_db_writes():
     """--persist must be required for DB writes."""
-    from airplanes_live_worker import run_worker
+    from aviation_live_aircraft_worker import run_worker
     
-    with patch("airplanes_live_worker.connect_db") as mock_conn:
+    with patch("aviation_live_aircraft_worker.connect_db") as mock_conn:
         mock_conn.return_value = MagicMock()
         
         result = run_worker(
@@ -69,7 +69,7 @@ def test_persist_flag_required_for_db_writes():
 
 def test_official_endpoint_urls_used():
     """Official Airplanes.live API URLs must be used."""
-    from airplanes_live_worker import BASE_URL, fetch_endpoint
+    from aviation_live_aircraft_worker import BASE_URL, fetch_endpoint
     
     with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = MagicMock()
@@ -87,7 +87,7 @@ def test_official_endpoint_urls_used():
 
 def test_website_not_scraped():
     """globe.airplanes.live should not be scraped."""
-    worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_worker.py"
+    worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_worker.py"
     content = worker_path.read_text()
     
     assert "globe.airplanes.live" not in content
@@ -96,9 +96,9 @@ def test_website_not_scraped():
 
 def test_no_global_all_endpoint():
     """No global /all endpoint should be invented."""
-    from airplanes_live_worker import run_worker
+    from aviation_live_aircraft_worker import run_worker
     
-    with patch("airplanes_live_worker.fetch_endpoint") as mock_fetch:
+    with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
         mock_fetch.return_value = ({"aircraft": []}, 200, None)
         
         result = run_worker(
@@ -114,9 +114,9 @@ def test_no_global_all_endpoint():
 
 def test_point_radius_capped_at_250():
     """Point endpoint radius should be capped at 250nm."""
-    from airplanes_live_worker import run_worker
+    from aviation_live_aircraft_worker import run_worker
     
-    with patch("airplanes_live_worker.fetch_endpoint") as mock_fetch:
+    with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
         mock_fetch.return_value = ({"aircraft": []}, 200, None)
         
         # Test with radius > 250
@@ -137,9 +137,9 @@ def test_point_radius_capped_at_250():
 
 def test_missing_point_lat_lon_skips_with_warning():
     """Missing lat/lon should skip point endpoint with warning."""
-    from airplanes_live_worker import run_worker
+    from aviation_live_aircraft_worker import run_worker
     
-    with patch("airplanes_live_worker.fetch_endpoint") as mock_fetch:
+    with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
         mock_fetch.return_value = ({"aircraft": []}, 200, None)
         
         result = run_worker(
@@ -158,7 +158,7 @@ def test_missing_point_lat_lon_skips_with_warning():
 
 def test_db_flags_parsing_military():
     """dbFlags parsing: military flag."""
-    from airplanes_live_worker import parse_db_flags
+    from aviation_live_aircraft_worker import parse_db_flags
     
     assert parse_db_flags(1)["is_military"] is True
     assert parse_db_flags(0)["is_military"] is False
@@ -167,7 +167,7 @@ def test_db_flags_parsing_military():
 
 def test_db_flags_parsing_interesting():
     """dbFlags parsing: interesting flag."""
-    from airplanes_live_worker import parse_db_flags
+    from aviation_live_aircraft_worker import parse_db_flags
     
     assert parse_db_flags(2)["is_interesting"] is True
     assert parse_db_flags(0)["is_interesting"] is False
@@ -175,7 +175,7 @@ def test_db_flags_parsing_interesting():
 
 def test_db_flags_parsing_pia():
     """dbFlags parsing: PIA flag."""
-    from airplanes_live_worker import parse_db_flags
+    from aviation_live_aircraft_worker import parse_db_flags
     
     assert parse_db_flags(4)["is_pia"] is True
     assert parse_db_flags(0)["is_pia"] is False
@@ -183,7 +183,7 @@ def test_db_flags_parsing_pia():
 
 def test_db_flags_parsing_ladd():
     """dbFlags parsing: LADD flag."""
-    from airplanes_live_worker import parse_db_flags
+    from aviation_live_aircraft_worker import parse_db_flags
     
     assert parse_db_flags(8)["is_ladd"] is True
     assert parse_db_flags(0)["is_ladd"] is False
@@ -191,7 +191,7 @@ def test_db_flags_parsing_ladd():
 
 def test_alt_baro_ground_does_not_crash():
     """alt_baro = 'ground' should handle safely."""
-    from airplanes_live_worker import normalize_altitude
+    from aviation_live_aircraft_worker import normalize_altitude
     
     alt, on_ground = normalize_altitude("ground")
     assert alt is None
@@ -200,7 +200,7 @@ def test_alt_baro_ground_does_not_crash():
 
 def test_alt_baro_numeric():
     """alt_baro numeric values should work."""
-    from airplanes_live_worker import normalize_altitude
+    from aviation_live_aircraft_worker import normalize_altitude
     
     alt, on_ground = normalize_altitude(35000)
     assert alt == 35000.0
@@ -209,7 +209,7 @@ def test_alt_baro_numeric():
 
 def test_missing_lat_lon_skipped_for_latest():
     """Missing lat/lon should be handled safely."""
-    from airplanes_live_worker import normalize_aircraft
+    from aviation_live_aircraft_worker import normalize_aircraft
     
     received_at = datetime.now(timezone.utc)
     
@@ -224,7 +224,7 @@ def test_missing_lat_lon_skipped_for_latest():
 
 def test_observed_at_derived_from_seen():
     """observed_at should be derived from seen seconds."""
-    from airplanes_live_worker import normalize_aircraft
+    from aviation_live_aircraft_worker import normalize_aircraft
     
     received_at = datetime(2026, 5, 28, 12, 0, 0, tzinfo=timezone.utc)
     
@@ -240,7 +240,7 @@ def test_observed_at_derived_from_seen():
 
 def test_latest_upsert_sql_contains_newer_observed_at_protection():
     """Latest upsert should have newer observed_at protection."""
-    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_db.py"
+    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
     
     assert "observed_at < EXCLUDED.observed_at" in content
@@ -248,7 +248,7 @@ def test_latest_upsert_sql_contains_newer_observed_at_protection():
 
 def test_observation_insert_uses_on_conflict_do_nothing():
     """Observation insert should use ON CONFLICT DO NOTHING."""
-    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_db.py"
+    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
     
     assert "ON CONFLICT DO NOTHING" in content
@@ -256,7 +256,7 @@ def test_observation_insert_uses_on_conflict_do_nothing():
 
 def test_parameterized_sql_used():
     """Parameterized SQL should be used (no string interpolation)."""
-    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_db.py"
+    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
     
     # Should have %s placeholders
@@ -268,7 +268,7 @@ def test_parameterized_sql_used():
 
 def test_no_destructive_sql():
     """No destructive SQL (DROP, DELETE, TRUNCATE) in DB helper."""
-    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_db.py"
+    db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text().lower()
     
     destructive = ["drop ", "delete ", "truncate ", "alter "]
@@ -281,7 +281,7 @@ def test_no_destructive_sql():
 
 def test_rate_limit_sleep_logic_exists():
     """Rate limit sleep logic should exist."""
-    worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "airplanes_live_worker.py"
+    worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_worker.py"
     content = worker_path.read_text()
     
     assert "time.sleep" in content
@@ -374,7 +374,7 @@ def sample_aircraft_ground():
 
 def test_normalize_aircraft_with_fixture(sample_aircraft_mil):
     """Test normalization with fixture data."""
-    from airplanes_live_worker import normalize_aircraft
+    from aviation_live_aircraft_worker import normalize_aircraft
     
     received_at = datetime.now(timezone.utc)
     normalized = normalize_aircraft(sample_aircraft_mil, received_at)
@@ -394,7 +394,7 @@ def test_normalize_aircraft_with_fixture(sample_aircraft_mil):
 
 def test_normalize_aircraft_ground_fixture(sample_aircraft_ground):
     """Test normalization of aircraft on ground."""
-    from airplanes_live_worker import normalize_aircraft
+    from aviation_live_aircraft_worker import normalize_aircraft
     
     received_at = datetime.now(timezone.utc)
     normalized = normalize_aircraft(sample_aircraft_ground, received_at)
