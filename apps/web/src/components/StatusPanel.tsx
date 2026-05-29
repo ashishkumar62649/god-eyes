@@ -112,7 +112,10 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
               <div className="detail-value" style={{
                 color: liveAircraftPhase.phase === 'ok' ? 'var(--shell-accent)' : liveAircraftPhase.phase === 'error' ? '#ff4d4d' : '#ffab00',
               }}>
-                {liveAircraftPhase.phase === 'ok' ? `${liveAircraftPhase.aircraft.length} AIRCRAFT`
+                {liveAircraftPhase.phase === 'ok'
+                  ? (liveAircraftPhase.total > liveAircraftPhase.aircraft.length
+                      ? `${liveAircraftPhase.aircraft.length} / ${liveAircraftPhase.total} RENDERED`
+                      : `${liveAircraftPhase.aircraft.length} AIRCRAFT`)
                   : liveAircraftPhase.phase === 'loading' ? 'LOADING...'
                   : liveAircraftPhase.phase === 'empty' ? 'NONE IN VIEW'
                   : liveAircraftPhase.phase === 'error' ? 'API UNAVAILABLE'

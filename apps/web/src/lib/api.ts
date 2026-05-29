@@ -207,7 +207,7 @@ export async function fetchLiveAircraft(
 ): Promise<AircraftLatestListResponse> {
   const url = new URL(`${API_BASE_URL}/api/aviation/aircraft/latest`);
   url.searchParams.set('bbox', params.bbox ?? '-180,-90,180,90');
-  url.searchParams.set('limit', String(Math.min(params.limit ?? 5000, 5000)));
+  url.searchParams.set('limit', String(Math.min(params.limit ?? 20000, 20000)));
   const response = await fetch(url.toString(), { signal: abortSignal });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
