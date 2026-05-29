@@ -216,12 +216,12 @@ describe('Aviation Live Aircraft API', () => {
     expect(sql).not.toContain('WHERE');
   });
 
-  it('4. limit is capped at MAX_LIMIT (5000)', async () => {
+  it('4. limit=20000 is accepted', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/aviation/aircraft/latest?limit=9999',
+      url: '/api/aviation/aircraft/latest?limit=20000',
     });
 
     expect(response.statusCode).toBe(200);
@@ -229,10 +229,26 @@ describe('Aviation Live Aircraft API', () => {
     const callArgs = vi.mocked(query).mock.calls[0];
     const params = callArgs[1] as unknown[];
     const lastParam = params[params.length - 1];
-    expect(lastParam).toBe(5000);
+    expect(lastParam).toBe(20000);
   });
 
-  it('5. bbox validates format', async () => {
+  it('5. limit above MAX_LIMIT is capped to 20000', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/aviation/aircraft/latest?limit=99999',
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const params = callArgs[1] as unknown[];
+    const lastParam = params[params.length - 1];
+    expect(lastParam).toBe(20000);
+  });
+
+  it('6. bbox validates format', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
 
     const response = await app.inject({
@@ -243,7 +259,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(response.statusCode).toBe(200);
   });
 
-  it('6. bad bbox returns 400', async () => {
+  it('7. bad bbox returns 400', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/aviation/aircraft/latest?bbox=invalid',
@@ -255,7 +271,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.error.code).toBe('INVALID_BBOX');
   });
 
-  it('7. bad bbox with reversed lon returns 400', async () => {
+  it('8. bad bbox with reversed lon returns 400', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/aviation/aircraft/latest?bbox=150,30,130,50',
@@ -267,7 +283,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.error.code).toBe('INVALID_BBOX');
   });
 
-  it('8. bbox filter uses lat/lon bounds in SQL', async () => {
+  it('9. bbox filter uses lat/lon bounds in SQL', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
 
     const response = await app.inject({
@@ -292,7 +308,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(params).toContain(50);
   });
 
-  it('9. detail endpoint returns one aircraft', async () => {
+  it('10. detail endpoint returns one aircraft', async () => {
     vi.mocked(query).mockResolvedValueOnce([MOCK_DETAIL_AIRCRAFT]);
 
     const response = await app.inject({
@@ -309,7 +325,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.aircraft.rawJson.hex).toBe('abc123');
   });
 
-  it('10. detail endpoint returns 404 for missing aircraft', async () => {
+  it('11. detail endpoint returns 404 for missing aircraft', async () => {
     vi.mocked(query).mockResolvedValueOnce([]);
 
     const response = await app.inject({
@@ -323,7 +339,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.error.code).toBe('OBJECT_NOT_FOUND');
   });
 
-  it('11. no raw_json exposed in list response', async () => {
+  it('12. no raw_json exposed in list response', async () => {
     const rowsWithRaw = MOCK_AIRCRAFT.map((ac) => ({ ...ac, rawJson: { hex: 'test' } }));
     vi.mocked(query).mockResolvedValueOnce(rowsWithRaw);
 
@@ -340,7 +356,7 @@ describe('Aviation Live Aircraft API', () => {
     }
   });
 
-  it('12. SQL is parameterized (no string interpolation)', async () => {
+  it('13. SQL is parameterized (no string interpolation)', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
 
     await app.inject({
@@ -358,7 +374,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(params.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('13. detail endpoint SQL uses parameterized query', async () => {
+  it('14. detail endpoint SQL uses parameterized query', async () => {
     vi.mocked(query).mockResolvedValueOnce([MOCK_DETAIL_AIRCRAFT]);
 
     await app.inject({
@@ -375,7 +391,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(params).toEqual(['airplanes_live_v2', 'abc123']);
   });
 
-  it('14. no external API calls from aviation aircraft endpoint', async () => {
+  it('15. no external API calls from aviation aircraft endpoint', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
@@ -389,7 +405,7 @@ describe('Aviation Live Aircraft API', () => {
     fetchSpy.mockRestore();
   });
 
-  it('15. limit must be numeric integer', async () => {
+  it('16. limit must be numeric integer', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/aviation/aircraft/latest?limit=abc',
@@ -400,7 +416,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.error.code).toBe('INVALID_LIMIT');
   });
 
-  it('16. bad bbox with out of range lat returns 400', async () => {
+  it('17. bad bbox with out of range lat returns 400', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/aviation/aircraft/latest?bbox=130,-100,150,50',
@@ -411,7 +427,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.error.code).toBe('INVALID_BBOX');
   });
 
-  it('17. bad bbox with out of range lon returns 400', async () => {
+  it('18. bad bbox with out of range lon returns 400', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/aviation/aircraft/latest?bbox=-200,30,150,50',
@@ -422,7 +438,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(body.error.code).toBe('INVALID_BBOX');
   });
 
-  it('18. includeStale=false behaves same as default', async () => {
+  it('19. includeStale=false behaves same as default', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
 
     await app.inject({
@@ -435,7 +451,7 @@ describe('Aviation Live Aircraft API', () => {
     expect(sql).toContain('stale_after');
   });
 
-  it('19. includeStale=0 behaves same as default', async () => {
+  it('20. includeStale=0 behaves same as default', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
 
     await app.inject({

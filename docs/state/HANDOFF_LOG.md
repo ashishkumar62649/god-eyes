@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
 - Work order: WO-079G-B — Aviation Live Aircraft Frontend Performance + No Flicker
@@ -31,6 +32,31 @@
   - Static aviation airports, earth events, and borders layers are untouched and unaffected.
   - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
 - Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
+=======
+### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
+
+- Work order: WO-079G-A — Aviation Live Aircraft API Limit Increase
+- Folder: E:\god-eyes-api
+- Agent: DeepSeek
+- Role: API implementation
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/deepseek-wo-079g-api-aircraft-limit
+- Start time UTC: 2026-05-29T18:15:00Z
+- End time UTC: 2026-05-29T18:17:00Z
+- Commit hash: (local only, awaiting review)
+- Push status: local only
+- What was done: Increased aviation live aircraft API max limit from 5000 to 20000. Updated constant in route file. Updated existing limit cap test to verify 20000 ceiling. Added new test for limit=20000 accepted and limit above 20000 capped to 20000. Default limit unchanged (1000). Bbox, staleness, detail endpoint, and raw_json behavior all unchanged.
+- Files modified: apps/api/src/routes/aviation-aircraft.ts, apps/api/tests/aviation-aircraft.test.ts
+- Files created: none
+- Files deleted: none
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, git diff --check
+- Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234: 214 existing + 20 aviation), git diff --check PASS
+- Security/privacy result: PASS (no .env, no API keys, no secrets, parameterized SQL unchanged, no new endpoints)
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-079G-B frontend stable renderer
+>>>>>>> origin/main
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
 
