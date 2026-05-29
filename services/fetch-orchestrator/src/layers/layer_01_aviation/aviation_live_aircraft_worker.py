@@ -492,7 +492,7 @@ def run_global_web_json_worker(
                 raw_sample = aircraft_list[:5] if aircraft_list else []
                 insert_raw_batch(
                     conn, source_id, "/data/aircraft.json.gz",
-                    {"sourceMode": "global-web-json"}, received_at,
+                    None, received_at,
                     http_status=status, aircraft_count=aircraft_count,
                     source_now_ts=source_now,
                     error_message=None,
