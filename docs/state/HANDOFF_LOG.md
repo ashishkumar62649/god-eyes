@@ -3340,3 +3340,24 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-29T21:45:00Z MiniMax — WO-080A1-R3 Fix Duplicate fetch_params Correctly
+
+- Work order: WO-080A1-R3-FIX-DUPLICATE-FETCH-PARAMS-CORRECTLY
+- Agent: MiniMax
+- Role: Fix insert_raw_batch() calls to use fetch_params only as positional arg
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-080a1-fix-live-aircraft-runtime-errors
+- Start time UTC: 2026-05-29T21:40:00Z
+- End time UTC: 2026-05-29T21:45:00Z
+- Commit hash: 1e5f026
+- Push status: local only (awaiting Kiro review)
+- What was done: Fixed both global-web-json insert_raw_batch() calls to use fetch_params only as 4th positional argument (not as keyword). Error path: {"sourceMode": "global-web-json"} as 4th arg. Success path: {"sourceMode": "global-web-json", "messages": source_messages} as 4th arg. Removed keyword fetch_params= from both calls.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Bug fixed: insert_raw_batch() no longer receives duplicate fetch_params
+- Tests: 44 passed
+- Commands run: pytest, compileall, git commit
+- Test result: 44 passed
+- Forbidden folders touched: NO
+- Known issues: None
+- Next safe task: WO-080B API WebSocket broadcaster
