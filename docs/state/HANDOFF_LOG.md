@@ -1,4 +1,4 @@
-### 2026-05-29T20:00:00Z DeepSeek — WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN architecture)
+### 2026-05-29T20:00:00Z DeepSeek — WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
 
 - Work order: WO-080B — Live Aircraft WebSocket Broadcaster Fix
 - Folder: E:\god-eyes-api
@@ -8,19 +8,19 @@
 - Tool/CLI used: OpenCode CLI
 - Branch: agent/deepseek-wo-080b-live-aircraft-websocket-broadcaster
 - Start time UTC: 2026-05-29T19:50:00Z
-- End time UTC: 2026-05-29T20:05:00Z
+- End time UTC: 2026-05-29T20:10:00Z
 - Commit hash: (local only, awaiting review)
 - Push status: local only
-- What was done: Replaced polling-based LiveAircraftBroadcaster with NOTIFY/LISTEN architecture. Broadcaster now reads latest row from aviation_aircraft_live_snapshots (not aviation_aircraft_latest) on startup and on each Postgres NOTIFY on aviation_live_aircraft_snapshot channel. Delta generation compares previous/current snapshot in-memory. Periodic resync every 60s sends full snapshot. Added listen() function to db.ts for Postgres LISTEN support. Removed all aviation_aircraft_latest polling from broadcaster. Existing REST endpoint unchanged. Added db.listen mock to setup.ts. Replaced 7 polling-based broadcaster tests with 10 NOTIFY/LISTEN-based tests. Added test verifying no aviation_aircraft_latest query and no Airplanes.live URLs in broadcaster.
-- Files modified: apps/api/src/lib/db.ts, apps/api/tests/setup.ts, apps/api/src/lib/live-aircraft-broadcaster.ts, apps/api/tests/live-aircraft.test.ts
+- What was done: Replaced polling-based LiveAircraftBroadcaster with NOTIFY/LISTEN architecture aligned to WO-080A migration schema. Broadcaster queries aviation_aircraft_live_snapshots reading: source_id, source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at. No ORDER BY id — uses WHERE source_id = $1 LIMIT 1 (source_id is PK). On startup and each NOTIFY on aviation_live_aircraft_snapshot channel, loads latest row, compares aircraft_json arrays by sourceObjectId/id, emits delta (upserts/removes). Periodic resync every 60s sends full snapshot. Added listen() to db.ts for LISTEN. Removed all aviation_aircraft_latest polling. WebSocket snapshot/delta messages use sourceName from source_name and sourceId from source_id. 26 tests cover schema alignment, no ORDER BY id, no aviation_aircraft_latest, no Airplanes.live URLs. Existing REST endpoint unchanged.
+- Files modified: apps/api/src/lib/db.ts, apps/api/tests/setup.ts, apps/api/src/lib/live-aircraft-broadcaster.ts, apps/api/src/routes/live-aircraft.ts, apps/api/tests/live-aircraft.test.ts
 - Files created: none
 - Files deleted: none
 - Commands run: pnpm --filter api test, git diff --check
-- Validation results: API tests PASS (258/258: 234 existing + 24 new), git diff --check PASS (CRLF cosmetic only)
+- Validation results: API tests PASS (260/260: 234 existing + 26 new), git diff --check PASS (CRLF cosmetic only)
 - Security/privacy result: PASS (no .env, no API keys, no secrets, no direct upstream fetches)
 - Forbidden folders touched: NO
-- Known issues: aviation_aircraft_live_snapshots table must exist with columns: id, source_id, snapshot_id, aircraft (JSONB), aircraft_count, created_at. Fetching layer must write rows and pg_notify('aviation_live_aircraft_snapshot', '').
-- Next safe task: WO-080C frontend WebSocket client integration
+- Known issues: aviation_aircraft_live_snapshots table must exist from WO-080A migration before WebSocket live stream can serve snapshots. Table must have columns: source_id (PK), source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at.
+- Next safe task: Kiro review WO-080B
 
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 

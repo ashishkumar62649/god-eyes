@@ -27,6 +27,8 @@ export interface CompactAircraft {
 }
 
 export interface SnapshotData {
+  sourceId: string;
+  sourceName: string;
   snapshotId: string;
   snapshotTime: string;
   aircraft: CompactAircraft[];
@@ -34,6 +36,8 @@ export interface SnapshotData {
 }
 
 export interface DeltaData {
+  sourceId: string;
+  sourceName: string;
   snapshotId: string;
   snapshotTime: string;
   upserts: CompactAircraft[];
@@ -46,19 +50,23 @@ export interface ClientView {
 }
 
 interface SnapshotRow {
-  id: number;
   source_id: string;
+  source_name: string;
   snapshot_id: string;
-  aircraft: CompactAircraft[];
+  snapshot_time: string;
+  received_at: string;
   aircraft_count: number;
-  created_at: string;
+  valid_position_count: number;
+  aircraft_json: CompactAircraft[];
+  metadata: Record<string, unknown>;
+  updated_at: string;
 }
 
 const FETCH_SNAPSHOT_SQL = `
-  SELECT id, source_id, snapshot_id, aircraft, aircraft_count, created_at
+  SELECT source_id, source_name, snapshot_id, snapshot_time, received_at,
+         aircraft_count, valid_position_count, aircraft_json, metadata, updated_at
   FROM aviation_aircraft_live_snapshots
   WHERE source_id = $1
-  ORDER BY id DESC
   LIMIT 1
 `;
 
@@ -82,6 +90,8 @@ export function generateDelta(
   currMap: Map<string, CompactAircraft>,
   snapshotId: string,
   snapshotTime: string,
+  sourceId = 'airplanes_live_v2',
+  sourceName = 'Airplanes.live Global Web JSON',
 ): DeltaData {
   const upserts: CompactAircraft[] = [];
   const removes: string[] = [];
@@ -99,7 +109,7 @@ export function generateDelta(
     }
   }
 
-  return { snapshotId, snapshotTime, upserts, removes, aircraftCount: currMap.size };
+  return { sourceId, sourceName, snapshotId, snapshotTime, upserts, removes, aircraftCount: currMap.size };
 }
 
 export function filterByBBox(
@@ -203,16 +213,16 @@ export class LiveAircraftBroadcaster {
     }
 
     const row = rows[0];
-    const aircraft: CompactAircraft[] = (row.aircraft || []).map((ac) => ({
+    const aircraft: CompactAircraft[] = (row.aircraft_json || []).map((ac) => ({
       ...ac,
       sourceObjectId: ac.id,
-      observedAt: ac.observedAt || row.created_at,
-      receivedAt: ac.receivedAt || row.created_at,
     }));
 
-    const snapshotId = String(row.snapshot_id || row.id);
-    const snapshotTime = row.created_at;
+    const snapshotId = row.snapshot_id;
+    const snapshotTime = row.snapshot_time;
     const snapshot: SnapshotData = {
+      sourceId: row.source_id,
+      sourceName: row.source_name,
       snapshotId,
       snapshotTime,
       aircraft,
@@ -236,7 +246,7 @@ export class LiveAircraftBroadcaster {
       this.onReady?.(snapshotTime);
       this.onSnapshot?.(snapshot);
     } else {
-      const delta = generateDelta(this.previousMap, this.currentMap, snapshotId, snapshotTime);
+      const delta = generateDelta(this.previousMap, this.currentMap, snapshotId, snapshotTime, row.source_id, row.source_name);
       this.onDelta?.(delta);
     }
   }

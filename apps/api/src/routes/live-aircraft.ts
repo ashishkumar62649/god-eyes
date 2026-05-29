@@ -64,8 +64,8 @@ function sendSnapshot(
 
   sendJson(ws, {
     type: 'aircraft.snapshot',
-    source: 'airplanes_live_global_web_json',
-    sourceId: 'airplanes_live_v2',
+    source: snapshot.sourceName,
+    sourceId: snapshot.sourceId,
     snapshotId: snapshot.snapshotId,
     snapshotTime: snapshot.snapshotTime,
     aircraftCount: filtered.length,
@@ -198,8 +198,8 @@ export function attachLiveAircraftWebSocket(
       const result = buildDeltaForClient(delta, state.bbox, state.view, bc.getCurrentMap());
       sendJson(ws, {
         type: 'aircraft.delta',
-        source: 'airplanes_live_global_web_json',
-        sourceId: 'airplanes_live_v2',
+        source: delta.sourceName,
+        sourceId: delta.sourceId,
         snapshotId: delta.snapshotId,
         snapshotTime: delta.snapshotTime,
         upserts: result.upserts,
