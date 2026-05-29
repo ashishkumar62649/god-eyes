@@ -464,9 +464,10 @@ def run_global_web_json_worker(
                 try:
                     insert_raw_batch(
                         conn, source_id, "/data/aircraft.json.gz", 
-                        {"sourceMode": "global-web-json"}, received_at,
+                        None, received_at,
                         http_status=status, aircraft_count=0,
-                        error_message=error
+                        error_message=error,
+                        fetch_params={"sourceMode": "global-web-json"}
                     )
                 except Exception as db_err:
                     print(f"[WORKER] ERROR recording failed batch: {db_err}")

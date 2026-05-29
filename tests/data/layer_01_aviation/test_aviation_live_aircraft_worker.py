@@ -594,5 +594,53 @@ def test_compact_aircraft_payload_shape():
     assert "lon" in compact
 
 
+# ===== WO-080A1 Runtime Bug Fix Tests =====
+
+
+def test_insert_raw_batch_error_path_no_duplicate_fetch_params():
+    """Global-web-json error path should not pass duplicate fetch_params."""
+    import inspect
+    from aviation_live_aircraft_worker import run_global_web_json_worker
+    
+    source = inspect.getsource(run_global_web_json_worker)
+    
+    # Error path should have: None, received_at, with keyword fetch_params after
+    assert 'None, received_at,' in source
+    # Should NOT have: {"sourceMode": "global-web-json"}, received_at (duplicate)
+    # The pattern we fixed: positional {} + keyword fetch_params
+    # Check that error path uses None as 4th arg
+    assert 'conn, source_id, "/data/aircraft.json.gz", \n                        None, received_at,' in source
+
+
+def test_insert_raw_batch_success_path_no_duplicate_fetch_params():
+    """Global-web-json success path should not pass duplicate fetch_params."""
+    import inspect
+    from aviation_live_aircraft_worker import run_global_web_json_worker
+    
+    source = inspect.getsource(run_global_web_json_worker)
+    
+    # Success path also uses None as 4th arg
+    assert 'conn, source_id, "/data/aircraft.json.gz",\n                    None, received_at,' in source
+
+
+def test_snapshot_notify_uses_pg_notify():
+    """Snapshot notify should use pg_notify for safe parameterization."""
+    import inspect
+    from aviation_live_aircraft_db import upsert_live_snapshot
+    
+    source = inspect.getsource(upsert_live_snapshot)
+    
+    # Should use pg_notify, NOT raw NOTIFY with string interpolation
+    assert "pg_notify" in source
+    assert 'SELECT pg_notify(%s, %s)' in source
+
+
+def test_snapshot_notify_channel_unchanged():
+    """Snapshot notify channel should be aviation_live_aircraft_snapshot."""
+    from aviation_live_aircraft_db import SNAPSHOT_NOTIFY_CHANNEL
+    
+    assert SNAPSHOT_NOTIFY_CHANNEL == "aviation_live_aircraft_snapshot"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
