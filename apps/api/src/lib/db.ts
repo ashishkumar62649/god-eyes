@@ -59,3 +59,23 @@ export async function closePool(): Promise<void> {
     pool = null;
   }
 }
+
+export type UnlistenFn = () => Promise<void>;
+
+export async function listen(
+  channel: string,
+  onNotification: (payload: string) => void,
+): Promise<UnlistenFn> {
+  const client = await getPool().connect();
+  await client.query(`LISTEN ${channel}`);
+  client.on('notification', (msg) => {
+    if (msg.channel === channel) {
+      onNotification(msg.payload || '');
+    }
+  });
+  return async () => {
+    client.removeAllListeners('notification');
+    await client.query(`UNLISTEN ${channel}`);
+    client.release();
+  };
+}

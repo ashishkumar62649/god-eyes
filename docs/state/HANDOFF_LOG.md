@@ -1,4 +1,27 @@
-<<<<<<< HEAD
+### 2026-05-29T20:00:00Z DeepSeek — WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
+
+- Work order: WO-080B — Live Aircraft WebSocket Broadcaster Fix
+- Folder: E:\god-eyes-api
+- Agent: DeepSeek
+- Role: API implementation
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Branch: agent/deepseek-wo-080b-live-aircraft-websocket-broadcaster
+- Start time UTC: 2026-05-29T19:50:00Z
+- End time UTC: 2026-05-29T20:10:00Z
+- Commit hash: (local only, awaiting review)
+- Push status: local only
+- What was done: Replaced polling-based LiveAircraftBroadcaster with NOTIFY/LISTEN architecture aligned to WO-080A migration schema. Broadcaster queries aviation_aircraft_live_snapshots reading: source_id, source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at. No ORDER BY id — uses WHERE source_id = $1 LIMIT 1 (source_id is PK). On startup and each NOTIFY on aviation_live_aircraft_snapshot channel, loads latest row, compares aircraft_json arrays by sourceObjectId/id, emits delta (upserts/removes). Periodic resync every 60s sends full snapshot. Added listen() to db.ts for LISTEN. Removed all aviation_aircraft_latest polling. WebSocket snapshot/delta messages use sourceName from source_name and sourceId from source_id. 26 tests cover schema alignment, no ORDER BY id, no aviation_aircraft_latest, no Airplanes.live URLs. Existing REST endpoint unchanged.
+- Files modified: apps/api/src/lib/db.ts, apps/api/tests/setup.ts, apps/api/src/lib/live-aircraft-broadcaster.ts, apps/api/src/routes/live-aircraft.ts, apps/api/tests/live-aircraft.test.ts
+- Files created: none
+- Files deleted: none
+- Commands run: pnpm --filter api test, git diff --check
+- Validation results: API tests PASS (260/260: 234 existing + 26 new), git diff --check PASS (CRLF cosmetic only)
+- Security/privacy result: PASS (no .env, no API keys, no secrets, no direct upstream fetches)
+- Forbidden folders touched: NO
+- Known issues: aviation_aircraft_live_snapshots table must exist from WO-080A migration before WebSocket live stream can serve snapshots. Table must have columns: source_id (PK), source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at.
+- Next safe task: Kiro review WO-080B
+
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
 - Work order: WO-079G-B — Aviation Live Aircraft Frontend Performance + No Flicker
@@ -32,7 +55,7 @@
   - Static aviation airports, earth events, and borders layers are untouched and unaffected.
   - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
 - Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
-=======
+
 ### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
 
 - Work order: WO-079G-A — Aviation Live Aircraft API Limit Increase
@@ -56,7 +79,6 @@
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-079G-B frontend stable renderer
->>>>>>> origin/main
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
 
