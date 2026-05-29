@@ -3096,3 +3096,31 @@ All agents must append to this file after completing work.
 - Persist result: Not run (no local PostGIS)
 - Known issues: None
 - Next safe task: WO-079D API endpoint implementation (after review and push)
+
+### 2026-05-29T12:25:00Z MiniMax — WO-079F Aviation Live Global Web JSON Fetcher
+
+- Work order: WO-079F-AVIATION-LIVE-GLOBAL-WEB-JSON-FETCHER
+- Agent: MiniMax
+- Role: Fetching/data ingestion engineer for Aviation live global snapshot
+- LLM model: MiniMax
+- Tool/CLI used: MiniMax CLI
+- Branch: agent/minimax-wo-079f-global-web-json-fetcher
+- Start time UTC: 2026-05-29T12:00:00Z
+- End time UTC: 2026-05-29T12:25:00Z
+- Commit hash: 83aba2c
+- Push status: local only (awaiting Kiro review)
+- What was done: Added global web JSON source mode to the existing aviation_live_aircraft_worker. This experimental mode fetches bulk aircraft snapshot from globe.airplanes.live for local/dev testing. Default remains official REST API.
+- Files modified: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py, docs/state/HANDOFF_LOG.md
+- Source mode added: --source-mode rest (default) or --source-mode global-web-json
+- Loop mode added: --once (default), --loop, --interval-seconds (default 60, min 30 for global-web-json)
+- Global web JSON URL: https://globe.airplanes.live/data/aircraft.json.gz with cache buster
+- Gzip support: YES (magic byte detection and decompression)
+- Aircraft array extraction: supports both 'aircraft' and 'ac' keys
+- Source ID used: airplanes_live_v2 for API compatibility (global web JSON populates existing source)
+- Source caveat: Experimental/dev source adapter. Not documented REST API. Not for frontend. No SLA/completeness claims.
+- Tests added: 10 new tests (34 total passing)
+- Commands run: python -m pytest tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py -q, python -m compileall ..., git diff --check, git commit
+- Test result: 34 passed
+- Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, docs/state/ modified)
+- Known issues: Global web JSON is experimental; uses Referer/Origin headers for compatibility; rate limited to 30s minimum interval
+- Next safe task: WO-079 final browser verification
