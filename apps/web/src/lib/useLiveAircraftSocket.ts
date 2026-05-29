@@ -36,7 +36,7 @@ export function useLiveAircraftSocket(
   onSnapshot: SnapshotCallback,
   onDelta: DeltaCallback,
   /** Ref that will be populated with a sendBboxUpdate function. */
-  sendBboxRef: React.MutableRefObject<((bbox: string) => void) | null>,
+  sendBboxRef: React.MutableRefObject<((bbox: [number, number, number, number]) => void) | null>,
 ): LiveAircraftStatus {
   const [status, setStatus] = useState<LiveAircraftStatus>(INITIAL_STATUS);
   const wsRef = useRef<WebSocket | null>(null);
@@ -73,9 +73,9 @@ export function useLiveAircraftSocket(
       wsRef.current = ws;
 
       // Expose bbox sender immediately (works once open).
-      sendBboxRef.current = (bbox: string) => {
+      sendBboxRef.current = (bbox: [number, number, number, number]) => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'bbox_update', bbox }));
+          ws.send(JSON.stringify({ type: 'bbox', bbox }));
         }
       };
 
@@ -84,7 +84,7 @@ export function useLiveAircraftSocket(
         ws.send(JSON.stringify({
           type: 'subscribe',
           layer: 'layer_01_aviation.live_aircraft',
-          bbox: '-180,-90,180,90',
+          bbox: [-180, -90, 180, 90],
           mode: 'global',
         }));
         setStatus((prev) => ({ ...prev, phase: 'connecting', errorMessage: '' }));
