@@ -783,7 +783,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (!coll) { applyingRef.current = false; return; }
 
       const map = aircraftMapRef.current;
-      const now = Date.now();
       const arrowImage: string = getAircraftArrowSprite().toDataURL();
       const dotImage: string = getAircraftDotSprite().toDataURL();
 
@@ -791,7 +790,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       const valid: AircraftLatest[] = [];
       for (const ac of snapshot) {
         if (ac.lat === null || ac.lon === null) continue;
-        if (ac.staleAfter && new Date(ac.staleAfter).getTime() < now) continue;
+        // Do NOT filter by staleAfter — WS stream is source of truth for liveness.
         valid.push(ac);
         if (valid.length >= RENDER_CAP) break;
       }
@@ -808,12 +807,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
           const heading = getAircraftHeadingDeg(ac);
           const color = getAircraftColor(ac);
-          const altMeters = typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt * 0.3048 : 0;
-          const newPos = Cartesian3.fromDegrees(ac.lon!, ac.lat!, Math.max(0, altMeters));
+          // Support both WS wire field (altitudeFt) and contract field (altitudeBaroFt).
+          const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
+            : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
+          const altMeters = Math.max(0, altitudeFt * 0.3048);
+          const newPos = Cartesian3.fromDegrees(ac.lon!, ac.lat!, altMeters);
           const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
           const image: string = heading !== null ? arrowImage : dotImage;
           const obsTime = new Date(ac.observedAt).getTime();
           const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
+          // Support both WS wire field (speedKt) and contract field (groundSpeedKt).
+          const speedKt = typeof (ac as any).speedKt === 'number' ? (ac as any).speedKt
+            : typeof ac.groundSpeedKt === 'number' ? ac.groundSpeedKt : 0;
 
           const existing = map.get(key);
           if (existing) {
@@ -822,11 +827,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             existing.currPos = newPos;
             existing.currTime = obsTime;
             existing.staleAfter = staleMs;
-            existing.speedKt = ac.groundSpeedKt ?? 0;
-            existing.trackDeg = ac.trackDeg ?? ac.headingTrueDeg ?? NaN;
+            existing.speedKt = speedKt;
+            existing.trackDeg = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN;
             existing.verticalRateFpm = ac.verticalRateFpm ?? 0;
             existing.onGround = ac.onGround ?? false;
-            // Update non-position properties directly.
             const bb = coll!.get(existing.idx);
             if (bb) {
               bb.image = image;
@@ -835,7 +839,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               (bb.id as any)._aircraftData = ac;
             }
           } else {
-            // New aircraft: add billboard with interpolating position.
             const rec: AircraftRecord = {
               idx: -1,
               prevPos: newPos,
@@ -843,8 +846,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               prevTime: obsTime,
               currTime: obsTime,
               staleAfter: staleMs,
-              speedKt: ac.groundSpeedKt ?? 0,
-              trackDeg: ac.trackDeg ?? ac.headingTrueDeg ?? NaN,
+              speedKt,
+              trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
               verticalRateFpm: ac.verticalRateFpm ?? 0,
               onGround: ac.onGround ?? false,
             };
@@ -944,23 +947,25 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       const map = aircraftMapRef.current;
       if (!coll) return;
 
-      const now = Date.now();
       const arrowImage = getAircraftArrowSprite().toDataURL();
       const dotImage = getAircraftDotSprite().toDataURL();
 
       // Upsert changed/new aircraft.
       for (const ac of upsert) {
         if (ac.lat === null || ac.lon === null) continue;
-        if (ac.staleAfter && new Date(ac.staleAfter).getTime() < now) continue;
+        // Do NOT filter by staleAfter — WS stream is source of truth for liveness.
         const key = ac.sourceObjectId;
         const heading = getAircraftHeadingDeg(ac);
         const color = getAircraftColor(ac);
-        const altM = typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt * 0.3048 : 0;
-        const newPos = Cartesian3.fromDegrees(ac.lon, ac.lat, Math.max(0, altM));
+        const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
+          : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
+        const newPos = Cartesian3.fromDegrees(ac.lon, ac.lat, Math.max(0, altitudeFt * 0.3048));
         const obsTime = new Date(ac.observedAt).getTime();
         const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
         const image = heading !== null ? arrowImage : dotImage;
         const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
+        const speedKt = typeof (ac as any).speedKt === 'number' ? (ac as any).speedKt
+          : typeof ac.groundSpeedKt === 'number' ? ac.groundSpeedKt : 0;
 
         const existing = map.get(key);
         if (existing) {
@@ -969,8 +974,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           existing.currPos = newPos;
           existing.currTime = obsTime;
           existing.staleAfter = staleMs;
-          existing.speedKt = ac.groundSpeedKt ?? 0;
-          existing.trackDeg = ac.trackDeg ?? ac.headingTrueDeg ?? NaN;
+          existing.speedKt = speedKt;
+          existing.trackDeg = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN;
           existing.verticalRateFpm = ac.verticalRateFpm ?? 0;
           existing.onGround = ac.onGround ?? false;
           const bb = coll.get(existing.idx);
@@ -978,8 +983,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         } else {
           const rec: AircraftRecord = {
             idx: -1, prevPos: newPos, currPos: newPos, prevTime: obsTime, currTime: obsTime,
-            staleAfter: staleMs, speedKt: ac.groundSpeedKt ?? 0,
-            trackDeg: ac.trackDeg ?? ac.headingTrueDeg ?? NaN,
+            staleAfter: staleMs, speedKt,
+            trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
             verticalRateFpm: ac.verticalRateFpm ?? 0, onGround: ac.onGround ?? false,
           };
           const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
@@ -1031,7 +1036,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       for (const [, rec] of map) {
         if (rec.onGround) continue;
         if (!isFinite(rec.trackDeg) || rec.speedKt <= 0) continue;
-        if (rec.staleAfter && nowMs > rec.staleAfter) continue;
+        // staleAfter does not stop DR — WS stream controls liveness, DR is display-only.
 
         const elapsedSecs = Math.min(DR_MAX_SECS, (nowMs - rec.currTime) / 1000);
         if (elapsedSecs <= 0) continue;

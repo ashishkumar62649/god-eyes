@@ -1,5 +1,17 @@
 
-### 2026-05-30T04:08:00Z Claude Sonnet 4.6 — WO-080C3 Fix Live Aircraft Billboard Visibility
+### 2026-05-30T04:35:00Z Claude Sonnet 4.6 — WO-080C4 Stop Dropping Live Aircraft and Align Wire Fields
+
+- Work order: WO-080C4
+- Branch: agent/claude-wo-080c4-stop-dropping-live-aircraft
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Commit hash: f3f2ec9 (local only, not pushed)
+- Changes: (1) Removed staleAfter filter from snapshot/delta apply loops — WS stream is source of truth for liveness. (2) Removed staleAfter continue from DR loop — DR is display-only. (3) Altitude: altitudeFt (WS wire) fallback to altitudeBaroFt (contract). (4) Speed: speedKt (WS wire) fallback to groundSpeedKt (contract). (5) Heading: trackDeg ?? headingDeg (WS wire) ?? headingTrueDeg ?? headingMagDeg in both CesiumGlobe and aircraftMarker.ts.
+- Files modified: apps/web/src/CesiumGlobe.tsx, apps/web/src/lib/aircraftMarker.ts
+- Commands run: pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Next safe task: WO-080 final WebSocket integration review
+
+
 
 - Work order: WO-080C3
 - Branch: agent/claude-wo-080c3-fix-live-aircraft-billboard-visibility
