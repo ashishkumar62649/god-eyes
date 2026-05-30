@@ -3531,3 +3531,11 @@ All agents must append to this file after completing work.
 - Frontend passes normalized upserts into Cesium delta renderer.
 - Fixes the bug where browser received aircraft.delta records but Cesium saw upserts=0.
 - Validation: contracts build passed, web build passed, git diff --check clean.
+
+## WO-080C7 — Aircraft Type Icons and Altitude Color Scale
+
+- Added aircraft SVG icon assets, icon-mapping.json, and tar1090 GPL license attribution.
+- Live aircraft markers now resolve aircraft-type-specific icons where available.
+- Aircraft marker color now follows altitude bands, with gray for on-ground aircraft.
+- Marker images are cached by icon/color and async SVG loading is safe.
+- Validation: contracts build passed, web build passed, git diff --check clean.
