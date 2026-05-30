@@ -1,6 +1,23 @@
 ﻿
 ### 2026-05-29T14:00:00Z Claude Sonnet 4.6 â€” WO-080B Live Aircraft WebSocket Radar Renderer
 
+### 2026-05-30T17:27:23Z Claude Sonnet 4.6 — WO-080C6 Normalize Live Aircraft Delta Payload
+
+- Work order: WO-080C6
+- Branch: agent/claude-wo-080c6-normalize-live-aircraft-delta-payload
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Start time UTC: 2026-05-30T17:20:00Z
+- End time UTC: 2026-05-30T17:27:23Z
+- Commit hash: 6608d46 (local only, not pushed)
+- Push status: NOT PUSHED — awaiting Kiro review
+- Root cause: useLiveAircraftSocket.ts aircraft.delta handler used `msg.upsert` (singular, wrong key) and had no fallback to `msg.aircraft`. API sends `aircraft: [...]` in delta messages. Result: rawUpserts was always [] so CesiumGlobe received upserts=0 on every delta.
+- Fix: Normalize delta payload — try `msg.upserts` first, then `msg.aircraft`, then []. Added DEV-only debug log showing rawAircraft/rawUpserts/normalizedUpserts/removes/snapshotTime counts.
+- Files modified: apps/web/src/lib/useLiveAircraftSocket.ts
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Review status: PENDING
+- Next safe task: Browser verification — confirm [LIVE WS DELTA NORMALIZED] shows normalizedUpserts > 0 and [AIRCRAFT DELTA] shows billboardsUpdated > 0
+
 ### 2026-05-30T17:07:25Z Claude Sonnet 4.6 — WO-080C5 Fix Live Aircraft Delta Movement and Cesium Render Updates
 
 - Work order: WO-080C5
