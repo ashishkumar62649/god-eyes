@@ -1,4 +1,4 @@
-"""Tests for Airplanes.live worker — WO-079C."""
+"""Tests for Airplanes.live worker â€” WO-079C."""
 
 from __future__ import annotations
 
@@ -36,16 +36,16 @@ def test_db_helper_file_exists():
 def test_dry_run_default_does_not_write_to_db():
     """Dry-run default should not write to DB."""
     from aviation_live_aircraft_worker import run_worker
-    
+
     with patch("aviation_live_aircraft_worker.connect_db") as mock_conn:
         with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
             mock_fetch.return_value = ({"aircraft": []}, 200, None)
-            
+
             result = run_worker(
                 include_endpoints=["mil"],
                 persist=False,
             )
-    
+
     # Should not attempt DB connection in dry-run
     mock_conn.assert_not_called()
     assert result["aircraft_processed"] == 0
@@ -54,15 +54,15 @@ def test_dry_run_default_does_not_write_to_db():
 def test_persist_flag_required_for_db_writes():
     """--persist must be required for DB writes."""
     from aviation_live_aircraft_worker import run_worker
-    
+
     with patch("aviation_live_aircraft_worker.connect_db") as mock_conn:
         mock_conn.return_value = MagicMock()
-        
+
         result = run_worker(
             include_endpoints=["mil"],
             persist=False,
         )
-    
+
     # No DB connection in dry-run
     mock_conn.assert_not_called()
 
@@ -70,15 +70,15 @@ def test_persist_flag_required_for_db_writes():
 def test_official_endpoint_urls_used():
     """Official Airplanes.live API URLs must be used."""
     from aviation_live_aircraft_worker import BASE_URL, fetch_endpoint
-    
+
     with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = MagicMock()
         mock_response.read.return_value = b'{"aircraft": []}'
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         fetch_endpoint("mil", timeout=10)
-        
+
         # Check the URL called
         call_args = mock_urlopen.call_args
         url = call_args[0][0].full_url
@@ -88,8 +88,8 @@ def test_official_endpoint_urls_used():
 def test_website_not_scraped():
     """globe.airplanes.live should not be scraped directly by frontend."""
     worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_worker.py"
-    content = worker_path.read_text()
-    
+    content = worker_path.read_text(encoding="utf-8")
+
     # WO-079F allows global-web-json as an explicit experimental backend mode
     # but frontend should not call it directly
     # The URL is only used in --source-mode global-web-json which is a backend worker option
@@ -99,15 +99,15 @@ def test_website_not_scraped():
 def test_no_global_all_endpoint():
     """No global /all endpoint should be invented."""
     from aviation_live_aircraft_worker import run_worker
-    
+
     with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
         mock_fetch.return_value = ({"aircraft": []}, 200, None)
-        
+
         result = run_worker(
             include_endpoints=["mil"],
             persist=False,
         )
-    
+
     # Verify we called our mocked endpoint, not /all
     calls = mock_fetch.call_args_list
     endpoints = [call[0][0] for call in calls]
@@ -117,10 +117,10 @@ def test_no_global_all_endpoint():
 def test_point_radius_capped_at_250():
     """Point endpoint radius should be capped at 250nm."""
     from aviation_live_aircraft_worker import run_worker
-    
+
     with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
         mock_fetch.return_value = ({"aircraft": []}, 200, None)
-        
+
         # Test with radius > 250
         result = run_worker(
             include_endpoints=["point"],
@@ -129,7 +129,7 @@ def test_point_radius_capped_at_250():
             radius_nm=300,
             persist=False,
         )
-    
+
     # Should have capped radius
     calls = mock_fetch.call_args_list
     if calls:
@@ -140,17 +140,17 @@ def test_point_radius_capped_at_250():
 def test_missing_point_lat_lon_skips_with_warning():
     """Missing lat/lon should skip point endpoint with warning."""
     from aviation_live_aircraft_worker import run_worker
-    
+
     with patch("aviation_live_aircraft_worker.fetch_endpoint") as mock_fetch:
         mock_fetch.return_value = ({"aircraft": []}, 200, None)
-        
+
         result = run_worker(
             include_endpoints=["point"],
             lat=None,
             lon=None,
             persist=False,
         )
-    
+
     # Point should be skipped
     assert "mil" not in result.get("endpoints_processed", [])
 
@@ -161,7 +161,7 @@ def test_missing_point_lat_lon_skips_with_warning():
 def test_db_flags_parsing_military():
     """dbFlags parsing: military flag."""
     from aviation_live_aircraft_worker import parse_db_flags
-    
+
     assert parse_db_flags(1)["is_military"] is True
     assert parse_db_flags(0)["is_military"] is False
     assert parse_db_flags(5)["is_military"] is True  # 5 = 1 | 4
@@ -170,7 +170,7 @@ def test_db_flags_parsing_military():
 def test_db_flags_parsing_interesting():
     """dbFlags parsing: interesting flag."""
     from aviation_live_aircraft_worker import parse_db_flags
-    
+
     assert parse_db_flags(2)["is_interesting"] is True
     assert parse_db_flags(0)["is_interesting"] is False
 
@@ -178,7 +178,7 @@ def test_db_flags_parsing_interesting():
 def test_db_flags_parsing_pia():
     """dbFlags parsing: PIA flag."""
     from aviation_live_aircraft_worker import parse_db_flags
-    
+
     assert parse_db_flags(4)["is_pia"] is True
     assert parse_db_flags(0)["is_pia"] is False
 
@@ -186,7 +186,7 @@ def test_db_flags_parsing_pia():
 def test_db_flags_parsing_ladd():
     """dbFlags parsing: LADD flag."""
     from aviation_live_aircraft_worker import parse_db_flags
-    
+
     assert parse_db_flags(8)["is_ladd"] is True
     assert parse_db_flags(0)["is_ladd"] is False
 
@@ -194,7 +194,7 @@ def test_db_flags_parsing_ladd():
 def test_alt_baro_ground_does_not_crash():
     """alt_baro = 'ground' should handle safely."""
     from aviation_live_aircraft_worker import normalize_altitude
-    
+
     alt, on_ground = normalize_altitude("ground")
     assert alt is None
     assert on_ground is True
@@ -203,7 +203,7 @@ def test_alt_baro_ground_does_not_crash():
 def test_alt_baro_numeric():
     """alt_baro numeric values should work."""
     from aviation_live_aircraft_worker import normalize_altitude
-    
+
     alt, on_ground = normalize_altitude(35000)
     assert alt == 35000.0
     assert on_ground is False
@@ -212,13 +212,13 @@ def test_alt_baro_numeric():
 def test_missing_lat_lon_skipped_for_latest():
     """Missing lat/lon should be handled safely."""
     from aviation_live_aircraft_worker import normalize_aircraft
-    
+
     received_at = datetime.now(timezone.utc)
-    
+
     # Aircraft without position
     raw = {"hex": "ABCDEF", "lat": None, "lon": None}
     normalized = normalize_aircraft(raw, received_at)
-    
+
     assert normalized is not None
     assert normalized["lat"] is None
     assert normalized["lon"] is None
@@ -227,12 +227,12 @@ def test_missing_lat_lon_skipped_for_latest():
 def test_observed_at_derived_from_seen():
     """observed_at should be derived from seen seconds."""
     from aviation_live_aircraft_worker import normalize_aircraft
-    
+
     received_at = datetime(2026, 5, 28, 12, 0, 0, tzinfo=timezone.utc)
-    
+
     raw = {"hex": "ABCDEF", "seen": 30, "lat": 0, "lon": 0}
     normalized = normalize_aircraft(raw, received_at)
-    
+
     # observed_at should be ~30 seconds before received_at
     assert normalized["observed_at"] < received_at
 
@@ -244,7 +244,7 @@ def test_latest_upsert_sql_contains_newer_observed_at_protection():
     """Latest upsert should have newer observed_at protection."""
     db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
-    
+
     assert "observed_at < EXCLUDED.observed_at" in content
 
 
@@ -252,7 +252,7 @@ def test_observation_insert_uses_on_conflict_do_nothing():
     """Observation insert should use ON CONFLICT DO NOTHING."""
     db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
-    
+
     assert "ON CONFLICT DO NOTHING" in content
 
 
@@ -260,7 +260,7 @@ def test_parameterized_sql_used():
     """Parameterized SQL should be used (no string interpolation)."""
     db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
-    
+
     # Should have %s placeholders
     assert "%s" in content
     # Should not have f-strings with values in SQL
@@ -272,7 +272,7 @@ def test_no_destructive_sql():
     """No destructive SQL (DROP, DELETE, TRUNCATE) in DB helper."""
     db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text().lower()
-    
+
     destructive = ["drop ", "delete ", "truncate ", "alter "]
     for word in destructive:
         assert word not in content
@@ -284,8 +284,8 @@ def test_no_destructive_sql():
 def test_rate_limit_sleep_logic_exists():
     """Rate limit sleep logic should exist."""
     worker_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_worker.py"
-    content = worker_path.read_text()
-    
+    content = worker_path.read_text(encoding="utf-8")
+
     assert "time.sleep" in content
     assert "RATE_LIMIT" in content
 
@@ -377,10 +377,10 @@ def sample_aircraft_ground():
 def test_normalize_aircraft_with_fixture(sample_aircraft_mil):
     """Test normalization with fixture data."""
     from aviation_live_aircraft_worker import normalize_aircraft
-    
+
     received_at = datetime.now(timezone.utc)
     normalized = normalize_aircraft(sample_aircraft_mil, received_at)
-    
+
     assert normalized is not None
     assert normalized["source_object_id"] == "4B03A2"
     assert normalized["callsign"] == "SWR1234"
@@ -397,10 +397,10 @@ def test_normalize_aircraft_with_fixture(sample_aircraft_mil):
 def test_normalize_aircraft_ground_fixture(sample_aircraft_ground):
     """Test normalization of aircraft on ground."""
     from aviation_live_aircraft_worker import normalize_aircraft
-    
+
     received_at = datetime.now(timezone.utc)
     normalized = normalize_aircraft(sample_aircraft_ground, received_at)
-    
+
     assert normalized is not None
     assert normalized["altitude_baro_ft"] is None
     assert normalized["on_ground"] is True
@@ -412,7 +412,7 @@ def test_normalize_aircraft_ground_fixture(sample_aircraft_ground):
 def test_source_mode_defaults_to_rest():
     """Default source mode should be rest."""
     from aviation_live_aircraft_worker import DEFAULT_SOURCE_ID, GLOBAL_WEB_JSON_SOURCE_ID
-    
+
     assert DEFAULT_SOURCE_ID == "airplanes_live_v2"
     assert GLOBAL_WEB_JSON_SOURCE_ID == "airplanes_live_global_web_json"
 
@@ -420,7 +420,7 @@ def test_source_mode_defaults_to_rest():
 def test_global_web_json_url_includes_cache_buster():
     """Global web JSON URL should include cache-busting parameter."""
     from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_URL
-    
+
     # URL should be the base without cache buster (cache buster is added at fetch time)
     assert "aircraft.json.gz" in GLOBAL_WEB_JSON_URL
 
@@ -428,7 +428,7 @@ def test_global_web_json_url_includes_cache_buster():
 def test_is_gzip_magic_detection():
     """Gzip magic byte detection should work."""
     from aviation_live_aircraft_worker import is_gzip_magic
-    
+
     # Valid gzip
     assert is_gzip_magic(b"\x1f\x8b\x08") is True
     # Invalid
@@ -440,10 +440,10 @@ def test_is_gzip_magic_detection():
 def test_extract_aircraft_from_aircraft_key():
     """Extract aircraft from 'aircraft' key."""
     from aviation_live_aircraft_worker import extract_aircraft_from_global_json
-    
+
     data = {"aircraft": [{"hex": "ABCDEF"}], "now": 123456}
     result = extract_aircraft_from_global_json(data)
-    
+
     assert len(result) == 1
     assert result[0]["hex"] == "ABCDEF"
 
@@ -451,10 +451,10 @@ def test_extract_aircraft_from_aircraft_key():
 def test_extract_aircraft_from_ac_key():
     """Extract aircraft from 'ac' key."""
     from aviation_live_aircraft_worker import extract_aircraft_from_global_json
-    
+
     data = {"ac": [{"hex": "XYZ123"}], "now": 123456}
     result = extract_aircraft_from_global_json(data)
-    
+
     assert len(result) == 1
     assert result[0]["hex"] == "XYZ123"
 
@@ -462,7 +462,7 @@ def test_extract_aircraft_from_ac_key():
 def test_extract_aircraft_handles_missing():
     """Extract aircraft handles missing data gracefully."""
     from aviation_live_aircraft_worker import extract_aircraft_from_global_json
-    
+
     assert extract_aircraft_from_global_json({}) == []
     assert extract_aircraft_from_global_json({"now": 123}) == []
     assert extract_aircraft_from_global_json(None) == []
@@ -472,37 +472,37 @@ def test_extract_aircraft_handles_missing():
 def test_global_web_json_min_interval():
     """Global web JSON min interval should be enforced."""
     from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS
-    
+
     assert GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS == 5
 
 
 def test_global_web_json_default_interval():
     """Global web JSON default interval should be aggressive."""
     from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS
-    
+
     assert GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS == 5
 
 
 def test_global_web_json_backoff_interval():
     """Global web JSON backoff should be at least 30 seconds."""
     from aviation_live_aircraft_worker import GLOBAL_WEB_JSON_BACKOFF_SECONDS
-    
+
     assert GLOBAL_WEB_JSON_BACKOFF_SECONDS >= 30
 
 
 def test_global_mode_does_not_require_lat_lon():
     """Global web JSON mode should not require lat/lon parameters."""
     from aviation_live_aircraft_worker import run_global_web_json_worker
-    
+
     # Should accept no lat/lon - it fetches global data
     # Test with mock to avoid network call
     with patch("aviation_live_aircraft_worker.fetch_global_web_json") as mock_fetch:
         mock_fetch.return_value = ({"ac": [], "now": 1234567890}, 200, None)
-        
+
         result = run_global_web_json_worker(
             persist=False,
         )
-    
+
     assert result["aircraft_processed"] == 0
     assert "/data/aircraft.json.gz" in result["endpoints_processed"]
 
@@ -510,16 +510,16 @@ def test_global_mode_does_not_require_lat_lon():
 def test_source_id_for_api_compatibility():
     """Global web JSON should use DEFAULT_SOURCE_ID for API compatibility."""
     from aviation_live_aircraft_worker import run_global_web_json_worker, DEFAULT_SOURCE_ID
-    
+
     with patch("aviation_live_aircraft_worker.connect_db"):
         with patch("aviation_live_aircraft_worker.fetch_global_web_json") as mock_fetch:
             with patch("aviation_live_aircraft_worker.upsert_latest_aircraft") as mock_upsert:
                 mock_fetch.return_value = ({"ac": [{"hex": "ABCDEF", "lat": 0, "lon": 0}]}, 200, None)
-                
+
                 run_global_web_json_worker(
                     persist=True,
                 )
-                
+
                 # Check that upsert used DEFAULT_SOURCE_ID for API compatibility
                 call_args = mock_upsert.call_args
                 assert call_args[0][1] == DEFAULT_SOURCE_ID
@@ -529,14 +529,14 @@ def test_snapshot_upsert_sql_uses_on_conflict():
     """Snapshot upsert should use ON CONFLICT DO UPDATE."""
     db_path = REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_01_aviation" / "aviation_live_aircraft_db.py"
     content = db_path.read_text()
-    
+
     assert "ON CONFLICT (source_id) DO UPDATE" in content
 
 
 def test_snapshot_notify_channel_defined():
     """Snapshot notify channel should be defined."""
     from aviation_live_aircraft_db import SNAPSHOT_NOTIFY_CHANNEL
-    
+
     assert SNAPSHOT_NOTIFY_CHANNEL == "aviation_live_aircraft_snapshot"
 
 
@@ -544,7 +544,7 @@ def test_snapshot_notify_payload_includes_required_fields():
     """NOTIFY payload should include required fields."""
     from aviation_live_aircraft_db import SNAPSHOT_NOTIFY_CHANNEL
     import json
-    
+
     # Simulate the notify payload
     payload = {
         "sourceId": "airplanes_live_v2",
@@ -553,7 +553,7 @@ def test_snapshot_notify_payload_includes_required_fields():
         "aircraftCount": 13397,
         "validPositionCount": 11848,
     }
-    
+
     assert "sourceId" in payload
     assert "snapshotId" in payload
     assert "snapshotTime" in payload
@@ -587,11 +587,130 @@ def test_compact_aircraft_payload_shape():
         "aircraftType": "A320",
         "registration": "VTABC",
     }
-    
+
     assert compact["id"] == "ABCDEF"
     assert compact["sourceObjectId"] == "ABCDEF"
     assert "lat" in compact
     assert "lon" in compact
+
+
+# ===== WO-080A4 Fixed-Rate Loop Tests =====
+
+
+def test_history_every_n_cycles_argument_exists():
+    """--history-every-n-cycles argument should exist."""
+    import inspect
+    from aviation_live_aircraft_worker import main
+
+    source = inspect.getsource(main)
+    assert "--history-every-n-cycles" in source
+
+
+def test_history_every_n_cycles_default_is_12():
+    """Default history-every-n-cycles should be 12."""
+    from aviation_live_aircraft_worker import main
+
+    import inspect
+    source = inspect.getsource(main)
+    assert "default=12" in source and "history-every-n-cycles" in source
+
+
+def test_run_global_web_json_loop_cycle_function_exists():
+    """run_global_web_json_loop_cycle function should exist."""
+    from aviation_live_aircraft_worker import run_global_web_json_loop_cycle
+    assert callable(run_global_web_json_loop_cycle)
+
+
+def test_run_global_web_json_loop_cycle_returns_timing_info():
+    """run_global_web_json_loop_cycle should return timing info."""
+    from aviation_live_aircraft_worker import run_global_web_json_loop_cycle
+
+    with patch("aviation_live_aircraft_worker.fetch_global_web_json") as mock_fetch:
+        mock_fetch.return_value = ({"ac": [], "now": 1234567890}, 200, None)
+
+        result = run_global_web_json_loop_cycle(
+            persist=False,
+            write_history=False,
+        )
+
+    assert "fetch_duration" in result
+    assert "snapshot_publish_duration" in result
+    assert "history_write_duration" in result
+
+
+def test_run_global_web_json_loop_cycle_with_write_history():
+    """run_global_web_json_loop_cycle should write history when enabled."""
+    from aviation_live_aircraft_worker import run_global_web_json_loop_cycle
+
+    with patch("aviation_live_aircraft_worker.fetch_global_web_json") as mock_fetch:
+        with patch("aviation_live_aircraft_worker.connect_db") as mock_conn:
+            mock_conn.return_value = MagicMock()
+            mock_fetch.return_value = ({"ac": [{"hex": "ABCDEF", "lat": 0, "lon": 0, "alt_baro": 35000}], "now": 1234567890}, 200, None)
+
+            result = run_global_web_json_loop_cycle(
+                persist=True,
+                write_history=True,
+            )
+
+    assert result["aircraft_processed"] == 1
+
+
+def test_fixed_rate_timing_no_extra_sleep_after_overrun():
+    """Fixed-rate loop should not sleep extra full interval after overrun."""
+    import inspect
+    from aviation_live_aircraft_worker import main
+
+    source = inspect.getsource(main)
+
+    # Should calculate next cycle based on planned_start + interval
+    assert "planned_start + interval_seconds" in source or "next_cycle_time = planned_start + interval" in source
+
+
+def test_cycle_overrun_logging():
+    """Cycle overrun should be logged."""
+    import inspect
+    from aviation_live_aircraft_worker import main
+
+    source = inspect.getsource(main)
+
+    # Should log when cycle overran
+    assert "overran" in source.lower()
+
+
+def test_timing_logs_per_cycle():
+    """Each cycle should log timing info."""
+    import inspect
+    from aviation_live_aircraft_worker import main
+
+    source = inspect.getsource(main)
+
+    # Should log fetch duration, snapshot duration, history write, cycle duration
+    assert "Fetch duration:" in source
+    assert "Snapshot publish duration:" in source
+    assert "History write:" in source
+    assert "Cycle duration:" in source
+
+
+def test_history_every_n_cycles_divisibility():
+    """History should write when cycle_count % history_every_n_cycles == 0."""
+    import inspect
+    from aviation_live_aircraft_worker import main
+
+    source = inspect.getsource(main)
+
+    # Should use modulo to determine write_history
+    assert "cycle_count % history_every_n_cycles" in source
+
+
+def test_default_history_every_n_cycles_is_1_for_once_mode():
+    """Default history_every_n_cycles should be 1 for --once mode."""
+    import inspect
+    from aviation_live_aircraft_worker import main
+
+    source = inspect.getsource(main)
+
+    # Should detect run_once and set history_every_n_cycles to 1
+    assert "run_once" in source and "history_every_n_cycles = 1" in source
 
 
 # ===== WO-080A1 Runtime Bug Fix Tests =====
@@ -601,9 +720,9 @@ def test_insert_raw_batch_error_path_no_duplicate_fetch_params():
     """Global-web-json error path should not pass duplicate fetch_params."""
     import inspect
     from aviation_live_aircraft_worker import run_global_web_json_worker
-    
+
     source = inspect.getsource(run_global_web_json_worker)
-    
+
     # Check error path uses fetch_params as 4th positional, NOT as keyword
     # Error path pattern: insert_raw_batch(conn, source_id, endpoint, fetch_params, fetched_at, ...)
     assert 'insert_raw_batch(\n                        conn,\n                        source_id,\n                        "/data/aircraft.json.gz",\n                        {"sourceMode": "global-web-json"},\n                        received_at,' in source or \
@@ -614,9 +733,9 @@ def test_insert_raw_batch_success_path_no_duplicate_fetch_params():
     """Global-web-json success path should not pass duplicate fetch_params."""
     import inspect
     from aviation_live_aircraft_worker import run_global_web_json_worker
-    
+
     source = inspect.getsource(run_global_web_json_worker)
-    
+
     # Success path should also use fetch_params as 4th positional only
     assert 'insert_raw_batch(\n                    conn,\n                    source_id,\n                    "/data/aircraft.json.gz",\n                    {"sourceMode": "global-web-json", "messages": source_messages},\n                    received_at,' in source or \
            'insert_raw_batch(\n                    conn, source_id,\n                    "/data/aircraft.json.gz",\n                    {"sourceMode": "global-web-json", "messages": source_messages}, received_at,' in source
@@ -626,9 +745,9 @@ def test_snapshot_notify_uses_pg_notify():
     """Snapshot notify should use pg_notify for safe parameterization."""
     import inspect
     from aviation_live_aircraft_db import upsert_live_snapshot
-    
+
     source = inspect.getsource(upsert_live_snapshot)
-    
+
     # Should use pg_notify, NOT raw NOTIFY with string interpolation
     assert "pg_notify" in source
     assert 'SELECT pg_notify(%s, %s)' in source
@@ -637,7 +756,7 @@ def test_snapshot_notify_uses_pg_notify():
 def test_snapshot_notify_channel_unchanged():
     """Snapshot notify channel should be aviation_live_aircraft_snapshot."""
     from aviation_live_aircraft_db import SNAPSHOT_NOTIFY_CHANNEL
-    
+
     assert SNAPSHOT_NOTIFY_CHANNEL == "aviation_live_aircraft_snapshot"
 
 

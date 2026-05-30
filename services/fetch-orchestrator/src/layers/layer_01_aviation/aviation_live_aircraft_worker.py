@@ -1,4 +1,4 @@
-"""Airplanes.live Live Aircraft Worker — WO-079C + WO-079F.
+﻿"""Airplanes.live Live Aircraft Worker â€” WO-079C + WO-079F + WO-080A4.
 
 Fetches live aircraft data from Airplanes.live REST API v2 or
 the experimental globe web JSON snapshot.
@@ -13,6 +13,10 @@ Usage (global web JSON mode):
 Usage with loop mode:
     python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py \
         --source-mode global-web-json --loop --interval-seconds 5 --persist
+
+Usage with custom history cadence:
+    python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py \
+        --source-mode global-web-json --loop --interval-seconds 5 --history-every-n-cycles 1 --persist
 """
 
 from __future__ import annotations
@@ -213,23 +217,23 @@ def fetch_global_web_json(timeout: int = DEFAULT_TIMEOUT) -> tuple[dict[str, Any
     # Append cache buster timestamp
     cache_buster = int(time.time() * 1000)
     url = f"{GLOBAL_WEB_JSON_URL}?_={cache_buster}"
-    
+
     headers = {
         "User-Agent": "GodEyes/1.0 (aviation-fetcher; global-web-json-adapter)",
         "Referer": "https://globe.airplanes.live/",
         "Origin": "https://globe.airplanes.live",
     }
     req = urllib.request.Request(url, headers=headers)
-    
+
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read()
             status = resp.status
-            
+
             # Handle gzip compression
             if is_gzip_magic(raw):
                 raw = gzip.decompress(raw)
-            
+
             data = json.loads(raw)
             return data, status, None
     except urllib.error.HTTPError as exc:
@@ -251,7 +255,7 @@ def fetch_global_web_json(timeout: int = DEFAULT_TIMEOUT) -> tuple[dict[str, Any
 
 def extract_aircraft_from_global_json(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract aircraft array from global web JSON response.
-    
+
     Supports both 'aircraft' and 'ac' keys.
     """
     if not isinstance(data, dict):
@@ -271,12 +275,12 @@ def run_worker(
     source_mode: str = "rest",
 ) -> dict[str, Any]:
     """Run the Airplanes.live fetcher worker.
-    
+
     Args:
         source_mode: Either "rest" (default official API) or "global-web-json" (globe snapshot)
     """
     db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
-    
+
     # Handle global web JSON mode
     if source_mode == "global-web-json":
         return run_global_web_json_worker(
@@ -425,12 +429,12 @@ def run_global_web_json_worker(
 ) -> dict[str, Any]:
     """Run the Airplanes.live global web JSON snapshot fetcher."""
     db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
-    
+
     # Use global web JSON source ID
     # Use DEFAULT_SOURCE_ID (airplanes_live_v2) for DB operations to align with API WebSocket
     # Source mode is preserved in fetch_params/metadata
     source_id = DEFAULT_SOURCE_ID
-    
+
     if persist:
         print("[WORKER] GLOBAL-WEB-JSON MODE: Will write to database")
     else:
@@ -456,7 +460,7 @@ def run_global_web_json_worker(
 
     try:
         print(f"[WORKER] Fetching global web JSON snapshot...")
-        
+
         data, status, error = fetch_global_web_json(timeout)
 
         if error:
@@ -529,7 +533,7 @@ def run_global_web_json_worker(
             final_observed_at = observed_at
             if seen_seconds is not None and seen_seconds > 0:
                 final_observed_at = observed_at - timedelta(seconds=seen_seconds)
-            
+
             # Create a modified received_at for normalization
             normalized = normalize_aircraft(raw_ac, final_observed_at)
             if not normalized:
@@ -563,7 +567,7 @@ def run_global_web_json_worker(
                     hex_val = raw_ac.get("hex")
                     if not hex_val:
                         continue
-                    
+
                     lat_raw = raw_ac.get("lat")
                     lon_raw = raw_ac.get("lon")
                     lat = lon = None
@@ -575,19 +579,19 @@ def run_global_web_json_worker(
                             has_pos = True
                         except (ValueError, TypeError):
                             pass
-                    
+
                     if has_pos:
                         valid_count += 1
-                    
+
                     # Calculate observed_at from seen
                     seen = raw_ac.get("seen")
                     seen_seconds = _safe_float(seen)
                     aircraft_observed_at = observed_at
                     if seen_seconds is not None and seen_seconds > 0:
                         aircraft_observed_at = observed_at - timedelta(seconds=seen_seconds)
-                    
+
                     stale_after = aircraft_observed_at + timedelta(seconds=STALE_FADE_THRESHOLD)
-                    
+
                     compact_aircraft.append({
                         "id": hex_val,
                         "sourceObjectId": hex_val,
@@ -606,18 +610,18 @@ def run_global_web_json_worker(
                         "receivedAt": received_at.isoformat() if received_at else None,
                         "staleAfter": stale_after.isoformat() if stale_after else None,
                     })
-                
+
                 # Create snapshot metadata
                 snapshot_time = observed_at if source_now is None else datetime.fromtimestamp(source_now, tz=timezone.utc)
                 snapshot_id = f"snap_{int(time.time() * 1000)}"
-                
+
                 snapshot_metadata = {
                     "sourceMode": "global-web-json",
                     "upstream": "globe.airplanes.live/data/aircraft.json.gz",
                     "caveat": "experimental/dev globe web JSON source; no SLA/completeness claims",
                     "messages": source_messages,
                 }
-                
+
                 upsert_live_snapshot(
                     conn=conn,
                     source_id=DEFAULT_SOURCE_ID,
@@ -643,6 +647,250 @@ def run_global_web_json_worker(
     finally:
         if conn:
             conn.close()
+
+    return result
+
+
+def run_global_web_json_loop_cycle(
+    timeout: int = DEFAULT_TIMEOUT,
+    persist: bool = False,
+    database_url: str | None = None,
+    write_history: bool = True,
+) -> dict[str, Any]:
+    """Run a single cycle of global-web-json fetch with prioritized snapshot publish.
+
+    This function separates the high-priority live snapshot publish from the
+    lower-priority history writes (raw batch, latest aircraft, observations).
+
+    Args:
+        timeout: Request timeout in seconds
+        persist: Whether to write to database
+        database_url: PostgreSQL connection URL
+        write_history: Whether to write history (raw/latest/observations)
+
+    Returns:
+        Dict with timing info and result data
+    """
+    import time as time_module
+    cycle_start = time_module.time()
+
+    db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+    source_id = DEFAULT_SOURCE_ID
+
+    result = {
+        "source_id": source_id,
+        "layer_id": LAYER_ID,
+        "endpoints_processed": [],
+        "aircraft_processed": 0,
+        "aircraft_valid_position": 0,
+        "errors": [],
+        "fetch_duration": 0,
+        "snapshot_publish_duration": 0,
+        "history_write_duration": 0,
+    }
+
+    conn = None
+    if persist:
+        try:
+            conn = connect_db(db_url)
+        except Exception as e:
+            print(f"[WORKER] ERROR: Could not connect to database: {e}")
+            result["errors"].append({"error": f"DB connection failed: {e}"})
+            return result
+
+    received_at = datetime.now(timezone.utc)
+
+    # === PHASE A: Fetch source (HIGHEST PRIORITY) ===
+    fetch_start = time_module.time()
+    print(f"[WORKER] Fetching global web JSON snapshot...")
+
+    data, status, error = fetch_global_web_json(timeout)
+    fetch_end = time_module.time()
+    result["fetch_duration"] = fetch_end - fetch_start
+
+    if error:
+        print(f"[WORKER] ERROR fetching global web JSON: {error}")
+        result["errors"].append({"endpoint": "/data/aircraft.json.gz", "error": error, "http_status": status})
+        if conn:
+            try:
+                insert_raw_batch(
+                    conn,
+                    source_id,
+                    "/data/aircraft.json.gz",
+                    {"sourceMode": "global-web-json"},
+                    received_at,
+                    http_status=status,
+                    aircraft_count=0,
+                    error_message=error,
+                )
+            except Exception as db_err:
+                print(f"[WORKER] ERROR recording failed batch: {db_err}")
+        if conn:
+            conn.close()
+        return result
+
+    if not data or not isinstance(data, dict):
+        print("[WORKER] ERROR: Invalid global web JSON response")
+        result["errors"].append({"endpoint": "/data/aircraft.json.gz", "error": "Invalid response"})
+        if conn:
+            conn.close()
+        return result
+
+    # Extract aircraft array
+    aircraft_list = extract_aircraft_from_global_json(data)
+    aircraft_count = len(aircraft_list)
+    print(f"[WORKER] Global web JSON: {aircraft_count} aircraft")
+
+    # Extract timing metadata from payload
+    source_now = data.get("now")
+    source_messages = data.get("messages")
+
+    # Determine observed_at from payload or local time
+    observed_at = received_at
+    if source_now is not None:
+        try:
+            observed_at = datetime.fromtimestamp(source_now, tz=timezone.utc)
+        except (ValueError, OSError):
+            pass
+
+    # === PHASE B: Build compact payload ===
+    compact_aircraft = []
+    valid_count = 0
+    for raw_ac in aircraft_list:
+        hex_val = raw_ac.get("hex")
+        if not hex_val:
+            continue
+
+        lat_raw = raw_ac.get("lat")
+        lon_raw = raw_ac.get("lon")
+        lat = lon = None
+        has_pos = False
+        if lat_raw is not None and lon_raw is not None:
+            try:
+                lat = float(lat_raw)
+                lon = float(lon_raw)
+                has_pos = True
+            except (ValueError, TypeError):
+                pass
+
+        if has_pos:
+            valid_count += 1
+
+        seen = raw_ac.get("seen")
+        seen_seconds = _safe_float(seen)
+        aircraft_observed_at = observed_at
+        if seen_seconds is not None and seen_seconds > 0:
+            aircraft_observed_at = observed_at - timedelta(seconds=seen_seconds)
+
+        stale_after = aircraft_observed_at + timedelta(seconds=STALE_FADE_THRESHOLD)
+
+        compact_aircraft.append({
+            "id": hex_val,
+            "sourceObjectId": hex_val,
+            "callsign": raw_ac.get("flight", "").strip() if raw_ac.get("flight") else None,
+            "lat": lat,
+            "lon": lon,
+            "altitudeFt": raw_ac.get("alt_baro") if not isinstance(raw_ac.get("alt_baro"), str) else None,
+            "speedKt": raw_ac.get("gs"),
+            "trackDeg": raw_ac.get("track"),
+            "headingDeg": raw_ac.get("true_heading") or raw_ac.get("mag_heading"),
+            "verticalRateFpm": raw_ac.get("baro_rate"),
+            "onGround": raw_ac.get("alt_baro") == "ground" if raw_ac.get("alt_baro") else False,
+            "aircraftType": raw_ac.get("t"),
+            "registration": raw_ac.get("r"),
+            "observedAt": aircraft_observed_at.isoformat() if aircraft_observed_at else None,
+            "receivedAt": received_at.isoformat() if received_at else None,
+            "staleAfter": stale_after.isoformat() if stale_after else None,
+        })
+
+    result["aircraft_processed"] = aircraft_count
+    result["aircraft_valid_position"] = valid_count
+    result["endpoints_processed"].append("/data/aircraft.json.gz")
+
+    # === PHASE C: Publish live snapshot (HIGH PRIORITY) ===
+    snapshot_start = time_module.time()
+    if persist and conn and aircraft_count > 0:
+        try:
+            snapshot_time = observed_at if source_now is None else datetime.fromtimestamp(source_now, tz=timezone.utc)
+            snapshot_id = f"snap_{int(time_module.time() * 1000)}"
+
+            snapshot_metadata = {
+                "sourceMode": "global-web-json",
+                "upstream": "globe.airplanes.live/data/aircraft.json.gz",
+                "caveat": "experimental/dev globe web JSON source; no SLA/completeness claims",
+                "messages": source_messages,
+            }
+
+            upsert_live_snapshot(
+                conn=conn,
+                source_id=DEFAULT_SOURCE_ID,
+                source_name="Airplanes.live REST API v2",
+                snapshot_id=snapshot_id,
+                snapshot_time=snapshot_time,
+                aircraft_count=aircraft_count,
+                valid_position_count=valid_count,
+                aircraft_json=compact_aircraft,
+                metadata=snapshot_metadata,
+            )
+            print(f"[WORKER] Published live snapshot: {valid_count} aircraft with positions")
+        except Exception as snap_err:
+            print(f"[WORKER] ERROR publishing snapshot: {snap_err}")
+            result["errors"].append({"error": f"Snapshot publish failed: {snap_err}"})
+
+    snapshot_end = time_module.time()
+    result["snapshot_publish_duration"] = snapshot_end - snapshot_start
+
+    # === PHASE D: History writes (LOW PRIORITY - conditional) ===
+    history_start = time_module.time()
+
+    if persist and conn and write_history:
+        # Write raw batch
+        try:
+            raw_sample = aircraft_list[:5] if aircraft_list else []
+            insert_raw_batch(
+                conn,
+                source_id,
+                "/data/aircraft.json.gz",
+                {"sourceMode": "global-web-json", "messages": source_messages},
+                received_at,
+                http_status=status,
+                aircraft_count=aircraft_count,
+                source_now_ts=source_now,
+                error_message=None,
+            )
+        except Exception as db_err:
+            print(f"[WORKER] ERROR recording raw batch: {db_err}")
+
+        # Normalize and upsert each aircraft
+        for raw_ac in aircraft_list:
+            seen = raw_ac.get("seen")
+            seen_seconds = _safe_float(seen)
+            final_observed_at = observed_at
+            if seen_seconds is not None and seen_seconds > 0:
+                final_observed_at = observed_at - timedelta(seconds=seen_seconds)
+
+            normalized = normalize_aircraft(raw_ac, final_observed_at)
+            if not normalized:
+                continue
+
+            has_position = normalized.get("lat") is not None and normalized.get("lon") is not None
+
+            try:
+                upsert_latest_aircraft(conn, DEFAULT_SOURCE_ID, normalized)
+            except Exception as db_err:
+                print(f"[WORKER] ERROR upserting latest: {db_err}")
+
+            if has_position:
+                try:
+                    insert_observation(conn, DEFAULT_SOURCE_ID, normalized)
+                except Exception as db_err:
+                    print(f"[WORKER] ERROR inserting observation: {db_err}")
+
+    history_end = time_module.time()
+    result["history_write_duration"] = history_end - history_start
+
+    if conn:
+        conn.close()
 
     return result
 
@@ -724,6 +972,12 @@ def main() -> None:
         default=GLOBAL_WEB_JSON_DEFAULT_INTERVAL_SECONDS,
         help="Interval between cycles in seconds (default: 5 for global-web-json, min 5)",
     )
+    parser.add_argument(
+        "--history-every-n-cycles",
+        type=int,
+        default=12,
+        help="Write history (raw/latest/observations) every N cycles (default: 12 for global-web-json loop)",
+    )
     args = parser.parse_args()
 
     # Validate interval for global-web-json
@@ -734,10 +988,15 @@ def main() -> None:
     # Determine run mode
     run_once = args.once
     run_loop = args.loop
-    
+
     # Default behavior: run once for rest, run once for global-web-json unless --loop specified
     if not run_once and not run_loop:
         run_once = True
+
+    # For --once mode, default history_every_n_cycles to 1 (write history once)
+    # For --loop mode, default is 12 (write history every 12 cycles)
+    if args.history_every_n_cycles == 12 and run_once:
+        args.history_every_n_cycles = 1
 
     if args.source_mode == "rest":
         include_list = [e.strip() for e in args.include.split(",") if e.strip()]
@@ -759,53 +1018,114 @@ def main() -> None:
         # Global web JSON mode
         if run_loop:
             print("[WORKER] WARNING: global-web-json uses Airplanes.live globe web data. Polling every 5s may be blocked or rate-limited. Use only where permitted.")
-        
+
+        if run_once:
+            # Run one cycle with history enabled (default for --once)
+            print("[WORKER] Running single cycle...")
+            result = run_global_web_json_loop_cycle(
+                timeout=args.timeout_seconds,
+                persist=args.persist,
+                database_url=args.database_url,
+                write_history=True,  # Always write history for --once
+            )
+            print(f"[WORKER] Done. Processed {result.get('aircraft_processed', 0)} aircraft, "
+                  f"{result.get('aircraft_valid_position', 0)} with valid position")
+            return
+
         cycle_count = 0
         consecutive_failures = 0
+        interval_seconds = args.interval_seconds
+        history_every_n_cycles = args.history_every_n_cycles
+
+        # Fixed-rate timing: track planned start times
+        next_cycle_time = time.time()
+
         try:
             while True:
+                cycle_start = time.time()
+
+                # Calculate planned start for this cycle
+                planned_start = next_cycle_time
+
+                # If we're already late, log and start immediately
+                if cycle_start > planned_start:
+                    overrun_seconds = cycle_start - planned_start
+                    print(f"[WORKER] Cycle {cycle_count + 1} overran interval by {overrun_seconds:.1f}s; starting immediately")
+                    # Reset to current time as new anchor
+                    next_cycle_time = cycle_start
+                    planned_start = cycle_start
+
                 cycle_count += 1
                 print(f"[WORKER] === Cycle {cycle_count} ===")
-                
+
+                # Determine if this cycle should write history
+                write_history = (cycle_count % history_every_n_cycles == 0)
+
                 try:
-                    result = run_worker(
+                    result = run_global_web_json_loop_cycle(
                         timeout=args.timeout_seconds,
                         persist=args.persist,
                         database_url=args.database_url,
-                        source_mode=args.source_mode,
+                        write_history=write_history,
                     )
-                    
+
+                    cycle_end = time.time()
+                    cycle_duration = cycle_end - cycle_start
+
+                    # Timing logs
+                    fetch_duration = result.get("fetch_duration", 0)
+                    snapshot_duration = result.get("snapshot_publish_duration", 0)
+                    history_duration = result.get("history_write_duration", 0)
+
+                    print(f"[WORKER] Fetch duration: {fetch_duration:.2f}s")
+                    print(f"[WORKER] Snapshot publish duration: {snapshot_duration:.2f}s")
+                    if write_history:
+                        print(f"[WORKER] History write: completed in {history_duration:.2f}s")
+                    else:
+                        print(f"[WORKER] History write: skipped this cycle")
+                    print(f"[WORKER] Cycle duration: {cycle_duration:.2f}s")
+
                     # Check for failure/backoff condition
                     if result.get("errors"):
                         last_error = result["errors"][-1]
                         error_msg = last_error.get("error", "")
-                        # Check HTTP status in errors if available
                         http_status = last_error.get("http_status")
-                        
+
                         should_backoff = False
                         if http_status in GLOBAL_WEB_JSON_RETRY_STATUSES:
                             should_backoff = True
                         elif "403" in error_msg or "429" in error_msg:
                             should_backoff = True
-                        
+
                         if should_backoff:
                             consecutive_failures += 1
                             print(f"[WORKER] ERROR: Got retryable status, backing off {GLOBAL_WEB_JSON_BACKOFF_SECONDS}s (failure {consecutive_failures})")
                             time.sleep(GLOBAL_WEB_JSON_BACKOFF_SECONDS)
+                            # Reset timing anchor after backoff
+                            next_cycle_time = time.time()
                             continue
-                    
+
                     # Success - reset failure counter
                     consecutive_failures = 0
-                    
+
                 except KeyboardInterrupt:
                     print("[WORKER] Interrupted by user, exiting...")
                     break
-                
+
                 if not run_loop:
                     break
-                    
-                print(f"[WORKER] Sleeping {args.interval_seconds}s until next cycle...")
-                time.sleep(args.interval_seconds)
+
+                # Calculate next cycle planned time
+                next_cycle_time = planned_start + interval_seconds
+                sleep_seconds = next_cycle_time - time.time()
+
+                if sleep_seconds > 0:
+                    print(f"[WORKER] Next cycle in {sleep_seconds:.1f}s")
+                    time.sleep(sleep_seconds)
+                else:
+                    # Already overdue, don't sleep
+                    print(f"[WORKER] Next cycle immediately (overdue by {-sleep_seconds:.1f}s)")
+
         except KeyboardInterrupt:
             print("[WORKER] Interrupted by user, exiting cleanly...")
 
