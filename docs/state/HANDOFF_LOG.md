@@ -1,4 +1,21 @@
 
+### 2026-05-30T17:47:07Z Claude Sonnet 4.6 — WO-080C7 Aircraft Type Icons and Altitude Color Scale
+
+- Work order: WO-080C7
+- Branch: agent/claude-wo-080c7-aircraft-icons-altitude-colors
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Start time UTC: 2026-05-30T17:30:00Z
+- End time UTC: 2026-05-30T17:47:07Z
+- Commit hash: a315edf (local only, not pushed)
+- Push status: NOT PUSHED — awaiting Kiro review
+- Summary: Extracted 92 SVGs + icon-mapping.json + LICENSE from new icons.zip to apps/web/public/aircraft-icons/. Rewrote aircraftMarker.ts with resolveAircraftIconName (TypeDesignatorIcons lookup, 381 type designators, helicopter/ground fallbacks), getAircraftAltitudeColor (8-band scale: ground #7a7f85, <2k #ff8c00, 2-5k #ffd000, 5-10k #80ff00, 10-20k #00d5ff, 20-30k #0077ff, 30-40k #8a2be2, >40k #ff2d55), getAircraftMarkerImage (sync, returns colored fallback dot while SVG loads), getAircraftMarkerImageAsync (fetch SVG text, replace fill=#FFFFFF with altitude color, cache as data URL by iconName|color key). Updated CesiumGlobe.tsx snapshot/delta handlers to use new helpers; billboard.color=Color.WHITE since tint is baked into SVG; async promise updates billboard.image after SVG loads. Icon mapping loaded eagerly at module init via fetch('/aircraft-icons/icon-mapping.json').
+- Files modified: apps/web/src/lib/aircraftMarker.ts, apps/web/src/CesiumGlobe.tsx, apps/web/public/aircraft-icons/ (92 SVGs + icon-mapping.json + LICENSE)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 714ms), git diff --check (PASS — LF/CRLF warning only, not an error)
+- Forbidden folders touched: NO
+- Licensing: LICENSE from tar1090 (GPL v2+) copied to apps/web/public/aircraft-icons/LICENSE
+- Review status: PENDING
+- Next safe task: Browser verification — confirm different aircraft types show different shapes, altitude colors differ across aircraft, on-ground aircraft are gray
+
 ### 2026-05-30T17:27:23Z Claude Sonnet 4.6 — WO-080C6 Normalize Live Aircraft Delta Payload
 
 - Work order: WO-080C6
