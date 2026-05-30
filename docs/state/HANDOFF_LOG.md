@@ -3507,3 +3507,10 @@ All agents must append to this file after completing work.
 - Cesium scene.requestRender() is called after snapshot, delta, and dead-reckoning movement.
 - Dead reckoning now uses currAltM instead of invalid Cesium internal position fields.
 - Validation: contracts build passed, web build passed, git diff --check clean.
+
+## WO-080C6 — Normalize Live Aircraft Delta Payload
+
+- aircraft.delta now supports both msg.upserts and msg.aircraft.
+- Frontend passes normalized upserts into Cesium delta renderer.
+- Fixes the bug where browser received aircraft.delta records but Cesium saw upserts=0.
+- Validation: contracts build passed, web build passed, git diff --check clean.
