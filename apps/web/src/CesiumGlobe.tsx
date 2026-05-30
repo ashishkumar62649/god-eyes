@@ -30,9 +30,10 @@ import {
 } from './lib/aviationPreloader';
 import { isPositionVisible } from './lib/cesiumVisibility';
 import {
-  getAircraftArrowSprite,
-  getAircraftDotSprite,
-  getAircraftColor,
+  getAircraftAltitudeColor,
+  getAircraftMarkerImage,
+  getAircraftMarkerImageAsync,
+  resolveAircraftIconName,
   getAircraftHeadingDeg,
   headingToBillboardRotation,
 } from './lib/aircraftMarker';
@@ -785,8 +786,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (!coll) { applyingRef.current = false; return; }
 
       const map = aircraftMapRef.current;
-      const arrowImage: string = getAircraftArrowSprite().toDataURL();
-      const dotImage: string = getAircraftDotSprite().toDataURL();
 
       // Build the set of valid aircraft to apply.
       const valid: AircraftLatest[] = [];
@@ -808,14 +807,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           seen.add(key);
 
           const heading = getAircraftHeadingDeg(ac);
-          const color = getAircraftColor(ac);
+          const color = getAircraftAltitudeColor(ac);
           // Support both WS wire field (altitudeFt) and contract field (altitudeBaroFt).
           const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
             : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
           const altMeters = Math.max(0, altitudeFt * 0.3048);
           const newPos = Cartesian3.fromDegrees(ac.lon!, ac.lat!, altMeters);
           const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
-          const image: string = heading !== null ? arrowImage : dotImage;
+          const iconName = resolveAircraftIconName(ac);
+          const image: string = getAircraftMarkerImage(iconName, color);
           const obsTime = new Date(ac.observedAt).getTime();
           const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
           // Support both WS wire field (speedKt) and contract field (groundSpeedKt).
@@ -836,14 +836,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             existing.onGround = ac.onGround ?? false;
             existing.billboard.position = newPos;
             existing.billboard.image = image;
-            existing.billboard.color = color;
+            existing.billboard.color = Color.WHITE;
             existing.billboard.rotation = rotation;
             (existing.billboard.id as any)._aircraftData = ac;
+            // Async update: swap to real SVG once loaded.
+            getAircraftMarkerImageAsync(iconName, color).then((img) => {
+              if (existing.billboard && img !== image) existing.billboard.image = img;
+            });
           } else {
             const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
             const billboard = coll!.add({
               image,
-              color,
+              color: Color.WHITE,
               scale: 1.5,
               rotation,
               alignedAxis: Cartesian3.ZERO,
@@ -863,6 +867,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
               verticalRateFpm: ac.verticalRateFpm ?? 0,
               onGround: ac.onGround ?? false,
+            });
+            // Async update: swap to real SVG once loaded.
+            getAircraftMarkerImageAsync(iconName, color).then((img) => {
+              if (billboard && img !== image) billboard.image = img;
             });
           }
         }
@@ -946,9 +954,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       const map = aircraftMapRef.current;
       if (!coll) return;
 
-      const arrowImage = getAircraftArrowSprite().toDataURL();
-      const dotImage = getAircraftDotSprite().toDataURL();
-
       let updatedCount = 0;
 
       // Upsert changed/new aircraft.
@@ -956,14 +961,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (ac.lat === null || ac.lon === null) continue;
         const key = ac.sourceObjectId;
         const heading = getAircraftHeadingDeg(ac);
-        const color = getAircraftColor(ac);
+        const color = getAircraftAltitudeColor(ac);
         const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
           : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
         const altMeters = Math.max(0, altitudeFt * 0.3048);
         const newPos = Cartesian3.fromDegrees(ac.lon, ac.lat, altMeters);
         const obsTime = new Date(ac.observedAt).getTime();
         const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
-        const image = heading !== null ? arrowImage : dotImage;
+        const iconName = resolveAircraftIconName(ac);
+        const image = getAircraftMarkerImage(iconName, color);
         const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
         const speedKt = typeof (ac as any).speedKt === 'number' ? (ac as any).speedKt
           : typeof ac.groundSpeedKt === 'number' ? ac.groundSpeedKt : 0;
@@ -984,17 +990,20 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           existing.onGround = ac.onGround ?? false;
           existing.billboard.position = newPos;
           existing.billboard.image = image;
-          existing.billboard.color = color;
+          existing.billboard.color = Color.WHITE;
           existing.billboard.rotation = rotation;
           (existing.billboard.id as any)._aircraftData = ac;
           updatedCount++;
           if (import.meta.env.DEV && updatedCount === 1) {
             console.log(`[AIRCRAFT DELTA] moved ${key}: lon ${oldLon} → ${ac.lon}, lat ${oldLat} → ${ac.lat}`);
           }
+          getAircraftMarkerImageAsync(iconName, color).then((img) => {
+            if (existing.billboard && img !== image) existing.billboard.image = img;
+          });
         } else {
           const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
           const billboard = coll.add({
-            image, color, scale: 1.5, rotation, alignedAxis: Cartesian3.ZERO,
+            image, color: Color.WHITE, scale: 1.5, rotation, alignedAxis: Cartesian3.ZERO,
             position: newPos, disableDepthTestDistance: Number.POSITIVE_INFINITY, id: idObj,
           });
           map.set(key, {
@@ -1009,6 +1018,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
             verticalRateFpm: ac.verticalRateFpm ?? 0,
             onGround: ac.onGround ?? false,
+          });
+          getAircraftMarkerImageAsync(iconName, color).then((img) => {
+            if (billboard && img !== image) billboard.image = img;
           });
           updatedCount++;
         }
