@@ -70,7 +70,7 @@ export function getAircraftColor(ac: AircraftLatest): Color {
 
 /** Heading in degrees clockwise from north, or null if unknown. */
 export function getAircraftHeadingDeg(ac: AircraftLatest): number | null {
-  const h = ac.trackDeg ?? ac.headingTrueDeg ?? ac.headingMagDeg;
+  const h = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? ac.headingMagDeg;
   return typeof h === 'number' && !isNaN(h) ? h : null;
 }
 
