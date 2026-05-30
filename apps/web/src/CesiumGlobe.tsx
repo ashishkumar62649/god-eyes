@@ -18,8 +18,6 @@ import {
   PolylineCollection,
   Material,
   BillboardCollection,
-  CallbackProperty,
-  JulianDate,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
@@ -36,7 +34,6 @@ import {
   getAircraftColor,
   getAircraftHeadingDeg,
   headingToBillboardRotation,
-  AIRCRAFT_BILLBOARD_SCALE,
 } from './lib/aircraftMarker';
 import { RENDER_CAP } from './lib/useLiveAircraftSocket';
 import type { SnapshotCallback } from './lib/useLiveAircraftSocket';
@@ -852,24 +849,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               onGround: ac.onGround ?? false,
             };
             const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
-            // CallbackProperty for smooth interpolation between real observed positions.
-            const posCallback = new CallbackProperty((_time?: JulianDate) => {
-              const r = map.get(key);
-              if (!r) return newPos;
-              const nowMs = Date.now();
-              if (r.staleAfter && nowMs > r.staleAfter) return r.currPos;
-              const span = r.currTime - r.prevTime;
-              if (span <= 0) return r.currPos;
-              const t = Math.min(1, (nowMs - r.prevTime) / span);
-              return Cartesian3.lerp(r.prevPos, r.currPos, t, new Cartesian3());
-            }, false);
             coll!.add({
               image,
               color,
-              scale: AIRCRAFT_BILLBOARD_SCALE,
+              scale: 1.5,
               rotation,
               alignedAxis: Cartesian3.ZERO,
-              position: posCallback as unknown as Cartesian3,
+              position: newPos,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               id: idObj,
             });
             rec.idx = coll!.length - 1;
@@ -894,8 +881,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         applyingRef.current = false;
         onAircraftRenderedRef.current?.(map.size);
-
-        // If a new snapshot arrived while we were applying, start it now.
+        // Debug: log once per snapshot apply (not per frame).
+        if (import.meta.env.DEV) {
+          const first = valid[0];
+          console.log('[AIRCRAFT] applied', map.size, 'billboards; collection.length=', coll!.length,
+            first ? `first: lon=${first.lon} lat=${first.lat} alt=${first.altitudeBaroFt}ft` : '');
+        }
         if (pendingSnapshotRef.current) startApply();
       }
 
@@ -992,16 +983,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             verticalRateFpm: ac.verticalRateFpm ?? 0, onGround: ac.onGround ?? false,
           };
           const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
-          const posCallback = new CallbackProperty((_t?: JulianDate) => {
-            const r = map.get(key);
-            if (!r) return newPos;
-            const nowMs = Date.now();
-            if (r.staleAfter && nowMs > r.staleAfter) return r.currPos;
-            const span = r.currTime - r.prevTime;
-            if (span <= 0) return r.currPos;
-            return Cartesian3.lerp(r.prevPos, r.currPos, Math.min(1, (nowMs - r.prevTime) / span), new Cartesian3());
-          }, false);
-          coll.add({ image, color, scale: AIRCRAFT_BILLBOARD_SCALE, rotation, alignedAxis: Cartesian3.ZERO, position: posCallback as unknown as Cartesian3, id: idObj });
+          coll.add({ image, color, scale: 1.5, rotation, alignedAxis: Cartesian3.ZERO, position: newPos, disableDepthTestDistance: Number.POSITIVE_INFINITY, id: idObj });
           rec.idx = coll.length - 1;
           map.set(key, rec);
         }

@@ -1,5 +1,18 @@
 
-### 2026-05-30T03:51:00Z Claude Sonnet 4.6 — WO-080C2 Fix Live Aircraft Snapshot Callback Wiring
+### 2026-05-30T04:08:00Z Claude Sonnet 4.6 — WO-080C3 Fix Live Aircraft Billboard Visibility
+
+- Work order: WO-080C3
+- Branch: agent/claude-wo-080c3-fix-live-aircraft-billboard-visibility
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Commit hash: 9bbe05c (local only, not pushed)
+- Root cause: BillboardCollection.add() requires a plain Cartesian3 for position. The renderer was passing a CallbackProperty cast as `unknown as Cartesian3`. This silently failed at runtime — Cesium received an invalid position object and rendered all billboards invisible.
+- Fixes: (1) Replace CallbackProperty with plain Cartesian3 (newPos) in both startApply and delta handler. Dead reckoning loop already updates bb.position each frame, so smooth movement still works. (2) disableDepthTestDistance: POSITIVE_INFINITY so aircraft are not hidden by globe depth test. (3) Scale 1.5 (was 0.5) for better visibility. (4) Remove unused CallbackProperty/JulianDate imports. (5) DEV-only debug log once per snapshot apply.
+- Files modified: apps/web/src/CesiumGlobe.tsx
+- Commands run: pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Next safe task: WO-080 final WebSocket integration review
+
+
 
 - Work order: WO-080C2-FIX
 - Branch: agent/claude-wo-080c2-fix-live-aircraft-snapshot-wiring
