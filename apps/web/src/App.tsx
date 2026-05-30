@@ -135,6 +135,8 @@ const App: React.FC = () => {
         onAircraftRendered={handleAircraftRendered}
         onGetBbox={handleGetBboxForWs}
         onGetBboxRef={onGetBboxCbRef}
+        onSnapshotCbRef={onSnapshotCbRef}
+        onDeltaCbRef={onDeltaCbRef}
         liveAircraftLayerActive={liveAircraftLayerActive}
       />
 

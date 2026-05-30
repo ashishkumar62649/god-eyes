@@ -1,5 +1,18 @@
 
-### 2026-05-29T17:30:00Z Claude Sonnet 4.6 — WO-080C1 Fix Live Aircraft WebSocket BBox Protocol
+### 2026-05-30T03:51:00Z Claude Sonnet 4.6 — WO-080C2 Fix Live Aircraft Snapshot Callback Wiring
+
+- Work order: WO-080C2-FIX
+- Branch: agent/claude-wo-080c2-fix-live-aircraft-snapshot-wiring
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Commit hash: a30b8ed (local only, not pushed)
+- Root cause: App.tsx onSnapshotCbRef/onDeltaCbRef were declared but never populated. handleSnapshot called onSnapshotCbRef.current?.() which was always undefined, so all WS aircraft snapshots were silently dropped before reaching the Cesium renderer.
+- Fix: CesiumGlobe now accepts onSnapshotCbRef and onDeltaCbRef props and populates them with the actual renderer functions (snapshotHandler/deltaHandler) inside the viewerReady effect. App.tsx passes these refs to CesiumGlobe.
+- Files modified: apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx
+- Commands run: pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Next safe task: WO-080 final WebSocket integration review
+
+
 
 - Work order: WO-080C1
 - Branch: agent/claude-wo-080c1-fix-live-aircraft-websocket-bbox

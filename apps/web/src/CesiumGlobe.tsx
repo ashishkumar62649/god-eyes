@@ -85,6 +85,10 @@ interface CesiumGlobeProps {
   /** Callback ref: called by useLiveAircraft with each new snapshot (no React re-render). */
   onAircraftSnapshot?: SnapshotCallback;
   onAircraftDelta?: (upsert: AircraftLatest[], removes: string[]) => void;
+  /** Ref CesiumGlobe populates with the actual snapshot renderer function. */
+  onSnapshotCbRef?: React.MutableRefObject<SnapshotCallback | undefined>;
+  /** Ref CesiumGlobe populates with the actual delta renderer function. */
+  onDeltaCbRef?: React.MutableRefObject<((upsert: AircraftLatest[], removes: string[]) => void) | undefined>;
   /** Called by the renderer to report rendered count back to the hook/status. */
   onAircraftRendered?: (count: number) => void;
   liveAircraftLayerActive?: boolean;
@@ -106,6 +110,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   bordersData,
   onAircraftSnapshot,
   onAircraftDelta,
+  onSnapshotCbRef,
+  onDeltaCbRef,
   onAircraftRendered,
   liveAircraftLayerActive,
   onGetBbox,
@@ -762,10 +768,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const CHUNK_SIZE = 500;
 
     // Wire the snapshot callback so the hook can deliver data without React re-render.
-    onAircraftSnapshotRef.current = (aircraft: AircraftLatest[]) => {
+    const snapshotHandler: SnapshotCallback = (aircraft: AircraftLatest[]) => {
       pendingSnapshotRef.current = aircraft;
       if (!applyingRef.current) startApply();
     };
+    onAircraftSnapshotRef.current = snapshotHandler;
+    // Also populate the external ref so App.tsx can forward WS snapshots here.
+    if (onSnapshotCbRef) onSnapshotCbRef.current = snapshotHandler;
 
     function startApply() {
       const snapshot = pendingSnapshotRef.current;
@@ -939,7 +948,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   // Wire delta handler: upsert/remove individual aircraft without full snapshot apply.
   useEffect(() => {
     if (!viewerReady) return;
-    onAircraftDeltaRef.current = (upsert: AircraftLatest[], removes: string[]) => {
+    const deltaHandler = (upsert: AircraftLatest[], removes: string[]) => {
       const coll = aircraftCollectionRef.current;
       const map = aircraftMapRef.current;
       if (!coll) return;
@@ -1006,6 +1015,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
       onAircraftRenderedRef.current?.(map.size);
     };
+    onAircraftDeltaRef.current = deltaHandler;
+    if (onDeltaCbRef) onDeltaCbRef.current = deltaHandler;
   }, [viewerReady]);
 
   // Dead reckoning animation loop (WO-080B).
