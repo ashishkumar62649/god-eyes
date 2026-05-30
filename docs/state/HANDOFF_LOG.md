@@ -3458,3 +3458,10 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: Trailing whitespace warnings in git (not errors)
 - Next safe task: Run live smoke test, push to remote after review
+
+## WO-080A4 — Fixed-Rate Live Aircraft Snapshot Loop
+
+- Fetcher live snapshot loop now uses fixed-rate scheduling.
+- Live snapshot publish runs every cycle before history writes.
+- History writes default to every 12 cycles in global-web-json loop mode.
+- Validation: 54 aviation live aircraft worker tests passed, compileall passed, git diff --check clean.
