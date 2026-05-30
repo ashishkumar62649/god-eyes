@@ -3482,3 +3482,11 @@ All agents must append to this file after completing work.
 - Live snapshot publish runs every cycle before history writes.
 - History writes default to every 12 cycles in global-web-json loop mode.
 - Validation: 54 aviation live aircraft worker tests passed, compileall passed, git diff --check clean.
+
+## WO-080C5 — Fix Live Aircraft Delta Movement and Cesium Render Updates
+
+- Replaced BillboardCollection index tracking with direct Billboard references.
+- Existing aircraft now update billboard.position on snapshot and delta upserts.
+- Cesium scene.requestRender() is called after snapshot, delta, and dead-reckoning movement.
+- Dead reckoning now uses currAltM instead of invalid Cesium internal position fields.
+- Validation: contracts build passed, web build passed, git diff --check clean.
