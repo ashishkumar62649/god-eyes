@@ -113,7 +113,22 @@ export function useLiveAircraftSocket(
           }
 
           case 'aircraft.delta': {
-            onDeltaRef.current(msg.upsert ?? [], msg.removes ?? []);
+            const rawUpserts: AircraftLatest[] = Array.isArray(msg.upserts)
+              ? msg.upserts
+              : Array.isArray(msg.aircraft)
+                ? msg.aircraft
+                : [];
+            const removes: string[] = Array.isArray(msg.removes) ? msg.removes : [];
+            if (import.meta.env.DEV) {
+              console.debug('[LIVE WS DELTA NORMALIZED]', {
+                rawAircraft: Array.isArray(msg.aircraft) ? msg.aircraft.length : 0,
+                rawUpserts: Array.isArray(msg.upserts) ? msg.upserts.length : 0,
+                normalizedUpserts: rawUpserts.length,
+                removes: removes.length,
+                snapshotTime: msg.snapshotTime,
+              });
+            }
+            onDeltaRef.current(rawUpserts.slice(0, RENDER_CAP), removes);
             setStatus((prev) => ({ ...prev, phase: 'live', lastSuccessAt: Date.now(), errorMessage: '' }));
             break;
           }
