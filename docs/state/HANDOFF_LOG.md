@@ -1,3 +1,5 @@
+﻿
+### 2026-05-29T14:00:00Z Claude Sonnet 4.6 â€” WO-080B Live Aircraft WebSocket Radar Renderer
 
 ### 2026-05-30T04:35:00Z Claude Sonnet 4.6 — WO-080C4 Stop Dropping Live Aircraft and Align Wire Fields
 
@@ -54,6 +56,9 @@
 
 
 - Work order: WO-080B — Frontend Live Aircraft WebSocket Radar Renderer
+=======
+- Work order: WO-080B â€” Frontend Live Aircraft WebSocket Radar Renderer
+>>>>>>> agent/minimax-wo-080a4-fixed-rate-live-snapshot-loop
 - Folder: E:\god-eyes-frontend
 - Agent: Claude Sonnet 4.6
 - LLM model: Claude Sonnet 4.6
@@ -62,12 +67,12 @@
 - Start time UTC: 2026-05-29T13:30:00Z
 - End time UTC: 2026-05-29T14:00:00Z
 - Commit hash: local commit on branch (HEAD; see git log)
-- Push status: local only (NOT pushed — awaiting Kiro review)
+- Push status: local only (NOT pushed â€” awaiting Kiro review)
 - What was done: Replaced REST polling live aircraft with WebSocket-driven radar renderer. Created useLiveAircraftSocket.ts. Updated App.tsx, CesiumGlobe.tsx, LayerPanel, StatusPanel, Shell. Added dead reckoning rAF loop. Added delta handler. Old useLiveAircraft.ts kept as fallback/debug but not wired into active layer.
 - Files created: apps/web/src/lib/useLiveAircraftSocket.ts
 - Files modified: apps/web/src/App.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/StatusPanel.tsx, docs/state/HANDOFF_LOG.md
 - Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 225.77 kB JS), git diff --check (PASS)
-- Old polling removed: YES — useLiveAircraft polling hook no longer wired into active layer; App.tsx uses useLiveAircraftSocket exclusively
+- Old polling removed: YES â€” useLiveAircraft polling hook no longer wired into active layer; App.tsx uses useLiveAircraftSocket exclusively
 - WebSocket client strategy: useLiveAircraftSocket connects to /ws/aviation/aircraft/live (ws:// or wss:// derived from VITE_API_BASE_URL); sends subscribe on open; handles aircraft.ready/snapshot/delta/error/pong; reconnects with exponential backoff [1s,2s,4s,8s,15s]; closes on layer OFF; sendBboxRef populated for camera bbox forwarding
 - Renderer strategy: BillboardCollection (single primitive) + Map<sourceObjectId, AircraftRecord>; snapshot via chunked rAF apply loop (500/frame); delta via direct upsert/remove; no removeAll() except layer OFF
 - Dead reckoning strategy: separate rAF loop at ~20 FPS; moves billboard along trackDeg using speedKt * elapsed; clamps to 10s; stops on stale/onGround/invalid heading; display-only (never writes back to AircraftRecord real data)
@@ -78,9 +83,9 @@
 - Known issues: Browser/runtime verification requires WO-080A backend. Dead reckoning uses approximate Cartesian bearing math (sufficient for display). Old useLiveAircraft.ts kept in repo as fallback/debug.
 - Next safe task: WO-080 final WebSocket integration review
 
-### 2026-05-29T13:25:00Z Claude Sonnet 4.6 — WO-079H Live Aircraft Renderer Engine Fix
+### 2026-05-29T13:25:00Z Claude Sonnet 4.6 â€” WO-079H Live Aircraft Renderer Engine Fix
 
-- Work order: WO-079H — Live Aircraft Renderer Engine Fix
+- Work order: WO-079H â€” Live Aircraft Renderer Engine Fix
 - Folder: E:\god-eyes-frontend
 - Agent: Claude Sonnet 4.6
 - LLM model: Claude Sonnet 4.6
@@ -89,22 +94,22 @@
 - Start time UTC: 2026-05-29T13:00:00Z
 - End time UTC: 2026-05-29T13:25:00Z
 - Commit hash: local commit on branch (HEAD; see git log)
-- Push status: local only (NOT pushed — awaiting Kiro review)
+- Push status: local only (NOT pushed â€” awaiting Kiro review)
 - What was done: Redesigned live aircraft renderer to eliminate count-ramp-from-zero, globe stutter, and 5s blink. Moved snapshot delivery out of React state into a callback ref (no React re-render per poll). Replaced Entity-per-aircraft with BillboardCollection (single primitive). Chunked rAF apply loop (500/frame). Interpolation via CallbackProperty (lerp between prev/curr observed positions). Stable last-good snapshot (loading/error keeps previous markers). Camera bbox from Cesium viewer. Apply-guard prevents concurrent apply loops. Status shows updating/error-with-snapshot states.
 - Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/Shell.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
 - Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 221.91 kB JS), git diff --check (PASS)
 - Renderer strategy: BillboardCollection + Map<sourceObjectId, AircraftRecord>; update in place, add new, hide gone
 - Snapshot strategy: callback ref delivery (no React re-render per poll); React state only for status scalars; loading/error keeps previous markers
 - Chunking strategy: 500 aircraft per rAF frame; apply-guard prevents concurrent loops
-- Interpolation strategy: CallbackProperty lerps prevPos→currPos over observedAt span; no extrapolation past staleAfter; snaps to currPos if timestamps identical
+- Interpolation strategy: CallbackProperty lerps prevPosâ†’currPos over observedAt span; no extrapolation past staleAfter; snaps to currPos if timestamps identical
 - BBox strategy: onGetBboxRef wired to viewer.camera.computeViewRectangle(); global fallback if null
 - Forbidden folders touched: NO
 - Known issues: Browser/runtime verification not performed (build/type-check only). API server-side limit raised to 20000 by WO-079G-A (DeepSeek).
 - Next safe task: WO-079 final integration / browser verification
 =======
-### 2026-05-29T20:00:00Z DeepSeek — WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
+### 2026-05-29T20:00:00Z DeepSeek â€” WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
 
-- Work order: WO-080B — Live Aircraft WebSocket Broadcaster Fix
+- Work order: WO-080B â€” Live Aircraft WebSocket Broadcaster Fix
 - Folder: E:\god-eyes-api
 - Agent: DeepSeek
 - Role: API implementation
@@ -115,7 +120,7 @@
 - End time UTC: 2026-05-29T20:10:00Z
 - Commit hash: (local only, awaiting review)
 - Push status: local only
-- What was done: Replaced polling-based LiveAircraftBroadcaster with NOTIFY/LISTEN architecture aligned to WO-080A migration schema. Broadcaster queries aviation_aircraft_live_snapshots reading: source_id, source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at. No ORDER BY id — uses WHERE source_id = $1 LIMIT 1 (source_id is PK). On startup and each NOTIFY on aviation_live_aircraft_snapshot channel, loads latest row, compares aircraft_json arrays by sourceObjectId/id, emits delta (upserts/removes). Periodic resync every 60s sends full snapshot. Added listen() to db.ts for LISTEN. Removed all aviation_aircraft_latest polling. WebSocket snapshot/delta messages use sourceName from source_name and sourceId from source_id. 26 tests cover schema alignment, no ORDER BY id, no aviation_aircraft_latest, no Airplanes.live URLs. Existing REST endpoint unchanged.
+- What was done: Replaced polling-based LiveAircraftBroadcaster with NOTIFY/LISTEN architecture aligned to WO-080A migration schema. Broadcaster queries aviation_aircraft_live_snapshots reading: source_id, source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at. No ORDER BY id â€” uses WHERE source_id = $1 LIMIT 1 (source_id is PK). On startup and each NOTIFY on aviation_live_aircraft_snapshot channel, loads latest row, compares aircraft_json arrays by sourceObjectId/id, emits delta (upserts/removes). Periodic resync every 60s sends full snapshot. Added listen() to db.ts for LISTEN. Removed all aviation_aircraft_latest polling. WebSocket snapshot/delta messages use sourceName from source_name and sourceId from source_id. 26 tests cover schema alignment, no ORDER BY id, no aviation_aircraft_latest, no Airplanes.live URLs. Existing REST endpoint unchanged.
 - Files modified: apps/api/src/lib/db.ts, apps/api/tests/setup.ts, apps/api/src/lib/live-aircraft-broadcaster.ts, apps/api/src/routes/live-aircraft.ts, apps/api/tests/live-aircraft.test.ts
 - Files created: none
 - Files deleted: none
@@ -127,9 +132,9 @@
 - Next safe task: Kiro review WO-080B
 >>>>>>> origin/main
 
-### 2026-05-29T12:58:00Z Claude Sonnet 4.6 — WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
+### 2026-05-29T12:58:00Z Claude Sonnet 4.6 â€” WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
-- Work order: WO-079G-B — Aviation Live Aircraft Frontend Performance + No Flicker
+- Work order: WO-079G-B â€” Aviation Live Aircraft Frontend Performance + No Flicker
 - Folder: E:\god-eyes-frontend
 - Agent: Claude Sonnet 4.6
 - Role: Frontend / Cesium visualization only
@@ -139,7 +144,7 @@
 - Start time UTC: 2026-05-29T12:30:00Z
 - End time UTC: 2026-05-29T12:58:00Z
 - Commit hash: local commit on branch agent/claude-wo-079g-live-aircraft-performance (HEAD; see git log)
-- Push status: local only (NOT pushed — awaiting Kiro review)
+- Push status: local only (NOT pushed â€” awaiting Kiro review)
 - What was done: Eliminated the 5-second live-aircraft blink and raised capacity. Removed the per-poll removeAll()/recreate; markers are now diffed by sourceObjectId and updated in place. Raised the request limit and render cap to 20000. Added an in-flight guard so polls never overlap. Stale/disappeared aircraft are removed by key only. Status now reports rendered/total when capped. Frontend still calls only the GOD EYES API.
 <<<<<<< HEAD
 - Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/lib/api.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
@@ -149,29 +154,29 @@
 - Next safe task: WO-079H renderer engine fix
 =======
 - Files modified:
-  - apps/web/src/lib/useLiveAircraft.ts — RENDER_CAP=20000 (exported); requests limit=20000; in-flight guard (inFlightRef) skips a tick while a request is still running; phase 'ok' now carries both `aircraft` (capped slice) and `total` (full returned count); 5s cadence preserved; aborts on disable/unmount.
-  - apps/web/src/lib/api.ts — fetchLiveAircraft limit cap raised 5000 → 20000 (still only /api/aviation/aircraft/latest?bbox=...&limit=20000; no direct Airplanes.live calls).
-  - apps/web/src/CesiumGlobe.tsx — added aircraftEntityMapRef (Map<sourceObjectId, Entity>) and liveAircraftLayerActive prop. Diff-based render effect: update existing markers in place via ConstantProperty.setValue (position/image/color/rotation/aircraftData), add new markers, remove only keys not present this poll. No removeAll() per poll. Cached arrow/dot sprites (lazy singletons). Cap RENDER_CAP. `undefined` feed (loading/error/idle) is a no-op that keeps markers (no blink); `[]` feed (empty) clears by key. Separate effect clears all markers + selection by key when the layer toggles OFF.
-  - apps/web/src/App.tsx — passes liveAircraft = aircraft on 'ok', [] on 'empty', undefined on loading/error/idle; passes liveAircraftLayerActive to CesiumGlobe.
-  - apps/web/src/components/LayerPanel.tsx — status text shows "ACTIVE — N / TOTAL AIRCRAFT RENDERED (Xs AGO)" when capped, else "ACTIVE — N AIRCRAFT (Xs AGO)"; Airplanes.live caveat still shown when active.
-  - apps/web/src/components/StatusPanel.tsx — telemetry shows "N / TOTAL RENDERED" when capped, else "N AIRCRAFT".
-- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 219.77 kB JS), git diff --check (PASS — clean)
+  - apps/web/src/lib/useLiveAircraft.ts â€” RENDER_CAP=20000 (exported); requests limit=20000; in-flight guard (inFlightRef) skips a tick while a request is still running; phase 'ok' now carries both `aircraft` (capped slice) and `total` (full returned count); 5s cadence preserved; aborts on disable/unmount.
+  - apps/web/src/lib/api.ts â€” fetchLiveAircraft limit cap raised 5000 â†’ 20000 (still only /api/aviation/aircraft/latest?bbox=...&limit=20000; no direct Airplanes.live calls).
+  - apps/web/src/CesiumGlobe.tsx â€” added aircraftEntityMapRef (Map<sourceObjectId, Entity>) and liveAircraftLayerActive prop. Diff-based render effect: update existing markers in place via ConstantProperty.setValue (position/image/color/rotation/aircraftData), add new markers, remove only keys not present this poll. No removeAll() per poll. Cached arrow/dot sprites (lazy singletons). Cap RENDER_CAP. `undefined` feed (loading/error/idle) is a no-op that keeps markers (no blink); `[]` feed (empty) clears by key. Separate effect clears all markers + selection by key when the layer toggles OFF.
+  - apps/web/src/App.tsx â€” passes liveAircraft = aircraft on 'ok', [] on 'empty', undefined on loading/error/idle; passes liveAircraftLayerActive to CesiumGlobe.
+  - apps/web/src/components/LayerPanel.tsx â€” status text shows "ACTIVE â€” N / TOTAL AIRCRAFT RENDERED (Xs AGO)" when capped, else "ACTIVE â€” N AIRCRAFT (Xs AGO)"; Airplanes.live caveat still shown when active.
+  - apps/web/src/components/StatusPanel.tsx â€” telemetry shows "N / TOTAL RENDERED" when capped, else "N AIRCRAFT".
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 219.77 kB JS), git diff --check (PASS â€” clean)
 - Test/build result: Contracts build PASS. Web build PASS (tsc type-check + vite build). git diff --check clean. No web lint/test scripts in apps/web/package.json; no test deps added.
 - Rendered cap: 20000 (frontend hard cap in useLiveAircraft RENDER_CAP + render loop; request limit also 20000)
 - Polling behavior: 5s interval only while layer ON; in-flight guard prevents overlapping requests; aborts and stops on disable/unmount; single timer (no duplicate timers).
-- Flicker fix: Diff by sourceObjectId — markers persist between polls and update in place; only gone/stale markers are removed by key. No removeAll() per poll. Transient loading/error polls keep existing markers.
+- Flicker fix: Diff by sourceObjectId â€” markers persist between polls and update in place; only gone/stale markers are removed by key. No removeAll() per poll. Transient loading/error polls keep existing markers.
 - Forbidden folders touched: NO (only apps/web/src/ and docs/state/HANDOFF_LOG.md)
 - Security/privacy result: PASS. No secrets, no .env, no new dependencies. Frontend calls only the GOD EYES API.
 - Known issues:
-  - The WO-079D API route caps server-side limit at 5000 (apps/api/src/routes/aviation-aircraft.ts, MAX_LIMIT=5000 — a forbidden folder here). Until the backend cap is raised, the API returns at most 5000 aircraft even though the frontend requests 20000. The frontend is fully ready for up to 20000 and the rendered/total status display will reflect any cap. Recommend a backend WO to raise the API limit.
+  - The WO-079D API route caps server-side limit at 5000 (apps/api/src/routes/aviation-aircraft.ts, MAX_LIMIT=5000 â€” a forbidden folder here). Until the backend cap is raised, the API returns at most 5000 aircraft even though the frontend requests 20000. The frontend is fully ready for up to 20000 and the rendered/total status display will reflect any cap. Recommend a backend WO to raise the API limit.
   - Static aviation airports, earth events, and borders layers are untouched and unaffected.
   - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
 - Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
 >>>>>>> origin/main
 
-### 2026-05-29T18:17:00Z DeepSeek — WO-079G-A Aviation Live API Limit Increase
+### 2026-05-29T18:17:00Z DeepSeek â€” WO-079G-A Aviation Live API Limit Increase
 
-- Work order: WO-079G-A — Aviation Live Aircraft API Limit Increase
+- Work order: WO-079G-A â€” Aviation Live Aircraft API Limit Increase
 - Folder: E:\god-eyes-api
 - Agent: DeepSeek
 - Role: API implementation
@@ -193,9 +198,9 @@
 =======
 >>>>>>> origin/main
 
-### 2026-05-29T08:30:46Z Claude Sonnet 4.6 — WO-079E Aviation Live Aircraft Frontend
+### 2026-05-29T08:30:46Z Claude Sonnet 4.6 â€” WO-079E Aviation Live Aircraft Frontend
 
-- Work order: WO-079E — Aviation Live Aircraft Frontend
+- Work order: WO-079E â€” Aviation Live Aircraft Frontend
 - Folder: E:\god-eyes-frontend
 - Agent: Claude Sonnet 4.6
 - Role: Frontend / Cesium visualization only
@@ -205,26 +210,26 @@
 - Start time UTC: 2026-05-29T08:00:00Z
 - End time UTC: 2026-05-29T08:30:46Z
 - Commit hash: local commit on branch agent/claude-wo-079e-aviation-live-frontend (HEAD; see git log)
-- Push status: local only (NOT pushed — awaiting Kiro review)
+- Push status: local only (NOT pushed â€” awaiting Kiro review)
 - What was done: Implemented frontend visualization for live aircraft using the WO-079D API. Added an API client + 5s polling hook, a Live Aircraft layer toggle (sub-layer of Aviation, default OFF), heading-arrow Cesium billboard markers (cap 5000), stale/empty/error-safe handling, a click-to-inspect aircraft detail overlay with the Airplanes.live source caveat, and subtle layer status UX in the Layer and Status panels. Frontend calls ONLY the GOD EYES API; no direct Airplanes.live calls.
 - Files created:
-  - apps/web/src/lib/useLiveAircraft.ts — polling hook (5s setInterval, AbortController, phase union idle/loading/ok/empty/error, cap 5000, global bbox default, aborts when layer disabled or unmounted, keeps prior data during refetch to avoid loading flicker)
-  - apps/web/src/lib/aircraftMarker.ts — white arrow + neutral dot canvas sprites (tinted per aircraft), color logic (emergency red > military amber > neutral cyan), heading resolution (trackDeg || headingTrueDeg || headingMagDeg), heading→billboard rotation helper, AIRCRAFT_BILLBOARD_SCALE (~8px on screen)
+  - apps/web/src/lib/useLiveAircraft.ts â€” polling hook (5s setInterval, AbortController, phase union idle/loading/ok/empty/error, cap 5000, global bbox default, aborts when layer disabled or unmounted, keeps prior data during refetch to avoid loading flicker)
+  - apps/web/src/lib/aircraftMarker.ts â€” white arrow + neutral dot canvas sprites (tinted per aircraft), color logic (emergency red > military amber > neutral cyan), heading resolution (trackDeg || headingTrueDeg || headingMagDeg), headingâ†’billboard rotation helper, AIRCRAFT_BILLBOARD_SCALE (~8px on screen)
 - Files modified:
-  - apps/web/src/lib/api.ts — fetchLiveAircraft({bbox default -180,-90,180,90, limit capped 5000}, signal) and fetchAircraftDetail(sourceObjectId, signal); imported AircraftLatestListResponse + AircraftDetailResponse contracts
-  - apps/web/src/CesiumGlobe.tsx — liveAircraft prop, dedicated 'live-aircraft' CustomDataSource, billboard render effect (arrow when heading known else dot, screen-space rotation via alignedAxis=Cartesian3.ZERO, altitude from altitudeBaroFt, cap 5000, skip null lat/lon, defensive client-side stale skip), click→selectedAircraft overlay (callsign/registration/type/altitude/speed/heading/id/observedAt + source caveat). Native globe occlusion (depthTestAgainstTerrain) + isPositionVisible() click guard reused. Empty/undefined liveAircraft clears markers safely.
-  - apps/web/src/App.tsx — liveAircraftLayerActive state (default false), useLiveAircraft hook, passes liveAircraft to CesiumGlobe and live aircraft props to Shell
-  - apps/web/src/components/Shell.tsx — threads live aircraft props to LayerPanel and StatusPanel
-  - apps/web/src/components/LayerPanel.tsx — Live Aircraft sub-layer toggle nested under Aviation (indented "↳ Live Aircraft [L1]"), status text (READY / LOADING / ACTIVE — N AIRCRAFT (Ns AGO) / NO LIVE AIRCRAFT IN VIEW / API UNAVAILABLE), Airplanes.live caveat shown when active
-  - apps/web/src/components/StatusPanel.tsx — Live Aircraft telemetry entry (AIRCRAFT count / LOADING / NONE IN VIEW / API UNAVAILABLE / IDLE)
-- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS — tsc type-check + vite build, 65 modules), git diff --check (PASS, clean), git status --short
+  - apps/web/src/lib/api.ts â€” fetchLiveAircraft({bbox default -180,-90,180,90, limit capped 5000}, signal) and fetchAircraftDetail(sourceObjectId, signal); imported AircraftLatestListResponse + AircraftDetailResponse contracts
+  - apps/web/src/CesiumGlobe.tsx â€” liveAircraft prop, dedicated 'live-aircraft' CustomDataSource, billboard render effect (arrow when heading known else dot, screen-space rotation via alignedAxis=Cartesian3.ZERO, altitude from altitudeBaroFt, cap 5000, skip null lat/lon, defensive client-side stale skip), clickâ†’selectedAircraft overlay (callsign/registration/type/altitude/speed/heading/id/observedAt + source caveat). Native globe occlusion (depthTestAgainstTerrain) + isPositionVisible() click guard reused. Empty/undefined liveAircraft clears markers safely.
+  - apps/web/src/App.tsx â€” liveAircraftLayerActive state (default false), useLiveAircraft hook, passes liveAircraft to CesiumGlobe and live aircraft props to Shell
+  - apps/web/src/components/Shell.tsx â€” threads live aircraft props to LayerPanel and StatusPanel
+  - apps/web/src/components/LayerPanel.tsx â€” Live Aircraft sub-layer toggle nested under Aviation (indented "â†³ Live Aircraft [L1]"), status text (READY / LOADING / ACTIVE â€” N AIRCRAFT (Ns AGO) / NO LIVE AIRCRAFT IN VIEW / API UNAVAILABLE), Airplanes.live caveat shown when active
+  - apps/web/src/components/StatusPanel.tsx â€” Live Aircraft telemetry entry (AIRCRAFT count / LOADING / NONE IN VIEW / API UNAVAILABLE / IDLE)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS â€” tsc type-check + vite build, 65 modules), git diff --check (PASS, clean), git status --short
 - Test/build results: Contracts build PASS. Web build PASS (65 modules, 218.86 kB JS, 549ms). git diff --check clean. No web lint/test scripts exist in apps/web/package.json (only dev/build/preview) and no existing frontend test files; adding a test framework would require modifying package.json (forbidden), so verification is via the build's full tsc type-check. No frontend tests added.
 - Security/privacy result: PASS. No .env, no secrets, no API keys. Frontend calls only the GOD EYES API (VITE_API_BASE_URL || http://localhost:4000). No direct Airplanes.live calls. No new dependencies. No PII handling.
 - Forbidden folders touched: NO (only apps/web/src/ and docs/state/HANDOFF_LOG.md)
 - Live API used: GET /api/aviation/aircraft/latest?bbox=...&limit=5000 (polled every 5s while layer enabled); GET /api/aviation/aircraft/:sourceObjectId client function added for future deep Object Intel integration
 - Layer id: layer_01_aviation.live_aircraft (Live Aircraft sub-layer; default OFF)
 - Polling behavior: Polls every 5s only while the Live Aircraft layer is enabled; stops and aborts on disable/unmount
-- Validation checklist: Layer toggle exists ✓ | Calls only GOD EYES API ✓ | No direct Airplanes.live calls ✓ | Polls 5s only when enabled ✓ | BBox query included (global fallback -180,-90,180,90, isolated in hook/api for later viewport upgrade) ✓ | Visible cap ≤ 5000 ✓ | Stale aircraft not rendered (API excludes by default + client-side defensive skip) ✓ | Empty response safe ✓ | API failure safe ✓ | Existing aviation static layer unchanged ✓ | Build passes ✓ | No forbidden folders touched ✓
+- Validation checklist: Layer toggle exists âœ“ | Calls only GOD EYES API âœ“ | No direct Airplanes.live calls âœ“ | Polls 5s only when enabled âœ“ | BBox query included (global fallback -180,-90,180,90, isolated in hook/api for later viewport upgrade) âœ“ | Visible cap â‰¤ 5000 âœ“ | Stale aircraft not rendered (API excludes by default + client-side defensive skip) âœ“ | Empty response safe âœ“ | API failure safe âœ“ | Existing aviation static layer unchanged âœ“ | Build passes âœ“ | No forbidden folders touched âœ“
 - Known limitations:
   - Interpolation is a safe placeholder: markers SNAP to each newly observed position every 5s poll. No dead reckoning, no prediction past staleAfter. A TODO is in CesiumGlobe.tsx for true smooth visual interpolation strictly between two real observed positions per sourceObjectId.
   - BBox is global (-180,-90,180,90) by default; the bbox argument is isolated in the hook/api client so a camera-derived viewport can be wired in later without changing callers.
@@ -232,7 +237,7 @@
   - Browser/runtime verification (live markers, heading rotation correctness, FPS at high counts) not performed in this environment; build/type-check only.
 - Next recommended task: WO-079 final integration / browser verification (Reviewer / Kiro)
 
-### 2026-05-29T13:06:00Z DeepSeek — WO-079D Aviation Live Aircraft API
+### 2026-05-29T13:06:00Z DeepSeek â€” WO-079D Aviation Live Aircraft API
 
 - Work order: WO-079D-AVIATION-LIVE-AIRCRAFT-API
 - Agent: DeepSeek
@@ -252,10 +257,10 @@
 - Validation results: Contracts build PASS, API build PASS, API tests PASS (233/233: 214 existing + 19 new), git diff --check PASS (CRLF cosmetic warnings only)
 - Security/privacy result: PASS (no .env, no API keys, no secrets, parameterized SQL queries, no unsafe endpoints, no database writes, no live network calls from API)
 - Forbidden folders touched: NO
-- Known issues: git diff --check reports trailing whitespace on new lines in contracts file due to CRLF/LF inconsistency — cosmetic only, builds and tests pass. No functional impact.
+- Known issues: git diff --check reports trailing whitespace on new lines in contracts file due to CRLF/LF inconsistency â€” cosmetic only, builds and tests pass. No functional impact.
 - Next safe task: WO-079E Aviation Live Aircraft Frontend
 
-### 2026-05-28T07:09:11Z Kiro CLI — WO-079A1 Aviation Live Plan Consistency Patch
+### 2026-05-28T07:09:11Z Kiro CLI â€” WO-079A1 Aviation Live Plan Consistency Patch
 
 - Work order: WO-079A1-AVIATION-LIVE-PLAN-CONSISTENCY-PATCH
 - Agent: Kiro CLI
@@ -279,7 +284,7 @@
 - Known issues: None
 
 
-### 2026-05-28T06:52:02Z Kiro CLI — WO-079A Aviation Live Source and Schema Plan
+### 2026-05-28T06:52:02Z Kiro CLI â€” WO-079A Aviation Live Source and Schema Plan
 
 - Work order: WO-079A-AVIATION-LIVE-SOURCE-SCHEMA-PLAN
 - Agent: Kiro CLI
@@ -307,7 +312,7 @@
 - Next safe task: WO-079B database migrations (Codex)
 
 
-### 2026-05-28T11:15:41Z Kiro CLI — WO-078E FINAL Borders MVP Closeout Review
+### 2026-05-28T11:15:41Z Kiro CLI â€” WO-078E FINAL Borders MVP Closeout Review
 
 - Work order: WO-078E-FINAL-BORDERS-MVP-CLOSEOUT-REVIEW
 - Agent: Kiro CLI
@@ -348,7 +353,7 @@
 - No boundary-lines experiment code: YES
 
 
-### 2026-05-25T23:27:46Z MiniMax — WO-072-FIX USGS updated_at Bug Fix
+### 2026-05-25T23:27:46Z MiniMax â€” WO-072-FIX USGS updated_at Bug Fix
 
 - Work order: WO-072-EARTH-EVENTS-USGS-FETCHER-FIX
 - Agent: MiniMax
@@ -375,7 +380,7 @@
 - Database migrations touched: NO
 - Known issues: None
 - Next safe task: Kiro review, then push to origin if approved
-### 2026-05-25T14:38:40Z MiniMax — WO-072 USGS Earth Events Fetcher Complete
+### 2026-05-25T14:38:40Z MiniMax â€” WO-072 USGS Earth Events Fetcher Complete
 
 - Work order: WO-072-EARTH-EVENTS-USGS-FETCHER
 - Agent: MiniMax
@@ -405,7 +410,7 @@
 - Known issues: None
 - Forbidden folders touched: NO (only services/fetch-orchestrator/src/layers/layer_03_earth_events/, tests/data/layer_03_earth_events/)
 - Next safe task: Kiro review, then push to origin if approved
-﻿### 2026-05-17T23:05:00Z Claude API 1 â€” WO-030A Aviation API Preload/Resident Cache Mode Complete
+ï»¿### 2026-05-17T23:05:00Z Claude API 1 Ã¢â‚¬â€ WO-030A Aviation API Preload/Resident Cache Mode Complete
 
 - Work order: WO-030A Aviation API support for Global Resident Cache Mode
 - Agent: Claude API 1
@@ -445,21 +450,21 @@
 - Push decision: PASS
 - Branch pushed: integration/aviation-lod-request-scheduler
 - Commands run: git fetch --all, git checkout main, git pull origin main, git status, git checkout -b integration/aviation-lod-request-scheduler, git merge origin/agent/opencode-web-1 --no-edit, git merge origin/agent/codex-data-next --no-edit, git merge origin/agent/claude-api-1 --no-edit, git grep (conflict check), pnpm --filter web build, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, python -m pytest tests/data/layer_01_aviation -q, python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose -f infra/docker/docker-compose.yml config --quiet, git diff --check, git status
-- Conflict marker result: âœ… PASS (no conflict markers found after resolution)
-- Build/test result: âœ… PASS (Web build PASS 58 modules 710ms, Contracts build PASS, API build PASS, API tests PASS 115 tests 17.92s, Data tests PASS 98 tests 0.14s, Python compile PASS, Docker config PASS)
-- Data category audit result: âœ… PASS (8-category mapping covers all DB categories; India 43 major airports present; China 69 major airports present; water/seaplane 1,262 global 50 in Asia; unknown 0 rows)
-- API category audit result: âœ… PASS (backend CORRECT, no bugs found, category counts verified, India/China international airports return correctly, Asia water sites sparse in actual data, multi-category filtering supported)
-- Frontend LOD/request scheduler result: âœ… PASS (smart LOD mode with tier-based server-side filtering, explicit filter mode, tier thresholds STRATEGIC >10M NATIONAL 3-10M STATE 800K-3M LOCAL <800K, international major airports show globally, stronger colors per size, API multi-category via comma-separated params, viewport-aware requests, all 115 API tests pass)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no secrets, no new dependencies)
-- Forbidden folders touched: âœ… NO (only apps/web/, apps/api/, packages/contracts/, docs/ modified; no database/migrations, services/, packages/schemas/, packages/auth/, AI folders)
+- Conflict marker result: Ã¢Å“â€¦ PASS (no conflict markers found after resolution)
+- Build/test result: Ã¢Å“â€¦ PASS (Web build PASS 58 modules 710ms, Contracts build PASS, API build PASS, API tests PASS 115 tests 17.92s, Data tests PASS 98 tests 0.14s, Python compile PASS, Docker config PASS)
+- Data category audit result: Ã¢Å“â€¦ PASS (8-category mapping covers all DB categories; India 43 major airports present; China 69 major airports present; water/seaplane 1,262 global 50 in Asia; unknown 0 rows)
+- API category audit result: Ã¢Å“â€¦ PASS (backend CORRECT, no bugs found, category counts verified, India/China international airports return correctly, Asia water sites sparse in actual data, multi-category filtering supported)
+- Frontend LOD/request scheduler result: Ã¢Å“â€¦ PASS (smart LOD mode with tier-based server-side filtering, explicit filter mode, tier thresholds STRATEGIC >10M NATIONAL 3-10M STATE 800K-3M LOCAL <800K, international major airports show globally, stronger colors per size, API multi-category via comma-separated params, viewport-aware requests, all 115 API tests pass)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no secrets, no new dependencies)
+- Forbidden folders touched: Ã¢Å“â€¦ NO (only apps/web/, apps/api/, packages/contracts/, docs/ modified; no database/migrations, services/, packages/schemas/, packages/auth/, AI folders)
 - Known issues: Unknown category has 0 API rows (supported as fallback); explicit global loading bounded by API limits; global dots may not open Object Intel until local mode; not live aircraft data; future polish may include density/fabric aggregation
-- Final decision: PASS â€” All 8 integration checks passed. Data audit confirms categories. API backend verified correct. Frontend LOD/request scheduler fully implemented. All builds pass. All tests pass (115 API, 98 data). No conflicts remain. No secrets committed. Ready to push to origin.
+- Final decision: PASS Ã¢â‚¬â€ All 8 integration checks passed. Data audit confirms categories. API backend verified correct. Frontend LOD/request scheduler fully implemented. All builds pass. All tests pass (115 API, 98 data). No conflicts remain. No secrets committed. Ready to push to origin.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029E_TO_WO-029F.md
 - Commit hash (review document): 54246f3
 - Next recommended task: Push branch to origin. Code review and merge approval. Manual browser verification of LOD tier behavior at each zoom threshold.
 
 
-### 2026-05-17T07:40:06Z Kiro CLI â€” WO-029E-DATA-CATEGORY-AUDIT Aviation Category Mapping Data Audit PASS, branch pushed to origin
+### 2026-05-17T07:40:06Z Kiro CLI Ã¢â‚¬â€ WO-029E-DATA-CATEGORY-AUDIT Aviation Category Mapping Data Audit PASS, branch pushed to origin
 
 - Review work order: WO-029E-DATA-CATEGORY-AUDIT Aviation Category Mapping Data Audit
 - Reviewer agent: Kiro CLI
@@ -473,21 +478,21 @@
 - Branch pushed: agent/codex-data-next
 - Review result: All 10 checks passed. Aviation category audit complete. Eight-category mapping covers all normalized DB categories. India 43 major airports, China 69 major airports, both present in data. Water/seaplane 1,262 global, 50 in Asia. Unknown 0 rows. Read-only script with parameterized queries. Comprehensive tests (98 aviation). Documentation thorough with evidence and QA examples. No code changes. No database mutations. No API changes. No frontend changes. All tests pass. No secrets committed. No forbidden folders touched.
 - Commands run: git branch --show-current, git status, git log --oneline -10, git diff --stat HEAD~1..HEAD, python scripts\aviation_category_audit.py --json --country-limit 25 --region-limit 25 --sample-limit 3 --pattern-limit 30 --country-major-limit 100, python -m pytest tests/data/layer_01_aviation -q (98 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose -f infra/docker/docker-compose.yml config --quiet, git diff --check, git diff --cached --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
-- Folder boundaries result: âœ… PASS (only docs/data/layer_01_aviation/, scripts/, tests/data/layer_01_aviation/, docs/state/HANDOFF_LOG.md touched; no forbidden folders)
-- Script safety result: âœ… PASS (read-only, SELECT only, parameterized SQL, no destructive SQL, no file writes, no secrets, CLI flags validated, output summary only)
-- Test coverage result: âœ… PASS (7 tests cover script existence, read-only verification, 8-category mapping, parameterization, country code validation, category validation, documentation completeness; 98 total aviation tests pass)
-- Documentation result: âœ… PASS (exact DB categories with counts, source type distribution, 8-category frontend mapping, India/China major airport evidence with lists, Asia water/seaplane evidence with examples, missing/ambiguous mappings, QA examples per category, 9 warnings/limitations)
-- Category verdict result: âœ… PASS (8-category mapping covers all 8 real DB categories; India 43 major airports present; China 69 major airports present; if missing at globe zoom, likely display/rendering logic not data absence)
-- Water/seaplane verdict result: âœ… PASS (1,262 global water/seaplane records; 50 in Asia; sparse but present; concentrated in North America; use type_source for classification)
-- Data safety result: âœ… PASS (no aviation_airports mutations, no raw CSVs, no database dumps, no generated JSON dumps, no large artifacts, local Docker documented)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no database passwords beyond placeholders, no node_modules, no raw CSVs, no database dumps, no generated response dumps, no secrets, no new dependencies)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only docs/data/layer_01_aviation/, scripts/, tests/data/layer_01_aviation/, docs/state/HANDOFF_LOG.md touched; no forbidden folders)
+- Script safety result: Ã¢Å“â€¦ PASS (read-only, SELECT only, parameterized SQL, no destructive SQL, no file writes, no secrets, CLI flags validated, output summary only)
+- Test coverage result: Ã¢Å“â€¦ PASS (7 tests cover script existence, read-only verification, 8-category mapping, parameterization, country code validation, category validation, documentation completeness; 98 total aviation tests pass)
+- Documentation result: Ã¢Å“â€¦ PASS (exact DB categories with counts, source type distribution, 8-category frontend mapping, India/China major airport evidence with lists, Asia water/seaplane evidence with examples, missing/ambiguous mappings, QA examples per category, 9 warnings/limitations)
+- Category verdict result: Ã¢Å“â€¦ PASS (8-category mapping covers all 8 real DB categories; India 43 major airports present; China 69 major airports present; if missing at globe zoom, likely display/rendering logic not data absence)
+- Water/seaplane verdict result: Ã¢Å“â€¦ PASS (1,262 global water/seaplane records; 50 in Asia; sparse but present; concentrated in North America; use type_source for classification)
+- Data safety result: Ã¢Å“â€¦ PASS (no aviation_airports mutations, no raw CSVs, no database dumps, no generated JSON dumps, no large artifacts, local Docker documented)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no database passwords beyond placeholders, no node_modules, no raw CSVs, no database dumps, no generated response dumps, no secrets, no new dependencies)
 - Known risks: None. Documentation-only work order with no code/database/API/frontend changes.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029E_DATA_CATEGORY_AUDIT.md
 - Commit hash (review document): 42a1bb8
 - Next recommended task: Frontend LOD/filter fixes can proceed with confidence in data truth. Investigate display filtering, viewport limits, clustering, or renderer category handling if categories still missing in UI.
 
-### 2026-05-18T06:30:00Z OpenCode Web 1 â€” WO-029D-FE LOD logic correction: smart/explicit modes, server-side category fetch, stronger colors
+### 2026-05-18T06:30:00Z OpenCode Web 1 Ã¢â‚¬â€ WO-029D-FE LOD logic correction: smart/explicit modes, server-side category fetch, stronger colors
 
 - Work order: WO-029D-FE LOD logic correction
 - Agent: OpenCode Web 1
@@ -507,7 +512,7 @@
 - Forbidden folders touched: no
 - Next safe task: Kiro review, then commit if approved. Manual browser verification required.
 
-### 2026-05-18T01:15:00Z OpenCode Web 1 â€” WO-029D-FE LOD visibility redesign: replace fabric/density with category-based zoom tiers
+### 2026-05-18T01:15:00Z OpenCode Web 1 Ã¢â‚¬â€ WO-029D-FE LOD visibility redesign: replace fabric/density with category-based zoom tiers
 
 - Work order: WO-029D-FE LOD visibility redesign
 - Agent: OpenCode Web 1
@@ -527,7 +532,7 @@
 - Forbidden folders touched: no
 - Next safe task: Kiro review and manual browser verification of LOD tier behavior at each zoom threshold.
 
-### 2026-05-17T23:55:00Z OpenCode Web 1 â€” WO-029D-FE visual tuning: increase fabric/dot visibility
+### 2026-05-17T23:55:00Z OpenCode Web 1 Ã¢â‚¬â€ WO-029D-FE visual tuning: increase fabric/dot visibility
 
 - Work order: WO-029D-FE visual tuning
 - Agent: OpenCode Web 1
@@ -547,7 +552,7 @@
 - Forbidden folders touched: no
 - Next safe task: Kiro review and manual browser verification of visual improvements.
 
-### 2026-05-17T23:30:00Z OpenCode Web 1 â€” WO-029C-FE Aviation Density View Frontend Architecture
+### 2026-05-17T23:30:00Z OpenCode Web 1 Ã¢â‚¬â€ WO-029C-FE Aviation Density View Frontend Architecture
 
 - Work order: WO-029C-FE Aviation Density View Frontend Architecture
 - Agent: OpenCode Web 1
@@ -568,7 +573,7 @@
 - Next safe task: Kiro review and manual browser verification of density view rendering at different zoom levels.
 
 
-### 2026-05-17T07:35:00Z Claude API 1 â€” WO-029E Aviation Category Audit Complete (Backend Verified Correct)
+### 2026-05-17T07:35:00Z Claude API 1 Ã¢â‚¬â€ WO-029E Aviation Category Audit Complete (Backend Verified Correct)
 
 - Work order: WO-029E API/Database Category Audit
 - Agent: Claude API 1
@@ -580,16 +585,16 @@
 - End time UTC: 2026-05-17T07:35:00Z
 - Review result: Audit complete. Backend is CORRECT - no API/database bugs found. Issues are: (1) India/China international airports return correctly via API, (2) Asia water sites are sparse in actual data (not a bug), (3) Multiple category filtering not supported by API. Created detailed audit document with SQL verification.
 - Commands run: git branch --show-current, git status, docker exec psql (category counts, India/China queries, water sites), curl API endpoint tests, pnpm --filter api test, git diff --check
-- Build/tests result: âœ… PASS (API tests PASS (115/115))
-- Security/privacy result: âœ… PASS (read-only SQL, no mutations, no secrets)
-- Folder boundaries: âœ… PASS (docs/api/API_AVIATION_CATEGORY_AUDIT_WO-029E.md created; docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
-- Backend category verdict: âœ… CORRECT - 7 categories in DB (small_airfield: 42616, heliport: 22980, closed_or_abandoned: 13181, regional_or_domestic_airport: 4095, water_landing_site: 1262, international_or_major_airport: 1182, balloonport: 61). Unknown category has no data.
-- API filter verdict: âœ… CORRECT - Single category filter works, multiple categories not supported, limit applied after filter, fields=marker includes category correctly.
+- Build/tests result: Ã¢Å“â€¦ PASS (API tests PASS (115/115))
+- Security/privacy result: Ã¢Å“â€¦ PASS (read-only SQL, no mutations, no secrets)
+- Folder boundaries: Ã¢Å“â€¦ PASS (docs/api/API_AVIATION_CATEGORY_AUDIT_WO-029E.md created; docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
+- Backend category verdict: Ã¢Å“â€¦ CORRECT - 7 categories in DB (small_airfield: 42616, heliport: 22980, closed_or_abandoned: 13181, regional_or_domestic_airport: 4095, water_landing_site: 1262, international_or_major_airport: 1182, balloonport: 61). Unknown category has no data.
+- API filter verdict: Ã¢Å“â€¦ CORRECT - Single category filter works, multiple categories not supported, limit applied after filter, fields=marker includes category correctly.
 - Known issues: None - backend is functioning correctly. Frontend may need to adjust client-side filtering or accept actual data distribution.
 - Files changed: docs/api/API_AVIATION_CATEGORY_AUDIT_WO-029E.md (new audit document), docs/state/HANDOFF_LOG.md (updated)
 - Next safe task: Push to origin for review. WO-029E complete. Frontend team should verify client-side filtering is correct.
 
-### 2026-05-17T06:10:00Z Claude API 1 â€” WO-029D Aviation Fabric Density API Implementation Complete (Ready for Review)
+### 2026-05-17T06:10:00Z Claude API 1 Ã¢â‚¬â€ WO-029D Aviation Fabric Density API Implementation Complete (Ready for Review)
 
 - Work order: WO-029D Aviation Fabric Density API Implementation
 - Agent: Claude API 1
@@ -601,15 +606,15 @@
 - End time UTC: 2026-05-17T06:10:00Z
 - Review result: Implementation complete. Added `mode=density` for global aviation fabric view. Returns aggregated density cells (not raw 85k airports). Cell size bounded (0.5-10 degrees, default 2.0). Closed/historical excluded by default. All builds pass. All 115 tests pass.
 - Commands run: git branch --show-current, git status, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check
-- Build/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (115/115))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, parameterized SQL queries, no unsafe endpoints, no database writes)
-- Folder boundaries: âœ… PASS (apps/api/src/routes/objects/ validation.ts, errors.ts, index.ts, density.ts modified; packages/contracts/src/index.ts modified; apps/api/tests/objects.test.ts modified; docs/api/API_AVIATION_FABRIC_DENSITY.md created; docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
+- Build/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (115/115))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, parameterized SQL queries, no unsafe endpoints, no database writes)
+- Folder boundaries: Ã¢Å“â€¦ PASS (apps/api/src/routes/objects/ validation.ts, errors.ts, index.ts, density.ts modified; packages/contracts/src/index.ts modified; apps/api/tests/objects.test.ts modified; docs/api/API_AVIATION_FABRIC_DENSITY.md created; docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
 - Implementation approach: New `mode=density` returns aggregated grid cells with count, centroid position, bbox. Uses GROUP BY floor(lat/cellSize), floor(lon/cellSize). Excludes closed_or_abandoned by default. cellSizeDegrees clamped (0.5-10). Limit capped at 1000 with bbox.
 - Known issues: None. All fabric density requirements met. Existing points/clusters/marker/detail endpoints remain backward compatible.
 - Files changed: apps/api/src/routes/objects/validation.ts (added validateMode/density, validateCellSizeDegrees, validateIncludeClosed), apps/api/src/routes/objects/errors.ts (updated missingBBoxError), apps/api/src/routes/objects/index.ts (added density mode routing), apps/api/src/routes/objects/density.ts (new handler), packages/contracts/src/index.ts (added AirportDensityCellSchema, AirportDensityResponseSchema), apps/api/tests/objects.test.ts (added 15 density mode tests), docs/api/API_AVIATION_FABRIC_DENSITY.md (new), docs/state/HANDOFF_LOG.md (updated)
 - Next safe task: Push to origin for review. WO-029D complete. Ready for frontend implementation using density cells with PointPrimitiveCollection.
 
-### 2026-05-17T05:45:00Z Claude API 1 â€” WO-029C Aviation Density View API Implementation Complete (Ready for Review)
+### 2026-05-17T05:45:00Z Claude API 1 Ã¢â‚¬â€ WO-029C Aviation Density View API Implementation Complete (Ready for Review)
 
 - Work order: WO-029C Aviation Density View Minimal API Support
 - Agent: Claude API 1
@@ -621,15 +626,15 @@
 - End time UTC: 2026-05-17T05:45:00Z
 - Review result: Implementation complete. No backend changes required - existing `fields=marker` already supports density view. Added 12 density-specific tests. Created API documentation. All builds pass. All 100 tests pass.
 - Commands run: git branch --show-current, git status, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check
-- Build/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (100/100))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, parameterized SQL queries, no unsafe endpoints)
-- Folder boundaries: âœ… PASS (apps/api/tests/objects.test.ts modified, docs/api/API_AVIATION_DENSITY_VIEW.md created, docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
+- Build/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (100/100))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, parameterized SQL queries, no unsafe endpoints)
+- Folder boundaries: Ã¢Å“â€¦ PASS (apps/api/tests/objects.test.ts modified, docs/api/API_AVIATION_DENSITY_VIEW.md created, docs/state/HANDOFF_LOG.md updated; no forbidden folders touched)
 - Implementation approach: Used existing `mode=points` with `fields=marker` - no new endpoints needed. Density view already supported via marker payload (13 fields, lightweight). Category filtering supported, bbox required for clusters, limits bounded (500/1000).
 - Known issues: None. All density view requirements met via existing API.
 - Files changed: apps/api/tests/objects.test.ts (added 12 density tests), docs/api/API_AVIATION_DENSITY_VIEW.md (new), docs/state/HANDOFF_LOG.md (updated)
 - Next safe task: Push to origin for review. WO-029C complete. Ready for frontend implementation using PointPrimitiveCollection.
 
-### 2026-05-17T05:35:00Z Kiro CLI â€” WO-029B Planning Batch Final Integration Review PASS, ready to push
+### 2026-05-17T05:35:00Z Kiro CLI Ã¢â‚¬â€ WO-029B Planning Batch Final Integration Review PASS, ready to push
 
 - Review work order: WO-029B Planning Batch (WO-029B-FEASIBILITY, WO-029B-DATA, WO-029B-API-FEASIBILITY)
 - Reviewer agent: Kiro CLI
@@ -644,25 +649,25 @@
 - Branch pushed: integration/aviation-density-view-planning (to origin)
 - Review result: All 12 integration checks passed. WO-029B planning batch is complete and production-ready. WO-029B-FEASIBILITY provides comprehensive frontend architecture plan with PointPrimitiveCollection recommendation. WO-029B-DATA provides aviation density distribution reference with 85,377 total airports and QA regions. WO-029B-API-FEASIBILITY provides API feasibility review. No conflicts remain. No secrets committed. No forbidden folders touched. All builds pass (Contracts, API, Web). All tests pass (88/89 API, 91 data). Ready for main branch merge.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git grep (conflict check), git merge (3 branches), pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter web build, pnpm --filter api test, python -m pytest tests/data/layer_01_aviation -q, python -m compileall, docker compose config --quiet
-- Git status result: âœ… PASS (branch integration/aviation-density-view-planning, working tree clean, up to date with origin)
-- Conflict marker result: âœ… PASS (no conflict markers found, HANDOFF_LOG conflicts resolved properly)
-- Work orders included result: âœ… PASS (WO-029B-FEASIBILITY files present, WO-029B-DATA files present, WO-029B-API-FEASIBILITY files present, all review documents present)
-- Folder boundaries result: âœ… PASS (12 files changed: 3 frontend, 4 data, 3 API, 2 review docs; no forbidden folders touched)
-- Builds/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS (56 modules, 893ms), API tests PASS (88/89, 1 requires database online), Data tests PASS (91 tests), Python compile PASS, Docker config PASS)
-- WO-029B-FEASIBILITY frontend result: âœ… PASS (architecture plan comprehensive, PointPrimitiveCollection recommended, frontend-only feasibility documented, performance risks identified, implementation roadmap clear)
-- WO-029B-DATA data reference result: âœ… PASS (distribution reference complete, 85,377 total airports, category distribution documented, 7 QA regions identified, density limits documented, global rendering warnings documented)
-- WO-029B-API-FEASIBILITY API result: âœ… PASS (API feasibility reviewed, endpoint requirements documented, query parameters designed, response schema documented, backward compatibility maintained)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no secrets, all queries parameterized, no unsafe SQL, no database mutations)
-- Performance/stress result: âœ… PASS (density rendering strategy documented, performance risks identified, browser measurement recommended, stress test regions identified, limits documented, no runaway request patterns)
-- Documentation result: âœ… PASS (HANDOFF_LOG.md includes all three WO entries and final merge cleanup, review documents exist for all three work orders, known limitations documented honestly)
-- Batch coherence result: âœ… PASS (WO-029B-FEASIBILITY frontend provides architecture plan, WO-029B-DATA data provides distribution reference, WO-029B-API-FEASIBILITY API provides endpoint planning, all three work orders cohesive and complete, no circular dependencies, clear roadmap for implementation)
+- Git status result: Ã¢Å“â€¦ PASS (branch integration/aviation-density-view-planning, working tree clean, up to date with origin)
+- Conflict marker result: Ã¢Å“â€¦ PASS (no conflict markers found, HANDOFF_LOG conflicts resolved properly)
+- Work orders included result: Ã¢Å“â€¦ PASS (WO-029B-FEASIBILITY files present, WO-029B-DATA files present, WO-029B-API-FEASIBILITY files present, all review documents present)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (12 files changed: 3 frontend, 4 data, 3 API, 2 review docs; no forbidden folders touched)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS (56 modules, 893ms), API tests PASS (88/89, 1 requires database online), Data tests PASS (91 tests), Python compile PASS, Docker config PASS)
+- WO-029B-FEASIBILITY frontend result: Ã¢Å“â€¦ PASS (architecture plan comprehensive, PointPrimitiveCollection recommended, frontend-only feasibility documented, performance risks identified, implementation roadmap clear)
+- WO-029B-DATA data reference result: Ã¢Å“â€¦ PASS (distribution reference complete, 85,377 total airports, category distribution documented, 7 QA regions identified, density limits documented, global rendering warnings documented)
+- WO-029B-API-FEASIBILITY API result: Ã¢Å“â€¦ PASS (API feasibility reviewed, endpoint requirements documented, query parameters designed, response schema documented, backward compatibility maintained)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no secrets, all queries parameterized, no unsafe SQL, no database mutations)
+- Performance/stress result: Ã¢Å“â€¦ PASS (density rendering strategy documented, performance risks identified, browser measurement recommended, stress test regions identified, limits documented, no runaway request patterns)
+- Documentation result: Ã¢Å“â€¦ PASS (HANDOFF_LOG.md includes all three WO entries and final merge cleanup, review documents exist for all three work orders, known limitations documented honestly)
+- Batch coherence result: Ã¢Å“â€¦ PASS (WO-029B-FEASIBILITY frontend provides architecture plan, WO-029B-DATA data provides distribution reference, WO-029B-API-FEASIBILITY API provides endpoint planning, all three work orders cohesive and complete, no circular dependencies, clear roadmap for implementation)
 - Known risks: None. All checks passed. No blocking issues identified.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_PLANNING.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Push branch to origin. Proceed with WO-029B implementation or next work order.
 
 
-### 2026-05-17T04:25:56Z Kiro CLI â€” WO-029B-DATA Aviation Density View Data Distribution Reference PASS, branch pushed to origin
+### 2026-05-17T04:25:56Z Kiro CLI Ã¢â‚¬â€ WO-029B-DATA Aviation Density View Data Distribution Reference PASS, branch pushed to origin
 
 - Review work order: WO-029B-DATA Aviation Density View Data Distribution Reference
 - Reviewer agent: Kiro CLI
@@ -676,19 +681,19 @@
 - Branch pushed: agent/codex-data-next
 - Review result: All 10 checks passed. Aviation density view data reference complete. Read-only script with parameterized queries. Comprehensive tests (12 density + 91 total aviation). Documentation covers total counts, category distribution, operational vs closed, dense regions, QA regions, density limits, global rendering warnings, and known limitations. No code changes. No database mutations. No API changes. No frontend changes. All tests pass. No secrets committed. No forbidden folders touched.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, python scripts\aviation_density_view_data_reference.py --json --country-limit 20 --grid-limit 15 --cell-size-degrees 5, python -m pytest tests/data/layer_01_aviation/test_aviation_density_view_data_reference.py -q (12 passed), python -m pytest tests/data/layer_01_aviation -q (91 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose -f infra/docker/docker-compose.yml config --quiet, git diff --check, git diff --cached --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
-- Folder boundaries result: âœ… PASS (only docs/data/layer_01_aviation/, scripts/, tests/data/layer_01_aviation/, docs/state/HANDOFF_LOG.md touched; no forbidden folders)
-- Script safety result: âœ… PASS (read-only, SELECT only, parameterized SQL, no destructive SQL, no file writes, no secrets, CLI flags validated, output summary only)
-- Test coverage result: âœ… PASS (12 density tests cover script existence, read-only verification, CLI flags, parameterization, BBox validation, documentation completeness; 91 total aviation tests pass)
-- Documentation result: âœ… PASS (total count 85,377, category counts with density implications, operational vs closed 72,196/13,181, heliport/water/balloonport/unknown counts, top 20 countries, densest 15 grid cells, 7 QA regions, density limits 1,000-2,000 points/500 cells, global warning, 9 known limitations)
-- Data safety result: âœ… PASS (no aviation_airports mutations, no raw CSVs, no database dumps, no generated JSON dumps, no large artifacts, local Docker documented)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no database passwords beyond placeholders, no node_modules, no raw CSVs, no database dumps, no generated response dumps, no secrets, no new dependencies)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only docs/data/layer_01_aviation/, scripts/, tests/data/layer_01_aviation/, docs/state/HANDOFF_LOG.md touched; no forbidden folders)
+- Script safety result: Ã¢Å“â€¦ PASS (read-only, SELECT only, parameterized SQL, no destructive SQL, no file writes, no secrets, CLI flags validated, output summary only)
+- Test coverage result: Ã¢Å“â€¦ PASS (12 density tests cover script existence, read-only verification, CLI flags, parameterization, BBox validation, documentation completeness; 91 total aviation tests pass)
+- Documentation result: Ã¢Å“â€¦ PASS (total count 85,377, category counts with density implications, operational vs closed 72,196/13,181, heliport/water/balloonport/unknown counts, top 20 countries, densest 15 grid cells, 7 QA regions, density limits 1,000-2,000 points/500 cells, global warning, 9 known limitations)
+- Data safety result: Ã¢Å“â€¦ PASS (no aviation_airports mutations, no raw CSVs, no database dumps, no generated JSON dumps, no large artifacts, local Docker documented)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no database passwords beyond placeholders, no node_modules, no raw CSVs, no database dumps, no generated response dumps, no secrets, no new dependencies)
 - Known risks: None. Documentation-only work order with no code/database/API/frontend changes.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_DATA.md
 - Commit hash (review document): dfae14f
 - Next recommended task: Claude/API use reference for density endpoint planning. Gemini/frontend use reference for density mode QA and stress testing.
 
-### 2026-05-17T04:45:00Z Kiro CLI â€” WO-029B-FEASIBILITY Aviation Density View Frontend Architecture Plan PASS, branch pushed to origin
+### 2026-05-17T04:45:00Z Kiro CLI Ã¢â‚¬â€ WO-029B-FEASIBILITY Aviation Density View Frontend Architecture Plan PASS, branch pushed to origin
 
 - Review work order: WO-029B-FEASIBILITY
 - Reviewer agent: Kiro CLI
@@ -702,24 +707,24 @@
 - Branch pushed: agent/opencode-web-1
 - Review result: All 10 checks passed. WO-029B feasibility document comprehensive and production-safe. Covers all 14 required topics: current fetch/render, camera thresholds, 85k entity risk, rendering options comparison, PointPrimitiveCollection recommendation, frontend-only feasibility, minimal API support, click behavior, dot-to-icon transition, filter behavior, closed/historical handling, performance risks, implementation plan. No implementation code changed. Only documentation added. Recommendations practical and grounded in Cesium best practices. Limitations documented honestly. No secrets committed. No forbidden folders touched.
 - Commands run: git branch --show-current, git status, git log --oneline -3, git diff --stat HEAD~1..HEAD, git diff --check HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter web build
-- Working directory result: âœ… PASS (E:\god-eyes-opencode-web-1)
-- Branch result: âœ… PASS (agent/opencode-web-1)
-- Working tree result: âœ… PASS (clean)
-- Unfinished merge result: âœ… PASS (none)
-- Allowed files result: âœ… PASS (only docs/work-orders/WO-029B-aviation-density-view-frontend-plan.md created)
-- Forbidden folders result: âœ… PASS (apps/api/, database/, services/, packages/contracts/, packages/schemas/, packages/source-catalog/, packages/auth/, AI folders all untouched)
-- Implementation code result: âœ… PASS (no implementation code changed, only planning document)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets)
-- Feasibility coverage result: âœ… PASS (all 14 topics covered: current fetch/render, camera thresholds, 85k risk, rendering options, PointPrimitiveCollection recommendation, frontend-only feasibility, minimal API support, click behavior, dot-to-icon transition, filter behavior, closed/historical, performance risks, implementation plan, QA checklist)
-- Builds/tests result: âœ… PASS (Contracts build PASS, Web build PASS (56 modules, 580ms))
-- Document quality result: âœ… PASS (comprehensive, practical, grounded in Cesium best practices, honest risk assessment, concrete implementation steps, QA checklist provided, known limitations documented)
+- Working directory result: Ã¢Å“â€¦ PASS (E:\god-eyes-opencode-web-1)
+- Branch result: Ã¢Å“â€¦ PASS (agent/opencode-web-1)
+- Working tree result: Ã¢Å“â€¦ PASS (clean)
+- Unfinished merge result: Ã¢Å“â€¦ PASS (none)
+- Allowed files result: Ã¢Å“â€¦ PASS (only docs/work-orders/WO-029B-aviation-density-view-frontend-plan.md created)
+- Forbidden folders result: Ã¢Å“â€¦ PASS (apps/api/, database/, services/, packages/contracts/, packages/schemas/, packages/source-catalog/, packages/auth/, AI folders all untouched)
+- Implementation code result: Ã¢Å“â€¦ PASS (no implementation code changed, only planning document)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets)
+- Feasibility coverage result: Ã¢Å“â€¦ PASS (all 14 topics covered: current fetch/render, camera thresholds, 85k risk, rendering options, PointPrimitiveCollection recommendation, frontend-only feasibility, minimal API support, click behavior, dot-to-icon transition, filter behavior, closed/historical, performance risks, implementation plan, QA checklist)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, Web build PASS (56 modules, 580ms))
+- Document quality result: Ã¢Å“â€¦ PASS (comprehensive, practical, grounded in Cesium best practices, honest risk assessment, concrete implementation steps, QA checklist provided, known limitations documented)
 - Forbidden folders touched: no
 - Known issues: None (feasibility document only, no implementation code)
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_FRONTEND_FEASIBILITY.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Proceed with WO-029B implementation or next work order. Feasibility document provides clear roadmap for density view v1.
 
-### 2026-05-17T04:13:03Z Kiro CLI â€” WO-029A Aviation Marker Categories + Filters Foundation PASS, branch pushed to origin
+### 2026-05-17T04:13:03Z Kiro CLI Ã¢â‚¬â€ WO-029A Aviation Marker Categories + Filters Foundation PASS, branch pushed to origin
 
 - Review work order: WO-029A
 - Reviewer agent: Kiro CLI
@@ -733,11 +738,11 @@
 - Branch pushed: agent/opencode-web-1
 - Review result: All 17 automated checks passed. All 20 manual browser verification tests passed. Aviation Marker System v2 foundation complete and production-ready. Category model correctly maps all aviation facility types. Marker sprites visually distinct and equally weighted. Client-side filtering works safely without stale closures. Closed/historical airports hidden by default. Filter state preserved across layer toggles. Cluster fallback maintained. No secrets committed. No forbidden folders touched.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm --filter api test, git add docs/state/INTEGRATION_REVIEW_WO-029A.md docs/state/HANDOFF_LOG.md, git commit, git push -u origin agent/opencode-web-1
-- Automated checks result: âœ… PASS (17/17: git status, folder boundaries, category model, marker sprites, renderer, CesiumGlobe state/filter, App/Shell/LayerPanel, Object Intel labels, existing behavior, search+hidden category, cluster limitation, builds, regression, security/privacy, documentation, known limitations)
-- Manual browser verification result: âœ… PASS (20/20: layer enable, marker identity, search/Object Intel, heliport identity, seaplane identity, closed default OFF, closed toggle ON, closed toggle OFF, airports filter, heliports filter, seaplane filter, no duplicates, layer toggle persistence, detail load, closed search graceful, zoom/pan smooth, console clean, network clean, behind-globe not clickable, cluster fallback works)
-- QA findings verified: âœ… PASS (category mismatch reviewed, stale closure reviewed, duplicate marker reviewed, cluster limitation documented, hidden closed UX checked, browser performance checked, runaway requests checked)
-- Builds/tests result: âœ… PASS (Contracts build PASS, Web build PASS (56 modules, 179.12 kB), API build PASS, API tests PASS (89 tests, +5 new))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
+- Automated checks result: Ã¢Å“â€¦ PASS (17/17: git status, folder boundaries, category model, marker sprites, renderer, CesiumGlobe state/filter, App/Shell/LayerPanel, Object Intel labels, existing behavior, search+hidden category, cluster limitation, builds, regression, security/privacy, documentation, known limitations)
+- Manual browser verification result: Ã¢Å“â€¦ PASS (20/20: layer enable, marker identity, search/Object Intel, heliport identity, seaplane identity, closed default OFF, closed toggle ON, closed toggle OFF, airports filter, heliports filter, seaplane filter, no duplicates, layer toggle persistence, detail load, closed search graceful, zoom/pan smooth, console clean, network clean, behind-globe not clickable, cluster fallback works)
+- QA findings verified: Ã¢Å“â€¦ PASS (category mismatch reviewed, stale closure reviewed, duplicate marker reviewed, cluster limitation documented, hidden closed UX checked, browser performance checked, runaway requests checked)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, Web build PASS (56 modules, 179.12 kB), API build PASS, API tests PASS (89 tests, +5 new))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
 - Forbidden folders touched: no
 - Known issues: None
 - Known limitations: Full density renderer future work, cluster fallback remains, cluster counts may not reflect filters (WO-029B/WO-029C), category filtering client-side only, search may select hidden closed facilities (WO-029B)
@@ -745,7 +750,7 @@
 - Commit hash (review document): (pending commit)
 - Next recommended task: Merge approval and integration into main branch. Proceed with WO-029B (cluster filtering) or next work order.
 
-### 2026-05-17T04:30:00Z Kiro CLI â€” WO-029A Aviation Marker Categories + Filters Foundation PASS, manual browser verification required
+### 2026-05-17T04:30:00Z Kiro CLI Ã¢â‚¬â€ WO-029A Aviation Marker Categories + Filters Foundation PASS, manual browser verification required
 
 - Review work order: WO-029A
 - Reviewer agent: Kiro CLI
@@ -759,20 +764,20 @@
 - Branch pushed: not yet (awaiting manual verification)
 - Review result: All 17 automated checks passed. Aviation Marker System v2 foundation is production-ready. Category model correctly maps all aviation facility types. Marker sprites visually distinct and equally weighted. Client-side filtering works safely without stale closures. Closed/historical airports hidden by default. Filter state preserved across layer toggles. Cluster fallback maintained. No secrets committed. No forbidden folders touched. Manual browser verification required before final push.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm --filter api test
-- Git status result: âœ… PASS (branch agent/opencode-web-1, working tree clean, no .env, no node_modules, no raw data)
-- Folder boundaries result: âœ… PASS (only apps/web/src/, docs/work-orders/, docs/state/ touched; no forbidden folders)
-- Category model result: âœ… PASS (valid categories mapped correctly, no invalid large_airport check, closed_or_abandoned mapped to closed, heliport/seaplane_base/unknown handled, labels human-readable, operational categories not ranked, closed default OFF)
-- Marker sprite result: âœ… PASS (category-specific identities: circle/rounded-square/diamond/X-overlay/outline, all operational equal size, no importance ranking, no giant pins, no 3D icons, no new dependencies)
-- Renderer result: âœ… PASS (accepts filters, filters client-side safely, closed hidden by default, category icons assigned correctly, no large_airport check, no null crash, clean removal before re-add, no duplicates, behind-globe preserved, rawData preserved, cluster fallback preserved)
-- CesiumGlobe state/filter result: âœ… PASS (aviationFilters prop exists, filter changes trigger re-render, cached items used (no refetch), stale closure avoided via refs, no API storms, existing behavior preserved, cluster fallback works, cluster filtering limitation documented)
-- App/Shell/LayerPanel result: âœ… PASS (aviationFilters state safe, default hides closed, state passed to CesiumGlobe/LayerPanel, toggles exist for all categories, labels understandable, legend exists, controls not overcrowded, collapsed/expanded works, filter state preserved on layer toggle)
-- Object Intel category label result: âœ… PASS (getCategoryLabel() used, no raw strings, no overflow, closed shows clear label)
-- Existing behavior preservation result: âœ… PASS (search works, coordinates work, fly-to works, Object Intel opens, detail API loads, toggle works, clusters appear, cluster click zooms, points appear, marker click opens Intel, behind-globe hidden, no duplicates)
-- Search + hidden category result: âœ… PASS (search finds closed airports, selecting hidden airport opens Intel, graceful behavior, no crash)
-- Cluster limitation result: âœ… PASS (clusters work, counts not falsely claimed filter-aware, limitation documented for WO-029B/WO-029C, implementation does not fail)
-- Builds/tests result: âœ… PASS (Contracts build PASS, Web build PASS (56 modules, 179.12 kB), API build PASS, API tests PASS (89 tests, +5 new))
-- Manual browser verification result: âš ï¸ NEEDS VERIFICATION (20 manual test cases required: layer enable, marker identity, search/Object Intel, category identity, closed default OFF, closed toggle ON/OFF, filter toggles, no duplicates, layer toggle persistence, detail load, closed search graceful, zoom/pan smooth, console clean, network clean, behind-globe not clickable, cluster fallback works)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/opencode-web-1, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only apps/web/src/, docs/work-orders/, docs/state/ touched; no forbidden folders)
+- Category model result: Ã¢Å“â€¦ PASS (valid categories mapped correctly, no invalid large_airport check, closed_or_abandoned mapped to closed, heliport/seaplane_base/unknown handled, labels human-readable, operational categories not ranked, closed default OFF)
+- Marker sprite result: Ã¢Å“â€¦ PASS (category-specific identities: circle/rounded-square/diamond/X-overlay/outline, all operational equal size, no importance ranking, no giant pins, no 3D icons, no new dependencies)
+- Renderer result: Ã¢Å“â€¦ PASS (accepts filters, filters client-side safely, closed hidden by default, category icons assigned correctly, no large_airport check, no null crash, clean removal before re-add, no duplicates, behind-globe preserved, rawData preserved, cluster fallback preserved)
+- CesiumGlobe state/filter result: Ã¢Å“â€¦ PASS (aviationFilters prop exists, filter changes trigger re-render, cached items used (no refetch), stale closure avoided via refs, no API storms, existing behavior preserved, cluster fallback works, cluster filtering limitation documented)
+- App/Shell/LayerPanel result: Ã¢Å“â€¦ PASS (aviationFilters state safe, default hides closed, state passed to CesiumGlobe/LayerPanel, toggles exist for all categories, labels understandable, legend exists, controls not overcrowded, collapsed/expanded works, filter state preserved on layer toggle)
+- Object Intel category label result: Ã¢Å“â€¦ PASS (getCategoryLabel() used, no raw strings, no overflow, closed shows clear label)
+- Existing behavior preservation result: Ã¢Å“â€¦ PASS (search works, coordinates work, fly-to works, Object Intel opens, detail API loads, toggle works, clusters appear, cluster click zooms, points appear, marker click opens Intel, behind-globe hidden, no duplicates)
+- Search + hidden category result: Ã¢Å“â€¦ PASS (search finds closed airports, selecting hidden airport opens Intel, graceful behavior, no crash)
+- Cluster limitation result: Ã¢Å“â€¦ PASS (clusters work, counts not falsely claimed filter-aware, limitation documented for WO-029B/WO-029C, implementation does not fail)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, Web build PASS (56 modules, 179.12 kB), API build PASS, API tests PASS (89 tests, +5 new))
+- Manual browser verification result: Ã¢Å¡Â Ã¯Â¸Â NEEDS VERIFICATION (20 manual test cases required: layer enable, marker identity, search/Object Intel, category identity, closed default OFF, closed toggle ON/OFF, filter toggles, no duplicates, layer toggle persistence, detail load, closed search graceful, zoom/pan smooth, console clean, network clean, behind-globe not clickable, cluster fallback works)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
 - Forbidden folders touched: no
 - Known issues: None (all automated checks passed)
 - Known limitations: Full density renderer future work, cluster fallback remains, cluster counts may not reflect filters (WO-029B/WO-029C), category filtering client-side only, search may select hidden closed facilities (WO-029B)
@@ -780,7 +785,7 @@
 - Commit hash (review document): (pending commit after manual verification)
 - Next recommended task: Perform manual browser verification (20 test cases). If all pass, create local commit for review document, update HANDOFF_LOG.md with push status, push branch agent/opencode-web-1 to origin.
 
-### 2026-05-17T03:25:00Z Kiro CLI â€” WO-026 to WO-028 Final Integration Review PASS FOR MAIN, ready to push and merge
+### 2026-05-17T03:25:00Z Kiro CLI Ã¢â‚¬â€ WO-026 to WO-028 Final Integration Review PASS FOR MAIN, ready to push and merge
 
 - Review work order: WO-026 to WO-028 Final Integration Review
 - Reviewer agent: Kiro CLI
@@ -794,25 +799,25 @@
 - Branch pushed: integration/aviation-object-intel-v1 (to origin)
 - Review result: All 12 integration checks passed. WO-026 (frontend), WO-027 (display reference), and WO-028 (API hardening) are cohesive and complete. Object Intel airport detail API integration is production-ready. Real aviation intelligence sections (Runways, Frequencies, Nearby Navaids, Data Quality) fully functional. API hardening prevents runtime mapping bugs from being hidden as DATABASE_OFFLINE. Display reference provides practical guidance for frontend/API implementation. No conflicts remain. No secrets committed. No forbidden folders touched. All builds pass (Contracts, API, Web). All tests pass (89 API tests, 79 data tests). Ready for main branch merge.
 - Commands run: git branch --show-current, git status, git log --oneline -10, git branch -vv, git grep (conflict check), git diff --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter web build, pnpm --filter api test, python -m pytest tests/data/layer_01_aviation -q, python -m compileall, docker compose config --quiet
-- Git status result: âœ… PASS (branch integration/aviation-object-intel-v1, working tree clean, up to date with origin)
-- Conflict marker result: âœ… PASS (no conflict markers found, prior merge conflict resolved in 82982b3)
-- Work orders included result: âœ… PASS (WO-026 files present, WO-027 files present, WO-028 files present, all review documents present)
-- Folder boundaries result: âœ… PASS (16 files changed: 10 frontend, 2 API, 1 display reference, 3 review docs; no forbidden folders touched)
-- Builds/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS (55 modules, 174.44 kB), API tests PASS (89 tests, 13.18s), Data tests PASS (79 tests, 0.12s), Python compile PASS, Docker config PASS)
-- WO-026 frontend result: âœ… PASS (Object Intel airport detail API integration complete, real runways/frequencies/navaids/provenance displayed, manual browser verification 14/14 passed, QA coverage OMDB/KORD/VOMM/JRA/00AA/KCVG accepted, no UI breakage, no runaway requests, no null/undefined displayed)
-- WO-027 display reference result: âœ… PASS (display reference complete and practical, user-first fields documented, technical fields marked for collapse, formatting guidance provided, empty states documented, limitations documented)
-- WO-028 API hardening result: âœ… PASS (Zod validation errors propagate as-is instead of DATABASE_OFFLINE, 5 new tests added, test count 84â†’89, runway heading mapping verified, response schema verified, per-schema field validation verified, no breaking API behavior)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no secrets, all queries parameterized, no unsafe SQL, no database mutations)
-- Performance/stress result: âœ… PASS (detail fetches not repeated unnecessarily, cache prevents refetches, AbortController prevents race conditions, dense data limited/readable, display limits respected (10 runways, 10 frequencies, 20 navaids), no unbounded rendering, no runaway refresh loop)
-- Documentation result: âœ… PASS (HANDOFF_LOG.md includes WO-026/WO-027/WO-028 entries and final merge cleanup, review documents exist for all three work orders, known limitations documented honestly)
-- Batch coherence result: âœ… PASS (WO-026 frontend depends on WO-028 API hardeningâ€”both present, WO-027 display reference supports WO-026 frontendâ€”both present, no circular dependencies, all three work orders cohesive and complete)
+- Git status result: Ã¢Å“â€¦ PASS (branch integration/aviation-object-intel-v1, working tree clean, up to date with origin)
+- Conflict marker result: Ã¢Å“â€¦ PASS (no conflict markers found, prior merge conflict resolved in 82982b3)
+- Work orders included result: Ã¢Å“â€¦ PASS (WO-026 files present, WO-027 files present, WO-028 files present, all review documents present)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (16 files changed: 10 frontend, 2 API, 1 display reference, 3 review docs; no forbidden folders touched)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS (55 modules, 174.44 kB), API tests PASS (89 tests, 13.18s), Data tests PASS (79 tests, 0.12s), Python compile PASS, Docker config PASS)
+- WO-026 frontend result: Ã¢Å“â€¦ PASS (Object Intel airport detail API integration complete, real runways/frequencies/navaids/provenance displayed, manual browser verification 14/14 passed, QA coverage OMDB/KORD/VOMM/JRA/00AA/KCVG accepted, no UI breakage, no runaway requests, no null/undefined displayed)
+- WO-027 display reference result: Ã¢Å“â€¦ PASS (display reference complete and practical, user-first fields documented, technical fields marked for collapse, formatting guidance provided, empty states documented, limitations documented)
+- WO-028 API hardening result: Ã¢Å“â€¦ PASS (Zod validation errors propagate as-is instead of DATABASE_OFFLINE, 5 new tests added, test count 84Ã¢â€ â€™89, runway heading mapping verified, response schema verified, per-schema field validation verified, no breaking API behavior)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no secrets, all queries parameterized, no unsafe SQL, no database mutations)
+- Performance/stress result: Ã¢Å“â€¦ PASS (detail fetches not repeated unnecessarily, cache prevents refetches, AbortController prevents race conditions, dense data limited/readable, display limits respected (10 runways, 10 frequencies, 20 navaids), no unbounded rendering, no runaway refresh loop)
+- Documentation result: Ã¢Å“â€¦ PASS (HANDOFF_LOG.md includes WO-026/WO-027/WO-028 entries and final merge cleanup, review documents exist for all three work orders, known limitations documented honestly)
+- Batch coherence result: Ã¢Å“â€¦ PASS (WO-026 frontend depends on WO-028 API hardeningÃ¢â‚¬â€both present, WO-027 display reference supports WO-026 frontendÃ¢â‚¬â€both present, no circular dependencies, all three work orders cohesive and complete)
 - Known risks: None. All checks passed. No blocking issues identified.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-026_TO_WO-028.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Push branch to origin. Merge to main. Proceed with next work order or additional layer implementation.
 
 
-### 2026-05-17T02:55:48Z Kiro CLI â€” WO-026 Object Intel Airport Detail API Integration PASS, branch pushed to origin
+### 2026-05-17T02:55:48Z Kiro CLI Ã¢â‚¬â€ WO-026 Object Intel Airport Detail API Integration PASS, branch pushed to origin
 
 - Review work order: WO-026
 - Reviewer agent: Kiro CLI
@@ -826,18 +831,18 @@
 - Branch pushed: agent/opencode-web-1
 - Review result: All 13 automated checks passed. All 14 manual browser verification tests passed. Object Intel airport detail API integration complete and production-ready. Real aviation intelligence sections (Runways, Frequencies, Nearby Navaids, Data Quality) fully functional. API integration safe and performant. No secrets committed. No forbidden folders touched.
 - Commands run: git status, git log, git show --name-only, git ls-files (security check), pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm --filter api test, git add docs/state/INTEGRATION_REVIEW_WO-026.md docs/state/HANDOFF_LOG.md, git commit, git push -u origin agent/opencode-web-1
-- Automated checks result: âœ… PASS (13/13: git status, folder boundaries, API integration, state/cache/loading, Object Intel display, formatting/null safety, existing behavior, builds, regression, security/privacy, documentation, performance/stress)
-- Manual browser verification result: âœ… PASS (14/14: search/selection, marker click, Runways section, Frequencies section, Navaids section, Data Quality, panel scrolling, sparse data, API offline, overview preserved, clusters/points render, dots clickable, no UI breakage, screenshots captured)
-- QA checklist coverage: âœ… PASS (OMDB/KORD/VOMM/JRA/00AA/KCVG, loading/error/offline states, null safety, panel scrolling, no duplicates, no runaway requests)
-- Builds/tests result: âœ… PASS (Contracts build PASS, Web build PASS (55 modules, 174.30 kB), API build PASS, API tests PASS (84 tests))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
+- Automated checks result: Ã¢Å“â€¦ PASS (13/13: git status, folder boundaries, API integration, state/cache/loading, Object Intel display, formatting/null safety, existing behavior, builds, regression, security/privacy, documentation, performance/stress)
+- Manual browser verification result: Ã¢Å“â€¦ PASS (14/14: search/selection, marker click, Runways section, Frequencies section, Navaids section, Data Quality, panel scrolling, sparse data, API offline, overview preserved, clusters/points render, dots clickable, no UI breakage, screenshots captured)
+- QA checklist coverage: Ã¢Å“â€¦ PASS (OMDB/KORD/VOMM/JRA/00AA/KCVG, loading/error/offline states, null safety, panel scrolling, no duplicates, no runaway requests)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, Web build PASS (55 modules, 174.30 kB), API build PASS, API tests PASS (84 tests))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
 - Forbidden folders touched: no
 - Known issues: None
 - Review document: docs/state/INTEGRATION_REVIEW_WO-026.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Merge approval and integration into main branch. Proceed with next work order or additional layer implementation.
 
-### 2026-05-17T02:45:00Z Kiro CLI â€” WO-026 Object Intel Airport Detail API Integration PASS, manual browser verification required
+### 2026-05-17T02:45:00Z Kiro CLI Ã¢â‚¬â€ WO-026 Object Intel Airport Detail API Integration PASS, manual browser verification required
 
 - Review work order: WO-026
 - Reviewer agent: Kiro CLI
@@ -851,24 +856,24 @@
 - Branch pushed: not yet (awaiting manual verification)
 - Review result: All 13 automated checks passed. Object Intel airport detail API integration is production-ready. Real aviation intelligence sections (Runways, Frequencies, Nearby Navaids, Data Quality) fully functional. API integration safe and performant. No secrets committed. No forbidden folders touched. Manual browser verification required before final push.
 - Commands run: git status, git log, git show --name-only, git ls-files (security check), pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm --filter api test
-- Git status result: âœ… PASS (branch agent/opencode-web-1, working tree clean, no .env, no node_modules, no raw data)
-- Folder boundaries result: âœ… PASS (only apps/web/src/, docs/work-orders/, docs/state/ touched; no forbidden folders)
-- API integration result: âœ… PASS (fetchAirportDetail() exists, calls correct endpoint, uses VITE_API_BASE_URL, supports AbortSignal, handles errors safely, no fake data)
-- State/cache/loading result: âœ… PASS (detail fetch triggers on selectedObject?.id change, state clears on deselection, AbortController cancels stale requests, 5-minute cache bounded, loading/error states exist, overview preserved on API failure)
-- Object Intel display result: âœ… PASS (RunwaysSection renders real runways, FrequenciesSection renders real frequencies, NearbyNavaidsSection renders real navaids, DataQualityCard renders metadata, no placeholders remain, no fake data, no null/undefined displayed, empty states useful, sections collapsible, count badges present, panel readable)
-- Formatting/null safety result: âœ… PASS (runway length/width/surface guard null, frequency MHz guards null, navaid frequency/distance guard null, long descriptions don't break layout, no broken emoji, no raw IDs overemphasized)
-- Existing behavior preservation result: âœ… PASS (airport search works, coordinate search works, search fly-to works, Object Intel opens on search, aviation toggle works, clusters show/zoom, airport dots appear, marker click opens Intel, behind-globe markers hidden, no duplicates)
-- Manual browser verification result: âš ï¸ NEEDS VERIFICATION (14 manual test cases required: OMDB/KORD/VOMM/JRA/00AA/KCVG searches, cluster zoom, marker click, API offline, rapid selection, console/network checks)
-- Builds/tests result: âœ… PASS (Contracts build PASS, Web build PASS (55 modules, 174.30 kB), API build PASS, API tests PASS (84 tests))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
-- Documentation result: âœ… PASS (WO-026 work order accurate, HANDOFF_LOG.md entry complete with all required metadata, no false browser verification claims)
-- Performance/stress result: âœ… PASS (detail fetches not repeated without reason, cache prevents refetches, AbortController prevents race conditions, panel handles heavy data (KORD) without freezing, display limits respected (10 runways, 10 frequencies, 20 navaids), no unbounded rendering, no runaway refresh loop)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/opencode-web-1, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only apps/web/src/, docs/work-orders/, docs/state/ touched; no forbidden folders)
+- API integration result: Ã¢Å“â€¦ PASS (fetchAirportDetail() exists, calls correct endpoint, uses VITE_API_BASE_URL, supports AbortSignal, handles errors safely, no fake data)
+- State/cache/loading result: Ã¢Å“â€¦ PASS (detail fetch triggers on selectedObject?.id change, state clears on deselection, AbortController cancels stale requests, 5-minute cache bounded, loading/error states exist, overview preserved on API failure)
+- Object Intel display result: Ã¢Å“â€¦ PASS (RunwaysSection renders real runways, FrequenciesSection renders real frequencies, NearbyNavaidsSection renders real navaids, DataQualityCard renders metadata, no placeholders remain, no fake data, no null/undefined displayed, empty states useful, sections collapsible, count badges present, panel readable)
+- Formatting/null safety result: Ã¢Å“â€¦ PASS (runway length/width/surface guard null, frequency MHz guards null, navaid frequency/distance guard null, long descriptions don't break layout, no broken emoji, no raw IDs overemphasized)
+- Existing behavior preservation result: Ã¢Å“â€¦ PASS (airport search works, coordinate search works, search fly-to works, Object Intel opens on search, aviation toggle works, clusters show/zoom, airport dots appear, marker click opens Intel, behind-globe markers hidden, no duplicates)
+- Manual browser verification result: Ã¢Å¡Â Ã¯Â¸Â NEEDS VERIFICATION (14 manual test cases required: OMDB/KORD/VOMM/JRA/00AA/KCVG searches, cluster zoom, marker click, API offline, rapid selection, console/network checks)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, Web build PASS (55 modules, 174.30 kB), API build PASS, API tests PASS (84 tests))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no Cesium token, no node_modules, no raw CSVs, no database dumps, no generated dumps, no secrets, no new dependencies)
+- Documentation result: Ã¢Å“â€¦ PASS (WO-026 work order accurate, HANDOFF_LOG.md entry complete with all required metadata, no false browser verification claims)
+- Performance/stress result: Ã¢Å“â€¦ PASS (detail fetches not repeated without reason, cache prevents refetches, AbortController prevents race conditions, panel handles heavy data (KORD) without freezing, display limits respected (10 runways, 10 frequencies, 20 navaids), no unbounded rendering, no runaway refresh loop)
 - Known risks: None. All automated checks passed. Manual browser verification is the final gate before push.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-026.md
 - Commit hash (review document): (pending commit after manual verification)
 - Next recommended task: Perform manual browser verification (14 test cases). If all pass, create local commit for review document, update HANDOFF_LOG.md with push status, push branch agent/opencode-web-1 to origin.
 
-### 2026-05-17T02:35:04Z Kiro CLI â€” WO-027 Aviation Object Intel Display Reference PASS, branch pushed to origin
+### 2026-05-17T02:35:04Z Kiro CLI Ã¢â‚¬â€ WO-027 Aviation Object Intel Display Reference PASS, branch pushed to origin
 
 - Review work order: WO-027 Aviation Object Intel Display Reference
 - Reviewer agent: Kiro CLI
@@ -882,19 +887,19 @@
 - Branch pushed: agent/codex-data-next
 - Review result: All 8 checks passed. Aviation Object Intel display reference complete. Documentation is comprehensive, practical, and ready for frontend/API implementation. User-first airport fields documented. Technical/source fields marked for collapse. Category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, and known limitations all included. No code changes. No database mutations. No API changes. No frontend changes. All tests pass (79). No secrets committed. No forbidden folders touched.
 - Commands run: git status, git log, git show, git diff --check, git diff --cached --check, python -m pytest tests/data/layer_01_aviation -q (79 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose -f infra/docker/docker-compose.yml config --quiet, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
-- Folder boundaries result: âœ… PASS (only docs/data/layer_01_aviation/ and docs/state/HANDOFF_LOG.md touched; no forbidden folders)
-- Documentation review result: âœ… PASS (user-first fields, collapsed technical fields, category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, known limitations all present and comprehensive)
-- Production/readiness result: âœ… PASS (practical for frontend implementation, no fake data, raw IDs not primary, null/empty handling documented, dense sections collapsible, premium design supported, no unsupported live data claims)
-- Security/privacy result: âœ… PASS (no secrets, no .env, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no private tokens)
-- Tests/build result: âœ… PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-data-next, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only docs/data/layer_01_aviation/ and docs/state/HANDOFF_LOG.md touched; no forbidden folders)
+- Documentation review result: Ã¢Å“â€¦ PASS (user-first fields, collapsed technical fields, category labels, runway/frequency/navaid formatting, data quality/provenance, empty states, WO-025 QA samples, known limitations all present and comprehensive)
+- Production/readiness result: Ã¢Å“â€¦ PASS (practical for frontend implementation, no fake data, raw IDs not primary, null/empty handling documented, dense sections collapsible, premium design supported, no unsupported live data claims)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no secrets, no .env, no node_modules, no raw CSVs, no database dumps, no generated JSON dumps, no private tokens)
+- Tests/build result: Ã¢Å“â€¦ PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
 - Known risks: None. Documentation-only work order with no code/database/API/frontend changes.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-027.md
 - Commit hash (review document): c7171fd
 - Next recommended task: Claude/API use reference for Airport Detail API response labels/provenance. Gemini/frontend use reference for Object Intel display QA after API contract available.
 
 
-### 2026-05-17T02:50:00Z Kiro CLI â€” WO-028 Integration Review PASS, branch pushed to origin
+### 2026-05-17T02:50:00Z Kiro CLI Ã¢â‚¬â€ WO-028 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-028 Airport Detail API Runtime Error Hardening Tests
 - Reviewer agent: Kiro CLI
@@ -908,12 +913,12 @@
 - Branch pushed: agent/claude-api-2
 - Review result: All 9 checks passed. Airport Detail API runtime hardening tests complete. Zod validation errors now propagate as-is instead of being mislabeled as DATABASE_OFFLINE. 5 new tests added covering runway heading mapping, response schema validation, and per-schema field validation. Tests increased from 84 to 89. All builds pass. No secrets committed. No forbidden folders touched.
 - Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (89 passed), pnpm --filter web build
-- Runtime hardening result: âœ… PASS (Zod validation errors propagate as-is, not mislabeled as DATABASE_OFFLINE, catches mapping bugs earlier, guardrail in handleAirportDetail verified)
-- Test coverage result: âœ… PASS (5 new tests: runway heading mapping, response schema sections, runway schema fields, frequency schema fields, navaid schema fields)
-- API behavior result: âœ… PASS (airport detail returns valid response, missing airport returns 404, invalid params return 400, DB offline returns 503, list/search/marker/cluster endpoints unaffected)
-- SQL/security result: âœ… PASS (no unsafe SQL, all queries parameterized, no database writes, no migrations, no unbounded queries)
-- Builds/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (89 tests, 4 files))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Runtime hardening result: Ã¢Å“â€¦ PASS (Zod validation errors propagate as-is, not mislabeled as DATABASE_OFFLINE, catches mapping bugs earlier, guardrail in handleAirportDetail verified)
+- Test coverage result: Ã¢Å“â€¦ PASS (5 new tests: runway heading mapping, response schema sections, runway schema fields, frequency schema fields, navaid schema fields)
+- API behavior result: Ã¢Å“â€¦ PASS (airport detail returns valid response, missing airport returns 404, invalid params return 400, DB offline returns 503, list/search/marker/cluster endpoints unaffected)
+- SQL/security result: Ã¢Å“â€¦ PASS (no unsafe SQL, all queries parameterized, no database writes, no migrations, no unbounded queries)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (89 tests, 4 files))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
 - Known risks: None. All checks passed.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-028.md
 - Commit hash (review document): (pending commit)
@@ -921,7 +926,7 @@
 
 ---
 
-### 2026-05-17T02:35:00Z â€” WO-028 Airport Detail API Runtime Error Hardening Tests
+### 2026-05-17T02:35:00Z Ã¢â‚¬â€ WO-028 Airport Detail API Runtime Error Hardening Tests
 
 - Work order: WO-028 Airport Detail API Runtime Error Hardening Tests
 - Branch: agent/claude-api-2
@@ -929,8 +934,8 @@
 
 **Context:**
 We had runtime bugs hidden as DATABASE_OFFLINE:
-- marker payload confidence column mismatch (o.confidence â†’ o.confidence_score)
-- airport detail runway heading column mismatch (le_heading_deg â†’ le_heading_degT)
+- marker payload confidence column mismatch (o.confidence Ã¢â€ â€™ o.confidence_score)
+- airport detail runway heading column mismatch (le_heading_deg Ã¢â€ â€™ le_heading_degT)
 
 **Changes:**
 - Added 5 new tests for Airport Detail API runtime hardening:
@@ -940,23 +945,23 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
   4. Frequency schema validation (all required fields per FrequencyDetailSchema)
   5. Navaid schema validation (all required fields per NavaidDetailSchema)
 - Added guardrail in handleAirportDetail: Zod validation errors now propagate as-is instead of being mislabeled as DATABASE_OFFLINE (helps catch mapping bugs earlier)
-- Tests count: 84 â†’ 89 (5 new tests added)
+- Tests count: 84 Ã¢â€ â€™ 89 (5 new tests added)
 
 **Commands run:**
-- pnpm --filter @god-eyes/contracts build â†’ PASS
-- pnpm --filter api build â†’ PASS
-- pnpm --filter api test â†’ PASS (89 tests)
-- pnpm --filter web build â†’ PASS (52 modules, 165.76 kB)
+- pnpm --filter @god-eyes/contracts build Ã¢â€ â€™ PASS
+- pnpm --filter api build Ã¢â€ â€™ PASS
+- pnpm --filter api test Ã¢â€ â€™ PASS (89 tests)
+- pnpm --filter web build Ã¢â€ â€™ PASS (52 modules, 165.76 kB)
 
-**Build/test result:** âœ… PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (89))
+**Build/test result:** Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (89))
 
-**Security/privacy result:** âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps)
+**Security/privacy result:** Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps)
 
 **Note:** Branch not pushed - Kiro pushes after review.
 
 ---
 
-### 2026-05-17T01:56:27Z Kiro CLI â€” HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
+### 2026-05-17T01:56:27Z Kiro CLI Ã¢â‚¬â€ HOTFIX Airport Detail API Runtime Failure PASS, branch pushed to origin
 
 - Review work order: HOTFIX airport detail API runtime failure
 - Reviewer agent: Kiro CLI
@@ -968,22 +973,22 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Commit(s) reviewed: 5562cd2 (fix: correct runway heading column names in detail endpoint)
 - Push decision: PASS
 - Branch pushed: agent/claude-airport-detail-runtime-hotfix
-- Review result: All 11 checks passed. Airport Detail API runtime hotfix complete. Database column name mismatch corrected (le_heading_deg/he_heading_deg â†’ le_heading_degT/he_heading_degT). All detail endpoints return 200 OK. All builds pass. All tests pass (84). No secrets committed. No forbidden folders touched.
+- Review result: All 11 checks passed. Airport Detail API runtime hotfix complete. Database column name mismatch corrected (le_heading_deg/he_heading_deg Ã¢â€ â€™ le_heading_degT/he_heading_degT). All detail endpoints return 200 OK. All builds pass. All tests pass (84). No secrets committed. No forbidden folders touched.
 - Commands run: git status, git log, git diff --name-only, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (84 passed), pnpm --filter web build, git ls-files (security check)
-- Root cause result: âœ… PASS (Database column name mismatch: code used le_heading_deg/he_heading_deg but actual DB columns are le_heading_degT/he_heading_degT with "T" suffix. This caused Zod validation failure during runway mapping, incorrectly surfaced as DATABASE_OFFLINE.)
-- Fix result: âœ… PASS (RunwayRow interface updated to use le_heading_degT and he_heading_degT. mapRunway function correctly maps heading values. No incorrect column references remain.)
-- Manual endpoint verification result: âœ… PASS (VOMM detail: 200 OK with airport/runways/frequencies/nearbyNavaids/metadata. OMDB detail: 200 OK. KORD detail: 200 OK. Missing airport returns 404. Existing list/search/marker endpoints still work.)
-- Regression endpoint result: âœ… PASS (Standard search works, marker search works, marker bbox works, clusters work. All existing endpoints remain functional.)
-- Contracts result: âœ… PASS (RunwayDetailSchema, FrequencyDetailSchema, NavaidDetailSchema, AirportDetailResponseSchema all present with correct fields. No breaking changes. Contracts build PASS.)
-- Builds/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (84 tests))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Root cause result: Ã¢Å“â€¦ PASS (Database column name mismatch: code used le_heading_deg/he_heading_deg but actual DB columns are le_heading_degT/he_heading_degT with "T" suffix. This caused Zod validation failure during runway mapping, incorrectly surfaced as DATABASE_OFFLINE.)
+- Fix result: Ã¢Å“â€¦ PASS (RunwayRow interface updated to use le_heading_degT and he_heading_degT. mapRunway function correctly maps heading values. No incorrect column references remain.)
+- Manual endpoint verification result: Ã¢Å“â€¦ PASS (VOMM detail: 200 OK with airport/runways/frequencies/nearbyNavaids/metadata. OMDB detail: 200 OK. KORD detail: 200 OK. Missing airport returns 404. Existing list/search/marker endpoints still work.)
+- Regression endpoint result: Ã¢Å“â€¦ PASS (Standard search works, marker search works, marker bbox works, clusters work. All existing endpoints remain functional.)
+- Contracts result: Ã¢Å“â€¦ PASS (RunwayDetailSchema, FrequencyDetailSchema, NavaidDetailSchema, AirportDetailResponseSchema all present with correct fields. No breaking changes. Contracts build PASS.)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (84 tests))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
 - Known risks: This hotfix is required before WO-026 Object Intel detail integration because frontend depends on Airport Detail API returning real detail data.
 - Review document: docs/state/INTEGRATION_REVIEW_HOTFIX_AIRPORT_DETAIL_RUNTIME.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Merge approval and integration into main branch. Proceed with WO-026 Object Intel detail integration.
 
 
-### 2026-05-17T01:07:36Z Kiro CLI â€” HOTFIX Marker Payload Main Runtime Fix PASS, branch pushed to origin
+### 2026-05-17T01:07:36Z Kiro CLI Ã¢â‚¬â€ HOTFIX Marker Payload Main Runtime Fix PASS, branch pushed to origin
 
 - Review work order: HOTFIX marker payload main runtime fix
 - Reviewer agent: Kiro CLI
@@ -995,23 +1000,23 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Commit(s) reviewed: 0544914 (fix: correct marker override confidence column), 68eed35 (fix: preserve marker contract compatibility), 93053f1 (docs: update hotfix entry)
 - Push decision: PASS
 - Branch pushed: agent/claude-marker-main-hotfix
-- Review result: All 9 checks passed. Marker payload hotfix complete. SQL column reference corrected (o.confidence â†’ o.confidence_score). Contract compatibility preserved (separate AirportMarkerObjectsListResponseSchema). All marker endpoints return 200 OK. All builds pass. All tests pass (84). No secrets committed. No forbidden folders touched.
+- Review result: All 9 checks passed. Marker payload hotfix complete. SQL column reference corrected (o.confidence Ã¢â€ â€™ o.confidence_score). Contract compatibility preserved (separate AirportMarkerObjectsListResponseSchema). All marker endpoints return 200 OK. All builds pass. All tests pass (84). No secrets committed. No forbidden folders touched.
 - Commands run: git status, git log, git diff --name-only, Select-String (SQL verification), pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (84 passed), pnpm --filter web build, git ls-files (security check)
-- Root cause result: âœ… PASS (SQL: o.confidence â†’ o.confidence_score; Contract: separate marker schema created, default schema unchanged)
-- SQL hotfix result: âœ… PASS (no incorrect o.confidence references remain, only o.confidence_score used, all queries parameterized, no unsafe interpolation, no database writes)
-- Contract compatibility result: âœ… PASS (LayerObjectsListResponseSchema backward compatible, AirportMarkerObjectsListResponseSchema separate, marker endpoint uses marker schema, default endpoint uses default schema, frontend imports unbroken)
-- Manual endpoint verification result: âœ… PASS (all 4 marker endpoints return 200 OK: search, bbox, baseline, standard search still works)
-- Regression checks result: âœ… PASS (fields=standard works, search works, bbox works, marker+search works, marker+bbox works, existing airport list backward compatible, mode=clusters unaffected, coordinates=source/effective unaffected)
-- Builds/tests result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (84 tests))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
-- Documentation result: âœ… PASS (HANDOFF_LOG.md updated with root cause, SQL fix, contract fix, commands, manual verification, tests/build result, push status)
+- Root cause result: Ã¢Å“â€¦ PASS (SQL: o.confidence Ã¢â€ â€™ o.confidence_score; Contract: separate marker schema created, default schema unchanged)
+- SQL hotfix result: Ã¢Å“â€¦ PASS (no incorrect o.confidence references remain, only o.confidence_score used, all queries parameterized, no unsafe interpolation, no database writes)
+- Contract compatibility result: Ã¢Å“â€¦ PASS (LayerObjectsListResponseSchema backward compatible, AirportMarkerObjectsListResponseSchema separate, marker endpoint uses marker schema, default endpoint uses default schema, frontend imports unbroken)
+- Manual endpoint verification result: Ã¢Å“â€¦ PASS (all 4 marker endpoints return 200 OK: search, bbox, baseline, standard search still works)
+- Regression checks result: Ã¢Å“â€¦ PASS (fields=standard works, search works, bbox works, marker+search works, marker+bbox works, existing airport list backward compatible, mode=clusters unaffected, coordinates=source/effective unaffected)
+- Builds/tests result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.76 kB), API tests PASS (84 tests))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no generated JSON dumps)
+- Documentation result: Ã¢Å“â€¦ PASS (HANDOFF_LOG.md updated with root cause, SQL fix, contract fix, commands, manual verification, tests/build result, push status)
 - Known risks: This hotfix is required before WO-024B Object Intel detail integration because frontend marker/viewport calls rely on fields=marker working correctly.
 - Review document: docs/state/INTEGRATION_REVIEW_HOTFIX_MARKER_PAYLOAD_MAIN.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Merge approval and integration into main branch. Proceed with WO-024B Object Intel detail integration.
 
 
-### 2026-05-16T04:26:04Z Kiro CLI â€” WO-022 to WO-025 Integration Review PASS FOR MAIN
+### 2026-05-16T04:26:04Z Kiro CLI Ã¢â‚¬â€ WO-022 to WO-025 Integration Review PASS FOR MAIN
 
 - Review work order: WO-022 to WO-025 integration batch
 - Reviewer agent: Kiro CLI
@@ -1023,18 +1028,18 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Commit(s) reviewed: 66a51b3 (merge: integrate airport detail QA samples)
 - Review result: All 5 work orders successfully integrated. All builds pass (web, contracts, API). All tests pass (84 API + 79 data = 163 tests). No conflict markers. No secrets. Folder boundaries respected. API backward compatibility maintained. Frontend regression tests pass. Database safety verified. Code organization clean. Documentation complete. All individual WO reviews are PASS.
 - Commands run: git branch --show-current, git status, git log --oneline -15, git branch -vv, git merge-base (WO-023, WO-024A, WO-025), git ls-files (security checks), git grep (conflict markers), pnpm --filter web build, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, python -m pytest tests/data/layer_01_aviation -q, python -m compileall, docker compose config --quiet
-- Build/test result: âœ… Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.90 kB), API tests PASS (84 tests), Data tests PASS (79 tests), Python compile PASS, Docker Compose config PASS
-- Security/privacy result: âœ… No .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no conflict markers
-- API result: âœ… WO-022 detail endpoint working, WO-022A marker fix verified, all SQL parameterized, no mutations, backward compatible
-- Frontend result: âœ… Web build passes, Object Intel foundation functional, cluster-to-point regression fixed, no regressions
-- Data/database result: âœ… WO-023 readiness script read-only, WO-025 QA samples read-only, no mutations, no fake data
-- Code organization result: âœ… Detail endpoint focused, Object Intel components focused, data scripts readable/testable
+- Build/test result: Ã¢Å“â€¦ Contracts build PASS, API build PASS, Web build PASS (52 modules, 165.90 kB), API tests PASS (84 tests), Data tests PASS (79 tests), Python compile PASS, Docker Compose config PASS
+- Security/privacy result: Ã¢Å“â€¦ No .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no conflict markers
+- API result: Ã¢Å“â€¦ WO-022 detail endpoint working, WO-022A marker fix verified, all SQL parameterized, no mutations, backward compatible
+- Frontend result: Ã¢Å“â€¦ Web build passes, Object Intel foundation functional, cluster-to-point regression fixed, no regressions
+- Data/database result: Ã¢Å“â€¦ WO-023 readiness script read-only, WO-025 QA samples read-only, no mutations, no fake data
+- Code organization result: Ã¢Å“â€¦ Detail endpoint focused, Object Intel components focused, data scripts readable/testable
 - Known risks: No live NOTAM/METAR/TAF/aircraft data (future work), runway endpoint coordinates may be missing (source data), Object Intel doesn't yet call detail API (future work), QA samples reflect local Docker (can change after refresh), SQL benchmarks are local Docker (not production SLA)
 - Final decision: PASS FOR MAIN
 - Push status: ready to push to origin
 
 
-### 2026-05-16T04:12:23Z Kiro CLI â€” WO-022 and WO-022A Integration Review PASS, branch pushed to origin
+### 2026-05-16T04:12:23Z Kiro CLI Ã¢â‚¬â€ WO-022 and WO-022A Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-022 and WO-022A
 - Reviewer agent: Kiro CLI
@@ -1059,7 +1064,7 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Commit hash (review document): (pending commit)
 - Next recommended task: Merge approval and integration into main branch.
 
-### 2026-05-16T04:05:00Z Claude Code CLI â€” WO-022A Fix Aviation Marker Viewport Queries
+### 2026-05-16T04:05:00Z Claude Code CLI Ã¢â‚¬â€ WO-022A Fix Aviation Marker Viewport Queries
 
 - Work order: WO-022A (CRITICAL bug fix)
 - Agent: Claude Code CLI
@@ -1074,13 +1079,13 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Fix summary: Changed bbox filter to use column names without table alias when isEffective=false (source coordinates). Changed OVERRIDE_COLUMNS to use correct column name "confidence_score".
 - Commands run: pnpm --filter api test (84 passed)
 - Manual endpoint verification:
-  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&bbox=-90,30,-60,50&limit=50 â†’ 200 OK
-  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=standard&bbox=-90,30,-60,50&limit=50 â†’ 200 OK
-  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-90,30,-60,50&limit=50 â†’ 200 OK
+  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=marker&bbox=-90,30,-60,50&limit=50 Ã¢â€ â€™ 200 OK
+  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=points&fields=standard&bbox=-90,30,-60,50&limit=50 Ã¢â€ â€™ 200 OK
+  - GET /api/layers/layer_01_aviation/objects?objectType=airport&mode=clusters&bbox=-90,30,-60,50&limit=50 Ã¢â€ â€™ 200 OK
 - Known issues: None (fix verified - all viewport queries now work)
 - Next safe task: Kiro review and push
 
-### 2026-05-16T02:10:00Z Claude Code CLI â€” WO-022 Airport Detail API v1
+### 2026-05-16T02:10:00Z Claude Code CLI Ã¢â‚¬â€ WO-022 Airport Detail API v1
 
 - Work order: WO-022
 - Agent: Claude Code CLI
@@ -1102,7 +1107,7 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Forbidden folders touched: no
 - Next safe task: Kiro review and push
 
-### 2026-05-16T01:38:24Z Kiro CLI â€” WO-017 to WO-021 Integration Review PASS FOR MAIN
+### 2026-05-16T01:38:24Z Kiro CLI Ã¢â‚¬â€ WO-017 to WO-021 Integration Review PASS FOR MAIN
 
 - Review work order: WO-017 to WO-021 integration batch
 - Reviewer agent: Kiro CLI
@@ -1114,12 +1119,12 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 - Commit(s) reviewed: b9a5603 (Merge remote-tracking branch 'origin/agent/claude-effective-coordinate-api')
 - Review result: All 5 work orders successfully integrated. All builds pass (web, contracts, API). All tests pass (71 API + 61 data = 132 tests). No conflict markers. No secrets. Folder boundaries respected. API backward compatibility maintained. Frontend regression tests pass. Database migration safe and additive. Code organization clean. Documentation complete. All individual WO reviews are PASS.
 - Commands run: git branch --show-current, git status, git log --oneline -12, git branch -vv, git grep (conflict markers), git merge-base (WO-017 through WO-021), git ls-files (security checks), pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, python -m pytest tests/data/layer_01_aviation -q, python -m compileall, docker compose config --quiet
-- Build/test result: âœ… Contracts build PASS, API build PASS, Web build PASS (48 modules, 162.52 kB), API tests PASS (71 tests), Data tests PASS (61 tests), Python compile PASS, Docker Compose config PASS
-- Security/privacy result: âœ… No .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no conflict markers
-- API result: âœ… WO-017 migration verified, WO-018 payload profiles working, WO-019 search v1 functional, WO-020 detail readiness documented, WO-021 effective coordinate path safe
-- Frontend result: âœ… Web build passes, search bar functional, no regressions, existing behavior preserved
-- Data/database result: âœ… Migration safe and additive, source data preserved, scripts read-only, no mutations
-- Code organization result: âœ… Modular structure maintained, no giant files, responsibilities separated
+- Build/test result: Ã¢Å“â€¦ Contracts build PASS, API build PASS, Web build PASS (48 modules, 162.52 kB), API tests PASS (71 tests), Data tests PASS (61 tests), Python compile PASS, Docker Compose config PASS
+- Security/privacy result: Ã¢Å“â€¦ No .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, no conflict markers
+- API result: Ã¢Å“â€¦ WO-017 migration verified, WO-018 payload profiles working, WO-019 search v1 functional, WO-020 detail readiness documented, WO-021 effective coordinate path safe
+- Frontend result: Ã¢Å“â€¦ Web build passes, search bar functional, no regressions, existing behavior preserved
+- Data/database result: Ã¢Å“â€¦ Migration safe and additive, source data preserved, scripts read-only, no mutations
+- Code organization result: Ã¢Å“â€¦ Modular structure maintained, no giant files, responsibilities separated
 - Known risks: Coordinate overrides not yet populated (expected), search v1 limitations documented, detail data analysis is local Docker (not production hardware), clusters use source coordinates by design
 - Final decision: PASS FOR MAIN
 - Push status: ready to push to origin
@@ -1129,7 +1134,7 @@ We had runtime bugs hidden as DATABASE_OFFLINE:
 
 All agents must append to this file after completing work.
 
-### 2026-05-16T00:30:21Z Kiro CLI â€” WO-021 Integration Review PASS, branch pushed to origin
+### 2026-05-16T00:30:21Z Kiro CLI Ã¢â‚¬â€ WO-021 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-021
 - Reviewer agent: Kiro CLI
@@ -1149,7 +1154,7 @@ All agents must append to this file after completing work.
 - Contracts result: CoordinateModes constant added (SOURCE, EFFECTIVE). CoordinateMode type added. INVALID_COORDINATES error code added. Existing AirportObjectSchema unchanged. Backward compatible. Contracts build PASS.
 - Validation/error result: validateCoordinates() validates coordinates parameter. Only allows source or effective. Invalid coordinates returns HTTP 400 with structured error. Database offline behavior graceful. No stack traces/secrets leaked. Error details include received value.
 - SQL/performance result: Effective coordinate query uses safe LEFT JOIN with aviation_coordinate_overrides. JOIN includes o.active = true filter. Uses COALESCE for safe fallback. All queries parameterized. No unsafe string interpolation. No SQL injection risk. Marker mode still selects only needed columns. Clusters remain valid and use source coordinates.
-- Postman result: 4 new requests added: Aviation Airports â€” Effective Coordinates, Aviation Airports â€” Effective with BBox, Aviation Airports â€” Invalid Coordinates Mode, Aviation Airports â€” Marker with Effective Coordinates. All properly formatted with correct query parameters.
+- Postman result: 4 new requests added: Aviation Airports Ã¢â‚¬â€ Effective Coordinates, Aviation Airports Ã¢â‚¬â€ Effective with BBox, Aviation Airports Ã¢â‚¬â€ Invalid Coordinates Mode, Aviation Airports Ã¢â‚¬â€ Marker with Effective Coordinates. All properly formatted with correct query parameters.
 - Documentation result: No docs/api/API_COORDINATE_MODES.md added (optional). Postman collection includes examples. HANDOFF_LOG.md entry complete with required metadata. Known limitations documented: clusters use source coordinates, frontend does not request coordinates=effective yet, no real override rows unless created separately, effective coordinate path is opt-in and read-only.
 - Tests/build result: Contracts build PASS, API build PASS, Web build PASS (44 modules, 158.86 kB), 71 tests PASS (13 new: default source, explicit source, effective accepts, effective with bbox, effective with category, effective with country, effective with search, invalid coordinates 400, metadata coordinates effective, metadata coordinates source, marker with effective, standard with effective, clusters unaffected).
 - Security/privacy result: No .env committed, no API keys, no secrets, no node_modules, no raw CSVs, no database dumps. Error responses safe and structured. No stack traces/secrets exposed.
@@ -1158,7 +1163,7 @@ All agents must append to this file after completing work.
 - Commit hash (review document): 1e900979db93ef1ec06f5c7790b77765374bd3c7
 - Next recommended task: Merge approval and integration into main branch.
 
-### 2026-05-16T00:25:30Z Claude Code CLI â€” WO-021 Effective Coordinate API Path
+### 2026-05-16T00:25:30Z Claude Code CLI Ã¢â‚¬â€ WO-021 Effective Coordinate API Path
 
 - Work order: WO-021
 - Agent: Claude Code CLI
@@ -1181,7 +1186,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review and push
 
-### 2026-05-15T23:50:05Z Kiro CLI â€” WO-018 Integration Review PASS, branch pushed to origin
+### 2026-05-15T23:50:05Z Kiro CLI Ã¢â‚¬â€ WO-018 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-018
 - Reviewer agent: Kiro CLI
@@ -1200,7 +1205,7 @@ All agents must append to this file after completing work.
 - Contracts result: PayloadProfiles constant added. PayloadProfile type added. AirportMarkerObjectSchema properly defined. INVALID_FIELDS error code added. Existing AirportObjectSchema unchanged. Backward compatible. Contracts build PASS.
 - Validation/error result: validateFields() validates fields parameter. Only allows standard or marker. Invalid fields returns HTTP 400 with structured error. Database offline behavior graceful. No stack traces/secrets leaked. Error details include received value.
 - SQL/performance result: Marker mode selects only needed columns (explicit list, not SELECT *). Standard mode uses SELECT * (existing behavior). All queries parameterized. No unsafe string interpolation. No SQL injection risk. Marker mode reduces network payload by ~40%. Column selection optimization reduces database I/O.
-- Postman result: 3 new requests added: Aviation Airports â€” Marker Payload, Aviation Airports â€” Marker with BBox, Aviation Airports â€” Invalid Fields. All properly formatted with correct query parameters.
+- Postman result: 3 new requests added: Aviation Airports Ã¢â‚¬â€ Marker Payload, Aviation Airports Ã¢â‚¬â€ Marker with BBox, Aviation Airports Ã¢â‚¬â€ Invalid Fields. All properly formatted with correct query parameters.
 - Tests/build result: Contracts build PASS, API build PASS, Web build PASS (44 modules, 158.86 kB), 58 tests PASS (12 new: default standard, explicit standard, marker payload, marker optional fields, marker with bbox, marker with category, marker with country, marker with search, invalid fields 400, metadata fields marker, metadata fields standard, clusters unaffected).
 - Security/privacy result: No .env committed, no API keys, no secrets, no node_modules, no raw CSVs, no database dumps. Error responses safe and structured. No stack traces/secrets exposed.
 - Known risks: None. All checks passed.
@@ -1208,7 +1213,7 @@ All agents must append to this file after completing work.
 - Commit hash (review document): 4b142b2143c7c8667b14f6d6df15315bf90a8547
 - Next recommended task: Merge approval and integration into main branch.
 
-### 2026-05-15T23:35:00Z Claude Code CLI â€” WO-018 Lightweight Aviation API Payload Profiles
+### 2026-05-15T23:35:00Z Claude Code CLI Ã¢â‚¬â€ WO-018 Lightweight Aviation API Payload Profiles
 
 - Work order: WO-018
 - Agent: Claude Code CLI
@@ -1229,7 +1234,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review and push
 
-### 2026-05-15T22:37:45Z Kiro CLI â€” WO-015 Integration Review PASS, branch pushed to origin
+### 2026-05-15T22:37:45Z Kiro CLI Ã¢â‚¬â€ WO-015 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-015
 - Reviewer agent: Kiro CLI
@@ -1253,7 +1258,7 @@ All agents must append to this file after completing work.
 - Commit hash (review document): 23d06708548a4e7978d673b3dc1281254392f79e
 - Next recommended task: Merge approval and integration into main branch.
 
-### 2026-05-15T19:05:00Z Claude Code CLI â€” WO-015 API Objects Route Modularization
+### 2026-05-15T19:05:00Z Claude Code CLI Ã¢â‚¬â€ WO-015 API Objects Route Modularization
 
 - Work order: WO-015
 - Agent: Claude Code CLI
@@ -1277,7 +1282,7 @@ All agents must append to this file after completing work.
 ### Worker Agent Entry (Gemini, Codex, Claude)
 
 ```
-### [UTC_DATE_TIME] [AGENT] â€” [WORK_ORDER] [SUMMARY]
+### [UTC_DATE_TIME] [AGENT] Ã¢â‚¬â€ [WORK_ORDER] [SUMMARY]
 - Work order:
 - Agent:
 - LLM model:
@@ -1299,7 +1304,7 @@ All agents must append to this file after completing work.
 ### Kiro Review Entry
 
 ```
-### [UTC_DATE_TIME] Kiro CLI â€” [WORK_ORDER] Review
+### [UTC_DATE_TIME] Kiro CLI Ã¢â‚¬â€ [WORK_ORDER] Review
 - Review work order:
 - Reviewer agent: Kiro CLI
 - LLM model:
@@ -1327,7 +1332,7 @@ All agents must append to this file after completing work.
 
 ---
 
-### 2026-05-16T20:59:39Z OpenCode â€” WO-026 Object Intel Airport Detail API Integration
+### 2026-05-16T20:59:39Z OpenCode Ã¢â‚¬â€ WO-026 Object Intel Airport Detail API Integration
 
 - Work order: WO-026
 - Agent: OpenCode
@@ -1365,14 +1370,14 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review, then browser manual test verification
 
-### 2026-05-14 Kiro CLI â€” Layer-based control layer restructure
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ Layer-based control layer restructure
 
 - What was done: Restructured entire control layer from earthquake/weather MVP to layer-based architecture. Created layer registry, ID conventions, updated all ownership and pipeline docs, created specs for Layer 0 and Layer 1.
 - Files created/modified: AGENTS.md, docs/control/LAYER_ARCHITECTURE.md, docs/control/LAYER_ID_CONVENTIONS.md, docs/control/LLM_OWNERSHIP_MATRIX.md, docs/control/PIPELINE_HANDOFF_RULES.md, docs/control/DATA_LOCATION_RULES.md, docs/control/SOURCE_TO_FRONTEND_CONTRACT.md, docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md, docs/work-orders/WORK_ORDER_TEMPLATE.md, specs/001-layer-zero-globe-core/spec.md, specs/002-layer-one-aviation/spec.md
 - What is now available for other agents: Full layer-based control system. Agents can read layer conventions, folder structure, and pipeline rules.
 - Blockers: None. Awaiting review before first work orders are issued.
 
-### Gemini CLI â€” Layer 0 minimal Cesium globe reset
+### Gemini CLI Ã¢â‚¬â€ Layer 0 minimal Cesium globe reset
 - What was done: Initialized monorepo root and created a minimal Vite + React + TypeScript + CesiumJS app in apps/web.
 - Files created/modified: package.json, pnpm-workspace.yaml, apps/web/package.json, apps/web/vite.config.ts, apps/web/tsconfig.json, apps/web/tsconfig.node.json, apps/web/index.html, apps/web/src/main.tsx, apps/web/src/App.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/vite-env.d.ts, apps/web/src/styles/index.css, apps/web/.env.example, docs/state/HANDOFF_LOG.md
 - Cesium package/version: cesium@^1.117.0
@@ -1386,7 +1391,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe frontend task: Implement basic camera controls or layer registry integration.
 
-### Gemini CLI â€” Version pinning fix for WO-001
+### Gemini CLI Ã¢â‚¬â€ Version pinning fix for WO-001
 - What was done: Replaced dependency version ranges with exact pinned versions in apps/web/package.json.
 - Files modified: apps/web/package.json, pnpm-lock.yaml, docs/state/HANDOFF_LOG.md
 - Dependency versions pinned: cesium@1.141.0, react@18.3.1, react-dom@18.3.1, @types/react@18.3.28, @types/react-dom@18.3.7, @vitejs/plugin-react@4.7.0, typescript@5.9.3, vite@5.4.21, vite-plugin-cesium@1.2.23
@@ -1397,36 +1402,36 @@ All agents must append to this file after completing work.
 - Known issues: None
 - Forbidden folders touched: no
 
-### 2026-05-14 Kiro CLI â€” Git workflow policy established
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ Git workflow policy established
 
 - What was done: Created GIT_WORKFLOW_POLICY.md. Updated AGENTS.md, LLM_OWNERSHIP_MATRIX.md with Git rules. Established Kiro-only push approval workflow.
 - Files created/modified: docs/control/GIT_WORKFLOW_POLICY.md, AGENTS.md, docs/control/LLM_OWNERSHIP_MATRIX.md, docs/state/CURRENT_PROJECT_STATE.md
 - What is now available for other agents: Clear Git workflow rules. Worker agents know they must not push. Kiro knows review and push procedures.
 - Blockers: None.
 
-### 2026-05-14 Kiro CLI â€” WO-001 review complete, push blocked pending version pinning fix
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ WO-001 review complete, push blocked pending version pinning fix
 
 - What was done: Reviewed WO-001 Gemini Layer 0 output. Verified all pre-push checks: no .env committed, no node_modules, no real token, build passes, branch is not main.
 - Review result: APPROVED WITH REQUIRED FIXES
-- Pre-push checks: âœ… All passed
-- Push decision: âŒ DO NOT PUSH â€” Version pinning issue must be fixed first
+- Pre-push checks: Ã¢Å“â€¦ All passed
+- Push decision: Ã¢ÂÅ’ DO NOT PUSH Ã¢â‚¬â€ Version pinning issue must be fixed first
 - Issue: apps/web/package.json uses `^` instead of exact versions (violates TECH_STACK_AND_TOOLING.md)
 - Required fix: Gemini must update package.json to exact versions and regenerate pnpm-lock.yaml
 - Review document: docs/state/INTEGRATION_REVIEW_WO-001.md
 - Next action: Gemini to fix version pinning, then Kiro will push branch to origin
 
-### 2026-05-14 Kiro CLI â€” WO-001 final review PASS, branch pushed to origin
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ WO-001 final review PASS, branch pushed to origin
 
 - What was done: Final review of Gemini version pinning fix. All 10 checks passed. Pushed branch to origin.
-- Final checks: âœ… Exact versions, âœ… Build passes, âœ… No .env, âœ… No node_modules, âœ… No forbidden folders, âœ… HANDOFF_LOG updated
+- Final checks: Ã¢Å“â€¦ Exact versions, Ã¢Å“â€¦ Build passes, Ã¢Å“â€¦ No .env, Ã¢Å“â€¦ No node_modules, Ã¢Å“â€¦ No forbidden folders, Ã¢Å“â€¦ HANDOFF_LOG updated
 - Branch pushed: `agent/gemini-layer0-minimal-globe`
 - Commit hash: `a87d0f2bd8db33b9f69f009287e447052dffa805`
 - Review document: docs/state/INTEGRATION_REVIEW_WO-001.md
-- Status: âœ… FINAL PASS
+- Status: Ã¢Å“â€¦ FINAL PASS
 - Remaining risks: None
 - Next step: Codex begins WO-002 (aviation data foundation)
 
-### Codex â€” WO-002 Layer 1 Aviation data foundation
+### Codex Ã¢â‚¬â€ WO-002 Layer 1 Aviation data foundation
 - What was done: Added Layer 1 aviation data foundation for real OurAirports static reference data only. Created local PostGIS/MinIO infrastructure, source catalog, raw storage path rules, SQL migrations, Python collector/validator/normalizer foundation, schemas, and data tests.
 - Files created/modified: .env.example, requirements-data.txt, infra/docker/docker-compose.yml, database/migrations/README.md, database/migrations/core/001_core_ingestion_tables.sql, database/migrations/layers/layer_01_aviation/001_aviation_reference_tables.sql, packages/source-catalog/layers/layer_01_aviation/ourairports.json, packages/schemas/layers/layer_01_aviation/ourairports.py, services/fetch-orchestrator/src/layers/layer_01_aviation/ourairports_collector.py, services/normalizer/src/layers/layer_01_aviation/ourairports_normalizer.py, tests/data/layer_01_aviation/test_ourairports_foundation.py, docs/state/HANDOFF_LOG.md.
 - Source catalog: packages/source-catalog/layers/layer_01_aviation/ourairports.json declares source_id `ourairports`, source_type `aviation_reference`, monthly refresh, manual refresh allowed, all six CSV URLs, validators, collector, normalizer, and target tables.
@@ -1444,18 +1449,18 @@ All agents must append to this file after completing work.
 - Next safe task: Kiro review should run Docker, apply SQL migrations, run collector against real OurAirports data, run normalizer for the printed fetch_run_id, then hand table shapes to Claude for API contract planning.
 
 
-### 2026-05-14 Kiro CLI â€” WO-002 review PASS, branch pushed to origin
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ WO-002 review PASS, branch pushed to origin
 
 - What was done: Final review of Codex Layer 1 Aviation data foundation. All 12 checks passed. Pushed branch to origin.
-- Final checks: âœ… Docker (Postgres/PostGIS + MinIO only), âœ… Source catalog (6 files), âœ… Migrations (fetch_runs, raw_objects, 6 aviation tables), âœ… Python tests (19 passed), âœ… No secrets, âœ… Folder boundaries, âœ… Collector/normalizer foundation
+- Final checks: Ã¢Å“â€¦ Docker (Postgres/PostGIS + MinIO only), Ã¢Å“â€¦ Source catalog (6 files), Ã¢Å“â€¦ Migrations (fetch_runs, raw_objects, 6 aviation tables), Ã¢Å“â€¦ Python tests (19 passed), Ã¢Å“â€¦ No secrets, Ã¢Å“â€¦ Folder boundaries, Ã¢Å“â€¦ Collector/normalizer foundation
 - Branch pushed: `agent/codex-layer1-aviation-data-foundation`
 - Commit hash: `6d61973f8d10af885cbadabb84c43134460bfac2`
 - Review document: docs/state/INTEGRATION_REVIEW_WO-002.md
-- Status: âœ… PASS WITH DOCKER VERIFICATION PENDING
+- Status: Ã¢Å“â€¦ PASS WITH DOCKER VERIFICATION PENDING
 - Remaining risks: Docker containers not started (can be verified locally)
 - Next step: Claude Code begins WO-003 (API foundation)
 
-### Claude Code â€” WO-003 Layer-aware API foundation
+### Claude Code Ã¢â‚¬â€ WO-003 Layer-aware API foundation
 
 - What was done: Created Fastify + TypeScript API foundation with health, layer status, and aviation object endpoints. Handles database offline gracefully. Created contracts package for frontend consumption. Added tests and Postman collection.
 - Files created/modified: apps/api/package.json, apps/api/tsconfig.json, apps/api/src/index.ts, apps/api/src/lib/config.ts, apps/api/src/lib/db.ts, apps/api/src/routes/health.ts, apps/api/src/routes/layers.ts, apps/api/src/routes/objects.ts, apps/api/tests/smoke.test.ts, packages/contracts/package.json, packages/contracts/tsconfig.json, packages/contracts/src/index.ts, .env.example, docs/postman/GOD_EYES_LOCAL_API.postman_collection.json, root package.json, docs/state/HANDOFF_LOG.md
@@ -1473,7 +1478,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Verify database connectivity when Docker is running, or wait for Codex to run collector/normalizer to populate tables
 
-### 2026-05-14 Gemini CLI â€” WO-004 Layer 0 UI Shell Polish
+### 2026-05-14 Gemini CLI Ã¢â‚¬â€ WO-004 Layer 0 UI Shell Polish
 - What was done: Added SpaceX-style transparent UI shell around the working Cesium globe with always-visible search bar and collapsible panels.
 - Files created/modified: apps/web/src/App.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/styles/index.css, apps/web/src/styles/shell.css, apps/web/src/components/Shell.tsx, apps/web/src/components/Header.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/DetailPanel.tsx, apps/web/src/components/StatusPanel.tsx, docs/state/HANDOFF_LOG.md
 - UI sections added: Top Header (Search + Status), Left Panel (Layers), Right Panel (Details), Bottom Panel (System Status).
@@ -1488,23 +1493,23 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Next safe frontend task: Implement layer selection logic or connect search to geocoder.
 
-### 2026-05-14 Kiro CLI â€” WO-004 review complete, branch pushed
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ WO-004 review complete, branch pushed
 
 - What was done: Reviewed WO-004 Gemini Layer 0 UI Shell Polish. Verified all pre-push checks: folder boundaries, stack compliance, UI functionality, token behavior, forbidden features, security/privacy.
-- Review result: âœ… PASS
-- Pre-push checks: âœ… All passed
-- Push decision: âœ… PUSH TO ORIGIN
+- Review result: Ã¢Å“â€¦ PASS
+- Pre-push checks: Ã¢Å“â€¦ All passed
+- Push decision: Ã¢Å“â€¦ PUSH TO ORIGIN
 - Branch pushed: agent/gemini-layer0-ui-shell
 - Commit hash: d2e5dc7a219cf349e2287ef3976739eb124995f0
-- Build verification: âœ“ pnpm --filter web build (567ms, 39 modules)
-- UI verification: âœ… Cesium globe, header, layer panel, detail panel, status panel all functional
-- Token handling: âœ… Graceful degradation with warning banner
-- Forbidden features: âœ… None present (no AI, no API calls, no backend logic)
-- Security: âœ… No .env, no node_modules, no real tokens committed
+- Build verification: Ã¢Å“â€œ pnpm --filter web build (567ms, 39 modules)
+- UI verification: Ã¢Å“â€¦ Cesium globe, header, layer panel, detail panel, status panel all functional
+- Token handling: Ã¢Å“â€¦ Graceful degradation with warning banner
+- Forbidden features: Ã¢Å“â€¦ None present (no AI, no API calls, no backend logic)
+- Security: Ã¢Å“â€¦ No .env, no node_modules, no real tokens committed
 - Review document: docs/state/INTEGRATION_REVIEW_WO-004.md
 - Next action: Await code review and merge approval. Next task: Layer selection logic or geocoder integration.
 
-### 2026-05-14 Gemini CLI â€” WO-006 Layer 0 minimal premium visual polish
+### 2026-05-14 Gemini CLI Ã¢â‚¬â€ WO-006 Layer 0 minimal premium visual polish
 - What was done: Refined the Layer 0 frontend shell with a minimal premium SpaceX-style visual polish. Enhanced glassmorphism, refined typography, and improved the visual hierarchy of all panels. Added a subtle boot/loading experience.
 - Files created/modified: apps/web/src/App.tsx, apps/web/src/components/Header.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/DetailPanel.tsx, apps/web/src/components/StatusPanel.tsx, apps/web/src/styles/shell.css, docs/state/HANDOFF_LOG.md
 - Design direction: SpaceX-style transparent command interface, minimal, premium, futuristic.
@@ -1519,18 +1524,18 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe frontend task: Implement layer selection logic or connect search to geocoder.
 
-### 2026-05-14 Claude Code â€” WO-003 review PASS, branch pushed to origin
+### 2026-05-14 Claude Code Ã¢â‚¬â€ WO-003 review PASS, branch pushed to origin
 
 - What was done: Final review of Claude Code layer-aware API foundation. All 12 checks passed. Pushed branch to origin.
-- Final checks: âœ… Fastify + TypeScript, âœ… Port 4000, âœ… All 5 endpoints, âœ… Database offline handling, âœ… Contracts (Zod), âœ… Postman collection, âœ… 6 tests passed, âœ… No secrets, âœ… Folder boundaries
+- Final checks: Ã¢Å“â€¦ Fastify + TypeScript, Ã¢Å“â€¦ Port 4000, Ã¢Å“â€¦ All 5 endpoints, Ã¢Å“â€¦ Database offline handling, Ã¢Å“â€¦ Contracts (Zod), Ã¢Å“â€¦ Postman collection, Ã¢Å“â€¦ 6 tests passed, Ã¢Å“â€¦ No secrets, Ã¢Å“â€¦ Folder boundaries
 - Branch pushed: `agent/claude-layer-aware-api-foundation`
 - Commit hash: `63b04f8b3605f200ebb508e180e352be61948625`
 - Review document: docs/state/INTEGRATION_REVIEW_WO-003.md
-- Status: âœ… PASS WITH DATABASE ONLINE VERIFICATION PENDING
+- Status: Ã¢Å“â€¦ PASS WITH DATABASE ONLINE VERIFICATION PENDING
 - Remaining risks: Online DB verification not done (can be verified locally)
 - Next step: Integration review of all three agents (Gemini, Codex, Claude)
 
-### Codex â€” WO-005 Docker + OurAirports ingestion verification
+### Codex Ã¢â‚¬â€ WO-005 Docker + OurAirports ingestion verification
 - What was done: Verified the real local Layer 1 aviation pipeline end-to-end with Docker, PostGIS, MinIO, real OurAirports CSVs, SQL migrations, collector, normalizer, and Fastify API. Added a local migration runner, fixed a normalizer PostGIS parameter typing issue, and fixed API timestamp serialization for live database rows.
 - Docker status: `god-eyes-postgis` and `god-eyes-minio` started with `docker compose -f infra/docker/docker-compose.yml up -d`; both containers reported healthy. PostgreSQL 16.4, PostGIS 3.4, and MinIO health endpoint were reachable.
 - Migrations applied: `scripts/apply_migrations.ps1` applied `database/migrations/core/001_core_ingestion_tables.sql` and `database/migrations/layers/layer_01_aviation/001_aviation_reference_tables.sql`; all 8 expected ingestion/aviation tables exist.
@@ -1547,8 +1552,8 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Next safe task: Kiro review of WO-005, then API/frontend consumers can rely on live Layer 1 airport records from the local database.
 
-### 2026-05-14 Kiro CLI â€” WO-005 Integration Review
-- Status: âœ… PASS
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ WO-005 Integration Review
+- Status: Ã¢Å“â€¦ PASS
 - Review document: `docs/state/INTEGRATION_REVIEW_WO-005.md`
 - Verification: All checks passed (Docker, database, MinIO, API, tests, security)
 - Branch pushed: `agent/codex-docker-ourairports-verification`
@@ -1556,18 +1561,18 @@ All agents must append to this file after completing work.
 - Codex commit: `56925b3`
 - Next: API/frontend consumers can now rely on live Layer 1 aviation data from local database
 
-### 2026-05-14 Kiro CLI â€” WO-006 review PASS, branch pushed to origin
+### 2026-05-14 Kiro CLI Ã¢â‚¬â€ WO-006 review PASS, branch pushed to origin
 
 - What was done: Final review of Gemini Layer 0 minimal premium visual polish. All 7 checks passed. Pushed branch to origin.
-- Final checks: âœ… Build passes, âœ… No .env, âœ… No node_modules, âœ… No forbidden folders, âœ… Stack compliance, âœ… Visual polish achieved, âœ… HANDOFF_LOG updated
+- Final checks: Ã¢Å“â€¦ Build passes, Ã¢Å“â€¦ No .env, Ã¢Å“â€¦ No node_modules, Ã¢Å“â€¦ No forbidden folders, Ã¢Å“â€¦ Stack compliance, Ã¢Å“â€¦ Visual polish achieved, Ã¢Å“â€¦ HANDOFF_LOG updated
 - Branch pushed: `agent/gemini-layer0-visual-polish`
 - Commit hash (WO-006 work): `92af136`
 - Review document: docs/state/INTEGRATION_REVIEW_WO-006.md
-- Status: âœ… PASS
+- Status: Ã¢Å“â€¦ PASS
 - Remaining risks: None
 
 
-### Kiro CLI â€” Integration Review: Aviation Airport Markers
+### Kiro CLI Ã¢â‚¬â€ Integration Review: Aviation Airport Markers
 - Review work order: Integration of WO-007
 - Reviewer agent: Kiro CLI
 - LLM model: Claude 3.5 Sonnet
@@ -1584,7 +1589,7 @@ All agents must append to this file after completing work.
 - Known risks: None.
 - Next recommended task: Additional layers (Satellite, Maritime, Weather) or geocoder integration.
 
-### 2026-05-14T20:15:00Z Gemini CLI â€” WO-007 fix Stabilization of aviation airport marker rendering
+### 2026-05-14T20:15:00Z Gemini CLI Ã¢â‚¬â€ WO-007 fix Stabilization of aviation airport marker rendering
 - Work order: WO-007 fix
 - Agent: Gemini CLI
 - LLM model: Gemini 2.0 Flash
@@ -1607,7 +1612,7 @@ All agents must append to this file after completing work.
 - Known issues: None
 - Next safe task: Ready for search/geocoding or next layer.
 
-### 2026-05-15T13:00:00Z Gemini CLI â€” WO-010 fix Refine grounded aviation marker sprites
+### 2026-05-15T13:00:00Z Gemini CLI Ã¢â‚¬â€ WO-010 fix Refine grounded aviation marker sprites
 - Work order: WO-010 fix (Rendering Polish)
 - Agent: Gemini CLI
 - LLM model: Gemini 2.0 Flash
@@ -1631,7 +1636,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Ready for Kiro review.
 
-### 2026-05-15T13:30:00Z Gemini CLI â€” WO-010 fix stabilize aviation cluster billboard visibility
+### 2026-05-15T13:30:00Z Gemini CLI Ã¢â‚¬â€ WO-010 fix stabilize aviation cluster billboard visibility
 - Work order: WO-010
 - Agent: Gemini CLI
 - LLM model: Gemini 2.0 Flash
@@ -1649,7 +1654,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review
 
-### 2026-05-15T14:00:00Z Gemini CLI â€” WO-010 fix stabilize manual aviation clustering controls
+### 2026-05-15T14:00:00Z Gemini CLI Ã¢â‚¬â€ WO-010 fix stabilize manual aviation clustering controls
 - Work order: WO-010
 - Agent: Gemini CLI
 - LLM model: Gemini 2.0 Flash
@@ -1671,7 +1676,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro review
 
-### 2026-05-15T14:30:00Z Gemini CLI â€” WO-010 fix stabilize cluster visibility and zoom control
+### 2026-05-15T14:30:00Z Gemini CLI Ã¢â‚¬â€ WO-010 fix stabilize cluster visibility and zoom control
 - Work order: WO-010
 - Agent: Gemini CLI
 - LLM model: Gemini 2.0 Flash
@@ -1712,20 +1717,20 @@ All agents must append to this file after completing work.
 - Next safe task: None / pending review
 
 - What was done: Final review of Gemini aviation airport markers from API. All 10 checks passed. Pushed branch to origin.
-- Final checks: âœ… Build passes, âœ… API integration correct, âœ… Markers render correctly, âœ… Coordinates correct, âœ… No .env, âœ… No node_modules, âœ… No forbidden folders, âœ… Dependency justified, âœ… UI/UX clean, âœ… Security verified
+- Final checks: Ã¢Å“â€¦ Build passes, Ã¢Å“â€¦ API integration correct, Ã¢Å“â€¦ Markers render correctly, Ã¢Å“â€¦ Coordinates correct, Ã¢Å“â€¦ No .env, Ã¢Å“â€¦ No node_modules, Ã¢Å“â€¦ No forbidden folders, Ã¢Å“â€¦ Dependency justified, Ã¢Å“â€¦ UI/UX clean, Ã¢Å“â€¦ Security verified
 - Branch pushed: `agent/gemini-aviation-airport-markers`
 - Commit hash (WO-007 initial): `312397f` (312397f632578c0292dd390d86dca8496dae8cda)
 - Commit hash (WO-007 fix): `f48a434` (f48a434e9ddc70daa698cbbcb4642c5428c48299)
 - Commit hash (review document): `70132bc` (70132bc...)
 - Review document: docs/state/INTEGRATION_REVIEW_WO-007.md
-- Status: âœ… PASS
-- API integration: âœ… Correct endpoint, limit 500, error handling, offline graceful
-- Cesium markers: âœ… Render correctly, depth test prevents through-globe, click stable
-- Coordinates: âœ… Correct order (longitude, latitude), heliport offset documented as source data limitation
+- Status: Ã¢Å“â€¦ PASS
+- API integration: Ã¢Å“â€¦ Correct endpoint, limit 500, error handling, offline graceful
+- Cesium markers: Ã¢Å“â€¦ Render correctly, depth test prevents through-globe, click stable
+- Coordinates: Ã¢Å“â€¦ Correct order (longitude, latitude), heliport offset documented as source data limitation
 - Remaining risks: None
 - Next step: Await code review and merge approval. Next task: Search/geocoding or next layer.
 
-### 2026-05-15T02:45:00Z Claude Code CLI â€” WO-008 Aviation viewport query and cluster-ready API support
+### 2026-05-15T02:45:00Z Claude Code CLI Ã¢â‚¬â€ WO-008 Aviation viewport query and cluster-ready API support
 
 - Work order: WO-008
 - Agent: Claude Code CLI
@@ -1747,7 +1752,7 @@ All agents must append to this file after completing work.
 - Next safe task: Integration review, or frontend implementation of viewport-aware loading using new bbox param
 
 
-### 2026-05-15T02:57:30Z Kiro CLI â€” WO-008 Integration Review PASS, branch pushed to origin
+### 2026-05-15T02:57:30Z Kiro CLI Ã¢â‚¬â€ WO-008 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-008
 - Reviewer agent: Kiro CLI
@@ -1761,19 +1766,19 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/claude-airport-query-cluster-api
 - Review result: All 11 checks passed. Query validation comprehensive (bbox, limit, offset, category, mode, zoom). SQL safety verified (all parameterized). Points mode backward compatible. Clusters mode implemented with grid aggregation and category breakdown. Contracts build and export correctly. Postman collection complete with 7 new requests. 38 tests passed (31 new). Production quality verified. No secrets committed.
 - Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test
-- Query validation result: âœ… PASS (bbox format, ranges, ordering; category whitelist; mode enum; offset >= 0; zoom 0-22; limit default 500, max 1000 clamped)
-- SQL safety result: âœ… PASS (all parameters parameterized, no string interpolation, no SQL injection risk)
-- Points mode result: âœ… PASS (backward compatible, filters work, database offline graceful)
-- Clusters mode result: âœ… PASS (requires bbox, response shape correct, grid aggregation safe, category breakdown included)
-- Contracts result: âœ… PASS (build success, AirportClusterObjectSchema exported, error codes added, frontend compatibility maintained)
-- Postman result: âœ… PASS (7 required requests present: Default, BBox USA, Heliports, Country, Search, Clusters, Invalid BBox)
-- Tests/build result: âœ… PASS (38 tests passed, 3 test files, 0ms build time)
-- Security/privacy result: âœ… PASS (no .env, no node_modules, no secrets, no raw data, no database dumps)
+- Query validation result: Ã¢Å“â€¦ PASS (bbox format, ranges, ordering; category whitelist; mode enum; offset >= 0; zoom 0-22; limit default 500, max 1000 clamped)
+- SQL safety result: Ã¢Å“â€¦ PASS (all parameters parameterized, no string interpolation, no SQL injection risk)
+- Points mode result: Ã¢Å“â€¦ PASS (backward compatible, filters work, database offline graceful)
+- Clusters mode result: Ã¢Å“â€¦ PASS (requires bbox, response shape correct, grid aggregation safe, category breakdown included)
+- Contracts result: Ã¢Å“â€¦ PASS (build success, AirportClusterObjectSchema exported, error codes added, frontend compatibility maintained)
+- Postman result: Ã¢Å“â€¦ PASS (7 required requests present: Default, BBox USA, Heliports, Country, Search, Clusters, Invalid BBox)
+- Tests/build result: Ã¢Å“â€¦ PASS (38 tests passed, 3 test files, 0ms build time)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no node_modules, no secrets, no raw data, no database dumps)
 - Known risks: None
-- Folder boundaries: âœ… PASS (only apps/api/, packages/contracts/, docs/postman/, docs/state/ touched; no forbidden folders)
+- Folder boundaries: Ã¢Å“â€¦ PASS (only apps/api/, packages/contracts/, docs/postman/, docs/state/ touched; no forbidden folders)
 - Next recommended task: Frontend implementation of viewport-aware loading using new bbox parameter, or additional layer support (Satellite, Maritime, Weather)
 
-### 2026-05-14T20:43:27Z Codex â€” WO-009 Aviation query performance and data quality foundation
+### 2026-05-14T20:43:27Z Codex Ã¢â‚¬â€ WO-009 Aviation query performance and data quality foundation
 - Work order: WO-009
 - Agent: Codex
 - LLM model: not reported
@@ -1795,7 +1800,7 @@ All agents must append to this file after completing work.
 
 
 
-### 2026-05-15T02:58:00Z Kiro CLI â€” WO-009 Integration Review PASS, branch pushed to origin
+### 2026-05-15T02:58:00Z Kiro CLI Ã¢â‚¬â€ WO-009 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-009
 - Reviewer agent: Kiro CLI
@@ -1840,7 +1845,7 @@ All agents must append to this file after completing work.
 
 
 
-### 2026-05-15T03:52:00Z Kiro CLI â€” WO-011 Integration Review PASS, branch pushed to origin
+### 2026-05-15T03:52:00Z Kiro CLI Ã¢â‚¬â€ WO-011 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-011
 - Reviewer agent: Kiro CLI
@@ -1857,11 +1862,11 @@ All agents must append to this file after completing work.
 - Security/privacy result: No secrets, no .env, no node_modules, no raw data committed. All files in allowed folders (database/, scripts/, tests/data/, docs/data/, docs/state/).
 - Known risks: Local Docker timings not production hardware. Two-character contains searches (KR) not beneficial for trigram indexes (28 ms sequential scan). API routes not changed in WO-011.
 - Migration verified: CREATE EXTENSION IF NOT EXISTS pg_trgm; GIN trigram indexes on lower(name), lower(ident), lower(iata_code), lower(municipality); idempotent with IF NOT EXISTS; safe for PostGIS setup.
-- Benchmark findings: Baseline broad ILIKE 46.916â€“65.004 ms (sequential scans). Optimized trigram GIN 0.097â€“0.580 ms for normal terms (Dubai, London, New York, Tokyo). Performance improvement 500xâ€“600x. Two-character terms (KR) remain sequential scan (28 ms).
+- Benchmark findings: Baseline broad ILIKE 46.916Ã¢â‚¬â€œ65.004 ms (sequential scans). Optimized trigram GIN 0.097Ã¢â‚¬â€œ0.580 ms for normal terms (Dubai, London, New York, Tokyo). Performance improvement 500xÃ¢â‚¬â€œ600x. Two-character terms (KR) remain sequential scan (28 ms).
 - Search strategy verified: Two-part approach documented: (1) exact structured-field matching first (iso_country, ident, iata_code, category_normalized), (2) trigram free-text matching second (lower(name), lower(ident), lower(iata_code), lower(municipality)).
 - Next recommended task: Claude/API implement two-part search strategy combining exact structured-field matching with trigram free-text matching. Verify endpoint behavior with benchmark script.
 
-### 2026-05-15T04:00:17Z Kiro CLI â€” WO-012 Integration Review PASS, branch pushed
+### 2026-05-15T04:00:17Z Kiro CLI Ã¢â‚¬â€ WO-012 Integration Review PASS, branch pushed
 
 - Review work order: WO-012 API Production Hardening and Response Metadata
 - Reviewer agent: Kiro CLI
@@ -1881,7 +1886,7 @@ All agents must append to this file after completing work.
 - Commit hash (review document): 9eeaa74
 - Next recommended task: Await code review and merge approval. Next work order: WO-013 or additional layer implementation.
 
-### [2026-05-15T15:00:00Z] Gemini CLI â€” WO-013 Rebuild Aviation Airport Clustering Using Server-Side Cluster API
+### [2026-05-15T15:00:00Z] Gemini CLI Ã¢â‚¬â€ WO-013 Rebuild Aviation Airport Clustering Using Server-Side Cluster API
 - Work order: WO-013
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -1931,7 +1936,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Next safe task: Apply the migration in a controlled database environment, then have Claude/API design an opt-in query path that can prefer a single active approved override while exposing source coordinates for audit.
 
-### 2026-05-15T18:15:00Z Kiro CLI â€” WO-014 Integration Review PASS, branch pushed to origin
+### 2026-05-15T18:15:00Z Kiro CLI Ã¢â‚¬â€ WO-014 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-014
 - Reviewer agent: Kiro CLI
@@ -1945,20 +1950,20 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/codex-coordinate-quality-foundation
 - Review result: All 10 checks passed. Migration is additive and safe. Source coordinates preserved. Script is read-only and handles missing tables gracefully. Documentation comprehensive. Tests pass (46). No secrets committed. Folder boundaries respected.
 - Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (46 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-coordinate-quality-foundation, working tree clean, no .env, no node_modules, no raw data)
-- Folder boundaries result: âœ… PASS (only database/, scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
-- Migration review result: âœ… PASS (additive only, no destructive SQL, source coordinates preserved, quality review table exists, override table exists, provenance fields present, active override field present, coordinate constraints present, confidence score constraint present, indexes present, migration safe for controlled apply)
-- Raw source preservation result: âœ… PASS (original source latitude/longitude remain in aviation_airports, override coordinates stored separately, no normalizer change applies overrides automatically, future API opt-in path documented)
-- Script review result: âœ… PASS (read-only by default, supports --json and --limit, reports all required metrics, handles missing tables gracefully, no raw/generated output to repo)
-- Documentation review result: âœ… PASS (covers why offsets happen, source preservation rule, manual override strategy, review statuses, approval flow, future API/frontend consumption, warning against blind corrections, example workflow, known limitations)
-- Tests/build result: âœ… PASS (46 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no database passwords beyond placeholders, no node_modules, no raw CSVs, no MinIO/Postgres volumes, no database dumps, no generated reports)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-coordinate-quality-foundation, working tree clean, no .env, no node_modules, no raw data)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only database/, scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
+- Migration review result: Ã¢Å“â€¦ PASS (additive only, no destructive SQL, source coordinates preserved, quality review table exists, override table exists, provenance fields present, active override field present, coordinate constraints present, confidence score constraint present, indexes present, migration safe for controlled apply)
+- Raw source preservation result: Ã¢Å“â€¦ PASS (original source latitude/longitude remain in aviation_airports, override coordinates stored separately, no normalizer change applies overrides automatically, future API opt-in path documented)
+- Script review result: Ã¢Å“â€¦ PASS (read-only by default, supports --json and --limit, reports all required metrics, handles missing tables gracefully, no raw/generated output to repo)
+- Documentation review result: Ã¢Å“â€¦ PASS (covers why offsets happen, source preservation rule, manual override strategy, review statuses, approval flow, future API/frontend consumption, warning against blind corrections, example workflow, known limitations)
+- Tests/build result: Ã¢Å“â€¦ PASS (46 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no database passwords beyond placeholders, no node_modules, no raw CSVs, no MinIO/Postgres volumes, no database dumps, no generated reports)
 - Known risks: None. Migration not applied locally (expected). Active overrides not yet consumed by API (future task).
 - Review document: docs/state/INTEGRATION_REVIEW_WO-014.md
 - Commit hash (review document): 4c86e17
 - Next recommended task: Apply migration in controlled database environment. Design API opt-in path for active overrides. Future data work: measured trigram/full-text search for coordinate quality.
 
-### [2026-05-15T15:30:00Z] Gemini CLI â€” WO-016 Frontend Command UI Design Polish
+### [2026-05-15T15:30:00Z] Gemini CLI Ã¢â‚¬â€ WO-016 Frontend Command UI Design Polish
 - Work order: WO-016
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -1977,7 +1982,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro integration review.
 
-### [2026-05-15T16:00:00Z] Gemini CLI â€” WO-016 Fix: Block behind-globe aviation markers and picks
+### [2026-05-15T16:00:00Z] Gemini CLI Ã¢â‚¬â€ WO-016 Fix: Block behind-globe aviation markers and picks
 - Work order: WO-016
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -1997,7 +2002,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro integration review.
 
-### [2026-05-15T19:00:00Z] Gemini CLI â€” WO-019 Unified Globe Search Bar v1
+### [2026-05-15T19:00:00Z] Gemini CLI Ã¢â‚¬â€ WO-019 Unified Globe Search Bar v1
 - Work order: WO-019
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -2020,7 +2025,7 @@ All agents must append to this file after completing work.
 - Next safe task: Kiro integration review.
 
 
-### 2026-05-15T18:58:02Z Kiro CLI â€” WO-016 Integration Review PASS, branch pushed to origin
+### 2026-05-15T18:58:02Z Kiro CLI Ã¢â‚¬â€ WO-016 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-016
 - Reviewer agent: Kiro CLI
@@ -2034,13 +2039,13 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/gemini-frontend-design-polish
 - Review result: All 10 checks passed. Frontend design polish complete. UI is premium and minimal. Aviation marker depth testing fixed. Behind-globe markers no longer visible or clickable. Cluster counts readable. Airport Object Intel functional. Build passes. No secrets committed.
 - Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter web build, pnpm --filter @god-eyes/contracts build
-- Visual/UI result: âœ… PASS (premium dark glass interface, readable panels, no new features, clean hierarchy)
-- Marker depth/occlusion result: âœ… PASS (native Cesium depth testing, 100m airport altitude, 5000m cluster altitude, geometric horizon guard in click handler, behind-globe markers hidden)
-- Click behavior result: âœ… PASS (visibility guard prevents behind-globe clicks, visible cluster click zooms, visible airport click opens Intel)
-- Build result: âœ… PASS (web build 540ms, contracts build success, no errors)
-- Security/privacy result: âœ… PASS (no .env, no node_modules, no secrets, no raw data, no database dumps)
+- Visual/UI result: Ã¢Å“â€¦ PASS (premium dark glass interface, readable panels, no new features, clean hierarchy)
+- Marker depth/occlusion result: Ã¢Å“â€¦ PASS (native Cesium depth testing, 100m airport altitude, 5000m cluster altitude, geometric horizon guard in click handler, behind-globe markers hidden)
+- Click behavior result: Ã¢Å“â€¦ PASS (visibility guard prevents behind-globe clicks, visible cluster click zooms, visible airport click opens Intel)
+- Build result: Ã¢Å“â€¦ PASS (web build 540ms, contracts build success, no errors)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no node_modules, no secrets, no raw data, no database dumps)
 - Known risks: None
-- Folder boundaries: âœ… PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
+- Folder boundaries: Ã¢Å“â€¦ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): cfe3338
 - Next recommended task: Await code review and merge approval. Next work order: Additional layer implementation or geocoder integration.
 
@@ -2067,7 +2072,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no.
 - Next safe task: API-owned opt-in effective-coordinate query path that can prefer one active approved override while preserving source coordinates and provenance for audit.
 
-### 2026-05-15T23:18:00Z Kiro CLI â€” WO-017 Integration Review PASS, branch pushed to origin
+### 2026-05-15T23:18:00Z Kiro CLI Ã¢â‚¬â€ WO-017 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-017
 - Reviewer agent: Kiro CLI
@@ -2081,22 +2086,22 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/codex-coordinate-migration-verification
 - Review result: All 11 checks passed. Migration applied successfully to local Docker PostGIS. Tables, columns, constraints, indexes verified. Source data preserved. Script works post-migration. Documentation comprehensive. Tests pass (54). No secrets committed. Folder boundaries respected.
 - Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (54 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-coordinate-migration-verification, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
-- Folder boundaries result: âœ… PASS (only docs/data/, tests/data/, docs/state/ touched; no forbidden folders)
-- Migration apply result: âœ… PASS (applied successfully via docker exec psql, no destructive SQL, aviation_airports untouched)
-- Table verification result: âœ… PASS (both tables exist, all columns present, all important fields verified)
-- Constraint verification result: âœ… PASS (all 6 invalid cases tested inside transaction and rolled back, database rejected all invalid values)
-- Index verification result: âœ… PASS (all 7 indexes exist with correct names and purposes)
-- Source preservation result: âœ… PASS (row count 85,377 unchanged, coordinate/geometry hash 760dde5c03072db19d8b66c6369e6b46 unchanged)
-- Script verification result: âœ… PASS (read-only, --json works, counts report 0 after migration, handles tables present, no file writes, no mutations)
-- Tests/build result: âœ… PASS (54 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-coordinate-migration-verification, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only docs/data/, tests/data/, docs/state/ touched; no forbidden folders)
+- Migration apply result: Ã¢Å“â€¦ PASS (applied successfully via docker exec psql, no destructive SQL, aviation_airports untouched)
+- Table verification result: Ã¢Å“â€¦ PASS (both tables exist, all columns present, all important fields verified)
+- Constraint verification result: Ã¢Å“â€¦ PASS (all 6 invalid cases tested inside transaction and rolled back, database rejected all invalid values)
+- Index verification result: Ã¢Å“â€¦ PASS (all 7 indexes exist with correct names and purposes)
+- Source preservation result: Ã¢Å“â€¦ PASS (row count 85,377 unchanged, coordinate/geometry hash 760dde5c03072db19d8b66c6369e6b46 unchanged)
+- Script verification result: Ã¢Å“â€¦ PASS (read-only, --json works, counts report 0 after migration, handles tables present, no file writes, no mutations)
+- Tests/build result: Ã¢Å“â€¦ PASS (54 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
 - Known risks: None. Local Docker not production hardware (expected). No real override data yet (expected). API not consuming overrides yet (future task).
 - Review document: docs/state/INTEGRATION_REVIEW_WO-017.md
 - Commit hash (review document): f4e10ea
 - Next recommended task: Push branch to origin. Design API opt-in path for active overrides. Apply migration in production environment.
 
-### [2026-05-15T20:00:00Z] Gemini CLI â€” WO-019 fix Unified Search v1 cleanup and offline behavior
+### [2026-05-15T20:00:00Z] Gemini CLI Ã¢â‚¬â€ WO-019 fix Unified Search v1 cleanup and offline behavior
 - Work order: WO-019 fix
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -2119,7 +2124,7 @@ All agents must append to this file after completing work.
 
 
 
-### 2026-05-16T00:22:10Z Kiro CLI â€” WO-019 Integration Review PASS, branch pushed to origin
+### 2026-05-16T00:22:10Z Kiro CLI Ã¢â‚¬â€ WO-019 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-019
 - Reviewer agent: Kiro CLI
@@ -2133,15 +2138,15 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/gemini-unified-globe-search
 - Review result: All 11 checks passed. Unified globe search v1 complete. Airport search works via API. Coordinate search works locally. Search dropdown readable and premium. Keyboard behavior (Enter/Escape) works. Offline behavior graceful. Place search disabled for v1. Existing Aviation behavior preserved. Build passes. No secrets committed.
 - Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter web build, pnpm --filter @god-eyes/contracts build
-- Search feature result: âœ… PASS (top search bar functional, airport search via API, coordinate parsing local, dropdown readable, keyboard behavior works)
-- Airport search result: âœ… PASS (API integration correct, results mapped properly, click flies to airport, enables Aviation layer, opens Object Intel)
-- Coordinate search result: âœ… PASS (local parsing works, no API dependency, Enter/Escape work, fly-to works)
-- Offline behavior result: âœ… PASS (coordinate search works offline, airport API failure shows clean message, no crash, no red console errors)
-- Place search v1 status: âœ… PASS (disabled, documented as future work, no fake results, no external dependencies)
-- Existing aviation behavior result: âœ… PASS (toggle works, clusters load, cluster click zooms, airport click opens Intel, behind-globe markers hidden and not clickable, no duplicate entities)
-- Build result: âœ… PASS (web build 652ms, contracts build success, no errors)
+- Search feature result: Ã¢Å“â€¦ PASS (top search bar functional, airport search via API, coordinate parsing local, dropdown readable, keyboard behavior works)
+- Airport search result: Ã¢Å“â€¦ PASS (API integration correct, results mapped properly, click flies to airport, enables Aviation layer, opens Object Intel)
+- Coordinate search result: Ã¢Å“â€¦ PASS (local parsing works, no API dependency, Enter/Escape work, fly-to works)
+- Offline behavior result: Ã¢Å“â€¦ PASS (coordinate search works offline, airport API failure shows clean message, no crash, no red console errors)
+- Place search v1 status: Ã¢Å“â€¦ PASS (disabled, documented as future work, no fake results, no external dependencies)
+- Existing aviation behavior result: Ã¢Å“â€¦ PASS (toggle works, clusters load, cluster click zooms, airport click opens Intel, behind-globe markers hidden and not clickable, no duplicate entities)
+- Build result: Ã¢Å“â€¦ PASS (web build 652ms, contracts build success, no errors)
 
-### [2026-05-16T10:30:00Z] Gemini CLI â€” WO-024A Object Intel Aviation Panel Foundation
+### [2026-05-16T10:30:00Z] Gemini CLI Ã¢â‚¬â€ WO-024A Object Intel Aviation Panel Foundation
 - Work order: WO-024A
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -2161,9 +2166,9 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: no
 - Next safe task: Kiro integration review or integrate WO-022 airport detail API when ready.
 
-- Security/privacy result: âœ… PASS (no .env, no node_modules, no secrets, no external geocoding dependency, no hardcoded keys)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no node_modules, no secrets, no external geocoding dependency, no hardcoded keys)
 - Known risks: None
-- Folder boundaries: âœ… PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
+- Folder boundaries: Ã¢Å“â€¦ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): d8835e4
 - Next recommended task: Await code review and merge approval. Next work order: Place/city/landmark search v2 or additional layer implementation.
 
@@ -2190,7 +2195,7 @@ All agents must append to this file after completing work.
 - Next safe task: Claude/API can design a read-only airport detail endpoint contract using `source_id + source_airport_id`, airport-ident joins for runways/frequencies, and bounded spatial lookup for nearby navaids; benchmark exact endpoint SQL before adding indexes.
 
 
-### 2026-05-16T00:28:00Z Kiro CLI â€” WO-020 Integration Review PASS, branch pushed to origin
+### 2026-05-16T00:28:00Z Kiro CLI Ã¢â‚¬â€ WO-020 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-020
 - Reviewer agent: Kiro CLI
@@ -2204,15 +2209,15 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/codex-aviation-detail-data-readiness
 - Review result: All 9 checks passed. Script is read-only and comprehensive. Documentation clear and actionable. Relationships verified with 0 orphans. Data quality checked. Tests pass (53). No secrets committed. Folder boundaries respected.
 - Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (53 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-aviation-detail-data-readiness, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
-- Folder boundaries result: âœ… PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
-- Script review result: âœ… PASS (read-only, --json and --limit work, all metrics reported, no file writes, no mutations)
-- Relationship/readiness result: âœ… PASS (runways join by layer_id+source_id+airport_ident, frequencies join same way, navaids spatial, stable source ids exist, data shape ready for endpoint, index recommendations documented as future work)
-- Data findings result: âœ… PASS (85,377 airports, 47,911 runways, 30,275 frequencies, 11,010 navaids, 40,835 with runways, 11,148 with frequencies, 0 orphans, 32,464 missing runway coords, 0 invalid coords, 7 invalid frequencies)
-- Documentation result: âœ… PASS (all sections present, row counts, runway/frequency/navaid readiness, relationship model, quality findings, missing data limitations, recommended API shape, Object Intel sections, known risks, next tasks)
-- Tests/build result: âœ… PASS (53 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
-- Source safety result: âœ… PASS (no aviation_airports mutations, no aviation_runways mutations, no aviation_airport_frequencies mutations, no aviation_navaids mutations, no fake data, no raw/generated output)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-aviation-detail-data-readiness, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
+- Script review result: Ã¢Å“â€¦ PASS (read-only, --json and --limit work, all metrics reported, no file writes, no mutations)
+- Relationship/readiness result: Ã¢Å“â€¦ PASS (runways join by layer_id+source_id+airport_ident, frequencies join same way, navaids spatial, stable source ids exist, data shape ready for endpoint, index recommendations documented as future work)
+- Data findings result: Ã¢Å“â€¦ PASS (85,377 airports, 47,911 runways, 30,275 frequencies, 11,010 navaids, 40,835 with runways, 11,148 with frequencies, 0 orphans, 32,464 missing runway coords, 0 invalid coords, 7 invalid frequencies)
+- Documentation result: Ã¢Å“â€¦ PASS (all sections present, row counts, runway/frequency/navaid readiness, relationship model, quality findings, missing data limitations, recommended API shape, Object Intel sections, known risks, next tasks)
+- Tests/build result: Ã¢Å“â€¦ PASS (53 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Source safety result: Ã¢Å“â€¦ PASS (no aviation_airports mutations, no aviation_runways mutations, no aviation_airport_frequencies mutations, no aviation_navaids mutations, no fake data, no raw/generated output)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
 - Known risks: None. Local Docker not production hardware (expected). Many airports lack detail (expected). Runway surface not normalized (expected). No API/frontend work (expected).
 - Review document: docs/state/INTEGRATION_REVIEW_WO-020.md
 - Commit hash (review document): 745c0ac
@@ -2242,7 +2247,7 @@ All agents must append to this file after completing work.
 - Next safe task: Claude/API can implement Airport Detail API v1 using the measured parameterized SQL patterns, then run endpoint-specific EXPLAIN plans before considering new indexes.
 
 
-### 2026-05-16T02:00:00Z Kiro CLI â€” WO-023 Integration Review PASS, branch pushed to origin
+### 2026-05-16T02:00:00Z Kiro CLI Ã¢â‚¬â€ WO-023 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-023
 - Reviewer agent: Kiro CLI
@@ -2256,21 +2261,21 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/codex-airport-detail-sql-readiness
 - Review result: All 10 checks passed. Script is read-only and comprehensive. SQL is safe and parameterized. Existing indexes sufficient. Documentation clear and actionable. Tests pass (70). No secrets committed. Folder boundaries respected.
 - Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (70 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-airport-detail-sql-readiness, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
-- Folder boundaries result: âœ… PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
-- Script review result: âœ… PASS (read-only, --json/--limit/--airport-ident work, parameterized SQL, no file writes, no mutations, functions focused)
-- SQL benchmark result: âœ… PASS (airport overview, runway, frequency, coordinate override, nearby navaid queries benchmarked; 100km/250km radius cases; limit 20/50 cases; all sub-millisecond locally)
-- SQL safety result: âœ… PASS (all user inputs parameterized, no string interpolation, no destructive SQL, no source mutations, no fake data, no JSON dumps)
-- Index/performance result: âœ… PASS (existing indexes used for all queries, no new index migration recommended, local Docker timings documented as not production SLAs)
-- Documentation result: âœ… PASS (all sections present, purpose, queries, samples, timing results, EXPLAIN observations, readiness assessments, index recommendations, limitations, next API task)
-- Tests/build result: âœ… PASS (70 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-airport-detail-sql-readiness, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
+- Script review result: Ã¢Å“â€¦ PASS (read-only, --json/--limit/--airport-ident work, parameterized SQL, no file writes, no mutations, functions focused)
+- SQL benchmark result: Ã¢Å“â€¦ PASS (airport overview, runway, frequency, coordinate override, nearby navaid queries benchmarked; 100km/250km radius cases; limit 20/50 cases; all sub-millisecond locally)
+- SQL safety result: Ã¢Å“â€¦ PASS (all user inputs parameterized, no string interpolation, no destructive SQL, no source mutations, no fake data, no JSON dumps)
+- Index/performance result: Ã¢Å“â€¦ PASS (existing indexes used for all queries, no new index migration recommended, local Docker timings documented as not production SLAs)
+- Documentation result: Ã¢Å“â€¦ PASS (all sections present, purpose, queries, samples, timing results, EXPLAIN observations, readiness assessments, index recommendations, limitations, next API task)
+- Tests/build result: Ã¢Å“â€¦ PASS (70 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
 - Known risks: None. Local Docker not production hardware (expected). Missing runway coordinates (source limitation). No live data (expected). API not implemented (expected).
 - Review document: docs/state/INTEGRATION_REVIEW_WO-023.md
 - Commit hash (review document): 84374fa
 - Next recommended task: Push branch to origin. Claude/API implement Airport Detail API v1. Run endpoint EXPLAIN plans before adding indexes.
 
-### [2026-05-16T11:20:00Z] Gemini CLI â€” WO-024A fix: Refresh aviation points after cluster zoom
+### [2026-05-16T11:20:00Z] Gemini CLI Ã¢â‚¬â€ WO-024A fix: Refresh aviation points after cluster zoom
 - Work order: WO-024A fix
 - Agent: Gemini CLI
 - LLM model: gemini-2.5-pro
@@ -2290,7 +2295,7 @@ All agents must append to this file after completing work.
 
 
 
-### 2026-05-16T04:15:55Z Kiro CLI â€” WO-024A Integration Review PASS, branch pushed to origin
+### 2026-05-16T04:15:55Z Kiro CLI Ã¢â‚¬â€ WO-024A Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-024A
 - Reviewer agent: Kiro CLI
@@ -2304,14 +2309,14 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/gemini-object-intel-foundation
 - Review result: All 11 checks passed. Object Intel panel foundation complete. Modular components created (IntelSection, AirportOverview, CoordinateSourceCard, AviationDetailPlaceholders). Empty state improved. Future sections placeholders added. No new API calls. Cluster-to-point regression fixed with moveEnd listener and flyTo callback. Stale clusters replaced by points after zoom. Build passes. No secrets committed.
 - Commands run: git status, git log, git show, git ls-files, git diff, pnpm --filter web build, pnpm --filter @god-eyes/contracts build
-- Object Intel result: âœ… PASS (modular components, improved empty state, airport overview readable, coordinate/source section, future placeholders clear, premium/minimal design)
-- API boundary result: âœ… PASS (no new API calls, no backend changes, existing data only, future integration path clear)
-- Behavior preservation result: âœ… PASS (search works, clusters load, cluster click zooms, airport click opens Intel, toggle works, behind-globe markers hidden, no duplicates)
-- Cluster-to-point result: âœ… PASS (moveEnd listener implemented, flyTo callback implemented, no runaway requests, stale clusters replaced, no duplicates, graceful error handling)
-- Build result: âœ… PASS (web build 584ms, contracts build success, no errors)
-- Security/privacy result: âœ… PASS (no .env, no node_modules, no secrets, no new dependencies, no data leaks)
+- Object Intel result: Ã¢Å“â€¦ PASS (modular components, improved empty state, airport overview readable, coordinate/source section, future placeholders clear, premium/minimal design)
+- API boundary result: Ã¢Å“â€¦ PASS (no new API calls, no backend changes, existing data only, future integration path clear)
+- Behavior preservation result: Ã¢Å“â€¦ PASS (search works, clusters load, cluster click zooms, airport click opens Intel, toggle works, behind-globe markers hidden, no duplicates)
+- Cluster-to-point result: Ã¢Å“â€¦ PASS (moveEnd listener implemented, flyTo callback implemented, no runaway requests, stale clusters replaced, no duplicates, graceful error handling)
+- Build result: Ã¢Å“â€¦ PASS (web build 584ms, contracts build success, no errors)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no node_modules, no secrets, no new dependencies, no data leaks)
 - Known risks: None
-- Folder boundaries: âœ… PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
+- Folder boundaries: Ã¢Å“â€¦ PASS (only apps/web/src/, docs/state/ touched; no forbidden folders)
 - Commit hash (review document): 5fb5483
 - Next recommended task: Await code review and merge approval. Next work order: Airport Detail API integration (Runways, Frequencies, Navaids, Data Quality).
 
@@ -2338,7 +2343,7 @@ All agents must append to this file after completing work.
 - Next safe task: Claude/API can use `source_id + source_object_id` values from the QA sample output for Airport Detail API v1 endpoint tests; Gemini/frontend can use the same samples for Object Intel manual QA after the API contract lands.
 
 
-### 2026-05-16T02:30:00Z Kiro CLI â€” WO-025 Integration Review PASS, branch pushed to origin
+### 2026-05-16T02:30:00Z Kiro CLI Ã¢â‚¬â€ WO-025 Integration Review PASS, branch pushed to origin
 
 - Review work order: WO-025
 - Reviewer agent: Kiro CLI
@@ -2352,20 +2357,20 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/codex-airport-detail-qa-samples
 - Review result: All 9 checks passed. Script is read-only and comprehensive. SQL is safe and parameterized. Sample coverage complete. Documentation clear and actionable. Tests pass (79). No secrets committed. Folder boundaries respected.
 - Commands run: git status, git show, git log, python -m pytest tests/data/layer_01_aviation -q (79 passed), python -m compileall packages/schemas services/fetch-orchestrator services/normalizer tests/data/layer_01_aviation scripts, docker compose config --quiet, git diff --check, git ls-files (security check)
-- Git status result: âœ… PASS (branch agent/codex-airport-detail-qa-samples, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
-- Folder boundaries result: âœ… PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
-- Script review result: âœ… PASS (read-only, --json/--limit work, parameterized SQL, no file writes, no mutations, functions focused)
-- QA sample coverage result: âœ… PASS (10 samples cover rich detail, sparse detail, heliport, small airfield, dense/no frequencies, many/few navaids, missing/complete runway coords)
-- SQL safety result: âœ… PASS (all inputs parameterized, no string interpolation, no destructive SQL, no mutations, no fake data, no JSON dumps)
-- Documentation result: âœ… PASS (all sections present, purpose, samples, what each tests, Claude/API/Gemini/Kiro usage, limitations, refresh process)
-- Tests/build result: âœ… PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
+- Git status result: Ã¢Å“â€¦ PASS (branch agent/codex-airport-detail-qa-samples, working tree clean, no .env, no node_modules, no raw data, no JSON dumps)
+- Folder boundaries result: Ã¢Å“â€¦ PASS (only scripts/, tests/data/, docs/data/, docs/state/ touched; no forbidden folders)
+- Script review result: Ã¢Å“â€¦ PASS (read-only, --json/--limit work, parameterized SQL, no file writes, no mutations, functions focused)
+- QA sample coverage result: Ã¢Å“â€¦ PASS (10 samples cover rich detail, sparse detail, heliport, small airfield, dense/no frequencies, many/few navaids, missing/complete runway coords)
+- SQL safety result: Ã¢Å“â€¦ PASS (all inputs parameterized, no string interpolation, no destructive SQL, no mutations, no fake data, no JSON dumps)
+- Documentation result: Ã¢Å“â€¦ PASS (all sections present, purpose, samples, what each tests, Claude/API/Gemini/Kiro usage, limitations, refresh process)
+- Tests/build result: Ã¢Å“â€¦ PASS (79 tests passed, Python compileall passed, Docker Compose config valid, whitespace check clean)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw CSVs, no JSON dumps, no database dumps)
 - Known risks: None. Local Docker state (expected). Not production SLAs (expected). No live data (expected). API/frontend out of scope (expected).
 - Review document: docs/state/INTEGRATION_REVIEW_WO-025.md
 - Commit hash (review document): ac23014
 - Next recommended task: Push branch to origin. Claude/API use samples for endpoint QA. Gemini/frontend use samples for Object Intel QA.
 
-### 2026-05-16T19:05:00Z Claude Code â€” HOTFIX marker payload main (CORRECTED)
+### 2026-05-16T19:05:00Z Claude Code Ã¢â‚¬â€ HOTFIX marker payload main (CORRECTED)
 
 - Work order: HOTFIX marker payload main
 - Agent: Claude Code
@@ -2395,7 +2400,7 @@ All agents must append to this file after completing work.
 - Push status: Not pushed (per task requirements - Kiro pushes after review)
 - Known issues: None - all builds pass, all marker endpoints return 200 OK
 
-### 2026-05-17T01:50:00Z Claude Code â€” HOTFIX Airport Detail API Runtime Failure
+### 2026-05-17T01:50:00Z Claude Code Ã¢â‚¬â€ HOTFIX Airport Detail API Runtime Failure
 
 - Hotfix name: Airport Detail API Runtime Failure
 - Agent: Claude Code
@@ -2447,7 +2452,7 @@ All agents must append to this file after completing work.
 - Next safe task: Claude/API can use this reference while shaping Airport Detail API response labels/provenance; Gemini/frontend can use it later for Object Intel display QA after the API contract is available.
 
 
-### 2026-05-17T08:30:00Z OpenCode Web 1 â€” WO-029A Aviation Marker Categories + Filters Foundation
+### 2026-05-17T08:30:00Z OpenCode Web 1 Ã¢â‚¬â€ WO-029A Aviation Marker Categories + Filters Foundation
 
 - Work order: WO-029A
 - Agent: OpenCode Web 1
@@ -2473,8 +2478,8 @@ All agents must append to this file after completing work.
   - `docs/state/HANDOFF_LOG.md` (modified)
 - Commands run: `git status`, `git log --oneline -5`, `git branch --show-current`, `git diff --stat`, `pnpm --filter @god-eyes/contracts build`, `pnpm --filter web build`
 - Build result: Contracts build PASS. Web build PASS (56 modules, 179.12 kB).
-- Manual browser verification: (pending â€” Kiro to verify)
-- Security/privacy result: PASS â€” no .env, no API keys, no secrets, no new dependencies, no backend changes.
+- Manual browser verification: (pending Ã¢â‚¬â€ Kiro to verify)
+- Security/privacy result: PASS Ã¢â‚¬â€ no .env, no API keys, no secrets, no new dependencies, no backend changes.
 - Forbidden folders touched: no.
 - Known issues: None. Clusters are not filtered (preserved as-is per spec). Category filtering is client-side only (no backend filter params sent). Re-render on filter toggle uses cached last-fetched items, not a fresh API call.
 - Next safe task: Implement full density renderer, remove cluster fallback, add backend filter support.
@@ -2506,7 +2511,7 @@ All agents must append to this file after completing work.
 - Review status: awaiting Kiro review.
 - Next safe task: Claude/API can use the density distribution and QA regions when shaping density endpoint limits; Gemini/frontend can use the same regions for density-rendering stress tests.
 
-### 2026-05-17T04:34:13Z Kiro CLI â€” WO-029B API Feasibility Review PASS, branch pushed to origin
+### 2026-05-17T04:34:13Z Kiro CLI Ã¢â‚¬â€ WO-029B API Feasibility Review PASS, branch pushed to origin
 
 - Review work order: WO-029B-API-FEASIBILITY
 - Reviewer agent: Kiro CLI
@@ -2520,19 +2525,19 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/claude-api-1
 - Review result: All 10 feasibility questions answered comprehensively. Documentation is accurate, practical, and honest about API limits. Existing points endpoint with marker profile sufficient for frontend-only density view with viewport constraints. Global bbox queries unsafe without constraints. Current limits (500/1000) safe but insufficient for true global density. Category filters supported for points mode. Cluster endpoint does not support category filters. No new endpoint needed for current phase. Production safeguards documented. Tests specified for implementation phase. No implementation code changed. No forbidden folders touched. No secrets committed.
 - Commands run: git branch --show-current, git status, git log --oneline -1, git diff --name-only, git diff --check, git diff --cached --check, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, Select-String (stale wording check)
-- Pre-review checks result: âœ… PASS (working directory E:\god-eyes-claude-api-1, branch agent/claude-api-1, working tree clean, no unfinished merge, only docs/api/ changed, no forbidden folders, no secrets, no stale wording)
-- Feasibility questions result: âœ… PASS (all 10 questions answered: frontend density mode safe with bbox, global bbox returns 1000 random airports, limits safe but insufficient, category filters supported, cluster filters not supported, fields=density not recommended, server-side filtering already supported, density endpoint not needed now, production safeguards documented, tests specified)
-- Documentation quality result: âœ… PASS (accurate, practical, honest about limits, no fake data, no unsupported claims, recommendations clear, known limitations documented, appendix complete)
-- Build/test result: âœ… PASS (Contracts build PASS, API build PASS, API tests PASS (89 tests, 15.17s))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps)
-- Forbidden folders touched: âœ… NO (only docs/api/ modified, no apps/web, database, services, packages/contracts, packages/schemas, packages/auth)
-- Implementation scope result: âœ… PASS (documentation/planning only, no product features, no frontend changes, no database migrations, no AI, no auth, no live aircraft, no new layers)
+- Pre-review checks result: Ã¢Å“â€¦ PASS (working directory E:\god-eyes-claude-api-1, branch agent/claude-api-1, working tree clean, no unfinished merge, only docs/api/ changed, no forbidden folders, no secrets, no stale wording)
+- Feasibility questions result: Ã¢Å“â€¦ PASS (all 10 questions answered: frontend density mode safe with bbox, global bbox returns 1000 random airports, limits safe but insufficient, category filters supported, cluster filters not supported, fields=density not recommended, server-side filtering already supported, density endpoint not needed now, production safeguards documented, tests specified)
+- Documentation quality result: Ã¢Å“â€¦ PASS (accurate, practical, honest about limits, no fake data, no unsupported claims, recommendations clear, known limitations documented, appendix complete)
+- Build/test result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, API tests PASS (89 tests, 15.17s))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps)
+- Forbidden folders touched: Ã¢Å“â€¦ NO (only docs/api/ modified, no apps/web, database, services, packages/contracts, packages/schemas, packages/auth)
+- Implementation scope result: Ã¢Å“â€¦ PASS (documentation/planning only, no product features, no frontend changes, no database migrations, no AI, no auth, no live aircraft, no new layers)
 - Known risks: None. All checks passed.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029B_API_FEASIBILITY.md
 - Commit hash (review document): (pending commit)
 - Next recommended task: Frontend team use feasibility document as specification for viewport-constrained density view. If performance proves inadequate, revisit density endpoint design in future work order.
 
-### 2026-05-17T05:42:21Z Kiro CLI â€” WO-029C API Feasibility Review PASS, branch pushed to origin
+### 2026-05-17T05:42:21Z Kiro CLI Ã¢â‚¬â€ WO-029C API Feasibility Review PASS, branch pushed to origin
 
 - Review work order: WO-029C-API
 - Reviewer agent: Kiro CLI
@@ -2546,12 +2551,12 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/claude-api-1
 - Review result: All checks passed. WO-029C implementation complete. Existing `mode=points&fields=marker` endpoint already supports density view. No new endpoints needed. 12 new density-specific tests added covering marker payload, category filtering, limit clamping, bbox behavior, backward compatibility. Documentation comprehensive and accurate. All 100 tests pass. All builds pass. No forbidden folders touched. No secrets committed. Ready for frontend PointPrimitiveCollection implementation.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check, git diff --cached --check
-- Pre-review checks result: âœ… PASS (working directory, branch, working tree clean, no merge, only allowed files changed, no forbidden folders, no secrets, no stale wording)
-- API behavior result: âœ… PASS (existing endpoint used, marker payload includes all density fields, category filtering supported, bbox safe, limit clamping safe, no 85k fetch, SQL parameterized, backward compatible)
-- Test coverage result: âœ… PASS (12 meaningful density tests: marker returns 200, category filter, limit bounded with/without bbox, bbox required for clusters, global bbox bounded, marker payload lightweight, multiple categories, existing modes work, schema compatible, metadata accurate)
-- Documentation result: âœ… PASS (comprehensive, accurate, practical, honest about limits, no fake claims, no stale wording, all sections present)
-- Build/test result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (100/100))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, SQL parameterized, no new dependencies)
+- Pre-review checks result: Ã¢Å“â€¦ PASS (working directory, branch, working tree clean, no merge, only allowed files changed, no forbidden folders, no secrets, no stale wording)
+- API behavior result: Ã¢Å“â€¦ PASS (existing endpoint used, marker payload includes all density fields, category filtering supported, bbox safe, limit clamping safe, no 85k fetch, SQL parameterized, backward compatible)
+- Test coverage result: Ã¢Å“â€¦ PASS (12 meaningful density tests: marker returns 200, category filter, limit bounded with/without bbox, bbox required for clusters, global bbox bounded, marker payload lightweight, multiple categories, existing modes work, schema compatible, metadata accurate)
+- Documentation result: Ã¢Å“â€¦ PASS (comprehensive, accurate, practical, honest about limits, no fake claims, no stale wording, all sections present)
+- Build/test result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (100/100))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, SQL parameterized, no new dependencies)
 - Forbidden folders touched: no
 - Known issues: None
 - Known limitations: Density v1 bounded by existing API limits, true full 85k global density not implemented, no new endpoint added, frontend performance requires browser validation, marker profile lacks typeSource (frontend must rely on category)
@@ -2559,7 +2564,7 @@ All agents must append to this file after completing work.
 - Commit hash (review document): (pending commit)
 - Next recommended task: Frontend team implement PointPrimitiveCollection density view using existing API. No new backend work needed for density v1.
 
-### 2026-05-17T06:12:40Z Kiro CLI â€” WO-029D API Feasibility Review FAIL, SQL injection vulnerability
+### 2026-05-17T06:12:40Z Kiro CLI Ã¢â‚¬â€ WO-029D API Feasibility Review FAIL, SQL injection vulnerability
 
 - Review work order: WO-029D-API
 - Reviewer agent: Kiro CLI
@@ -2573,15 +2578,15 @@ All agents must append to this file after completing work.
 - Branch pushed: NOT PUSHED
 - Review result: FAIL - Critical SQL injection vulnerability found. cellSizeDegrees parameter is interpolated directly into SQL string using template literals instead of being parameterized. While practical risk is low (value validated to 0.5-10.0), this violates parameterization policy. All other checks pass: validation correct, routing correct, schemas correct, 15 meaningful tests pass (115 total), builds pass, no forbidden folders touched, no secrets, documentation comprehensive.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, pnpm --filter web build, git diff --check, git diff --cached --check
-- Pre-review checks result: âœ… PASS (working directory, branch, working tree clean, no merge, only allowed files changed, no forbidden folders, no secrets, no stale wording)
-- Density route/validation result: âœ… PASS (mode=density validated, bbox required, cellSizeDegrees bounded, includeClosed safe, category filters safe, no route breakage)
-- Density SQL/handler result: âŒ FAIL (cellSizeDegrees not parameterized - uses template literal interpolation instead of parameterized query)
-- Contract/schema result: âœ… PASS (AirportDensityCellSchema correct, AirportDensityResponseSchema correct, backward compatible)
-- API behavior result: âœ… PASS (density returns cells not raw airports, bbox required, includeClosed works, cellSizeDegrees validation works, limit clamping works, existing modes unaffected)
-- Test coverage result: âœ… PASS (15 meaningful density tests covering all required behaviors)
-- Documentation result: âœ… PASS (comprehensive, accurate, practical, honest about limits, no false claims, no stale wording)
-- Build/test result: âœ… PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (115/115))
-- Security/privacy result: âš ï¸ PARTIAL (no secrets, no dependencies, but SQL not fully parameterized)
+- Pre-review checks result: Ã¢Å“â€¦ PASS (working directory, branch, working tree clean, no merge, only allowed files changed, no forbidden folders, no secrets, no stale wording)
+- Density route/validation result: Ã¢Å“â€¦ PASS (mode=density validated, bbox required, cellSizeDegrees bounded, includeClosed safe, category filters safe, no route breakage)
+- Density SQL/handler result: Ã¢ÂÅ’ FAIL (cellSizeDegrees not parameterized - uses template literal interpolation instead of parameterized query)
+- Contract/schema result: Ã¢Å“â€¦ PASS (AirportDensityCellSchema correct, AirportDensityResponseSchema correct, backward compatible)
+- API behavior result: Ã¢Å“â€¦ PASS (density returns cells not raw airports, bbox required, includeClosed works, cellSizeDegrees validation works, limit clamping works, existing modes unaffected)
+- Test coverage result: Ã¢Å“â€¦ PASS (15 meaningful density tests covering all required behaviors)
+- Documentation result: Ã¢Å“â€¦ PASS (comprehensive, accurate, practical, honest about limits, no false claims, no stale wording)
+- Build/test result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, Web build PASS, API tests PASS (115/115))
+- Security/privacy result: Ã¢Å¡Â Ã¯Â¸Â PARTIAL (no secrets, no dependencies, but SQL not fully parameterized)
 - Forbidden folders touched: no
 - Known issues: SQL injection vulnerability - cellSizeDegrees interpolated directly into SQL string
 - Required fix: Parameterize cellSizeDegrees in buildDensitySql() function. Add cellSizeDegrees to queryParams array and use $N placeholder instead of template literal.
@@ -2589,7 +2594,7 @@ All agents must append to this file after completing work.
 - Commit hash (review document): (not committed - FAIL status)
 - Next recommended task: Fix SQL injection vulnerability by parameterizing cellSizeDegrees. Re-run tests. Resubmit for review.
 
-### 2026-05-17T07:46:27Z Kiro CLI â€” WO-029E API Category Audit Review PASS, branch pushed to origin
+### 2026-05-17T07:46:27Z Kiro CLI Ã¢â‚¬â€ WO-029E API Category Audit Review PASS, branch pushed to origin
 
 - Review work order: WO-029E-API-CATEGORY-AUDIT
 - Reviewer agent: Kiro CLI
@@ -2603,11 +2608,11 @@ All agents must append to this file after completing work.
 - Branch pushed: agent/claude-api-1
 - Review result: All checks passed. WO-029E audit complete. Backend database is CORRECT. API category filtering is CORRECT. India/China international airports present and returned correctly. Asia water/seaplane sites present (sparse but accurate data from OpenFlights). Single category filter works. Multiple category filter not supported (returns 400). Limit applied after filter. fields=marker includes category. No implementation code changed. No forbidden folders touched. No secrets committed. All builds pass. All 115 tests pass. Documentation comprehensive and accurate.
 - Commands run: git branch --show-current, git status, git log --oneline -5, git diff --stat HEAD~1..HEAD, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test, git diff --check, git diff --cached --check
-- Pre-review checks result: âœ… PASS (working directory, branch, working tree clean, only docs/api/ and docs/state/HANDOFF_LOG.md modified, no implementation code changed, no forbidden folders, no secrets, no stale wording)
-- Backend category verdict: âœ… CORRECT (7 categories in DB, India/China international airports present, Asia water sites present, category filtering works, limit applied after filter, fields=marker has category)
-- API filter verdict: âœ… CORRECT (single category filter works, multiple category filter not supported, pagination shows correct total count, typeSource in standard mode, typeSource omitted from marker mode by design)
-- Build/test result: âœ… PASS (Contracts build PASS, API build PASS, API tests PASS (115/115))
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, documentation only)
+- Pre-review checks result: Ã¢Å“â€¦ PASS (working directory, branch, working tree clean, only docs/api/ and docs/state/HANDOFF_LOG.md modified, no implementation code changed, no forbidden folders, no secrets, no stale wording)
+- Backend category verdict: Ã¢Å“â€¦ CORRECT (7 categories in DB, India/China international airports present, Asia water sites present, category filtering works, limit applied after filter, fields=marker has category)
+- API filter verdict: Ã¢Å“â€¦ CORRECT (single category filter works, multiple category filter not supported, pagination shows correct total count, typeSource in standard mode, typeSource omitted from marker mode by design)
+- Build/test result: Ã¢Å“â€¦ PASS (Contracts build PASS, API build PASS, API tests PASS (115/115))
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no raw data, no database dumps, documentation only)
 - Forbidden folders touched: no
 - Known issues: None. Multiple category filter not supported - frontend must make separate requests per category and merge client-side.
 - Review document: docs/state/INTEGRATION_REVIEW_WO-029E_API_CATEGORY_AUDIT.md
@@ -2615,7 +2620,7 @@ All agents must append to this file after completing work.
 - Next recommended task: Push to origin. Frontend team use audit findings to verify bbox coordinates, check client-side filtering, implement multi-category support via separate requests, accept actual water site data distribution.
 
 
-### 2026-05-17T11:36:00Z OpenCode Web 1 â€” WO-029G-FE Aviation Persistent Tile Cache + Render Reuse
+### 2026-05-17T11:36:00Z OpenCode Web 1 Ã¢â‚¬â€ WO-029G-FE Aviation Persistent Tile Cache + Render Reuse
 
 - Work order: WO-029G-FE Aviation Persistent Tile Cache + Render Reuse
 - Agent: OpenCode Web 1
@@ -2627,24 +2632,24 @@ All agents must append to this file after completing work.
 - Commit hash: a306116
 - Push status: NOT PUSHED
 - Files changed: 6 files (2 new, 4 modified)
-  - NEW: apps/web/src/lib/aviationTileCache.ts â€” LRU tile cache (max 200 entries, 10 min TTL, stale-while-revalidate)
-  - NEW: apps/web/src/lib/aviationObjectStore.ts â€” Global deduplicated AirportObject store by ID
-  - MODIFIED: apps/web/src/lib/aviationLayerRenderer.ts â€” Added renderAviationObjectsIncrementalAsync (no removeAll, incremental entity add/remove with rAF batching)
-  - MODIFIED: apps/web/src/CesiumGlobe.tsx â€” Entity path uses tile cache (bboxâ†’tileIdsâ†’cache checkâ†’fetch missingâ†’storeâ†’incremental render); dot path preserves existing collection; layer OFF clears all caches; cache stats reported
-  - MODIFIED: apps/web/src/components/StatusPanel.tsx â€” Added cache stats display (E/H/M/F)
-  - MODIFIED: apps/web/src/App.tsx â€” Extended AviationStats with optional cache fields
+  - NEW: apps/web/src/lib/aviationTileCache.ts Ã¢â‚¬â€ LRU tile cache (max 200 entries, 10 min TTL, stale-while-revalidate)
+  - NEW: apps/web/src/lib/aviationObjectStore.ts Ã¢â‚¬â€ Global deduplicated AirportObject store by ID
+  - MODIFIED: apps/web/src/lib/aviationLayerRenderer.ts Ã¢â‚¬â€ Added renderAviationObjectsIncrementalAsync (no removeAll, incremental entity add/remove with rAF batching)
+  - MODIFIED: apps/web/src/CesiumGlobe.tsx Ã¢â‚¬â€ Entity path uses tile cache (bboxÃ¢â€ â€™tileIdsÃ¢â€ â€™cache checkÃ¢â€ â€™fetch missingÃ¢â€ â€™storeÃ¢â€ â€™incremental render); dot path preserves existing collection; layer OFF clears all caches; cache stats reported
+  - MODIFIED: apps/web/src/components/StatusPanel.tsx Ã¢â‚¬â€ Added cache stats display (E/H/M/F)
+  - MODIFIED: apps/web/src/App.tsx Ã¢â‚¬â€ Extended AviationStats with optional cache fields
   - NEW: docs/work-orders/WO-029G-opencode-aviation-persistent-tile-cache.md
   - MODIFIED: docs/state/HANDOFF_LOG.md (this entry)
 - Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter web build, git diff --check
-- Build result: âœ… PASS (Contracts build PASS, Web build PASS 60 modules 676ms)
-- Manual browser verification result: (pending â€” Kiro to verify after merge)
-- Security/privacy result: âœ… PASS (no .env, no API keys, no secrets, no node_modules, no new dependencies)
-- Forbidden folders touched: âŒ NO
+- Build result: Ã¢Å“â€¦ PASS (Contracts build PASS, Web build PASS 60 modules 676ms)
+- Manual browser verification result: (pending Ã¢â‚¬â€ Kiro to verify after merge)
+- Security/privacy result: Ã¢Å“â€¦ PASS (no .env, no API keys, no secrets, no node_modules, no new dependencies)
+- Forbidden folders touched: Ã¢ÂÅ’ NO
 - Known issues: None. All WO-029F behavior preserved.
 - Next safe task: Push branch to origin. Kiro CLI review and manual browser verification.
 
 
-### 2026-05-17T19:31:19Z Kiro CLI â€” WO-030A + WO-031-FE + HOTFIX-2 Integration Review PASS
+### 2026-05-17T19:31:19Z Kiro CLI Ã¢â‚¬â€ WO-030A + WO-031-FE + HOTFIX-2 Integration Review PASS
 
 - Integration scope: WO-030A (Aviation API Preload/Resident Cache Mode) + WO-031-FE (Aviation Simple Global Category Renderer) + HOTFIX-2 (Frontend Fetch/Render/Status Fixes)
 - Reviewer agent: Kiro CLI
@@ -2663,15 +2668,15 @@ All agents must append to this file after completing work.
   - Frontend: aviationPreloader.ts (new), aviationObjectStore.ts (new), aviationGlobalRenderer.ts, aviationLayerRenderer.ts, api.ts, CesiumGlobe.tsx, StatusPanel.tsx, LayerPanel.tsx, App.tsx
   - Docs: API_AVIATION_PRELOAD_WO-030A.md (new), INTEGRATION_REVIEW_WO-030A_WO-031-FE_HOTFIX-2.md (new)
 - Files rejected/ignored: None
-- API checks: âœ… PASS (preload endpoint correct, 8 categories supported, 100k limit, lightweight projection, parameterized SQL, 20 new tests, 135 total tests pass, backward compatible)
-- Frontend checks: âœ… PASS (preload orchestrator correct, 4-worker concurrency, object store correct, global renderer correct, category filtering from cache, no tile/bbox/zoom loading, status display correct, loaded/visible counts correct)
-- Contracts checks: âœ… PASS (AirportPreloadObjectSchema correct, AirportPreloadListResponseSchema correct, AirportPreloadMetadataSchema correct)
-- Browser verification: âœ… PASS (user verified: aviation toggle ON triggers preload, 8 categories fetched, 85,377 total cached, 1,182 default visible, category toggles instant, zoom/pan no refetch, no FPS loss)
-- Network verification: âœ… PASS (no tile/bbox/viewport/zoom requests in normal aviation mode, only 8 preload requests on activation)
+- API checks: Ã¢Å“â€¦ PASS (preload endpoint correct, 8 categories supported, 100k limit, lightweight projection, parameterized SQL, 20 new tests, 135 total tests pass, backward compatible)
+- Frontend checks: Ã¢Å“â€¦ PASS (preload orchestrator correct, 4-worker concurrency, object store correct, global renderer correct, category filtering from cache, no tile/bbox/zoom loading, status display correct, loaded/visible counts correct)
+- Contracts checks: Ã¢Å“â€¦ PASS (AirportPreloadObjectSchema correct, AirportPreloadListResponseSchema correct, AirportPreloadMetadataSchema correct)
+- Browser verification: Ã¢Å“â€¦ PASS (user verified: aviation toggle ON triggers preload, 8 categories fetched, 85,377 total cached, 1,182 default visible, category toggles instant, zoom/pan no refetch, no FPS loss)
+- Network verification: Ã¢Å“â€¦ PASS (no tile/bbox/viewport/zoom requests in normal aviation mode, only 8 preload requests on activation)
 - Debug logs kept/removed: Kept (development logs with [AVIATION] prefix, useful for debugging, recommend gating behind import.meta.env.DEV for production)
-- Docs updated: âœ… PASS (API_AVIATION_PRELOAD_WO-030A.md created, INTEGRATION_REVIEW_WO-030A_WO-031-FE_HOTFIX-2.md created)
-- Handoff log updated: âœ… PASS (this entry)
-- Forbidden files touched: âŒ NO (only apps/api/, apps/web/, packages/contracts/, docs/ modified; no database/migrations, services/, packages/schemas/, packages/auth/)
+- Docs updated: Ã¢Å“â€¦ PASS (API_AVIATION_PRELOAD_WO-030A.md created, INTEGRATION_REVIEW_WO-030A_WO-031-FE_HOTFIX-2.md created)
+- Handoff log updated: Ã¢Å“â€¦ PASS (this entry)
+- Forbidden files touched: Ã¢ÂÅ’ NO (only apps/api/, apps/web/, packages/contracts/, docs/ modified; no database/migrations, services/, packages/schemas/, packages/auth/)
 - Known issues: None. All checks passed.
 - Commit hash: 5261da3 (latest merge commit on integration branch)
 - Push/PR status: Ready for merge to main and push to origin
@@ -2994,7 +2999,7 @@ All agents must append to this file after completing work.
 - Can WO-077 schema start: CONDITIONAL (schema-only, no data)
 - Can India data ingestion start: NO
 - Can non-India planning start: CONDITIONAL (schema planning only)
-- Recommendation: D — proceed only after human obtains Survey of India licensing/data confirmation
+- Recommendation: D â€” proceed only after human obtains Survey of India licensing/data confirmation
 - Code touched: NO
 - Data files added: NO
 - Boundary datasets downloaded: NO
@@ -3163,7 +3168,7 @@ All agents must append to this file after completing work.
 - Database touched: NO
 - Next step: WO-078C Natural Earth MVP ingestion
 
-### 2026-05-26T05:10:00Z DeepSeek (API CLI) — WO-078D Borders Boundaries API Complete
+### 2026-05-26T05:10:00Z DeepSeek (API CLI) â€” WO-078D Borders Boundaries API Complete
 
 - Work order: WO-078D-BORDERS-BOUNDARIES-API
 - Agent: DeepSeek CLI
@@ -3241,7 +3246,7 @@ All agents must append to this file after completing work.
 - No raw data files added: YES
 - Known issues: None.
 - Next step: Kiro review, then WO-079C fetcher work order after review approval.
-### 2026-05-28T16:45:00Z MiniMax — WO-079C Airplanes.live Live Aircraft Fetcher
+### 2026-05-28T16:45:00Z MiniMax â€” WO-079C Airplanes.live Live Aircraft Fetcher
 
 - Work order: WO-079C-AVIATION-LIVE-AIRPLANES-FETCHER
 - Agent: MiniMax
@@ -3292,7 +3297,7 @@ All agents must append to this file after completing work.
 - Known issues: None
 - Next safe task: WO-079D API endpoint implementation (after review and push)
 
-### 2026-05-29T12:25:00Z MiniMax — WO-079F Aviation Live Global Web JSON Fetcher
+### 2026-05-29T12:25:00Z MiniMax â€” WO-079F Aviation Live Global Web JSON Fetcher
 
 - Work order: WO-079F-AVIATION-LIVE-GLOBAL-WEB-JSON-FETCHER
 - Agent: MiniMax
@@ -3320,7 +3325,7 @@ All agents must append to this file after completing work.
 - Known issues: Global web JSON is experimental; uses Referer/Origin headers for compatibility; rate limited to 30s minimum interval
 - Next safe task: WO-079 final browser verification
 
-### 2026-05-29T21:15:00Z MiniMax — WO-080A1 Fix Live Aircraft Runtime Errors
+### 2026-05-29T21:15:00Z MiniMax â€” WO-080A1 Fix Live Aircraft Runtime Errors
 
 - Work order: WO-080A1-FIX-LIVE-AIRCRAFT-RUNTIME-ERRORS
 - Agent: MiniMax
@@ -3342,7 +3347,7 @@ All agents must append to this file after completing work.
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
 
-### 2026-05-29T19:25:00Z MiniMax — WO-080A Live Aircraft Snapshot Publisher
+### 2026-05-29T19:25:00Z MiniMax â€” WO-080A Live Aircraft Snapshot Publisher
 
 - Work order: WO-080A-LIVE-AIRCRAFT-SNAPSHOT-PUBLISHER
 - Agent: MiniMax
@@ -3370,7 +3375,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO (only services/fetch-orchestrator/, tests/data/, database/migrations/, docs/state/)
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
-### 2026-05-29T21:35:00Z MiniMax — WO-080A1-R2 Make Live Aircraft Snapshot Runtime Work
+### 2026-05-29T21:35:00Z MiniMax â€” WO-080A1-R2 Make Live Aircraft Snapshot Runtime Work
 
 - Work order: WO-080A1-R2-MAKE-LIVE-AIRCRAFT-SNAPSHOT-RUNTIME-WORK
 - Agent: MiniMax
@@ -3392,7 +3397,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
-### 2026-05-29T21:45:00Z MiniMax — WO-080A1-R3 Fix Duplicate fetch_params Correctly
+### 2026-05-29T21:45:00Z MiniMax â€” WO-080A1-R3 Fix Duplicate fetch_params Correctly
 
 - Work order: WO-080A1-R3-FIX-DUPLICATE-FETCH-PARAMS-CORRECTLY
 - Agent: MiniMax
@@ -3413,7 +3418,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
-### 2026-05-29T21:55:00Z MiniMax — WO-080A2 Align Live Aircraft Source ID for WebSocket Runtime
+### 2026-05-29T21:55:00Z MiniMax â€” WO-080A2 Align Live Aircraft Source ID for WebSocket Runtime
 
 - Work order: WO-080A2-ALIGN-LIVE-AIRCRAFT-SOURCE-ID-FOR-WEBSOCKET-RUNTIME
 - Agent: MiniMax
@@ -3436,3 +3441,20 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Known issues: None
 - Next safe task: WO-080B API WebSocket broadcaster
+### 2026-05-30T21:57:00Z MiniMax M2.5 â€” WO-080A4 Fixed-Rate Live Aircraft Snapshot Loop
+
+- Work order: WO-080A4 â€” Fixed-Rate Live Aircraft Snapshot Loop
+- Agent: minimax-wo-080a4-fixed-rate-live-snapshot-loop
+- LLM model: minimax-m2.5
+- Tool/CLI used: Kiro CLI
+- Branch: agent/minimax-wo-080a4-fixed-rate-live-snapshot-loop
+- Start time UTC: 2026-05-30T21:57:00Z
+- End time UTC: 2026-05-30T22:03:00Z
+- Commit hash: cf6e788
+- Push status: local only (NOT pushed â€” awaiting Kiro review)
+- What was done: Implemented fixed-rate loop scheduling for global-web-json live aircraft worker. Added --history-every-n-cycles option (default 12 for loop mode, 1 for --once). Prioritized live snapshot publish before heavy history writes.
+- Files changed: services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py, tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py
+- Commands run: pytest 54 passed, compileall passed
+- Forbidden folders touched: NO
+- Known issues: Trailing whitespace warnings in git (not errors)
+- Next safe task: Run live smoke test, push to remote after review
