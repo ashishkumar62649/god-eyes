@@ -18,6 +18,7 @@ import {
   PolylineCollection,
   Material,
   BillboardCollection,
+  Billboard,
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
@@ -137,12 +138,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
   const aircraftCollectionRef = useRef<BillboardCollection | null>(null);
-  // Per-aircraft record: billboard index + positions for interpolation + DR fields.
+  // Per-aircraft record: direct billboard reference + positions for interpolation + DR fields.
   interface AircraftRecord {
-    idx: number;
-    prevPos: Cartesian3;
+    billboard: Billboard;
+    currLat: number;
+    currLon: number;
+    currAltM: number;
     currPos: Cartesian3;
-    prevTime: number;
     currTime: number;
     staleAfter: number;
     // Dead reckoning fields (display-only, never written back as real data).
@@ -822,37 +824,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
           const existing = map.get(key);
           if (existing) {
-            existing.prevPos = existing.currPos;
-            existing.prevTime = existing.currTime;
             existing.currPos = newPos;
+            existing.currLat = ac.lat!;
+            existing.currLon = ac.lon!;
+            existing.currAltM = altMeters;
             existing.currTime = obsTime;
             existing.staleAfter = staleMs;
             existing.speedKt = speedKt;
             existing.trackDeg = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN;
             existing.verticalRateFpm = ac.verticalRateFpm ?? 0;
             existing.onGround = ac.onGround ?? false;
-            const bb = coll!.get(existing.idx);
-            if (bb) {
-              bb.image = image;
-              bb.color = color;
-              bb.rotation = rotation;
-              (bb.id as any)._aircraftData = ac;
-            }
+            existing.billboard.position = newPos;
+            existing.billboard.image = image;
+            existing.billboard.color = color;
+            existing.billboard.rotation = rotation;
+            (existing.billboard.id as any)._aircraftData = ac;
           } else {
-            const rec: AircraftRecord = {
-              idx: -1,
-              prevPos: newPos,
-              currPos: newPos,
-              prevTime: obsTime,
-              currTime: obsTime,
-              staleAfter: staleMs,
-              speedKt,
-              trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
-              verticalRateFpm: ac.verticalRateFpm ?? 0,
-              onGround: ac.onGround ?? false,
-            };
             const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
-            coll!.add({
+            const billboard = coll!.add({
               image,
               color,
               scale: 1.5,
@@ -862,8 +851,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
               id: idObj,
             });
-            rec.idx = coll!.length - 1;
-            map.set(key, rec);
+            map.set(key, {
+              billboard,
+              currLat: ac.lat!,
+              currLon: ac.lon!,
+              currAltM: altMeters,
+              currPos: newPos,
+              currTime: obsTime,
+              staleAfter: staleMs,
+              speedKt,
+              trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
+              verticalRateFpm: ac.verticalRateFpm ?? 0,
+              onGround: ac.onGround ?? false,
+            });
           }
         }
 
@@ -876,18 +876,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         // All valid aircraft applied. Remove gone/stale markers.
         for (const [key, rec] of map) {
           if (!seen.has(key)) {
-            const bb = coll!.get(rec.idx);
-            if (bb) bb.show = false;
+            coll!.remove(rec.billboard);
             map.delete(key);
           }
         }
 
         applyingRef.current = false;
         onAircraftRenderedRef.current?.(map.size);
+        viewerRef.current?.scene.requestRender();
         // Debug: log once per snapshot apply (not per frame).
         if (import.meta.env.DEV) {
           const first = valid[0];
-          console.log('[AIRCRAFT] applied', map.size, 'billboards; collection.length=', coll!.length,
+          console.log('[AIRCRAFT] snapshot applied', map.size, 'billboards; collection.length=', coll!.length,
             first ? `first: lon=${first.lon} lat=${first.lat} alt=${first.altitudeBaroFt}ft` : '');
         }
         if (pendingSnapshotRef.current) startApply();
@@ -931,8 +931,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const map = aircraftMapRef.current;
     if (coll) {
       for (const rec of map.values()) {
-        const bb = coll.get(rec.idx);
-        if (bb) bb.show = false;
+        rec.billboard.show = false;
       }
     }
     map.clear();
@@ -950,16 +949,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       const arrowImage = getAircraftArrowSprite().toDataURL();
       const dotImage = getAircraftDotSprite().toDataURL();
 
+      let updatedCount = 0;
+
       // Upsert changed/new aircraft.
       for (const ac of upsert) {
         if (ac.lat === null || ac.lon === null) continue;
-        // Do NOT filter by staleAfter — WS stream is source of truth for liveness.
         const key = ac.sourceObjectId;
         const heading = getAircraftHeadingDeg(ac);
         const color = getAircraftColor(ac);
         const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
           : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
-        const newPos = Cartesian3.fromDegrees(ac.lon, ac.lat, Math.max(0, altitudeFt * 0.3048));
+        const altMeters = Math.max(0, altitudeFt * 0.3048);
+        const newPos = Cartesian3.fromDegrees(ac.lon, ac.lat, altMeters);
         const obsTime = new Date(ac.observedAt).getTime();
         const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
         const image = heading !== null ? arrowImage : dotImage;
@@ -969,37 +970,63 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const existing = map.get(key);
         if (existing) {
-          existing.prevPos = existing.currPos;
-          existing.prevTime = existing.currTime;
+          const oldLon = existing.currLon;
+          const oldLat = existing.currLat;
           existing.currPos = newPos;
+          existing.currLat = ac.lat;
+          existing.currLon = ac.lon;
+          existing.currAltM = altMeters;
           existing.currTime = obsTime;
           existing.staleAfter = staleMs;
           existing.speedKt = speedKt;
           existing.trackDeg = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN;
           existing.verticalRateFpm = ac.verticalRateFpm ?? 0;
           existing.onGround = ac.onGround ?? false;
-          const bb = coll.get(existing.idx);
-          if (bb) { bb.image = image; bb.color = color; bb.rotation = rotation; (bb.id as any)._aircraftData = ac; }
+          existing.billboard.position = newPos;
+          existing.billboard.image = image;
+          existing.billboard.color = color;
+          existing.billboard.rotation = rotation;
+          (existing.billboard.id as any)._aircraftData = ac;
+          updatedCount++;
+          if (import.meta.env.DEV && updatedCount === 1) {
+            console.log(`[AIRCRAFT DELTA] moved ${key}: lon ${oldLon} → ${ac.lon}, lat ${oldLat} → ${ac.lat}`);
+          }
         } else {
-          const rec: AircraftRecord = {
-            idx: -1, prevPos: newPos, currPos: newPos, prevTime: obsTime, currTime: obsTime,
-            staleAfter: staleMs, speedKt,
-            trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
-            verticalRateFpm: ac.verticalRateFpm ?? 0, onGround: ac.onGround ?? false,
-          };
           const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
-          coll.add({ image, color, scale: 1.5, rotation, alignedAxis: Cartesian3.ZERO, position: newPos, disableDepthTestDistance: Number.POSITIVE_INFINITY, id: idObj });
-          rec.idx = coll.length - 1;
-          map.set(key, rec);
+          const billboard = coll.add({
+            image, color, scale: 1.5, rotation, alignedAxis: Cartesian3.ZERO,
+            position: newPos, disableDepthTestDistance: Number.POSITIVE_INFINITY, id: idObj,
+          });
+          map.set(key, {
+            billboard,
+            currLat: ac.lat,
+            currLon: ac.lon,
+            currAltM: altMeters,
+            currPos: newPos,
+            currTime: obsTime,
+            staleAfter: staleMs,
+            speedKt,
+            trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
+            verticalRateFpm: ac.verticalRateFpm ?? 0,
+            onGround: ac.onGround ?? false,
+          });
+          updatedCount++;
         }
       }
 
       // Remove aircraft explicitly listed.
       for (const key of removes) {
         const rec = map.get(key);
-        if (rec) { const bb = coll.get(rec.idx); if (bb) bb.show = false; map.delete(key); }
+        if (rec) { coll.remove(rec.billboard); map.delete(key); }
       }
 
+      if (import.meta.env.DEV) {
+        console.log(`[AIRCRAFT DELTA] upserts=${upsert.length} removes=${removes.length} billboardsUpdated=${updatedCount} total=${map.size}`);
+      }
+
+      if (updatedCount > 0 || removes.length > 0) {
+        viewerRef.current?.scene.requestRender();
+      }
       onAircraftRenderedRef.current?.(map.size);
     };
     onAircraftDeltaRef.current = deltaHandler;
@@ -1032,11 +1059,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       if (!coll || map.size === 0) return;
 
       const nowMs = Date.now();
+      let moved = 0;
 
       for (const [, rec] of map) {
         if (rec.onGround) continue;
         if (!isFinite(rec.trackDeg) || rec.speedKt <= 0) continue;
-        // staleAfter does not stop DR — WS stream controls liveness, DR is display-only.
 
         const elapsedSecs = Math.min(DR_MAX_SECS, (nowMs - rec.currTime) / 1000);
         if (elapsedSecs <= 0) continue;
@@ -1044,7 +1071,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         // Compute dead-reckoned position from currPos along trackDeg.
         const distM = rec.speedKt * KNOTS_TO_MPS * elapsedSecs;
         const trackRad = (rec.trackDeg * Math.PI) / 180;
-        // Approximate: move in Cartesian space along bearing.
         const cart = rec.currPos;
         const lon = Math.atan2(cart.y, cart.x);
         const lat = Math.atan2(cart.z, Math.sqrt(cart.x * cart.x + cart.y * cart.y));
@@ -1053,15 +1079,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const dLon = (distM * Math.sin(trackRad)) / (R * Math.cos(lat));
         const newLat = lat + dLat;
         const newLon = lon + dLon;
-        const altM = (rec.currPos as any)._z ?? Cartesian3.magnitude(rec.currPos) - 6371000;
+        const altM = rec.currAltM;
         const drAlt = Math.max(0, altM + rec.verticalRateFpm * FPM_TO_MPS * elapsedSecs);
 
         const drPos = Cartesian3.fromRadians(newLon, newLat, drAlt);
-        const bb = coll.get(rec.idx);
-        if (bb && bb.show !== false) {
-          // Update billboard position directly (bypasses CallbackProperty for DR).
-          (bb as any).position = drPos;
+        if (rec.billboard.show !== false) {
+          rec.billboard.position = drPos;
+          moved++;
         }
+      }
+
+      if (moved > 0) {
+        viewerRef.current?.scene.requestRender();
       }
     }
 
