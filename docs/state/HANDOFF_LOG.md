@@ -1,4 +1,21 @@
 
+### 2026-05-30T17:07:25Z Claude Sonnet 4.6 — WO-080C5 Fix Live Aircraft Delta Movement and Cesium Render Updates
+
+- Work order: WO-080C5
+- Branch: agent/claude-wo-080c5-fix-live-aircraft-delta-movement
+- Agent: Claude Sonnet 4.6 / Kiro CLI
+- Start time UTC: 2026-05-30T17:00:00Z
+- End time UTC: 2026-05-30T17:07:25Z
+- Commit hash: 8086a29 (local only, not pushed)
+- Push status: NOT PUSHED — awaiting Kiro review
+- Root cause: (1) AircraftRecord stored billboard index (idx) and used coll.get(rec.idx) to look up billboards. BillboardCollection indices shift after removals, so lookups returned wrong or null billboards. (2) Neither snapshot nor delta handlers ever set billboard.position — only image/color/rotation were updated, so aircraft never moved visually. (3) No viewer.scene.requestRender() calls anywhere — Cesium's requestRenderMode meant the scene never re-drew after WS updates.
+- Fixes: (1) Replaced AircraftRecord.idx with direct Billboard reference (billboard: Billboard). All coll.get(rec.idx) calls removed. (2) Added billboard.position = newPos in both snapshot applyChunk and delta handler for existing aircraft. (3) Added viewer.scene.requestRender() after snapshot apply completes, after delta handler when updatedCount > 0 or removes.length > 0, and after dead-reckoning tick when moved > 0. (4) Added DEV-only debug logging in delta handler: upserts/removes/billboardsUpdated/total counts + first moved aircraft lon/lat. (5) Fixed dead reckoning to use rec.currAltM instead of broken (rec.currPos as any)._z hack. (6) Snapshot removal now uses coll.remove(rec.billboard) instead of bb.show = false + broken idx lookup.
+- Files modified: apps/web/src/CesiumGlobe.tsx
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules, 1.02s), git diff --check (PASS)
+- Forbidden folders touched: NO
+- Review status: PENDING
+- Next safe task: Browser verification — turn on Live Aircraft, confirm markers move every ~5s, confirm dead reckoning smooth movement between deltas
+
 ### 2026-05-30T04:35:00Z Claude Sonnet 4.6 — WO-080C4 Stop Dropping Live Aircraft and Align Wire Fields
 
 - Work order: WO-080C4
