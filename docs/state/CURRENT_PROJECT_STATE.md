@@ -1,14 +1,19 @@
 # Current Project State
 
-## Phase: MVP Guardrails / Cleanup
+## Phase: Layer 05 Space & Satellites MVP Planning
 
 ## Goal
 
-Keep the repository safe for incremental layer work by enforcing the authoritative layer registry, broadening validation, and cleaning guardrails before any new layer starts.
+Define the authoritative lane contract for Layer 05 Space & Satellites so database, fetching, API, frontend, and review agents can work in parallel without drifting.
 
 ## Status
 
-**WO-081A Guardrails In Progress:** GOD EYES now uses the one-folder workflow at `E:\god-eyes`. The CI scope guard fix has been merged. Aviation MVP live aircraft rendering works through the API/WebSocket path when the live aircraft worker is publishing snapshots. Airport public profile enrichment works when its worker is running. Borders & Boundaries and Earth Events are implemented enough for the MVP/local-dev surface documented in the control docs. The next work is cleanup/refactor guardrails before any new layer work.
+**WO-082A Lane Contract Complete:** GOD EYES frontend cleanup (WO-081) is complete. Main branch is clean. Multi-lane workflow is active again. Layer 05 Space & Satellites MVP lane contract defined in `docs/layers/layer_05_space_satellites_mvp_contract.md`. Five parallel lanes ready to start:
+- Database (Codex, WO-082B)
+- Fetching (MiniMax, WO-082C)
+- API (DeepSeek, WO-082D)
+- Frontend (Sonnet 4.6, WO-082E)
+- Review (Claude Haiku 4.5, WO-082F)
 
 ### Completed Work Orders
 - ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
@@ -31,7 +36,14 @@ Keep the repository safe for incremental layer work by enforcing the authoritati
 - ✅ WO-078C through WO-078E10: Natural Earth ingestion, Borders frontend, MVP closeout
 - ✅ WO-079A: Aviation live-data source, database, and API architecture planned
 - ✅ WO-079B through WO-080C7: Aviation live aircraft schema, worker, WebSocket/API integration, Cesium render fixes, aircraft icons, and altitude color scale
-- ✅ CI scope guard fix merged
+- ✅ WO-081A: Repository guardrails and layer registry cleanup
+- ✅ WO-081B: Frontend overlay extraction and layer folder skeleton
+- ✅ WO-081C: FPS counter hook extraction
+- ✅ WO-081D: Cesium token setup helper extraction
+- ✅ WO-081E: Globe viewer helper cleanup bundle
+- ✅ WO-081F: Frontend layer organization + aircraft visual hotfix
+- ✅ WO-081G: Legacy aircraft frontend cleanup
+- ✅ WO-082A: Layer 05 Space & Satellites MVP lane contract
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
@@ -91,10 +103,13 @@ Keep the repository safe for incremental layer work by enforcing the authoritati
 
 ## Next Safe Steps
 
-1. **WO-081A Repository Guardrails:** Align layer numbering, current-state docs, and CI data-test scope.
-2. **No new layer until registry consistency is confirmed:** Space must be `layer_05_space_satellites` unless `docs/control/MVP_LAYER_REGISTRY.md` is intentionally changed later.
-3. **Refactor cleanup after guardrails:** Split large frontend/fetcher/API files in small behavior-preserving PRs with full validation.
+1. **WO-082B Database Lane:** Codex creates schema, migrations, tests
+2. **WO-082C Fetching Lane:** MiniMax implements fetcher, normalizer, tests
+3. **WO-082D API Lane:** DeepSeek implements endpoints, WebSocket, tests
+4. **WO-082E Frontend Lane:** Sonnet 4.6 implements UI, WebSocket client, tests
+5. **WO-082F Review Lane:** Claude Haiku 4.5 reviews all lanes, verifies integration
+6. **Boss review:** Final integration and merge to main
 
 ## Last Updated
 
-2026-05-31 — Codex (WO-081A-REPO-GUARDRAILS-LAYER-REGISTRY)
+2026-05-31 — Kiro CLI (WO-082A-SPACE-LAYER-CONTRACT)
