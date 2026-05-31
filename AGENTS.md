@@ -33,21 +33,26 @@
 - **Codex** must create database schema using layer-aware tables with `layer_id`/`source_id`/`source_object_id`.
 - **Claude** must create API contracts that match Codex schemas and Gemini frontend needs.
 
-## Layer Order (MVP starts with 0 and 1)
+## Layer Order
 
-| Layer ID | Name | Status |
-|----------|------|--------|
-| `layer_00_globe_core` | Globe Core | Next |
-| `layer_01_aviation` | Aviation | Next |
-| `layer_02_satellite` | Satellite | Future |
-| `layer_03_maritime` | Maritime | Future |
-| `layer_04_weather_disasters` | Weather/Disasters | Future |
-| `layer_05_cyber_infrastructure` | Cyber/Infrastructure | Future |
-| `layer_06_ai_intelligence` | AI Intelligence | Future |
+`docs/control/MVP_LAYER_REGISTRY.md` is the authoritative source of truth for layer IDs, layer order, and layer status. If any document or code disagrees with that registry, pause new layer work until the registry drift is fixed.
+
+| Layer ID | Name |
+|----------|------|
+| `layer_00_globe_core` | Globe Core |
+| `layer_01_aviation` | Aviation |
+| `layer_02_borders_boundaries` | Borders & Boundaries |
+| `layer_03_earth_events` | Earth Events |
+| `layer_04_public_military_security` | Public Military & Security |
+| `layer_05_space_satellites` | Space & Satellites |
+| `layer_06_maritime` | Maritime |
+| `layer_07_infrastructure` | Infrastructure |
+| `layer_08_news_osint` | News & OSINT |
+| `layer_09_user_shapes` | User Shapes / Custom Overlays |
 
 ## Not In Scope Yet
 
-Satellite, maritime, weather, cyber, AI intelligence layers.
+New layers beyond the current MVP implementation are not in scope until guardrails and layer numbering are consistent. Space must use `layer_05_space_satellites` unless the authoritative registry is intentionally changed in a future work order.
 
 ## Workflow
 
@@ -76,6 +81,7 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 ## Key Documents
 
 - `docs/control/GIT_WORKFLOW_POLICY.md` — Git commit and push rules
+- `docs/control/MVP_LAYER_REGISTRY.md` — authoritative layer registry and order
 - `docs/control/LAYER_ARCHITECTURE.md` — layer definitions and order
 - `docs/control/LAYER_ID_CONVENTIONS.md` — naming and folder conventions
 - `docs/control/LLM_OWNERSHIP_MATRIX.md` — who owns what

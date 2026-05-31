@@ -1,14 +1,14 @@
 # Current Project State
 
-## Phase: 0 — Layered Foundation
+## Phase: MVP Guardrails / Cleanup
 
 ## Goal
 
-Prepare the repository so GOD EYES can be built layer by layer, starting with Layer 0 Globe Core and Layer 1 Aviation.
+Keep the repository safe for incremental layer work by enforcing the authoritative layer registry, broadening validation, and cleaning guardrails before any new layer starts.
 
 ## Status
 
-**MVP Phase 2 In Progress:** Layer 2 Borders & Boundaries MVP complete and pushed (e6639e9). Layer 3 Earth Events complete. Aviation static airports complete. Aviation live aircraft architecture planned (WO-079A); implementation next.
+**WO-081A Guardrails In Progress:** GOD EYES now uses the one-folder workflow at `E:\god-eyes`. The CI scope guard fix has been merged. Aviation MVP live aircraft rendering works through the API/WebSocket path when the live aircraft worker is publishing snapshots. Airport public profile enrichment works when its worker is running. Borders & Boundaries and Earth Events are implemented enough for the MVP/local-dev surface documented in the control docs. The next work is cleanup/refactor guardrails before any new layer work.
 
 ### Completed Work Orders
 - ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
@@ -30,17 +30,21 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 - ✅ WO-078B: Natural Earth Admin-0 Countries 1:50m selected for MVP/local/dev
 - ✅ WO-078C through WO-078E10: Natural Earth ingestion, Borders frontend, MVP closeout
 - ✅ WO-079A: Aviation live-data source, database, and API architecture planned
+- ✅ WO-079B through WO-080C7: Aviation live aircraft schema, worker, WebSocket/API integration, Cesium render fixes, aircraft icons, and altitude color scale
+- ✅ CI scope guard fix merged
 
 ### Current Capabilities
 - ✅ Layer 0 Globe Core: Cesium globe with camera controls
-- ✅ Layer 1 Aviation: 85,377 airports globally (static); live aircraft architecture planned (WO-079A)
+- ✅ Layer 1 Aviation: 85,377 airports globally plus MVP live aircraft rendering
   - 8 category support (international, regional, local, heliport, seaplane, balloonport, closed, unknown)
   - Resident global cache mode (no tile/bbox/zoom loading)
   - Category filtering with instant updates
   - Object Intel detail view
   - StatusPanel with preload progress, loaded/visible counts
   - No FPS loss at 85k+ airports
+  - Live aircraft render through WebSocket when the live aircraft worker is running and publishing snapshots
   - Airport intelligence panel (ICAO, IATA, elevation, timezone, region)
+  - Airport public profile enrichment works when the worker is running
   - Airport image gallery
   - Airport layout runway overlay (OSM-sourced)
   - Closed runways hidden by default via `is_active = false`
@@ -74,13 +78,12 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## What Does Not Exist Yet
 
-- [ ] Layer 4 Space & Satellites
-- [ ] Layer 5 Maritime
-- [ ] Layer 6 Infrastructure
-- [ ] Layer 7 News & OSINT
-- [ ] Layer 8 Public Military & Security
+- [ ] Layer 4 Public Military & Security
+- [ ] Layer 5 Space & Satellites
+- [ ] Layer 6 Maritime
+- [ ] Layer 7 Infrastructure
+- [ ] Layer 8 News & OSINT
 - [ ] Layer 9 User Shapes / Drawings / Custom Overlays
-- [ ] Live aircraft tracking (real-time position streaming) — **architecture planned in WO-079A; implementation next**
 - [ ] User authentication
 - [ ] Data export/sharing
 - [ ] Generic layer API endpoints
@@ -88,12 +91,10 @@ Prepare the repository so GOD EYES can be built layer by layer, starting with La
 
 ## Next Safe Steps
 
-1. **WO-079B Aviation DB Migrations (GPT-5.5 / Codex):** Create aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches tables.
-2. **WO-079C Aviation Fetcher (MiniMax):** Airplanes.live worker (/mil + /ladd + /pia + /point), normalization, upsert, observation append.
-3. **WO-079D Aviation API (DeepSeek):** GET /api/aviation/aircraft/latest, bbox filter, single aircraft endpoint.
-4. **WO-079E Aviation Frontend (Claude Sonnet 4.6):** Heading arrow markers, 5s poll, interpolation, caveat display.
-5. **WO-079 Review (Claude Haiku 4.5 / Reviewer CLI):** Integration review and merge.
+1. **WO-081A Repository Guardrails:** Align layer numbering, current-state docs, and CI data-test scope.
+2. **No new layer until registry consistency is confirmed:** Space must be `layer_05_space_satellites` unless `docs/control/MVP_LAYER_REGISTRY.md` is intentionally changed later.
+3. **Refactor cleanup after guardrails:** Split large frontend/fetcher/API files in small behavior-preserving PRs with full validation.
 
 ## Last Updated
 
-2026-05-28 — Kiro CLI (WO-079A1-AVIATION-LIVE-PLAN-CONSISTENCY-PATCH)
+2026-05-31 — Codex (WO-081A-REPO-GUARDRAILS-LAYER-REGISTRY)

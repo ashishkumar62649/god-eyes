@@ -66,9 +66,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest psycopg
 
-      # Run Python Layer 1 aviation tests
+      # Run Python data tests for all implemented layers
       - name: Run Python data tests
-        run: python -m pytest tests/data/layer_01_aviation -q
+        run: python -m pytest tests/data -q
 
       # Build contracts package
       - name: Build contracts

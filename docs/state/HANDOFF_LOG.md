@@ -3539,3 +3539,20 @@ All agents must append to this file after completing work.
 - Aircraft marker color now follows altitude bands, with gray for on-ground aircraft.
 - Marker images are cached by icon/color and async SVG loading is safe.
 - Validation: contracts build passed, web build passed, git diff --check clean.
+
+## WO-081A — Repository Guardrails and Layer Registry Cleanup
+
+- Work order: WO-081A — Repository Guardrails and Layer Registry Cleanup
+- Agent: Codex
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-081a-repo-guardrails-layer-registry
+- Start time UTC: 2026-05-31T04:53:44Z
+- End time UTC: 2026-05-31T04:54:57Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: AGENTS.md; .github/workflows/ci.yml; docs/control/MVP_LAYER_REGISTRY.md; docs/control/LAYER_ARCHITECTURE.md; docs/control/DATA_LOCATION_RULES.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/HANDOFF_LOG.md
+- Commands run: python -m pytest tests/data -q; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; pnpm --filter web build; pnpm --filter api test; git diff --check; git status --short
+- Summary: Aligned guardrail docs to the authoritative 10-layer registry, documented generated folders as no-edit, updated current state, and broadened CI Python data tests to all tests/data.
+- Review status: pending Kiro review
+- Known issues: Initial data test run failed while the docs/CI worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
