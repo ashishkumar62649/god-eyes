@@ -89,7 +89,7 @@ interface CesiumGlobeProps {
   layoutFeatures?: AirportLayoutFeaturesResponse | null;
   earthEvents?: EarthEvent[];
   bordersData?: BordersBoundariesFeatureCollection | null;
-  /** Callback ref: called by useLiveAircraft with each new snapshot (no React re-render). */
+  /** Callback ref: called by useLiveAircraftSocket with each new snapshot (no React re-render). */
   onAircraftSnapshot?: SnapshotCallback;
   onAircraftDelta?: (upsert: AircraftLatest[], removes: string[]) => void;
   /** Ref CesiumGlobe populates with the actual snapshot renderer function. */
