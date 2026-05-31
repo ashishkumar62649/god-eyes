@@ -25,12 +25,12 @@ import { AircraftInfoOverlay } from './components/overlays/AircraftInfoOverlay';
 import { EarthquakeInfoOverlay } from './components/overlays/EarthquakeInfoOverlay';
 import { TokenWarningOverlay } from './components/overlays/TokenWarningOverlay';
 import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest } from '@god-eyes/contracts';
-import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
+import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
 
 import {
   fetchAllAviationCategories,
-} from './lib/aviationPreloader';
-import { isPositionVisible } from './lib/cesiumVisibility';
+} from './layers/aviation/airports/aviationPreloader';
+import { isPositionVisible } from './globe/cesiumVisibility';
 import {
   getAircraftAltitudeColor,
   getAircraftMarkerImage,
@@ -38,22 +38,22 @@ import {
   resolveAircraftIconName,
   getAircraftHeadingDeg,
   headingToBillboardRotation,
-} from './lib/aircraftMarker';
-import { RENDER_CAP } from './lib/useLiveAircraftSocket';
-import type { SnapshotCallback } from './lib/useLiveAircraftSocket';
+} from './layers/aviation/aircraft/aircraftMarker';
+import { RENDER_CAP } from './layers/aviation/aircraft/useLiveAircraftSocket';
+import type { SnapshotCallback } from './layers/aviation/aircraft/useLiveAircraftSocket';
 import {
   AviationFilters,
-} from './lib/aviationCategories';
+} from './layers/aviation/airports/aviationCategories';
 import {
   createGlobalDotCollection,
   addAllDotsToCollection,
   isGlobalDot,
   getGlobalDotPosition,
   filterVisibleGlobalDots,
-} from './lib/aviationGlobalRenderer';
+} from './layers/aviation/airports/aviationGlobalRenderer';
 import {
   getAllObjects,
-} from './lib/aviationObjectStore';
+} from './layers/aviation/airports/aviationObjectStore';
 import { useFpsCounter } from './globe/useFpsCounter';
 import { setupCesiumToken } from './globe/setupCesiumToken';
 import { configureViewerScene } from './globe/configureViewerScene';

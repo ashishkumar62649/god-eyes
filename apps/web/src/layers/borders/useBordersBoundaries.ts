@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BordersBoundariesFeatureCollection } from '@god-eyes/contracts';
-import { fetchBordersBoundariesCountries } from './api';
+import { fetchBordersBoundariesCountries } from '../../lib/api';
 
 export type BordersPhase =
   | { phase: 'idle' }

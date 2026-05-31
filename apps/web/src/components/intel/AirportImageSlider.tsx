@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { ImageAssetItem } from '../../lib/airportIntelligenceTypes';
+import type { ImageAssetItem } from '../../layers/aviation/airports/airportIntelligenceTypes';
 
 interface AirportImageSliderProps {
   items: ImageAssetItem[];

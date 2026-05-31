@@ -1,5 +1,5 @@
 import type { AirportObject } from '@god-eyes/contracts';
-import { fetchAviationPreload } from './api';
+import { fetchAviationPreload } from '../../../lib/api';
 import { storeObjects, getAllObjects } from './aviationObjectStore';
 import {
   API_CATEGORY_LARGE,

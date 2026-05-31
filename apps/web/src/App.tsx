@@ -5,11 +5,11 @@ import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import type { AircraftLatest } from '@god-eyes/contracts';
 import { SearchResult } from './lib/searchTypes';
 import { fetchAirportDetail } from './lib/api';
-import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './lib/aviationCategories';
-import { useAirportLayoutFeatures } from './lib/useAirportLayoutFeatures';
-import { useEarthEvents } from './lib/useEarthEvents';
-import { useBordersBoundaries } from './lib/useBordersBoundaries';
-import { useLiveAircraftSocket, LiveAircraftStatus } from './lib/useLiveAircraftSocket';
+import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './layers/aviation/airports/aviationCategories';
+import { useAirportLayoutFeatures } from './layers/aviation/airports/useAirportLayoutFeatures';
+import { useEarthEvents } from './layers/earth-events/useEarthEvents';
+import { useBordersBoundaries } from './layers/borders/useBordersBoundaries';
+import { useLiveAircraftSocket, LiveAircraftStatus } from './layers/aviation/aircraft/useLiveAircraftSocket';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 

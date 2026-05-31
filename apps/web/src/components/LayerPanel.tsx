@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import type { LayerRegistryEntry } from '@god-eyes/contracts';
-import { AviationFilters, AVIATION_CATEGORIES } from '../lib/aviationCategories';
+import { AviationFilters, AVIATION_CATEGORIES } from '../layers/aviation/airports/aviationCategories';
 import { useLayerRegistry } from '../lib/useLayerRegistry';
-import type { EarthEventsPhase } from '../lib/useEarthEvents';
-import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
+import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
+import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
+import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;

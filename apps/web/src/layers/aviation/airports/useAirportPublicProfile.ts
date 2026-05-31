@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchAirportPublicProfile } from './api';
+import { fetchAirportPublicProfile } from '../../../lib/api';
 import type {
   AirportPublicProfileResponse,
   PublicProfileData,

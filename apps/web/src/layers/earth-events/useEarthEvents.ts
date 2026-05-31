@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EarthEvent } from '@god-eyes/contracts';
-import { fetchEarthEventsLatest } from './api';
+import { fetchEarthEventsLatest } from '../../lib/api';
 
 export type EarthEventsPhase =
   | { phase: 'idle' }

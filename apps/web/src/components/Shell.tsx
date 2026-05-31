@@ -6,11 +6,11 @@ import StatusPanel from './StatusPanel';
 import '../styles/shell.css';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
-import { AviationFilters } from '../lib/aviationCategories';
-import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
-import type { EarthEventsPhase } from '../lib/useEarthEvents';
-import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
+import { AviationFilters } from '../layers/aviation/airports/aviationCategories';
+import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
+import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
+import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
+import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;
