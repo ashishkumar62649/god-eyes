@@ -3662,3 +3662,20 @@ All agents must append to this file after completing work.
 - Summary: Restored small live aircraft visual scale, removed infinite aircraft billboard depth-test bypass, added far-zoom altitude-colored overview dots, and kept zoomed-in aircraft icons at scale 0.70.
 - Review status: pending Kiro review
 - Known issues: Live aircraft logic was not rewritten; movement loop remains intact with scene.requestRender(). Initial data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation. Browser automation observed live aircraft count updating earlier, but later browser automation attempts timed out while interacting with the in-app browser.
+
+## WO-081G — Legacy Aircraft Frontend Cleanup
+
+- Work order: WO-081G — Legacy Aircraft Frontend Cleanup
+- Agent: Codex
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-081g-legacy-aircraft-cleanup
+- Start time UTC: 2026-05-31T13:27:00Z
+- End time UTC: 2026-05-31T13:29:13Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: apps/web/src/CesiumGlobe.tsx; apps/web/src/layers/aviation/aircraft/useLiveAircraft.ts; docs/state/HANDOFF_LOG.md
+- Commands run: rg useLiveAircraft checks; pnpm --filter web build; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; python -m pytest tests/data -q; git diff --check; git status --short
+- Summary: Checked legacy aircraft hook usage and removed unused REST polling useLiveAircraft.ts; authoritative live aircraft path remains useLiveAircraftSocket.ts.
+- Review status: pending Kiro review
+- Known issues: No live aircraft behavior changes intended; WebSocket hook, snapshot/delta handlers, dead reckoning, marker visuals, bbox callbacks, and selected aircraft logic untouched.
