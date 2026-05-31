@@ -22,6 +22,9 @@ import {
 } from 'cesium';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import AirportMapPopup from './components/intel/AirportMapPopup';
+import { AircraftInfoOverlay } from './components/overlays/AircraftInfoOverlay';
+import { EarthquakeInfoOverlay } from './components/overlays/EarthquakeInfoOverlay';
+import { TokenWarningOverlay } from './components/overlays/TokenWarningOverlay';
 import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './lib/airportLayoutTypes';
 
@@ -1130,18 +1133,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', background: 'black' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-      {tokenMissing && (
-        <div style={{
-          position: 'absolute', top: '74px', left: '20px',
-          background: 'rgba(255, 165, 0, 0.2)',
-          border: '1px solid rgba(255, 165, 0, 0.4)', color: '#ff8c00',
-          padding: '6px 12px', borderRadius: '4px', fontSize: '0.7rem',
-          zIndex: 1000, pointerEvents: 'none',
-          fontFamily: 'JetBrains Mono, monospace', letterSpacing: '1px',
-        }}>
-          SYSTEM WARNING: CESIUM_ION_TOKEN_ABSENT
-        </div>
-      )}
+      {tokenMissing && <TokenWarningOverlay />}
       {selectedAirport && popupPos && (
         <AirportMapPopup
           airport={selectedAirport}
@@ -1151,71 +1143,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         />
       )}
       {selectedEarthquake && (
-        <div style={{
-          position: 'absolute', bottom: '80px', right: '20px',
-          background: 'rgba(10, 14, 20, 0.92)',
-          border: '1px solid rgba(255, 61, 0, 0.4)',
-          color: '#e0e0e0', padding: '10px 14px', borderRadius: '4px',
-          fontSize: '0.68rem', fontFamily: 'JetBrains Mono, monospace',
-          letterSpacing: '0.5px', zIndex: 1000, maxWidth: '260px',
-          lineHeight: '1.6',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ color: '#ff3d00', fontWeight: 700, letterSpacing: '1px' }}>
-              EARTHQUAKE M{selectedEarthquake.magnitude?.toFixed(1) ?? '?'}
-            </span>
-            <button
-              onClick={() => setSelectedEarthquake(null)}
-              style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
-            >✕</button>
-          </div>
-          {selectedEarthquake.place && <div>{selectedEarthquake.place}</div>}
-          {selectedEarthquake.depthKm != null && <div>DEPTH: {selectedEarthquake.depthKm} km</div>}
-          <div>TIME: {new Date(selectedEarthquake.observedAt).toUTCString()}</div>
-          {selectedEarthquake.sourceUrl && (
-            <div style={{ marginTop: '4px' }}>
-              <a href={selectedEarthquake.sourceUrl} target="_blank" rel="noopener noreferrer"
-                style={{ color: '#64b5f6', textDecoration: 'none' }}>
-                SOURCE ↗
-              </a>
-            </div>
-          )}
-        </div>
+        <EarthquakeInfoOverlay
+          earthquake={selectedEarthquake}
+          onClose={() => setSelectedEarthquake(null)}
+        />
       )}
       {selectedAircraft && (
-        <div style={{
-          position: 'absolute', bottom: '80px', right: '20px',
-          background: 'rgba(10, 14, 20, 0.92)',
-          border: '1px solid rgba(0, 229, 255, 0.4)',
-          color: '#e0e0e0', padding: '10px 14px', borderRadius: '4px',
-          fontSize: '0.68rem', fontFamily: 'JetBrains Mono, monospace',
-          letterSpacing: '0.5px', zIndex: 1000, maxWidth: '280px',
-          lineHeight: '1.6',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ color: '#00e5ff', fontWeight: 700, letterSpacing: '1px' }}>
-              {selectedAircraft.callsign?.trim() || selectedAircraft.registration || selectedAircraft.sourceObjectId}
-              {selectedAircraft.isMilitary ? ' • MIL' : ''}
-              {selectedAircraft.emergency && selectedAircraft.emergency !== 'none' ? ' • EMERGENCY' : ''}
-            </span>
-            <button
-              onClick={() => setSelectedAircraft(null)}
-              style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
-            >✕</button>
-          </div>
-          {selectedAircraft.registration && <div>REG: {selectedAircraft.registration}</div>}
-          {selectedAircraft.aircraftType && <div>TYPE: {selectedAircraft.aircraftType}</div>}
-          {selectedAircraft.altitudeBaroFt != null && <div>ALT: {selectedAircraft.altitudeBaroFt.toLocaleString()} ft</div>}
-          {selectedAircraft.groundSpeedKt != null && <div>SPEED: {Math.round(selectedAircraft.groundSpeedKt)} kt</div>}
-          {(selectedAircraft.trackDeg ?? selectedAircraft.headingTrueDeg ?? selectedAircraft.headingMagDeg) != null && (
-            <div>HEADING: {Math.round((selectedAircraft.trackDeg ?? selectedAircraft.headingTrueDeg ?? selectedAircraft.headingMagDeg)!)}°</div>
-          )}
-          <div style={{ opacity: 0.7 }}>ID: {selectedAircraft.sourceObjectId}</div>
-          <div style={{ opacity: 0.7 }}>OBSERVED: {new Date(selectedAircraft.observedAt).toUTCString()}</div>
-          <div style={{ marginTop: '6px', fontSize: '0.55rem', color: '#ffab00', opacity: 0.7, lineHeight: 1.4 }}>
-            Live aircraft data: Airplanes.live (non-commercial/no-SLA). Not complete global coverage.
-          </div>
-        </div>
+        <AircraftInfoOverlay
+          aircraft={selectedAircraft}
+          onClose={() => setSelectedAircraft(null)}
+        />
       )}
     </div>
   );
