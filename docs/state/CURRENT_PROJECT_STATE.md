@@ -8,7 +8,7 @@ Define the authoritative lane contract for Layer 05 Space & Satellites so databa
 
 ## Status
 
-**WO-082A Lane Contract Complete:** GOD EYES frontend cleanup (WO-081) is complete. Main branch is clean. Multi-lane workflow is active again. Layer 05 Space & Satellites MVP lane contract defined in `docs/layers/layer_05_space_satellites_mvp_contract.md`. Five parallel lanes ready to start:
+**WO-082A Lane Contract Complete:** GOD EYES frontend cleanup (WO-081) is complete. Main branch is clean. Multi-lane workflow is active again. Layer 05 Space & Satellites MVP lane contract defined in `docs/control/layer_05_space_satellites_mvp_contract.md`. Five parallel lanes ready to start:
 - Database (Codex, WO-082B)
 - Fetching (MiniMax, WO-082C)
 - API (DeepSeek, WO-082D)
