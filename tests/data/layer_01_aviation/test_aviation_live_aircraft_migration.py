@@ -1,4 +1,5 @@
 import subprocess
+import pytest
 from pathlib import Path
 
 
@@ -173,6 +174,9 @@ def test_aviation_live_aircraft_work_order_changes_stay_in_allowed_paths():
         for line in result.stdout.splitlines()
         if line and not line.startswith("?? .pytest_cache/")
     ]
+
+    if not changed_paths:
+        pytest.skip("Scope guard only applies during local dirty worktree work-order review")
 
     allowed_prefixes = (
         "database/migrations/layers/layer_01_aviation/012_aviation_live_aircraft_tables.sql",
