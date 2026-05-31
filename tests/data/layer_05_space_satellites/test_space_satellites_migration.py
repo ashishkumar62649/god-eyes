@@ -229,6 +229,7 @@ def test_space_satellites_work_order_changes_stay_in_allowed_paths():
     allowed_prefixes = (
         "database/migrations/layers/layer_05_space_satellites/",
         "tests/data/layer_05_space_satellites/",
+        "services/fetch-orchestrator/src/layers/layer_05_space_satellites/",
         "docs/state/HANDOFF_LOG.md",
     )
     assert changed_paths
