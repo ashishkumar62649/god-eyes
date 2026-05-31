@@ -12,8 +12,8 @@ GOD EYES is built as a stack of visual layers on a 3D globe. Each layer represen
 |---|----------|------|-------------|------------|------|
 | 0 | `layer_00_globe_core` | Globe Core | 3D globe, camera, base map, layer registry, selection system | active | static |
 | 1 | `layer_01_aviation` | Aviation | Aircraft positions, airports, flight routes, details panel | active | live |
-| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | Country borders, administrative boundaries, disputed areas | coming_soon | static |
-| 3 | `layer_03_earth_events` | Earth Events | Earthquakes, volcanic activity, weather alerts, natural disasters | coming_soon | live |
+| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | Country borders, administrative boundaries, disputed areas | active (MVP/local-dev) | static |
+| 3 | `layer_03_earth_events` | Earth Events | Earthquakes, volcanic activity, weather alerts, natural disasters | active | live |
 | 4 | `layer_04_public_military_security` | Public Military & Security | Public defense installations, open-source military data | coming_soon | static (MVP) |
 | 5 | `layer_05_space_satellites` | Space & Satellites | Satellite objects, orbits, tracks, debris | coming_soon | live |
 | 6 | `layer_06_maritime` | Maritime | Vessel positions, ports, vessel details | coming_soon | live |
@@ -50,9 +50,9 @@ Components:
 - Aviation API endpoints
 - Aviation frontend layer folder
 
-## Layer 2: Borders & Boundaries (Coming Soon)
+## Layer 2: Borders & Boundaries
 
-Layer for rendering country borders, administrative boundaries, and disputed territories.
+Layer for rendering country borders, administrative boundaries, and disputed territories. MVP/local-dev rendering exists; production approval still requires boundary compliance review.
 
 Components:
 - Country border polygons
@@ -61,7 +61,7 @@ Components:
 - Static GeoJSON source (Natural Earth, UN)
 - Single snapshot DB table
 
-## Layer 3: Earth Events (Coming Soon)
+## Layer 3: Earth Events
 
 Real-time natural event tracking from authoritative public feeds.
 
