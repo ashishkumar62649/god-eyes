@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getAirportIntelligence } from './api';
+import { getAirportIntelligence } from '../../../lib/api';
 import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
 
 export type IntelPhase =

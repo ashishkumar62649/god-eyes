@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getAirportLayoutFeatures } from './api';
+import { getAirportLayoutFeatures } from '../../../lib/api';
 import type { AirportLayoutFeaturesResponse } from './airportLayoutTypes';
 
 export type LayoutPhase =

@@ -6,12 +6,12 @@ import FrequenciesSection from './intel/FrequenciesSection';
 import NearbyNavaidsSection from './intel/NearbyNavaidsSection';
 import DataQualityCard from './intel/DataQualityCard';
 import AirportImageSlider from './intel/AirportImageSlider';
-import { useAirportPublicProfile } from '../lib/useAirportPublicProfile';
-import { useAirportIntelligence } from '../lib/useAirportIntelligence';
-import type { PublicProfileData, PublicProfileAttribution } from '../lib/airportPublicProfileTypes';
-import type { AirportIntelImages } from '../lib/airportIntelligenceTypes';
+import { useAirportPublicProfile } from '../layers/aviation/airports/useAirportPublicProfile';
+import { useAirportIntelligence } from '../layers/aviation/airports/useAirportIntelligence';
+import type { PublicProfileData, PublicProfileAttribution } from '../layers/aviation/airports/airportPublicProfileTypes';
+import type { AirportIntelImages } from '../layers/aviation/airports/airportIntelligenceTypes';
 import AirportLayoutOverlayToggle from './intel/AirportLayoutOverlayToggle';
-import type { LayoutPhase } from '../lib/useAirportLayoutFeatures';
+import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;

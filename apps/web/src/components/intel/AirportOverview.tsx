@@ -1,6 +1,6 @@
 import React from 'react';
 import { AirportObject } from '@god-eyes/contracts';
-import { getCategoryLabel } from '../../lib/aviationCategories';
+import { getCategoryLabel } from '../../layers/aviation/airports/aviationCategories';
 
 interface AirportOverviewProps {
   airport: AirportObject;

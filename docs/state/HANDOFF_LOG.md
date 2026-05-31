@@ -3625,3 +3625,23 @@ All agents must append to this file after completing work.
 - Scene configuration: configureViewerScene extracted for static scene/controller assignments only.
 - Review status: pending Kiro review
 - Known issues: No runtime behavior changes intended; live aircraft renderer internals untouched. Initial data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
+
+## WO-081F — Frontend Layer Folder and File Naming Cleanup Bundle
+
+- Work order: WO-081F — Frontend Layer Folder and File Naming Cleanup Bundle
+- Agent: Codex
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-081f-frontend-layer-organization
+- Start time UTC: 2026-05-31T12:06:00Z
+- End time UTC: 2026-05-31T12:16:17Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files moved/renamed: clear aircraft modules to apps/web/src/layers/aviation/aircraft; aviation airport modules to apps/web/src/layers/aviation/airports; border and earth-event hooks to their layer folders; cesiumVisibility to apps/web/src/globe.
+- Imports updated: App, CesiumGlobe, shell/status/layer/detail components, intel components, shared API type imports, and moved layer modules.
+- Ambiguous files left in place: apps/web/src/lib/api.ts, searchParser.ts, searchProviders.ts, searchTypes.ts, useLayerRegistry.ts, and UI-only components/intel files.
+- Legacy candidates found: useLiveAircraft.ts appears to be replaced by useLiveAircraftSocket but was moved, not deleted.
+- Commands run: pnpm --filter web build; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; python -m pytest tests/data -q; rg import-path checks; git diff --check; git status --short
+- Summary: Organized frontend source into globe and layer folders through file moves and import-path updates only.
+- Review status: pending Kiro review
+- Known issues: No runtime behavior changes intended; live aircraft logic was moved/imported only, not rewritten. Initial data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.

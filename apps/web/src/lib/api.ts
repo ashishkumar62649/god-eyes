@@ -9,9 +9,9 @@ import type {
   AircraftLatestListResponse,
   AircraftDetailResponse,
 } from '@god-eyes/contracts';
-import type { AirportPublicProfileResponse } from './airportPublicProfileTypes';
-import type { AirportIntelligenceResponse } from './airportIntelligenceTypes';
-import type { AirportLayoutFeaturesResponse } from './airportLayoutTypes';
+import type { AirportPublicProfileResponse } from '../layers/aviation/airports/airportPublicProfileTypes';
+import type { AirportIntelligenceResponse } from '../layers/aviation/airports/airportIntelligenceTypes';
+import type { AirportLayoutFeaturesResponse } from '../layers/aviation/airports/airportLayoutTypes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const CACHE_TTL_MS = 60_000;

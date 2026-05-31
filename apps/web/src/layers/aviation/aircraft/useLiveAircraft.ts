@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AircraftLatest } from '@god-eyes/contracts';
-import { fetchLiveAircraft } from './api';
+import { fetchLiveAircraft } from '../../../lib/api';
 
 const POLL_INTERVAL_MS = 5000;
 export const RENDER_CAP = 20000;

@@ -1,5 +1,5 @@
 import type { AirportObject } from '@god-eyes/contracts';
-import { fetchAviationLayerObjects } from './api';
+import { fetchAviationLayerObjects } from '../../../lib/api';
 
 const TILE_DEG = 30;
 const MAX_CONCURRENCY = 3;

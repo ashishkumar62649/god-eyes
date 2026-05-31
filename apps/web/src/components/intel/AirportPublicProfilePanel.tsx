@@ -4,7 +4,7 @@ import type {
   AirportPublicProfileResponse,
   PublicProfileData,
   PublicProfileAttribution,
-} from '../../lib/airportPublicProfileTypes';
+} from '../../layers/aviation/airports/airportPublicProfileTypes';
 
 interface Props {
   airportId: string;

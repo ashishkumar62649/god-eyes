@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { BordersPhase } from '../lib/useBordersBoundaries';
-import type { EarthEventsPhase } from '../lib/useEarthEvents';
-import type { LiveAircraftStatus } from '../lib/useLiveAircraftSocket';
+import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
+import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
+import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 
 interface AviationStats {
   loaded: number;

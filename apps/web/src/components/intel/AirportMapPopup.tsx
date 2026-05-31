@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { AirportObject } from '@god-eyes/contracts';
-import { useAirportIntelligence } from '../../lib/useAirportIntelligence';
-import type { AirportIntelMapPopup, AirportIntelImages } from '../../lib/airportIntelligenceTypes';
+import { useAirportIntelligence } from '../../layers/aviation/airports/useAirportIntelligence';
+import type { AirportIntelMapPopup, AirportIntelImages } from '../../layers/aviation/airports/airportIntelligenceTypes';
 import AirportImageSlider from './AirportImageSlider';
 
 interface AirportMapPopupProps {
