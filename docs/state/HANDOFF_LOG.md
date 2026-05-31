@@ -3696,3 +3696,21 @@ All agents must append to this file after completing work.
 - Review status: pending validation
 - Known issues: None
 - Next task: WO-082B Database lane (Codex)
+
+## WO-082B - Layer 05 Space & Satellites Database Schema
+
+- Work order: WO-082B - Layer 05 Space & Satellites Database Schema
+- Agent: Codex
+- LLM model: GPT-5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-082b-space-db
+- Start time UTC: 2026-05-31T16:04:58Z
+- End time UTC: 2026-05-31T16:12:06Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: database/migrations/layers/layer_05_space_satellites/001_space_satellites_tables.sql; tests/data/layer_05_space_satellites/test_space_satellites_migration.py; docs/state/HANDOFF_LOG.md
+- Commands run: git fetch origin; python -m pytest tests/data/layer_05_space_satellites -q; python -m pytest tests/data -q; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; pnpm --filter web build; git diff --check; git status --short
+- Summary: Added schema-only Layer 05 satellite catalog and latest estimated position tables with layer/source identity, NORAD support, TLE/orbital metadata, render metadata, enum-style checks, freshness fields, and practical query indexes.
+- Review status: pending Kiro review
+- Known issues: Full data suite failed before commit because an existing Aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-worktree rerun after local commit passed. Initial parallel pnpm build attempt raced dependency linking on Windows; sequential reruns passed.
+- Next task: WO-082C Fetching lane can implement public TLE ingestion/normalization against the Layer 05 schema without adding network behavior to this lane.
