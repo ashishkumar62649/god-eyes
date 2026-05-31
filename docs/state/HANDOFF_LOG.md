@@ -3556,3 +3556,20 @@ All agents must append to this file after completing work.
 - Summary: Aligned guardrail docs to the authoritative 10-layer registry, documented generated folders as no-edit, updated current state, and broadened CI Python data tests to all tests/data.
 - Review status: pending Kiro review
 - Known issues: Initial data test run failed while the docs/CI worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
+
+## WO-081B — Frontend Overlay Extraction and Layer Folder Skeleton
+
+- Work order: WO-081B — Frontend Overlay Extraction and Layer Folder Skeleton
+- Agent: Codex
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-081b-frontend-overlay-extraction
+- Start time UTC: 2026-05-31T05:08:00Z
+- End time UTC: 2026-05-31T05:15:07Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: apps/web/src/CesiumGlobe.tsx; apps/web/src/components/overlays/*; apps/web/src/globe/.gitkeep; apps/web/src/layers/**/*.gitkeep; docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; python -m pytest tests/data -q; git diff --check; git status --short
+- Summary: Extracted low-risk token, earthquake, and aircraft overlay JSX from CesiumGlobe into presentational components and added the future frontend layer folder skeleton.
+- Review status: pending Kiro review
+- Known issues: No runtime behavior changes intended; live aircraft renderer internals untouched. Initial optional data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
