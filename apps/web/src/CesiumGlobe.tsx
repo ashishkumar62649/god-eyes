@@ -55,6 +55,7 @@ import {
 import {
   getAllObjects,
 } from './lib/aviationObjectStore';
+import { useFpsCounter } from './globe/useFpsCounter';
 
 interface AviationStats {
   loaded: number;
@@ -179,7 +180,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationFiltersRef = useRef(aviationFilters);
   const cameraHeightRef = useRef(20000000);
 
-  const fpsRef = useRef<number>(0);
+  const { fpsRef, startFpsCounter } = useFpsCounter();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -379,8 +380,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     if (!containerRef.current) return;
 
     let viewer: Viewer | undefined;
-    let fpsInterval: ReturnType<typeof setInterval> | undefined;
-    let fpsPostRender: (() => void) | undefined;
+    let stopFpsCounter: (() => void) | undefined;
     let moveEndHandler: (() => void) | undefined;
     let changedHandler: (() => void) | undefined;
 
@@ -429,21 +429,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       viewer.scene.primitives.add(aircraftCollection);
       aircraftCollectionRef.current = aircraftCollection;
 
-      // FPS tracking
-      let fpsFrameCount = 0;
-      let fpsLastUpdate = performance.now();
-      fpsPostRender = viewer.scene.postRender.addEventListener(() => {
-        fpsFrameCount++;
-      });
-      fpsInterval = setInterval(() => {
-        const now = performance.now();
-        const delta = now - fpsLastUpdate;
-        if (delta > 0) {
-          fpsRef.current = Math.round(fpsFrameCount / (delta / 1000));
-        }
-        fpsFrameCount = 0;
-        fpsLastUpdate = now;
-      }, 1000);
+      stopFpsCounter = startFpsCounter(viewer);
 
       // Camera changed — debounced occlusion update only, NO data fetching
       changedHandler = () => {
@@ -533,8 +519,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
 
     return () => {
-      if (typeof fpsInterval !== 'undefined') clearInterval(fpsInterval);
-      if (typeof fpsPostRender !== 'undefined') fpsPostRender();
+      if (typeof stopFpsCounter !== 'undefined') stopFpsCounter();
       if (typeof changedHandler !== 'undefined' && viewer) {
         viewer.camera.changed.removeEventListener(changedHandler);
       }
