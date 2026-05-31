@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Viewer,
-  Ion,
   Cartesian2,
   Cartesian3,
   Color,
@@ -56,6 +55,7 @@ import {
   getAllObjects,
 } from './lib/aviationObjectStore';
 import { useFpsCounter } from './globe/useFpsCounter';
+import { setupCesiumToken } from './globe/setupCesiumToken';
 
 interface AviationStats {
   loaded: number;
@@ -368,13 +368,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   // Viewer initialization
   useEffect(() => {
     console.log('[AVIATION] viewer init useEffect');
-    const token = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;
 
-    if (!token || token === 'replace_with_your_cesium_ion_token') {
-      console.warn('Cesium Ion access token is missing. Some features may not work.');
+    if (!setupCesiumToken()) {
       setTokenMissing(true);
-    } else {
-      Ion.defaultAccessToken = token;
     }
 
     if (!containerRef.current) return;

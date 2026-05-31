@@ -3590,3 +3590,20 @@ All agents must append to this file after completing work.
 - Summary: Extracted the Cesium postRender/setInterval FPS counter into apps/web/src/globe/useFpsCounter.ts while preserving the ref-based FPS value consumed by CesiumGlobe stats.
 - Review status: pending Kiro review
 - Known issues: No runtime behavior changes intended; live aircraft renderer internals untouched. Initial optional data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
+
+## WO-081D — Extract Cesium Token Setup Helper
+
+- Work order: WO-081D — Extract Cesium Token Setup Helper
+- Agent: Codex
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-081d-cesium-token-helper
+- Start time UTC: 2026-05-31T07:15:00Z
+- End time UTC: 2026-05-31T07:18:44Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: apps/web/src/CesiumGlobe.tsx; apps/web/src/globe/setupCesiumToken.ts; docs/state/HANDOFF_LOG.md
+- Commands run: pnpm --filter web build; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; python -m pytest tests/data -q; git diff --check; git status --short
+- Summary: Extracted Cesium Ion token lookup, placeholder detection, warning log, and Ion.defaultAccessToken assignment into apps/web/src/globe/setupCesiumToken.ts.
+- Review status: pending Kiro review
+- Known issues: No runtime behavior changes intended; live aircraft renderer internals untouched. Initial optional data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
