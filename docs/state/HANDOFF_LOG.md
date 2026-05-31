@@ -3645,3 +3645,20 @@ All agents must append to this file after completing work.
 - Summary: Organized frontend source into globe and layer folders through file moves and import-path updates only.
 - Review status: pending Kiro review
 - Known issues: No runtime behavior changes intended; live aircraft logic was moved/imported only, not rewritten. Initial data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation.
+
+## WO-081F-HOTFIX — Restore Live Aircraft Visual Behavior After Frontend Moves
+
+- Work order: WO-081F-HOTFIX — Restore Live Aircraft Visual Behavior After Frontend Moves
+- Agent: Codex
+- LLM model: GPT-5.5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-081f-frontend-layer-organization
+- Start time UTC: 2026-05-31T12:42:00Z
+- End time UTC: 2026-05-31T12:55:29Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: apps/web/src/CesiumGlobe.tsx; apps/web/src/layers/aviation/aircraft/aircraftMarker.ts; docs/state/HANDOFF_LOG.md
+- Commands run: git diff --find-renames --name-status main...HEAD; git diff --find-renames --summary main...HEAD; rg live-aircraft visual checks; pnpm --filter web build; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; python -m pytest tests/data -q; git diff --check; git status --short
+- Summary: Restored small live aircraft visual scale, removed infinite aircraft billboard depth-test bypass, added far-zoom altitude-colored overview dots, and kept zoomed-in aircraft icons at scale 0.70.
+- Review status: pending Kiro review
+- Known issues: Live aircraft logic was not rewritten; movement loop remains intact with scene.requestRender(). Initial data test run failed while the frontend worktree was dirty because an existing aviation scope guard rejects unrelated dirty paths; rerun after local commit is required for clean-worktree validation. Browser automation observed live aircraft count updating earlier, but later browser automation attempts timed out while interacting with the in-app browser.

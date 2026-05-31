@@ -148,11 +148,16 @@ export function getAircraftMarkerImageAsync(iconName: string, color: string): Pr
   return svgFetchCache.get(key)!;
 }
 
+export function getAircraftDotMarkerImage(color: string): string {
+  return buildOverviewDotDataUrl(color);
+}
+
 // ---------------------------------------------------------------------------
 // Fallback canvas dot (used while SVG loads or on error)
 // ---------------------------------------------------------------------------
 
 const fallbackCache = new Map<string, string>();
+const overviewDotCache = new Map<string, string>();
 
 function buildFallbackDataUrl(color: string): string {
   const cached = fallbackCache.get(color);
@@ -171,6 +176,26 @@ function buildFallbackDataUrl(color: string): string {
   }
   const url = canvas.toDataURL();
   fallbackCache.set(color, url);
+  return url;
+}
+
+function buildOverviewDotDataUrl(color: string): string {
+  const cached = overviewDotCache.get(color);
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = 16; canvas.height = 16;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(8, 8, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  const url = canvas.toDataURL();
+  overviewDotCache.set(color, url);
   return url;
 }
 
@@ -226,4 +251,4 @@ export function getAircraftDotSprite(): HTMLCanvasElement {
   return canvas;
 }
 
-export const AIRCRAFT_BILLBOARD_SCALE = 1.5;
+export const AIRCRAFT_BILLBOARD_SCALE = 0.70; // 16px source icon -> ~11px on screen.
