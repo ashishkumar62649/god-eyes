@@ -56,6 +56,8 @@ import {
 } from './lib/aviationObjectStore';
 import { useFpsCounter } from './globe/useFpsCounter';
 import { setupCesiumToken } from './globe/setupCesiumToken';
+import { configureViewerScene } from './globe/configureViewerScene';
+import { createViewerOptions } from './globe/viewerOptions';
 
 interface AviationStats {
   loaded: number;
@@ -381,28 +383,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     let changedHandler: (() => void) | undefined;
 
     try {
-      viewer = new Viewer(containerRef.current, {
-        terrainProvider: undefined,
-        animation: false,
-        timeline: false,
-        fullscreenButton: false,
-        baseLayerPicker: true,
-        geocoder: false,
-        homeButton: false,
-        infoBox: false,
-        sceneModePicker: false,
-        selectionIndicator: false,
-        navigationHelpButton: false,
-      });
-
-      viewer.scene.debugShowFramesPerSecond = false;
-      viewer.scene.globe.depthTestAgainstTerrain = true;
-
-      const cameraController = viewer.scene.screenSpaceCameraController;
-      cameraController.inertiaZoom = 0;
-      cameraController.maximumMovementRatio = 0.1;
-      cameraController.minimumZoomDistance = 100;
-      cameraController.maximumZoomDistance = 50000000;
+      viewer = new Viewer(containerRef.current, createViewerOptions());
+      configureViewerScene(viewer);
 
       viewerRef.current = viewer;
       viewerReadyRef.current = true;
