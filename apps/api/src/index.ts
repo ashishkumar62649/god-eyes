@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { IncomingMessage } from 'node:http';
 import { config } from './lib/config.js';
 import { healthRoutes } from './routes/health.js';
 import { layerRoutes } from './routes/layers.js';
@@ -10,7 +11,8 @@ import { airportLayoutFeaturesRoutes } from './routes/airport-layout-features/in
 import { earthEventsRoutes } from './routes/earth-events.js';
 import { bordersBoundariesRoutes } from './routes/borders-boundaries.js';
 import { aviationAircraftRoutes } from './routes/aviation-aircraft.js';
-import { attachLiveAircraftWebSocket, upgradeWebSocket } from './routes/live-aircraft.js';
+import { attachLiveAircraftWebSocket } from './routes/live-aircraft.js';
+import { spaceSatellitesRoutes, attachSpaceSatellitesWebSocket } from './routes/space/satellites.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -35,6 +37,7 @@ async function start() {
     await fastify.register(earthEventsRoutes);
     await fastify.register(bordersBoundariesRoutes);
     await fastify.register(aviationAircraftRoutes);
+    await fastify.register(spaceSatellitesRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {
@@ -45,10 +48,25 @@ async function start() {
     await fastify.listen({ port: config.port, host: '0.0.0.0' });
     fastify.log.info(`Server running on http://localhost:${config.port}`);
 
-    // Attach live aircraft WebSocket broadcaster (non-blocking, no DB required at startup)
-    const { broadcaster, wss } = attachLiveAircraftWebSocket(fastify);
-    upgradeWebSocket(fastify, wss);
+    // Attach WebSocket broadcasters (non-blocking, no DB required at startup)
+    const { wss: aviationWss } = attachLiveAircraftWebSocket(fastify);
+    const { wss: spaceWss } = attachSpaceSatellitesWebSocket(fastify);
     fastify.log.info('Live aircraft WebSocket broadcaster started on /ws/aviation/aircraft/live');
+    fastify.log.info('Space satellites WebSocket broadcaster started on /ws/space/satellites/live');
+
+    // Single combined upgrade handler for all known WS paths
+    const server = fastify.server;
+    if (server) {
+      server.on('upgrade', (req: IncomingMessage, socket, head) => {
+        if (req.url === '/ws/aviation/aircraft/live') {
+          aviationWss.handleUpgrade(req, socket, head, (ws) => aviationWss.emit('connection', ws, req));
+        } else if (req.url === '/ws/space/satellites/live') {
+          spaceWss.handleUpgrade(req, socket, head, (ws) => spaceWss.emit('connection', ws, req));
+        } else {
+          socket.destroy();
+        }
+      });
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -3748,3 +3748,47 @@ All agents must append to this file after completing work.
 - Review status: pending Kiro review
 - Known issues: Full data suite failed before commit because an existing Aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-worktree rerun after local commit passed. Initial parallel pnpm build attempt raced dependency linking on Windows; sequential reruns passed.
 - Next task: WO-082C Fetching lane can implement public TLE ingestion/normalization against the Layer 05 schema without adding network behavior to this lane.
+
+### 2026-06-01T09:15:00Z DeepSeek — WO-082D Space & Satellites API and WebSocket
+
+- Work order: WO-082D
+- Agent: DeepSeek
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Lane: API
+- Working directory: E:\god-eyes-api
+- Branch: agent/wo-082d-space-api
+- Start time UTC: 2026-06-01T09:00:00Z
+- End time UTC: 2026-06-01T09:15:00Z
+- Commit hash: (local only)
+- Push status: local only (NOT pushed — per Layer 05 PR policy)
+- What was done: Implemented Layer 05 Space & Satellites API gateway. Created REST endpoints (list, detail, categories), WebSocket broadcaster for estimated positions, TypeScript contracts.
+- Files created:
+  - apps/api/src/routes/space/satellites.ts
+  - apps/api/src/routes/space/space-satellites-broadcaster.ts
+  - apps/api/tests/space-satellites.test.ts
+- Files modified:
+  - packages/contracts/src/index.ts
+  - apps/api/src/index.ts
+- DB dependency commit included: 34226b4 (WO-082B)
+- Fetching dependency commit included: 4646329 (WO-082C)
+- REST endpoints implemented:
+  - GET /api/space/satellites — list with filters (category, objectType, orbitClass, importantOnly, minAltitude, maxAltitude, limit)
+  - GET /api/space/satellites/:satelliteId — detail by UUID
+  - GET /api/space/satellites/categories — aggregated counts
+- WebSocket implemented: /ws/space/satellites/live — snapshot stream with per-client filter support
+- Contracts/types changed: Added 12 Zod schemas + types for Space & Satellites (layer_05_space_satellites)
+- Query filters: category (comma-separated), objectType, orbitClass, importantOnly (boolean), minAltitude, maxAltitude, limit (default 1000, max 10000) — all parameterized SQL
+- Database access strategy: JOIN between space_satellites and space_satellite_positions_latest with parameterized WHERE filters
+- Trust/estimated-position wording: All payloads include `estimated: true` metadata, fields named `estimatedAt`, `sourceAgeSeconds`; no real-time tracking claims
+- Tests created/updated: 37 new tests (20 REST + 17 broadcaster)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (297 PASS), pnpm --filter web build, python -m pytest tests/data -q (445 PASS, only scope guard failures for unrelated WOs), git diff --check (cosmetic CRLF trailing whitespace only)
+- Validation results: All builds pass, all tests pass (297 API tests, 445 data tests excluding scope guards)
+- Secrets touched: NO
+- External upstream calls from API: NO
+- Frontend touched: NO
+- Fetcher touched: NO
+- Database migrations touched: NO
+- Spec/contract alignment: Fully aligned with layer_05_space_satellites_mvp_contract.md and API_CONTRACT_SPEC.md
+- Known issues: None
+- Next recommended task: WO-082E frontend lane (Sonnet), or Kiro integration review
