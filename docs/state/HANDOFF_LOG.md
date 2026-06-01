@@ -315,6 +315,29 @@
 - Validation results: 314 API tests pass (54 space satellite, 20 aviation aircraft, 26 live aircraft); aviation WebSocket unaffected; all existing tests preserved
 - API touched: YES
 - Frontend touched: NO
+### 2026-06-01T00:55:00Z Claude Sonnet 4.6 — WO-082E3 Layer 05 Camera Freedom, Category Filters, and Extreme Mode
+
+- Work order: WO-082E3
+- Agent: Claude Sonnet 4.6
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/wo-082e3-space-frontend-scale-controls
+- Start time UTC: 2026-06-01T00:00:00Z
+- End time UTC: 2026-06-01T00:55:00Z
+- Commit hash: d211d78 (local only, not pushed)
+- Push status: NOT PUSHED — awaiting Kiro review
+- What was done: Implemented Layer 05 satellite scale controls and camera freedom. Part A: Increased global Cesium camera maxZoomDistance to 200M meters (GLOBAL_MAX_ZOOM_DISTANCE constant) so user can zoom out far enough to see full satellite shell. Part B: Safe default rendering — space layer caps to 10,000 objects when extreme mode is OFF, important objects prioritised first. Part C: Extreme mode toggle added to Space & Satellites filter panel (OFF by default, warning shown when ON). Part D: Category/source filter controls: satellites/payloads, debris, rocket bodies, inactive objects, important only, Starlink, source filter (All/CelesTrak/Space-Track). Part E: Existing aviation, borders, and earth events layers unchanged and verified.
+- Files modified:
+  - apps/web/src/globe/configureViewerScene.ts — GLOBAL_MAX_ZOOM_DISTANCE = 200M meters
+  - apps/web/src/layers/space/satellites/satelliteFilters.ts — expanded SatelliteFilters interface, getFilteredSatellites helper, SAFE_RENDER_CAP = 10,000
+  - apps/web/src/App.tsx — spaceSatelliteFilters state, passed to CesiumGlobe and Shell
+  - apps/web/src/CesiumGlobe.tsx — accepts spaceSatelliteFilters prop, applies filter+cap before rendering
+  - apps/web/src/components/LayerPanel.tsx — space filter toggles (extreme mode, category, source)
+  - apps/web/src/components/Shell.tsx — threads space filter props to LayerPanel and StatusPanel
+  - apps/web/src/components/StatusPanel.tsx — space objects telemetry row
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 77 modules, 240.63 kB JS), pnpm --filter api build (PASS), pnpm --filter api test (PASS, 297/297), python -m pytest tests/data/layer_05_space_satellites -q (32 passed, 1 scope guard fail expected), python -m pytest tests/data -q (453 passed, 2 scope guard fails expected), git diff --check (PASS, LF/CRLF cosmetic only)
+- Forbidden folders touched: NO
+- API touched: NO
 - Fetching touched: NO
 - Database migrations touched: NO
 - Secrets touched: NO
@@ -365,6 +388,8 @@
 - Known issues: None
 - Next recommended task: Manual API count verification with local DB running: `Invoke-RestMethod "http://localhost:4000/api/space/satellites?limit=50000" | Select-Object -ExpandProperty metadata` — confirm returned count > 5000 if DB has > 5000 positioned rows. WO-082E frontend integration to consume richer metadata fields.
  agent/wo-082d-space-snapshot-scale
+- Known issues: Scope guard tests in data layer fail because they check git status for data-lane-only changes; all 453 functional tests pass. Browser runtime verification required.
+- Next safe task: Browser verification — confirm zoom out to see full satellite shell, default mode caps at 10,000, extreme mode renders all, filters reduce visible objects, FPS stable in default mode, existing layers unaffected.
 
 ### 2026-05-31T22:03:00Z MiniMax — WO-082C Space & Satellites Fetcher
 

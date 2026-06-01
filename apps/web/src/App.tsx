@@ -12,6 +12,8 @@ import { useBordersBoundaries } from './layers/borders/useBordersBoundaries';
 import { useLiveAircraftSocket, LiveAircraftStatus } from './layers/aviation/aircraft/useLiveAircraftSocket';
 import { useSpaceSatellitesSocket } from './layers/space/satellites/useSpaceSatellitesSocket';
 import type { SpaceSatellitesStatus } from './layers/space/satellites/satelliteTypes';
+import { DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
+import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -28,6 +30,7 @@ const App: React.FC = () => {
   const [liveAircraftLayerActive, setLiveAircraftLayerActive] = useState(false);
   const [spaceSatellitesLayerActive, setSpaceSatellitesLayerActive] = useState(false);
   const [spaceSatellites, setSpaceSatellites] = useState<SpaceSatelliteItem[]>([]);
+  const [spaceSatelliteFilters, setSpaceSatelliteFilters] = useState<SatelliteFilters>(DEFAULT_SATELLITE_FILTERS);
   const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -153,6 +156,7 @@ const App: React.FC = () => {
         liveAircraftLayerActive={liveAircraftLayerActive}
         spaceSatellites={spaceSatellites}
         spaceSatellitesLayerActive={spaceSatellitesLayerActive}
+        spaceSatelliteFilters={spaceSatelliteFilters}
       />
 
       <div style={{ opacity: isBooting ? 0 : 1, transition: 'opacity 1s ease-in', pointerEvents: isBooting ? 'none' : 'auto' }}>
@@ -180,6 +184,8 @@ const App: React.FC = () => {
           spaceSatellitesLayerActive={spaceSatellitesLayerActive}
           setSpaceSatellitesLayerActive={setSpaceSatellitesLayerActive}
           spaceSatellitesStatus={spaceSatellitesStatus}
+          spaceSatelliteFilters={spaceSatelliteFilters}
+          onSpaceFiltersChange={setSpaceSatelliteFilters}
         />
       </div>
     </div>
