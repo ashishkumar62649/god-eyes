@@ -122,53 +122,60 @@ def upsert_satellite(
             if existing_updated > source_updated_at:
                 return existing["id"], False
 
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO space_satellites (
-                layer_id, source_id, source_object_id, norad_cat_id,
-                name, object_type, category, orbit_class,
-                country, operator_or_owner, launch_date,
-                tle_line1, tle_line2, orbital_epoch_at, source_updated_at,
-                first_seen_at, last_seen_at,
-                is_active, is_important, raw_source_json
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO space_satellites (
+                    layer_id, source_id, source_object_id, norad_cat_id,
+                    name, object_type, category, orbit_class,
+                    country, operator_or_owner, launch_date,
+                    tle_line1, tle_line2, orbital_epoch_at, source_updated_at,
+                    first_seen_at, last_seen_at,
+                    is_active, is_important, raw_source_json
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                ON CONFLICT (source_id, source_object_id) DO UPDATE SET
+                    norad_cat_id = EXCLUDED.norad_cat_id,
+                    name = EXCLUDED.name,
+                    object_type = EXCLUDED.object_type,
+                    category = EXCLUDED.category,
+                    orbit_class = EXCLUDED.orbit_class,
+                    country = COALESCE(EXCLUDED.country, space_satellites.country),
+                    operator_or_owner = COALESCE(EXCLUDED.operator_or_owner, space_satellites.operator_or_owner),
+                    launch_date = COALESCE(EXCLUDED.launch_date, space_satellites.launch_date),
+                    tle_line1 = EXCLUDED.tle_line1,
+                    tle_line2 = EXCLUDED.tle_line2,
+                    orbital_epoch_at = EXCLUDED.orbital_epoch_at,
+                    source_updated_at = EXCLUDED.source_updated_at,
+                    last_seen_at = EXCLUDED.last_seen_at,
+                    is_active = EXCLUDED.is_active,
+                    is_important = EXCLUDED.is_important,
+                    raw_source_json = EXCLUDED.raw_source_json,
+                    updated_at = NOW()
+                RETURNING id
+                """,
+                [
+                    layer_id, source_id, source_object_id, norad_cat_id,
+                    name, object_type, category, orbit_class,
+                    country, operator_or_owner, launch_date_val,
+                    tle_line1, tle_line2, orbital_epoch_at, source_updated_at,
+                    now if is_new else existing["first_seen_at"],  # Preserve first_seen_at
+                    now,  # Always update last_seen_at
+                    is_active, is_important, raw_json
+                ]
             )
-            ON CONFLICT (source_id, source_object_id) DO UPDATE SET
-                norad_cat_id = EXCLUDED.norad_cat_id,
-                name = EXCLUDED.name,
-                object_type = EXCLUDED.object_type,
-                category = EXCLUDED.category,
-                orbit_class = EXCLUDED.orbit_class,
-                country = COALESCE(EXCLUDED.country, space_satellites.country),
-                operator_or_owner = COALESCE(EXCLUDED.operator_or_owner, space_satellites.operator_or_owner),
-                launch_date = COALESCE(EXCLUDED.launch_date, space_satellites.launch_date),
-                tle_line1 = EXCLUDED.tle_line1,
-                tle_line2 = EXCLUDED.tle_line2,
-                orbital_epoch_at = EXCLUDED.orbital_epoch_at,
-                source_updated_at = EXCLUDED.source_updated_at,
-                last_seen_at = EXCLUDED.last_seen_at,
-                is_active = EXCLUDED.is_active,
-                is_important = EXCLUDED.is_important,
-                raw_source_json = EXCLUDED.raw_source_json,
-                updated_at = NOW()
-            RETURNING id
-            """,
-            [
-                layer_id, source_id, source_object_id, norad_cat_id,
-                name, object_type, category, orbit_class,
-                country, operator_or_owner, launch_date_val,
-                tle_line1, tle_line2, orbital_epoch_at, source_updated_at,
-                now if is_new else existing["first_seen_at"],  # Preserve first_seen_at
-                now,  # Always update last_seen_at
-                is_active, is_important, raw_json
-            ]
-        )
-        row = cur.fetchone()
-        conn.commit()
-        return row["id"], True
+            row = cur.fetchone()
+            conn.commit()
+            return row["id"], True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
 
 
 def upsert_position(
@@ -200,54 +207,65 @@ def upsert_position(
     """
     raw_json = safe_json_dumps(raw_position_json) if raw_position_json else "{}"
 
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO space_satellite_positions_latest (
-                satellite_id, layer_id, source_id, source_object_id, norad_cat_id,
-                estimated_at, latitude, longitude, altitude_km,
-                velocity_kms, heading_deg,
-                orbit_class, object_type, category,
-                visual_shape, visual_color, is_important,
-                source_age_seconds, computation_method, raw_position_json
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO space_satellite_positions_latest (
+                    satellite_id, layer_id, source_id, source_object_id, norad_cat_id,
+                    estimated_at, latitude, longitude, altitude_km,
+                    velocity_kms, heading_deg,
+                    orbit_class, object_type, category,
+                    visual_shape, visual_color, is_important,
+                    source_age_seconds, computation_method, raw_position_json
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                ON CONFLICT (satellite_id) DO UPDATE SET
+                    source_id = EXCLUDED.source_id,
+                    source_object_id = EXCLUDED.source_object_id,
+                    norad_cat_id = EXCLUDED.norad_cat_id,
+                    estimated_at = EXCLUDED.estimated_at,
+                    latitude = EXCLUDED.latitude,
+                    longitude = EXCLUDED.longitude,
+                    altitude_km = EXCLUDED.altitude_km,
+                    velocity_kms = EXCLUDED.velocity_kms,
+                    heading_deg = EXCLUDED.heading_deg,
+                    orbit_class = EXCLUDED.orbit_class,
+                    object_type = EXCLUDED.object_type,
+                    category = EXCLUDED.category,
+                    visual_shape = EXCLUDED.visual_shape,
+                    visual_color = EXCLUDED.visual_color,
+                    is_important = EXCLUDED.is_important,
+                    source_age_seconds = EXCLUDED.source_age_seconds,
+                    computation_method = EXCLUDED.computation_method,
+                    raw_position_json = EXCLUDED.raw_position_json,
+                    updated_at = NOW()
+                RETURNING satellite_id
+                """,
+                [
+                    satellite_id, layer_id, source_id, source_object_id, norad_cat_id,
+                    estimated_at, latitude, longitude, altitude_km,
+                    velocity_kms, heading_deg,
+                    orbit_class, object_type, category,
+                    visual_shape, visual_color, is_important,
+                    source_age_seconds, computation_method, raw_json
+                ]
             )
-            ON CONFLICT (satellite_id) DO UPDATE SET
-                source_id = EXCLUDED.source_id,
-                source_object_id = EXCLUDED.source_object_id,
-                norad_cat_id = EXCLUDED.norad_cat_id,
-                estimated_at = EXCLUDED.estimated_at,
-                latitude = EXCLUDED.latitude,
-                longitude = EXCLUDED.longitude,
-                altitude_km = EXCLUDED.altitude_km,
-                velocity_kms = EXCLUDED.velocity_kms,
-                heading_deg = EXCLUDED.heading_deg,
-                orbit_class = EXCLUDED.orbit_class,
-                object_type = EXCLUDED.object_type,
-                category = EXCLUDED.category,
-                visual_shape = EXCLUDED.visual_shape,
-                visual_color = EXCLUDED.visual_color,
-                is_important = EXCLUDED.is_important,
-                source_age_seconds = EXCLUDED.source_age_seconds,
-                computation_method = EXCLUDED.computation_method,
-                raw_position_json = EXCLUDED.raw_position_json,
-                updated_at = NOW()
-            RETURNING satellite_id
-            """,
-            [
-                satellite_id, layer_id, source_id, source_object_id, norad_cat_id,
-                estimated_at, latitude, longitude, altitude_km,
-                velocity_kms, heading_deg,
-                orbit_class, object_type, category,
-                visual_shape, visual_color, is_important,
-                source_age_seconds, computation_method, raw_json
-            ]
-        )
-        row = cur.fetchone()
-        conn.commit()
-        return row["satellite_id"]
+            row = cur.fetchone()
+            conn.commit()
+            return row["satellite_id"]
+    except Exception:
+        # Roll back the failed statement so the connection is reusable
+        # for subsequent inserts (otherwise PostgreSQL aborts the entire
+        # transaction and every later query fails with
+        # "current transaction is aborted, commands ignored...").
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
 
 
 def get_satellite_count(conn: Any) -> int:
@@ -285,3 +303,32 @@ def get_existing_norad_ids(conn: Any) -> set[int]:
             except (ValueError, TypeError):
                 continue
     return ids
+
+
+def get_existing_norad_to_id(conn: Any) -> dict[int, str]:
+    """Return a mapping {norad_cat_id: satellite_id} for catalog rows.
+
+    Used by the Space-Track gap-fill pipeline (--missing-only) so that
+    when a NORAD ID already exists we can look up the satellite_id
+    without inserting a duplicate catalog row, and then write/update
+    the latest position for that existing satellite.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, norad_cat_id FROM space_satellites WHERE norad_cat_id IS NOT NULL"
+        )
+        rows = cur.fetchall()
+    mapping: dict[int, str] = {}
+    for row in rows:
+        if isinstance(row, dict):
+            sat_id = row.get("id")
+            norad = row.get("norad_cat_id")
+        else:
+            sat_id, norad = row[0], row[1]
+        if sat_id is None or norad is None:
+            continue
+        try:
+            mapping[int(norad)] = str(sat_id)
+        except (ValueError, TypeError):
+            continue
+    return mapping

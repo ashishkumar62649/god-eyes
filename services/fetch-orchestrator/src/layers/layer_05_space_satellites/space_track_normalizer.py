@@ -70,18 +70,46 @@ def _safe_float(value: Any) -> float | None:
 
 
 def _parse_dt(value: Any) -> datetime | None:
+    """Parse a datetime-like value to a UTC-aware datetime.
+
+    The returned datetime always carries ``tzinfo=timezone.utc``. Naive
+    datetimes are attached to UTC; offset-aware datetimes are converted
+    to UTC. ``None`` is returned for empty / unparseable input.
+
+    Space-Track ``EPOCH`` is emitted as a full ISO-8601 timestamp like
+    ``1970-03-31T00:50:24.429408`` (no timezone suffix). Parsing that
+    via ``datetime.fromisoformat`` yields a naive datetime; if it is
+    then passed to ``compute_position_from_tle`` alongside the
+    UTC-aware ``datetime.now(timezone.utc)`` target time, the
+    subtraction raises ``TypeError: can't subtract offset-naive and
+    offset-aware datetimes``. This helper guarantees the result is
+    always UTC-aware so downstream math is safe.
+    """
     if value is None or value == "":
         return None
     if isinstance(value, datetime):
-        return value
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+    s = str(value).strip()
+    if not s:
+        return None
+    # Try ISO-8601 first (with or without timezone suffix).
     try:
-        # Space-Track emits "YYYY-MM-DD"
-        return datetime.strptime(str(value), "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        dt = datetime.fromisoformat(s)
     except (ValueError, TypeError):
+        dt = None
+    if dt is not None:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    # Fall back to date-only formats.
+    for fmt in ("%Y-%m-%d", "%Y-%m", "%Y/%m/%d"):
         try:
-            return datetime.fromisoformat(str(value))
+            return datetime.strptime(s[: len(fmt) + 2], fmt).replace(tzinfo=timezone.utc)
         except (ValueError, TypeError):
-            return None
+            continue
+    return None
 
 
 def _map_object_type(raw: str | None) -> str:

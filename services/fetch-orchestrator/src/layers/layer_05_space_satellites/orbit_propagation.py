@@ -54,7 +54,16 @@ def compute_position_from_tle(
     """
     if target_time is None:
         target_time = datetime.now(timezone.utc)
-    
+    elif target_time.tzinfo is None:
+        # Defensive: attach UTC to a naive target_time so we never
+        # accidentally mix naive/aware datetimes downstream.
+        target_time = target_time.replace(tzinfo=timezone.utc)
+
+    # Defensive: same treatment for orbital_epoch so callers may pass
+    # either an aware or naive datetime without breaking the math.
+    if orbital_epoch is not None and orbital_epoch.tzinfo is None:
+        orbital_epoch = orbital_epoch.replace(tzinfo=timezone.utc)
+
     try:
         # Parse TLE elements
         elements = parse_tle_elements(tle_line1, tle_line2)
@@ -161,6 +170,12 @@ def compute_position_from_tle(
         # Altitude above mean sea level (simplified)
         surface_distance = math.sqrt(x_ecef**2 + y_ecef**2 + z_ecef**2)
         computed_altitude = surface_distance - EARTH_RADIUS_KM
+        # The DB schema requires altitude_km >= 0. Simplified SGP4 can
+        # compute slightly negative altitudes for highly eccentric or
+        # numerically edge-case objects. Clamp to 0 (sea level) rather
+        # than fail the insert.
+        if computed_altitude < 0:
+            computed_altitude = 0.0
         
         # Compute velocity (vis-viva equation, simplified)
         # v = sqrt(mu * (2/r - 1/a))

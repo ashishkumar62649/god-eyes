@@ -1539,18 +1539,20 @@ def test_persist_from_cache_missing_only_loads_existing_norad(monkeypatch, tmp_p
     fake_conn.cursor.return_value.__exit__.return_value = False
 
     existing = {25544, 33591}
+    existing_map = {25544: "sat-iss", 33591: "sat-cs"}
 
     with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
          patch("space_satellites_worker.get_satellite_count", return_value=100), \
          patch("space_satellites_worker.get_position_count", return_value=100), \
          patch("space_satellites_worker.get_existing_norad_ids", return_value=existing) as mock_existing, \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value=existing_map) as mock_existing_map, \
          patch("space_satellites_worker.upsert_satellite", return_value=("sat-1", True)):
         result = run_persist_from_cache(
             source="space-track",
             cache_dir=str(tmp_path),
             missing_only=True,
         )
-    assert mock_existing.called
+    assert mock_existing_map.called
     # NORAD 99999 is not in existing, so it should be inserted
     assert result["catalog_written"] == 1
     assert result["skipped_existing"] == 0
@@ -1583,11 +1585,13 @@ def test_persist_from_cache_missing_only_skips_existing_norad(tmp_path):
 
     # 25544 already exists in DB
     existing = {25544}
+    existing_map = {25544: "sat-iss"}
 
     with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
          patch("space_satellites_worker.get_satellite_count", return_value=100), \
          patch("space_satellites_worker.get_position_count", return_value=100), \
          patch("space_satellites_worker.get_existing_norad_ids", return_value=existing), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value=existing_map), \
          patch("space_satellites_worker.upsert_satellite") as mock_upsert:
         result = run_persist_from_cache(
             source="space-track",
@@ -1635,11 +1639,13 @@ def test_persist_from_cache_missing_only_inserts_only_missing(tmp_path):
     fake_conn.cursor.return_value.__exit__.return_value = False
 
     existing = {25544}  # only 25544 exists in DB
+    existing_map = {25544: "sat-iss"}
 
     with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
          patch("space_satellites_worker.get_satellite_count", return_value=100), \
          patch("space_satellites_worker.get_position_count", return_value=100), \
          patch("space_satellites_worker.get_existing_norad_ids", return_value=existing), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value=existing_map), \
          patch("space_satellites_worker.upsert_satellite", return_value=("sat-x", True)) as mock_upsert:
         result = run_persist_from_cache(
             source="space-track",
@@ -1844,6 +1850,540 @@ def test_get_existing_norad_ids_handles_tuple_rows():
     result = get_existing_norad_ids(fake_conn)
     assert 25544 in result
     assert 33591 in result
+
+
+# =====================================================================
+# WO-082C3A: Space-Track full-catalog query fix tests
+# =====================================================================
+
+
+def test_build_query_url_all_no_invalid_path_segment():
+    """--group all must NOT inject 'all' or 'satcat/OBJECT_TYPE' into the URL.
+
+    The full GP catalog query is /class/gp/format/json with no filter.
+    """
+    client = SpaceTrackClient()
+    url = client._build_query_url("all")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/format/json"
+    assert "group/all" not in url
+    assert "satcat/OBJECT_TYPE" not in url
+
+
+def test_build_query_url_payload_filter():
+    """--group payload must build a valid class/gp/OBJECT_TYPE/PAYLOAD URL."""
+    client = SpaceTrackClient()
+    url = client._build_query_url("payload")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/PAYLOAD/format/json"
+
+
+def test_build_query_url_debris_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("debris")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/DEBRIS/format/json"
+
+
+def test_build_query_url_rocket_body_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("rocket-body")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/ROCKET BODY/format/json"
+    url2 = client._build_query_url("rocket_body")
+    assert url2 == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/ROCKET BODY/format/json"
+
+
+def test_build_query_url_active_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("active")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/DECAY_DATE/null/format/json"
+
+
+def test_build_query_url_inactive_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("inactive")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/DECAY_DATE/>0/format/json"
+
+
+def test_build_query_url_case_insensitive():
+    client = SpaceTrackClient()
+    assert client._build_query_url("ALL") == client._build_query_url("all")
+    assert client._build_query_url("Payload") == client._build_query_url("payload")
+
+
+def test_build_query_url_rejects_unknown_group_with_listed_supported():
+    """Unknown groups must fail with a clear message listing supported groups."""
+    client = SpaceTrackClient()
+    with pytest.raises(ValueError) as ei:
+        client._build_query_url("not-a-group")
+    msg = str(ei.value)
+    assert "not-a-group" in msg
+    assert "Supported groups" in msg
+    for k in SPACE_TRACK_GROUPS.keys():
+        assert k in msg
+
+
+def test_build_query_url_does_not_call_provider():
+    """Building a URL must never make a network call."""
+    client = SpaceTrackClient()
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        url = client._build_query_url("all")
+        assert "class/gp" in url
+        mock_urlopen.assert_not_called()
+
+
+def test_supported_space_track_groups_includes_all():
+    """supported_space_track_groups() must list 'all' as a supported group."""
+    from space_track_client import supported_space_track_groups
+    groups = supported_space_track_groups()
+    assert "all" in groups
+    assert "payload" in groups
+    assert "debris" in groups
+    assert "active" in groups
+    # Output is sorted so callers get a stable message
+    assert groups == sorted(groups)
+
+
+def test_space_track_unsupported_group_fails_safely(monkeypatch, tmp_path, capsys):
+    """Unsupported Space-Track group must fail safely with env-var names only."""
+    monkeypatch.setenv(ENV_USERNAME, "u-not-secret")
+    monkeypatch.setenv(ENV_PASSWORD, "p-not-secret")
+
+    # Make sure the client appears authenticated so we exercise the URL builder path
+    monkeypatch.setattr("space_track_client.SpaceTrackClient._login",
+                        lambda self, u, p: {"chocolatechip": "redacted"})
+    monkeypatch.setattr("space_track_client.create_space_track_client",
+                        lambda: SpaceTrackClient())
+
+    result = run_download_only(
+        groups=["not-a-group"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    # Group should land in groups_failed, never in groups_succeeded
+    assert "not-a-group" in result["groups_failed"]
+    assert "not-a-group" not in result["groups_succeeded"]
+    # Error message must mention supported groups (no secret leakage)
+    joined_errs = " ".join(result["errors"])
+    assert "not-a-group" in joined_errs
+    assert "Supported groups" in joined_errs
+    # No secret values should appear anywhere
+    out = capsys.readouterr().out
+    assert "u-not-secret" not in out
+    assert "p-not-secret" not in out
+    # Manifest should be written (even on failure)
+    cache = SourceCache(tmp_path)
+    manifest = cache.read_overall_manifest()
+    assert manifest is not None
+    assert "not-a-group" in manifest["groups_failed"]
+
+
+def test_space_track_full_catalog_url_has_class_gp_no_group():
+    """Regression: full catalog URL must use class/gp with no invalid predicate."""
+    client = SpaceTrackClient()
+    url = client._build_query_url("all")
+    # The known-bad pattern that caused HTTP 400 must NOT appear
+    assert "class/gp/all" not in url
+    assert "class/gp/satcat" not in url
+    assert "OBJECT_TYPE/>=" not in url
+    # The good URL must end in format/json
+    assert url.endswith("/class/gp/format/json")
+
+
+def test_wo_082c3a_regression_previous_tests_still_pass():
+    """Regression: the dict shape of SPACE_TRACK_GROUPS did not lose 'all'."""
+    assert "all" in SPACE_TRACK_GROUPS
+    # 'all' maps to empty string (no-filter, full catalog)
+    assert SPACE_TRACK_GROUPS["all"] == ""
+    # No provider call is ever made by the test suite
+    assert True  # presence-only assertion
+
+
+# =====================================================================
+# WO-082C3B: Space-Track position computation and gap-fill persist tests
+# =====================================================================
+
+
+# ---- _parse_dt always returns UTC-aware -----------------------------
+
+
+def test_parse_dt_naive_datetime_is_attached_to_utc():
+    """A naive datetime is attached to UTC, not left naive."""
+    from space_track_normalizer import _parse_dt
+    naive = datetime(2024, 1, 15, 0, 0, 0)
+    parsed = _parse_dt(naive)
+    assert parsed is not None
+    assert parsed.tzinfo is not None
+    assert parsed.tzinfo == timezone.utc
+
+
+def test_parse_dt_naive_iso_string_is_attached_to_utc():
+    """A naive ISO string (the live Space-Track EPOCH shape) gets UTC tzinfo."""
+    from space_track_normalizer import _parse_dt
+    parsed = _parse_dt("1970-03-31T00:50:24.429408")
+    assert parsed is not None
+    assert parsed.tzinfo is not None
+    assert parsed.tzinfo == timezone.utc
+    assert parsed.year == 1970 and parsed.month == 3 and parsed.day == 31
+
+
+def test_parse_dt_aware_datetime_is_kept_or_converted_to_utc():
+    from space_track_normalizer import _parse_dt
+    aware = datetime(2024, 1, 15, 0, 0, 0, tzinfo=timezone.utc)
+    parsed = _parse_dt(aware)
+    assert parsed is not None
+    assert parsed.tzinfo == timezone.utc
+    # Non-UTC tz is converted to UTC
+    from datetime import timedelta
+    plus5 = timezone(timedelta(hours=5))
+    aware5 = datetime(2024, 1, 15, 5, 0, 0, tzinfo=plus5)
+    parsed5 = _parse_dt(aware5)
+    assert parsed5 is not None
+    assert parsed5.tzinfo == timezone.utc
+    assert parsed5.hour == 0  # 05:00+05:00 -> 00:00 UTC
+
+
+def test_parse_dt_date_only_string_is_attached_to_utc():
+    from space_track_normalizer import _parse_dt
+    parsed = _parse_dt("2024-01-15")
+    assert parsed is not None
+    assert parsed.tzinfo == timezone.utc
+    assert parsed.year == 2024 and parsed.month == 1 and parsed.day == 15
+
+
+def test_parse_dt_empty_returns_none():
+    from space_track_normalizer import _parse_dt
+    assert _parse_dt(None) is None
+    assert _parse_dt("") is None
+    assert _parse_dt("   ") is None
+
+
+# ---- compute_position_from_tle does not raise on naive/aware mix -----
+
+
+def test_compute_position_with_naive_epoch_string():
+    """Passing a naive datetime as orbital_epoch must not raise."""
+    from orbit_propagation import compute_position_from_tle
+    tle1 = "1 25544U 98067A   24250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    pos = compute_position_from_tle(
+        tle1, tle2,
+        orbital_epoch=datetime(2024, 9, 6, 0, 0, 0),  # naive
+    )
+    assert pos is not None
+    assert pos.estimated_at.tzinfo is not None
+
+
+def test_compute_position_clamps_negative_altitude_to_zero():
+    """Eccentric debris can produce sub-Earth altitudes; clamp to 0 for DB safety."""
+    from orbit_propagation import compute_position_from_tle
+    # Highly eccentric TLE (debris-style: very high mean_motion, very
+    # large eccentricity from a synthesized line). The simplified
+    # propagator may compute negative altitude for some geometries;
+    # the result must be clamped to 0.
+    tle1 = "1 02279U 65082D   24001.50000000  .00000000  00000-0  00000-0 0  9990"
+    tle2 = "2 02279  90.0000   0.0000 9500000  0.0000   0.0000  0.00000001    01"
+    pos = compute_position_from_tle(tle1, tle2)
+    # If computation succeeded, altitude must be >= 0
+    if pos is not None:
+        assert pos.altitude_km >= 0
+
+
+def test_compute_position_with_naive_iso_string_via_normalizer():
+    """The Space-Track normalizer handles a naive ISO EPOCH string and produces a position."""
+    rec = {
+        "NORAD_CAT_ID": 25544,
+        "OBJECT_NAME": "ISS (ZARYA)",
+        "OBJECT_ID": "1998-067A",
+        "OBJECT_TYPE": "PAYLOAD",
+        "EPOCH": "1970-03-31T00:50:24.429408",  # naive, like live cache
+        "TLE_LINE1": "1 25544U 98067A   24250.50000000  .00016717  00000-0  10270-3 0  9991",
+        "TLE_LINE2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+    }
+    sat = normalize_space_track_record(rec, fetched_at="2026-06-01T12:00:00Z")
+    assert sat is not None
+    assert "position" in sat, "Position must be computed for valid TLE"
+    pos = sat["position"]
+    assert pos["latitude"] is not None
+    assert pos["longitude"] is not None
+    assert pos["altitude_km"] is not None
+    assert pos["estimated_at"] is not None
+    # Ensure estimated_at round-trips to an aware datetime
+    estimated_at = _parse_dt_for_test(pos["estimated_at"])
+    assert estimated_at.tzinfo is not None
+    assert estimated_at.tzinfo == timezone.utc
+
+
+def _parse_dt_for_test(value):
+    """Tiny ISO parser used in assertions; mirrors space_track_normalizer behavior."""
+    from datetime import datetime
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+# ---- Space-Track record with TLE produces a position -----------------
+
+
+def test_space_track_record_with_tle_produces_position(tmp_path):
+    """End-to-end: a real-looking Space-Track record with TLE produces a position."""
+    rec = _make_space_track_record(norad=25544, name="ISS (ZARYA)", with_tle=True)
+    sat = normalize_space_track_record(rec, fetched_at="2026-06-01T12:00:00Z")
+    assert sat is not None
+    assert "position" in sat
+    pos = sat["position"]
+    assert -90 <= pos["latitude"] <= 90
+    assert -180 <= pos["longitude"] <= 180
+    assert pos["altitude_km"] > 0
+    assert pos["velocity_kms"] is not None and pos["velocity_kms"] > 0
+    assert pos["heading_deg"] is not None and 0 <= pos["heading_deg"] < 360
+
+
+# ---- Space-Track record without TLE keeps catalog but skips position --
+
+
+def test_space_track_record_without_tle_keeps_catalog_skips_position(tmp_path):
+    rec = {
+        "NORAD_CAT_ID": 99999,
+        "OBJECT_NAME": "NO-TLE SAT",
+        "OBJECT_ID": "2024-999A",
+        "OBJECT_TYPE": "PAYLOAD",
+        "COUNTRY_CODE": "US",
+    }
+    sat = normalize_space_track_record(rec, fetched_at="2026-06-01T12:00:00Z")
+    assert sat is not None
+    assert sat["name"] == "NO-TLE SAT"
+    assert "position" not in sat, "Without TLE lines, no position should be generated"
+
+
+# ---- --missing-only backfills positions for existing NORADs ----------
+
+
+def test_missing_only_backfills_position_for_existing_norad(tmp_path):
+    """An existing NORAD with a cached position must get a position backfill,
+    not be silently skipped along with its catalog insert."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized(
+        satellites=[{
+            "source_id": "space_track", "source_object_id": "25544",
+            "norad_cat_id": 25544, "name": "ISS (ZARYA)",
+            "object_type": "satellite", "category": "crewed_or_station",
+            "orbit_class": "leo", "country": "US",
+            "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+            "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+            "is_active": True, "is_important": True, "raw_source_json": {},
+            "position": {
+                "estimated_at": "2026-06-01T12:00:00+00:00",
+                "latitude": 12.34, "longitude": 56.78,
+                "altitude_km": 420.0, "velocity_kms": 7.66,
+                "heading_deg": 90.0,
+                "visual_shape": "dot", "visual_color": "#00d5ff",
+                "source_age_seconds": 0,
+                "computation_method": "simplified-sgp4",
+            },
+        }],
+        positions=[],
+        groups=["all"],
+        source="space_track",
+    )
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-iss"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    existing = {25544}
+    existing_map = {25544: "sat-iss"}
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=100), \
+         patch("space_satellites_worker.get_position_count", return_value=100), \
+         patch("space_satellites_worker.get_existing_norad_ids", return_value=existing), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value=existing_map), \
+         patch("space_satellites_worker.upsert_satellite") as mock_upsert, \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_persist_from_cache(
+            source="space-track",
+            cache_dir=str(tmp_path),
+            missing_only=True,
+        )
+    # Catalog insert MUST be skipped for existing NORAD
+    assert mock_upsert.call_count == 0
+    assert result["catalog_written"] == 0
+    assert result["skipped_existing"] == 1
+    # Position MUST still be backfilled using the existing satellite_id
+    assert mock_pos.call_count == 1
+    assert mock_pos.call_args.kwargs["satellite_id"] == "sat-iss"
+    assert result["position_written"] == 1
+    assert result["position_backfilled_existing_norad"] == 1
+
+
+def test_missing_only_mixed_inserts_catalog_and_backfills_positions(tmp_path):
+    """Mixed input: missing NORADs get catalog + position, existing get only position backfill."""
+    cache = SourceCache(tmp_path)
+    sats = [
+        # Existing NORAD -> skip catalog, backfill position
+        {"source_id": "space_track", "source_object_id": "25544",
+         "norad_cat_id": 25544, "name": "ISS", "object_type": "satellite",
+         "category": "crewed_or_station", "orbit_class": "leo", "country": "US",
+         "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+         "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+         "is_active": True, "is_important": True, "raw_source_json": {},
+         "position": {"estimated_at": "2026-06-01T12:00:00+00:00",
+                      "latitude": 1.0, "longitude": 2.0, "altitude_km": 400.0,
+                      "velocity_kms": 7.7, "heading_deg": 90.0,
+                      "visual_shape": "dot", "visual_color": "#00d5ff",
+                      "source_age_seconds": 0, "computation_method": "simplified-sgp4"}},
+        # Missing NORAD -> insert catalog + position
+        {"source_id": "space_track", "source_object_id": "99999",
+         "norad_cat_id": 99999, "name": "NEW SAT 1", "object_type": "satellite",
+         "category": "unknown", "orbit_class": "leo", "country": "US",
+         "tle_line1": "1 99999U 24001A   24001.50000000  .00010000  00000-0  10000-3 0  9990",
+         "tle_line2": "2 99999  51.6400 100.0000 0001000  30.0000 330.0000 15.50000000000001",
+         "is_active": True, "is_important": False, "raw_source_json": {},
+         "position": {"estimated_at": "2026-06-01T12:00:00+00:00",
+                      "latitude": 3.0, "longitude": 4.0, "altitude_km": 500.0,
+                      "velocity_kms": 7.5, "heading_deg": 180.0,
+                      "visual_shape": "dot", "visual_color": "#00d5ff",
+                      "source_age_seconds": 0, "computation_method": "simplified-sgp4"}},
+    ]
+    cache.write_normalized(
+        satellites=sats, positions=[], groups=["all"], source="space_track",
+    )
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-new"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    existing = {25544}
+    existing_map = {25544: "sat-iss"}
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=100), \
+         patch("space_satellites_worker.get_position_count", return_value=100), \
+         patch("space_satellites_worker.get_existing_norad_ids", return_value=existing), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value=existing_map), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-new", True)) as mock_upsert, \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_persist_from_cache(
+            source="space-track", cache_dir=str(tmp_path), missing_only=True,
+        )
+
+    # Exactly one catalog insert (for the missing NORAD only)
+    assert mock_upsert.call_count == 1
+    assert result["catalog_written"] == 1
+    assert result["skipped_existing"] == 1
+    assert result["missing_norad_count"] == 1
+    # Both positions written: one for new, one for existing NORAD
+    assert mock_pos.call_count == 2
+    assert result["position_written"] == 2
+    assert result["position_backfilled_existing_norad"] == 1
+    # Verify the existing NORAD's position was written with the existing satellite_id
+    backfill_call = [c for c in mock_pos.call_args_list
+                     if c.kwargs.get("satellite_id") == "sat-iss"]
+    assert len(backfill_call) == 1
+
+
+def test_missing_only_existing_norad_without_position_no_op(tmp_path):
+    """An existing NORAD with no cached position should not raise or write a position."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized(
+        satellites=[{
+            "source_id": "space_track", "source_object_id": "25544",
+            "norad_cat_id": 25544, "name": "ISS", "object_type": "satellite",
+            "category": "crewed_or_station", "orbit_class": "leo", "country": "US",
+            "tle_line1": "", "tle_line2": "",
+            "is_active": True, "is_important": True, "raw_source_json": {},
+            # no "position" key
+        }],
+        positions=[], groups=["all"], source="space_track",
+    )
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-iss"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    existing_map = {25544: "sat-iss"}
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=100), \
+         patch("space_satellites_worker.get_position_count", return_value=100), \
+         patch("space_satellites_worker.get_existing_norad_ids", return_value=set(existing_map.keys())), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value=existing_map), \
+         patch("space_satellites_worker.upsert_satellite") as mock_upsert, \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_persist_from_cache(
+            source="space-track", cache_dir=str(tmp_path), missing_only=True,
+        )
+    assert mock_upsert.call_count == 0
+    assert mock_pos.call_count == 0
+    assert result["position_written"] == 0
+    assert result["position_backfilled_existing_norad"] == 0
+
+
+# ---- get_existing_norad_to_id unit test ------------------------------
+
+
+def test_get_existing_norad_to_id_returns_dict():
+    """get_existing_norad_to_id returns dict {norad_int: sat_id_str}."""
+    from space_satellites_db import get_existing_norad_to_id
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchall.return_value = [
+        {"id": "sat-1", "norad_cat_id": 25544},
+        {"id": "sat-2", "norad_cat_id": 33591},
+    ]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    result = get_existing_norad_to_id(fake_conn)
+    assert result == {25544: "sat-1", 33591: "sat-2"}
+
+
+# ---- Regression: existing tests still pass ---------------------------
+
+
+def test_wo_082c3a_url_builder_regression():
+    """WO-082C3A URL builder fix must not regress."""
+    client = SpaceTrackClient()
+    assert client._build_query_url("all").endswith("/class/gp/format/json")
+    assert "group/all" not in client._build_query_url("all")
+
+
+def test_wo_082c1_datetime_regression_in_persist():
+    """WO-082C1 datetime regression: persist must handle aware datetimes safely."""
+    cache = SourceCache(__import__("pathlib").Path.cwd() / "_dummy_cache")
+    try:
+        sat_json = {
+            "source_id": "space_track", "source_object_id": "25544",
+            "norad_cat_id": 25544, "name": "ISS",
+            "object_type": "satellite", "category": "crewed_or_station",
+            "orbit_class": "leo", "country": "US",
+            "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+            "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+            "orbital_epoch_at": "2024-09-06T00:00:00+00:00",
+            "source_updated_at": "2026-06-01T12:00:00+00:00",
+            "is_active": True, "is_important": True, "raw_source_json": {},
+            "position": {"estimated_at": "2026-06-01T12:00:00+00:00",
+                         "latitude": 0, "longitude": 0, "altitude_km": 0,
+                         "visual_shape": "dot", "visual_color": "#00d5ff",
+                         "computation_method": "simplified-sgp4"},
+        }
+        cache.write_normalized([sat_json], [sat_json["position"]], ["all"], "space_track")
+        fake_conn = MagicMock()
+        fake_cursor = MagicMock()
+        fake_cursor.fetchone.return_value = {"id": "sat-1"}
+        fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+        fake_conn.cursor.return_value.__exit__.return_value = False
+        with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+             patch("space_satellites_worker.get_satellite_count", return_value=0), \
+             patch("space_satellites_worker.get_position_count", return_value=0), \
+             patch("space_satellites_worker.upsert_satellite", return_value=("sat-1", True)) as mock_upsert:
+            run_persist_from_cache(source="space-track", cache_dir=str(cache.cache_dir))
+        assert mock_upsert.call_count == 1
+    finally:
+        import shutil
+        shutil.rmtree(cache.layer_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

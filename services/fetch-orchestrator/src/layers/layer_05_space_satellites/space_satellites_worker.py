@@ -60,6 +60,7 @@ from space_satellites_db import (
     get_satellite_count,
     get_position_count,
     get_existing_norad_ids,
+    get_existing_norad_to_id,
 )
 from source_cache import SourceCache, tle_record_to_dict, utcnow_iso
 from space_track_client import (
@@ -936,6 +937,17 @@ def run_persist_from_cache(
         missing_only: When True, filter out any NORAD catalog IDs
             that already exist in DB across all sources. Used by
             Space-Track gap-fill to avoid duplicating CelesTrak rows.
+
+    Behavior:
+        - When missing_only is False: every record is upserted into
+          the catalog and (if a position is cached) a latest position
+          is written.
+        - When missing_only is True: only NORAD IDs not already in the
+          DB are inserted as new catalog rows. However, positions are
+          still written/updated for ALL records, using the existing
+          ``satellite_id`` for the skipped NORADs. This ensures
+          Space-Track gap-fill can populate latest positions for
+          satellites CelesTrak already has catalog rows for.
     """
     canonical_source = normalize_source_id(source)
     db_url = database_url or DEFAULT_DATABASE_URL
@@ -945,6 +957,7 @@ def run_persist_from_cache(
         "source": canonical_source,
         "catalog_written": 0,
         "position_written": 0,
+        "position_backfilled_existing_norad": 0,
         "skipped_older": 0,
         "skipped_existing": 0,
         "existing_norad_count": 0,
@@ -954,7 +967,7 @@ def run_persist_from_cache(
 
     print(f"[PERSIST-FROM-CACHE] Cache: {cache.layer_dir}")
     if missing_only:
-        print(f"[PERSIST-FROM-CACHE] Mode:  MISSING-ONLY (dedupe by NORAD ID)")
+        print(f"[PERSIST-FROM-CACHE] Mode:  MISSING-ONLY (dedupe by NORAD ID, position backfill enabled)")
 
     manifest = cache.read_normalized()
     if manifest is None:
@@ -962,6 +975,237 @@ def run_persist_from_cache(
         print(f"[PERSIST-FROM-CACHE] ERROR: {err}")
         result["errors"].append(err)
         return result
+
+    # Read normalized satellite records
+    sat_records = cache.read_normalized_satellites()
+    if max_objects and len(sat_records) > max_objects:
+        sat_records = sat_records[:max_objects]
+
+    if not sat_records:
+        print("[PERSIST-FROM-CACHE] No satellite records to persist")
+        return result
+
+    print(f"[PERSIST-FROM-CACHE] Reading {len(sat_records)} satellite records from cache")
+
+    # Connect to DB
+    print("[DB] Connecting to database...")
+    try:
+        conn = connect_db(db_url)
+    except Exception as e:
+        result["errors"].append(f"DB connection failed: {e}")
+        print(f"[DB] ERROR: Could not connect: {e}")
+        return result
+
+    before_cat = get_satellite_count(conn)
+    before_pos = get_position_count(conn)
+    print(f"[DB] Before: catalog={before_cat}, positions={before_pos}")
+
+    # Pre-load existing NORAD IDs if missing-only mode
+    existing_norad_ids: set[int] = set()
+    existing_norad_to_id: dict[int, str] = {}
+    if missing_only:
+        existing_norad_to_id = get_existing_norad_to_id(conn)
+        existing_norad_ids = set(existing_norad_to_id.keys())
+        result["existing_norad_count"] = len(existing_norad_ids)
+        print(f"[PERSIST-FROM-CACHE] Existing NORAD IDs in DB: {len(existing_norad_ids)}")
+
+    # Pre-classify records by catalog action if missing-only
+    records_for_catalog_insert: list[dict[str, Any]] = []
+    records_for_position_only: list[dict[str, Any]] = []  # skipped for catalog but still get positions
+    if missing_only:
+        for sat_json in sat_records:
+            norad = sat_json.get("norad_cat_id")
+            if norad is None:
+                records_for_catalog_insert.append(sat_json)
+                continue
+            try:
+                norad_int = int(norad)
+            except (ValueError, TypeError):
+                records_for_catalog_insert.append(sat_json)
+                continue
+            if norad_int in existing_norad_ids:
+                result["skipped_existing"] += 1
+                records_for_position_only.append(sat_json)
+            else:
+                records_for_catalog_insert.append(sat_json)
+        result["missing_norad_count"] = len(records_for_catalog_insert)
+        print(
+            f"[PERSIST-FROM-CACHE] Missing NORAD IDs: {result['missing_norad_count']} "
+            f"(skipped existing: {result['skipped_existing']}, "
+            f"will backfill positions for: {len(records_for_position_only)})"
+        )
+    else:
+        records_for_catalog_insert = list(sat_records)
+
+    # Cache: map NORAD -> satellite_id as we insert, so position loop can use it.
+    norad_to_satellite_id: dict[int, str] = dict(existing_norad_to_id)
+
+    def _persist_one(sat_json: dict[str, Any], allow_catalog: bool) -> str | None:
+        """Upsert one record. If allow_catalog is False, only update the
+        position for an existing satellite row (matched by NORAD).
+
+        Returns the satellite_id, or None if the record was skipped
+        (older than DB, or allow_catalog is False and NORAD missing).
+        """
+        from celestrak_client import TLERecord
+        tlerec = TLERecord(
+            norad_cat_id=sat_json.get("norad_cat_id", 0),
+            name=sat_json.get("name", ""),
+            tle_line1=sat_json.get("tle_line1"),
+            tle_line2=sat_json.get("tle_line2"),
+            object_type=sat_json.get("object_type"),
+            country=sat_json.get("country"),
+            launch_date=sat_json.get("launch_date"),
+            source_updated_at=_parse_dt(sat_json.get("source_updated_at")),
+        )
+        normalized = normalize_records([tlerec])[0]
+        # Restore original classification from cached JSON
+        normalized.object_type = sat_json.get("object_type", normalized.object_type)
+        normalized.category = sat_json.get("category", normalized.category)
+        normalized.orbit_class = sat_json.get("orbit_class", normalized.orbit_class)
+        normalized.is_important = sat_json.get("is_important", normalized.is_important)
+        normalized.country = sat_json.get("country", normalized.country)
+        normalized.operator_or_owner = sat_json.get("operator_or_owner", normalized.operator_or_owner)
+        normalized.orbital_epoch_at = _parse_dt(sat_json.get("orbital_epoch_at"))
+        normalized.source_updated_at = _parse_dt(sat_json.get("source_updated_at"))
+        normalized.raw_source_json = sat_json.get("raw_source_json", normalized.raw_source_json)
+
+        sat_source_id = sat_json.get("source_id") or canonical_source
+
+        if allow_catalog:
+            satellite_id, is_new_or_updated = upsert_satellite(
+                conn=conn,
+                layer_id=LAYER_ID,
+                source_id=sat_source_id,
+                source_object_id=normalized.source_object_id,
+                norad_cat_id=normalized.norad_cat_id,
+                name=normalized.name,
+                object_type=normalized.object_type,
+                category=normalized.category,
+                orbit_class=normalized.orbit_class,
+                country=normalized.country,
+                operator_or_owner=normalized.operator_or_owner,
+                launch_date=normalized.launch_date,
+                tle_line1=normalized.tle_line1,
+                tle_line2=normalized.tle_line2,
+                orbital_epoch_at=normalized.orbital_epoch_at,
+                source_updated_at=normalized.source_updated_at,
+                is_active=normalized.is_active,
+                is_important=normalized.is_important,
+                raw_source_json=normalized.raw_source_json,
+            )
+            if is_new_or_updated:
+                result["catalog_written"] += 1
+            else:
+                result["skipped_older"] += 1
+        else:
+            # Position-only path: look up existing satellite_id by NORAD
+            norad = normalized.norad_cat_id
+            if norad is None:
+                return None
+            try:
+                norad_int = int(norad)
+            except (ValueError, TypeError):
+                return None
+            satellite_id = norad_to_satellite_id.get(norad_int)
+            if not satellite_id:
+                return None
+        return satellite_id
+
+    def _write_position(sat_json: dict[str, Any], satellite_id: str) -> bool:
+        """Write the cached position (if present) for the given satellite."""
+        if not sat_json.get("position"):
+            return False
+        pos_data = sat_json["position"]
+        estimated_at = _parse_dt(pos_data.get("estimated_at"))
+        if not (estimated_at and satellite_id):
+            return False
+        sat_source_id = sat_json.get("source_id") or canonical_source
+        # Defensive: the DB schema requires altitude_km >= 0. Cached
+        # positions from a prior run may have a slightly negative value
+        # (e.g. simplified-SGP4 edge case). Clamp to 0 at the write
+        # boundary so a single bad row can't abort the whole run.
+        altitude_km = pos_data.get("altitude_km")
+        if altitude_km is not None and altitude_km < 0:
+            altitude_km = 0.0
+        try:
+            upsert_position(
+                conn=conn,
+                satellite_id=satellite_id,
+                layer_id=LAYER_ID,
+                source_id=sat_source_id,
+                source_object_id=str(sat_json.get("source_object_id") or sat_json.get("norad_cat_id") or ""),
+                norad_cat_id=sat_json.get("norad_cat_id"),
+                estimated_at=estimated_at,
+                latitude=pos_data.get("latitude", 0),
+                longitude=pos_data.get("longitude", 0),
+                altitude_km=altitude_km,
+                velocity_kms=pos_data.get("velocity_kms"),
+                heading_deg=pos_data.get("heading_deg"),
+                orbit_class=sat_json.get("orbit_class", "unknown"),
+                object_type=sat_json.get("object_type", "unknown"),
+                category=sat_json.get("category", "unknown"),
+                visual_shape=pos_data.get("visual_shape", "dot"),
+                visual_color=pos_data.get("visual_color", "#00d5ff"),
+                is_important=sat_json.get("is_important", False),
+                source_age_seconds=pos_data.get("source_age_seconds"),
+                computation_method=pos_data.get("computation_method", "simplified-sgp4"),
+                raw_position_json=None,
+            )
+            return True
+        except Exception as exc:
+            result["errors"].append(f"position_write_error norad={sat_json.get('norad_cat_id')}: {exc}")
+            return False
+
+    try:
+        # Pass 1: insert catalog rows for missing NORADs, and write their positions
+        for sat_json in records_for_catalog_insert:
+            sat_id = _persist_one(sat_json, allow_catalog=True)
+            if not sat_id:
+                continue
+            norad = sat_json.get("norad_cat_id")
+            if norad is not None:
+                try:
+                    norad_to_satellite_id[int(norad)] = sat_id
+                except (ValueError, TypeError):
+                    pass
+            if _write_position(sat_json, sat_id):
+                result["position_written"] += 1
+
+        # Pass 2: position backfill for existing NORADs (only in missing-only mode)
+        if missing_only:
+            for sat_json in records_for_position_only:
+                sat_id = _persist_one(sat_json, allow_catalog=False)
+                if not sat_id:
+                    continue
+                if _write_position(sat_json, sat_id):
+                    result["position_written"] += 1
+                    result["position_backfilled_existing_norad"] += 1
+
+        after_cat = get_satellite_count(conn)
+        after_pos = get_position_count(conn)
+        print(f"[DB] After: catalog={after_cat}, positions={after_pos}")
+        print(f"[PERSIST-FROM-CACHE] Catalog upserted: {result['catalog_written']}")
+        print(f"[PERSIST-FROM-CACHE] Positions written: {result['position_written']}")
+        if missing_only:
+            print(
+                f"[PERSIST-FROM-CACHE] Positions backfilled (existing NORAD): "
+                f"{result['position_backfilled_existing_norad']}"
+            )
+        print(f"[PERSIST-FROM-CACHE] Skipped (older): {result['skipped_older']}")
+        if missing_only:
+            print(f"[PERSIST-FROM-CACHE] Skipped (existing NORAD): {result['skipped_existing']}")
+            print(f"[PERSIST-FROM-CACHE] Existing NORAD count: {result['existing_norad_count']}")
+            print(f"[PERSIST-FROM-CACHE] Missing NORAD count: {result['missing_norad_count']}")
+        print("[PERSIST-FROM-CACHE] Done.")
+
+    except Exception as e:
+        result["errors"].append(str(e))
+        print(f"[PERSIST-FROM-CACHE] ERROR: {e}")
+    finally:
+        conn.close()
+
+    return result
 
     # Read normalized satellite records
     sat_records = cache.read_normalized_satellites()
@@ -1265,6 +1509,8 @@ def main() -> None:
         print(f"  Source: {result['source']}")
         print(f"  Catalog written:   {result['catalog_written']}")
         print(f"  Positions written: {result['position_written']}")
+        if args.missing_only:
+            print(f"  Positions backfilled (existing NORAD): {result['position_backfilled_existing_norad']}")
         print(f"  Skipped (older):   {result['skipped_older']}")
         if args.missing_only:
             print(f"  Skipped (existing NORAD): {result['skipped_existing']}")
