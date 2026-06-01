@@ -154,7 +154,6 @@
   - Live Space-Track download succeeded in one call; no follow-up re-download was needed (per WO).
   - Space-Track supports a much broader filter surface (RCS, period, epoch ranges, country, etc.); the current `SPACE_TRACK_GROUPS` covers only the seven high-level groups. Future WOs can extend the dict if needed.
 - Next recommended task: Kiro review WO-082C3A, then push branch to origin. Suggested follow-up WOs: (1) fix the TLE datetime offset issue in `compute_position_from_tle` so positions get written for space_track rows; (2) extend SPACE_TRACK_GROUPS with finer filters (e.g. epoch-recent, country, RCS ranges) once the position compute path is healthy; (3) if desired, the GP API supports a `metadata` or `predicates` discovery endpoint that could be used to validate groups dynamically.
->>>>>>> agent/wo-082c3b-space-track-position-gapfill
 
 ### 2026-06-01T20:15:00Z MiniMax — WO-082C3 Space-Track Authenticated Full Catalog Gap-Fill Pipeline
 
@@ -4189,3 +4188,21 @@ Fully aligned with layer_05_space_satellites_mvp_contract.md and FRONTEND_CESIUM
 
 ### Next recommended task
 WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). Verify all 4 lanes (DB, fetcher, API, frontend) are consistent and ready for boss review.
+
+## WO-082B2 - Layer 05 Database Index Review for 67k+ Space Objects
+
+- Work order: WO-082B2 - Layer 05 Database Index Review for 67k+ Space Objects
+- Agent: Codex
+- LLM model: GPT-5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-082b2-space-db-indexes
+- Start time UTC: 2026-06-01T17:04:57Z
+- End time UTC: 2026-06-01T17:09:35Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: database/migrations/layers/layer_05_space_satellites/002_space_satellites_scale_indexes.sql; tests/data/layer_05_space_satellites/test_space_satellites_migration.py; docs/state/HANDOFF_LOG.md
+- Commands run: ToolSearch for Ruflo MCP tools; git branch --show-current; git status --short; python -m pytest tests/data/layer_05_space_satellites -q; python -m pytest tests/data -q before and after local commit; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; pnpm --filter web build; pnpm --filter api test; git diff --check; docker ps --format "{{.Names}}"; exact requested EXPLAIN query against god-eyes-postgis; schema-aligned EXPLAIN query; applied 002 migration to local god-eyes-postgis; pg_indexes source-index verification query
+- Summary: Reviewed existing Layer 05 schema indexes and duplicate-prevention constraints. Added additive follow-up index migration for source/source-object lookups, latest-position NORAD/type/category/orbit/important/altitude filters, and common source/filter/estimated/altitude API combinations without rewriting 001.
+- Review status: pending Kiro review
+- Known issues: The exact manual EXPLAIN query in the work order uses s.satellite_id, but the schema defines space_satellites.id and positions_latest.satellite_id references it. The schema-aligned query runs; after applying 002 locally, PostgreSQL still chooses a parallel sequential scan for broad source_id = 'space_track' because that predicate is low-selectivity on the local data. Full tests/data run failed before commit because an existing aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-tree rerun after local commit passed.
+- Next task: Apply WO-082B2 migration in the shared dev database and capture EXPLAIN plans for representative selective API filters such as source_id plus orbit_class/category/object_type/important/altitude.
