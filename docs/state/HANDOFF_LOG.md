@@ -1,3 +1,50 @@
+### 2026-06-01T20:15:00Z MiniMax — WO-082C3 Space-Track Authenticated Full Catalog Gap-Fill Pipeline
+
+- Work order: WO-082C3
+- Agent: MiniMax
+- Lane: Fetching
+- LLM model: MiniMax (opencode/mimo-v2.5-free)
+- Tool/CLI used: Kiro CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c3-space-track-gapfill
+- Start time UTC: 2026-06-01T19:45:00Z
+- End time UTC: 2026-06-01T20:20:00Z
+- Commit hash: (pending — see final commit log)
+- Push status: local only (NOT pushed — per WO policy)
+- What was done: Added authenticated Space-Track full catalog gap-fill ingestion for Layer 05. New Space-Track client reads env credentials only (never logs/prints values), new normalizer maps GP satcat records to canonical satellite records, and a new --missing-only flag in persist-from-cache dedupes by NORAD ID to avoid duplicating CelesTrak rows. Source aliases (space-track, space_track) are normalized to a single internal source_id.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_normalizer.py (raw GP records -> canonical Layer 05 form)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_client.py (real authenticated client with env-only credentials, safe error messages naming env vars only)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py (added --source space-track/space_track dispatch in all 3 modes, --missing-only flag, new run_download_space_track / run_normalize_space_track helpers, source-id normalization)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_db.py (added get_existing_norad_ids)
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py (23 new tests)
+- Tests added/updated: 23 new tests
+  - env credential checks: missing/present/safe
+  - download-only: missing creds safe failure, env creds used, HTTP failure recorded, source alias normalization
+  - normalize-only: no provider call, NORAD_CAT_ID mapping, debris/rocket/inactive classification, malformed skip, DECAY_DATE handling
+  - persist-from-cache --missing-only: loads existing NORADs, skips existing, inserts only missing, no-extra-call when not used
+  - regression: existing CelesTrak staged pipeline still works, WO-082C1 datetime regression still passes
+  - unit tests: normalize_space_track_record, normalize_space_track_records, get_existing_norad_ids
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q (82 passed), python -m pytest tests/data -q (503 passed excluding 1 pre-existing layer_01 guard), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS), pnpm --filter api test (297/297 PASS), git diff --check (CRLF warning only)
+- Validation results: All Layer 05 tests PASS (82/82), all data tests PASS (503/503), compileall PASS, API tests PASS (297/297)
+- Manual Space-Track staged result:
+  - download-only (no creds): Safe failure with env var names only ["SPACE_TRACK_USERNAME", "SPACE_TRACK_PASSWORD"], manifest written
+  - normalize-only (mock raw cache): 2 records normalized, 1 with TLE-derived position, 1 debris without TLE skipped position compute
+  - persist-from-cache --missing-only (mocked DB, 1 of 2 NORADs pre-existing): catalog_written=1, skipped_existing=1, existing_norad_count=1, missing_norad_count=1
+- DB counts before/after: space_satellites=15505 (celestrak only) — no live Space-Track data, all validation done with mocks. Real provider run requires SPACE_TRACK_USERNAME/SPACE_TRACK_PASSWORD env vars.
+- Missing/existing/skipped/inserted counts: (from mock) existing=1, missing=1, skipped=1, inserted=1
+- Duplicate NORAD check: SELECT norad_cat_id, COUNT(*) ... HAVING COUNT(*) > 1 returned 0 rows (no duplicates exist)
+- Secrets touched: NO
+- Secret values printed/logged: NO (env var names only, never values)
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space)
+- External live network used in tests: NO (all tests mocked; manual validation used mock raw cache)
+- Known issues: Space-Track live fetch not exercised in this WO because the dev environment has no SPACE_TRACK_USERNAME/SPACE_TRACK_PASSWORD env vars. The download-only mode fails safely with a clear env-var list when creds are missing. Full live gap-fill will run when a Space-Track account is provided.
+- Next recommended task: Kiro review WO-082C3, then run the full live Space-Track gap-fill pipeline once credentials are provisioned (download-only, normalize-only, persist-from-cache --missing-only). Then proceed to broader Layer 05 integration review per WO-082 PR policy.
+
 ### 2026-06-01T17:00:00Z MiniMax — WO-082C2 Layer 05 Staged Source Download, Cache, Normalize, Persist Pipeline
 
 - Work order: WO-082C2
@@ -9,7 +56,7 @@
 - Branch: agent/wo-082c2-space-fetching-cache
 - Start time UTC: 2026-06-01T16:30:00Z
 - End time UTC: 2026-06-01T17:05:00Z
-- Commit hash: 9c76e0d
+- Commit hash: 8173541
 - Push status: local only (NOT pushed — per WO policy)
 - What was done: Added staged source ingestion pipeline to Layer 05 satellite worker. Three new CLI modes: --download-only (fetch from provider, save raw to local cache), --normalize-only (read raw cache, normalize + classify + compute positions, save normalized JSONL), --persist-from-cache (read normalized cache, write to DB). Existing dry-run and --persist modes preserved unchanged. New source_cache.py module manages raw TLE cache, normalized JSONL files, and pipeline manifests. Cache lives outside repo by default.
 - Files created:

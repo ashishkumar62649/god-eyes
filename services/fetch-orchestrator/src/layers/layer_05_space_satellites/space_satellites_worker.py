@@ -49,7 +49,7 @@ if str(REPO_ROOT) not in sys.path:
 sys.path.insert(0, str(REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "layers" / "layer_05_space_satellites"))
 
 from celestrak_client import fetch_tle_group, CELESTRAK_GROUPS, get_group_display_name
-from tle_parser import normalize_records, LAYER_ID, SOURCE_ID
+from tle_parser import normalize_records, LAYER_ID
 from classification import classify_object, get_visual_shape, get_visual_color
 from orbit_propagation import compute_position_from_tle
 from space_satellites_db import (
@@ -59,10 +59,42 @@ from space_satellites_db import (
     upsert_position,
     get_satellite_count,
     get_position_count,
+    get_existing_norad_ids,
 )
 from source_cache import SourceCache, tle_record_to_dict, utcnow_iso
+from space_track_client import (
+    SpaceTrackClient,
+    SpaceTrackAuthError,
+    SpaceTrackHTTPError,
+    has_space_track_credentials,
+    get_missing_env_vars,
+    create_space_track_client,
+    SPACE_TRACK_GROUPS,
+)
+from space_track_normalizer import (
+    normalize_space_track_records,
+    SOURCE_ID_CANONICAL as SPACE_TRACK_SOURCE_ID,
+)
 
+# Default groups for the CelesTrak direct pipeline.
 DEFAULT_GROUPS = ["active", "stations"]
+
+# Source identifier used for CelesTrak (matches existing SOURCE_ID).
+CELESTRAK_SOURCE_ID = "celestrak"
+
+# Accepted CLI spellings for Space-Track.
+SPACE_TRACK_SOURCE_ALIASES = {"space-track", "space_track"}
+
+
+def normalize_source_id(source: str) -> str:
+    """Normalize a CLI source string to the canonical source id."""
+    if source in SPACE_TRACK_SOURCE_ALIASES:
+        return SPACE_TRACK_SOURCE_ID
+    return source
+
+
+def is_space_track_source(source: str) -> bool:
+    return normalize_source_id(source) == SPACE_TRACK_SOURCE_ID
 
 
 # ------------------------------------------------------------------ helpers
@@ -113,13 +145,20 @@ def _persist_pairs(
     conn: Any,
     pairs: list[tuple[Any, Any | None]],
     result: dict[str, Any],
+    source_id: str | None = None,
 ) -> None:
-    """Upsert satellite + position pairs into the database."""
+    """Upsert satellite + position pairs into the database.
+
+    ``source_id`` overrides the source_id stored on the satellite. If
+    ``None``, the satellite's own ``source_id`` is used (allowing
+    multiple source pipelines to coexist, e.g. celestrak and space_track).
+    """
     for sat, pos in pairs:
+        sat_source_id = source_id or getattr(sat, "source_id", CELESTRAK_SOURCE_ID)
         satellite_id, is_new_or_updated = upsert_satellite(
             conn=conn,
             layer_id=LAYER_ID,
-            source_id=SOURCE_ID,
+            source_id=sat_source_id,
             source_object_id=sat.source_object_id,
             norad_cat_id=sat.norad_cat_id,
             name=sat.name,
@@ -147,7 +186,7 @@ def _persist_pairs(
                 conn=conn,
                 satellite_id=satellite_id,
                 layer_id=LAYER_ID,
-                source_id=SOURCE_ID,
+                source_id=sat_source_id,
                 source_object_id=sat.source_object_id,
                 norad_cat_id=sat.norad_cat_id,
                 estimated_at=pos.estimated_at,
@@ -173,7 +212,7 @@ def _sat_to_json(sat: Any, pos: Any | None) -> dict[str, Any]:
     """Serialize a NormalizedSatellite to a JSON-friendly dict."""
     d: dict[str, Any] = {
         "layer_id": getattr(sat, "layer_id", LAYER_ID),
-        "source_id": getattr(sat, "source_id", SOURCE_ID),
+        "source_id": getattr(sat, "source_id", CELESTRAK_SOURCE_ID),
         "source_object_id": sat.source_object_id,
         "norad_cat_id": sat.norad_cat_id,
         "name": sat.name,
@@ -426,24 +465,22 @@ def run_worker(
 # ----------------------------------------------------------- mode: download-only
 
 
-def run_download_only(
+def run_download_space_track(
     groups: list[str],
-    source: str = "celestrak",
     cache_dir: str = "",
     max_objects: int | None = None,
 ) -> dict[str, Any]:
-    """Fetch raw TLE data and save to local cache.  No normalisation.
+    """Download-only mode for Space-Track.
 
-    Each group that succeeds gets its raw text and a JSON envelope
-    saved under ``<cache>/layer_05_space_satellites/raw/<source>/<group>/``.
-    Failed groups are recorded in the manifest but do not affect
-    successful groups.
+    Authenticates using env vars, fetches the full catalog response,
+    and writes the raw provider response (records) to the local cache.
+    No normalization, no DB writes, no retries.
     """
     cache = SourceCache(cache_dir)
     fetched_at = utcnow_iso()
 
     result: dict[str, Any] = {
-        "source": source,
+        "source": SPACE_TRACK_SOURCE_ID,
         "groups_requested": list(groups),
         "groups_succeeded": [],
         "groups_failed": [],
@@ -452,7 +489,179 @@ def run_download_only(
         "record_count": 0,
     }
 
-    print(f"[DOWNLOAD-ONLY] Source: {source}")
+    print(f"[DOWNLOAD-ONLY] Source: space-track")
+    print(f"  Groups: {', '.join(groups)}")
+    print(f"  Cache:  {cache.layer_dir}")
+    print()
+
+    # Credentials check (env var names only)
+    if not has_space_track_credentials():
+        missing = get_missing_env_vars()
+        err_msg = (
+            f"Space-Track credentials missing; set env vars: {missing}"
+        )
+        print(f"[FETCH] {err_msg}")
+        result["errors"].append(err_msg)
+        result["groups_failed"] = list(groups)
+        # Still write a manifest with the failure so the run is recorded
+        cache.write_overall_manifest(
+            source=SPACE_TRACK_SOURCE_ID,
+            groups_requested=groups,
+            groups_succeeded=[],
+            groups_failed=list(groups),
+            raw_files=[],
+            normalized_files=[],
+            fetched_at=fetched_at,
+            normalized_at=None,
+            satellite_count=0,
+            position_count=0,
+            errors=result["errors"],
+        )
+        return result
+
+    try:
+        client = create_space_track_client()
+    except Exception as exc:
+        err_msg = f"Space-Track client init failed: {exc}"
+        print(f"[FETCH] {err_msg}")
+        result["errors"].append(err_msg)
+        result["groups_failed"] = list(groups)
+        cache.write_overall_manifest(
+            source=SPACE_TRACK_SOURCE_ID,
+            groups_requested=groups,
+            groups_succeeded=[],
+            groups_failed=list(groups),
+            raw_files=[],
+            normalized_files=[],
+            fetched_at=fetched_at,
+            normalized_at=None,
+            satellite_count=0,
+            position_count=0,
+            errors=result["errors"],
+        )
+        return result
+
+    if not client.is_authenticated:
+        err_msg = "Space-Track authentication failed (no session cookies)"
+        print(f"[FETCH] {err_msg}")
+        result["errors"].append(err_msg)
+        result["groups_failed"] = list(groups)
+        cache.write_overall_manifest(
+            source=SPACE_TRACK_SOURCE_ID,
+            groups_requested=groups,
+            groups_succeeded=[],
+            groups_failed=list(groups),
+            raw_files=[],
+            normalized_files=[],
+            fetched_at=fetched_at,
+            normalized_at=None,
+            satellite_count=0,
+            position_count=0,
+            errors=result["errors"],
+        )
+        return result
+
+    for group in groups:
+        print(f"[FETCH] Fetching '{group}' from Space-Track...")
+        try:
+            records = client.fetch_gp_records(groups=[group])
+        except SpaceTrackAuthError as exc:
+            err_msg = f"Space-Track auth error for '{group}': {exc}"
+            print(f"  FAILED: {err_msg}")
+            result["groups_failed"].append(group)
+            result["errors"].append(err_msg)
+            continue
+        except SpaceTrackHTTPError as exc:
+            err_msg = f"Space-Track HTTP {exc.status} for '{group}': {exc.reason}"
+            print(f"  FAILED: {err_msg}")
+            result["groups_failed"].append(group)
+            result["errors"].append(err_msg)
+            continue
+        except Exception as exc:
+            err_msg = f"Space-Track error for '{group}': {exc}"
+            print(f"  FAILED: {err_msg}")
+            result["groups_failed"].append(group)
+            result["errors"].append(err_msg)
+            continue
+
+        if max_objects and len(records) > max_objects:
+            records = records[:max_objects]
+
+        raw_text = (
+            f"# raw Space-Track cache for {group}\n"
+            f"# fetched_at={fetched_at}\n"
+            f"# record_count={len(records)}\n"
+        )
+        raw_result = cache.write_raw_group(
+            source=SPACE_TRACK_SOURCE_ID,
+            group=group,
+            raw_text=raw_text,
+            records=records,
+            fetched_at=fetched_at,
+        )
+        result["groups_succeeded"].append(group)
+        result["raw_files_written"].append(str(raw_result.raw_json_path))
+        result["record_count"] += raw_result.record_count
+        print(f"  OK: {raw_result.record_count} records -> {raw_result.raw_json_path}")
+
+    print(f"\n[DOWNLOAD-ONLY] Succeeded: {result['groups_succeeded']}")
+    if result["groups_failed"]:
+        print(f"[DOWNLOAD-ONLY] Failed:    {result['groups_failed']}")
+
+    cache.write_overall_manifest(
+        source=SPACE_TRACK_SOURCE_ID,
+        groups_requested=groups,
+        groups_succeeded=result["groups_succeeded"],
+        groups_failed=result["groups_failed"],
+        raw_files=result["raw_files_written"],
+        normalized_files=[],
+        fetched_at=fetched_at,
+        normalized_at=None,
+        satellite_count=0,
+        position_count=0,
+        errors=result["errors"],
+    )
+    return result
+
+
+def run_download_only(
+    groups: list[str],
+    source: str = "celestrak",
+    cache_dir: str = "",
+    max_objects: int | None = None,
+) -> dict[str, Any]:
+    """Fetch raw data and save to local cache.  No normalisation.
+
+    Dispatches to CelesTrak or Space-Track fetcher based on ``source``.
+    Each group that succeeds gets its raw text and a JSON envelope
+    saved under ``<cache>/layer_05_space_satellites/raw/<source>/<group>/``.
+    Failed groups are recorded in the manifest but do not affect
+    successful groups.
+    """
+    canonical_source = normalize_source_id(source)
+
+    # Space-Track dispatch
+    if is_space_track_source(canonical_source):
+        return run_download_space_track(
+            groups=groups,
+            cache_dir=cache_dir,
+            max_objects=max_objects,
+        )
+
+    cache = SourceCache(cache_dir)
+    fetched_at = utcnow_iso()
+
+    result: dict[str, Any] = {
+        "source": canonical_source,
+        "groups_requested": list(groups),
+        "groups_succeeded": [],
+        "groups_failed": [],
+        "raw_files_written": [],
+        "errors": [],
+        "record_count": 0,
+    }
+
+    print(f"[DOWNLOAD-ONLY] Source: {canonical_source}")
     print(f"  Groups: {', '.join(groups)}")
     print(f"  Cache:  {cache.layer_dir}")
     print()
@@ -471,10 +680,10 @@ def run_download_only(
         if max_objects and len(records) > max_objects:
             records = records[:max_objects]
 
-        raw_text = f"# raw TLE cache for {source}/{group}\n# fetched_at={fetched_at}\n"
+        raw_text = f"# raw TLE cache for {canonical_source}/{group}\n# fetched_at={fetched_at}\n"
         record_dicts = [tle_record_to_dict(r) for r in records]
         raw_result = cache.write_raw_group(
-            source=source,
+            source=canonical_source,
             group=group,
             raw_text=raw_text,
             records=record_dicts,
@@ -491,7 +700,7 @@ def run_download_only(
         print(f"[DOWNLOAD-ONLY] Failed:    {result['groups_failed']}")
 
     manifest = cache.write_overall_manifest(
-        source=source,
+        source=canonical_source,
         groups_requested=groups,
         groups_succeeded=result["groups_succeeded"],
         groups_failed=result["groups_failed"],
@@ -510,6 +719,96 @@ def run_download_only(
 # ---------------------------------------------------------- mode: normalize-only
 
 
+def run_normalize_space_track(
+    groups: list[str],
+    cache_dir: str = "",
+    max_objects: int | None = None,
+) -> dict[str, Any]:
+    """Normalize-only mode for Space-Track.
+
+    Reads raw Space-Track cache files, normalizes records into
+    canonical Layer 05 satellite records, computes positions where
+    TLE is available, writes normalized JSONL files. No provider
+    calls, no DB writes.
+    """
+    cache = SourceCache(cache_dir)
+
+    result: dict[str, Any] = {
+        "source": SPACE_TRACK_SOURCE_ID,
+        "groups": groups,
+        "tle_normalized": 0,
+        "positions_computed": 0,
+        "satellites_written": 0,
+        "positions_written": 0,
+        "errors": [],
+    }
+
+    print(f"[NORMALIZE-ONLY] Source: space-track")
+    print(f"  Groups: {', '.join(groups)}")
+    print(f"  Cache:  {cache.layer_dir}")
+    print()
+
+    all_satellites: list[dict[str, Any]] = []
+    all_positions: list[dict[str, Any]] = []
+
+    for group in groups:
+        raw = cache.read_raw_group(SPACE_TRACK_SOURCE_ID, group)
+        if raw is None:
+            err = f"No raw cache for space-track/{group}"
+            print(f"  SKIP: {err}")
+            result["errors"].append(err)
+            continue
+
+        records = raw.get("records", [])
+        if not records:
+            err = f"Raw cache empty for space-track/{group}"
+            print(f"  SKIP: {err}")
+            result["errors"].append(err)
+            continue
+
+        print(f"[NORMALIZE] space-track/{group}: {len(records)} raw records")
+
+        fetched_at = raw.get("fetched_at")
+        normalized, errors = normalize_space_track_records(records, fetched_at=fetched_at)
+        if errors:
+            for e in errors:
+                result["errors"].append(f"{group}: {e}")
+        print(f"  Normalized: {len(normalized)} records (errors: {len(errors)})")
+
+        if max_objects and len(normalized) > max_objects:
+            print(f"  Limiting to {max_objects} records (from {len(normalized)})")
+            normalized = normalized[:max_objects]
+
+        for sat in normalized:
+            all_satellites.append(sat)
+            pos = sat.get("position")
+            if pos:
+                all_positions.append(pos)
+            else:
+                # No TLE-derived position; still append an empty placeholder
+                # so positions.jsonl line count is consistent per sat if desired
+                pass
+
+        result["tle_normalized"] += len(normalized)
+        result["positions_computed"] += sum(1 for s in normalized if s.get("position"))
+
+    result["satellites_written"] = len(all_satellites)
+    result["positions_written"] = len(all_positions)
+
+    norm_manifest = cache.write_normalized(
+        satellites=all_satellites,
+        positions=all_positions,
+        groups=groups,
+        source=SPACE_TRACK_SOURCE_ID,
+        errors=result["errors"],
+    )
+
+    print(f"\n[NORMALIZE-ONLY] Satellites: {result['satellites_written']}")
+    print(f"[NORMALIZE-ONLY] Positions:  {result['positions_written']}")
+    print(f"[NORMALIZE-ONLY] Manifest -> {norm_manifest}")
+    return result
+
+
 def run_normalize_only(
     groups: list[str],
     source: str = "celestrak",
@@ -521,10 +820,19 @@ def run_normalize_only(
     Writes ``normalized/latest/satellites.jsonl`` and
     ``normalized/latest/positions.jsonl``.  No provider calls, no DB.
     """
+    canonical_source = normalize_source_id(source)
+
+    if is_space_track_source(canonical_source):
+        return run_normalize_space_track(
+            groups=groups,
+            cache_dir=cache_dir,
+            max_objects=max_objects,
+        )
+
     cache = SourceCache(cache_dir)
 
     result: dict[str, Any] = {
-        "source": source,
+        "source": canonical_source,
         "groups": groups,
         "tle_normalized": 0,
         "positions_computed": 0,
@@ -533,7 +841,7 @@ def run_normalize_only(
         "errors": [],
     }
 
-    print(f"[NORMALIZE-ONLY] Source: {source}")
+    print(f"[NORMALIZE-ONLY] Source: {canonical_source}")
     print(f"  Groups: {', '.join(groups)}")
     print(f"  Cache:  {cache.layer_dir}")
     print()
@@ -542,21 +850,21 @@ def run_normalize_only(
     all_positions: list[dict[str, Any]] = []
 
     for group in groups:
-        raw = cache.read_raw_group(source, group)
+        raw = cache.read_raw_group(canonical_source, group)
         if raw is None:
-            err = f"No raw cache for {source}/{group}"
+            err = f"No raw cache for {canonical_source}/{group}"
             print(f"  SKIP: {err}")
             result["errors"].append(err)
             continue
 
         records = raw.get("records", [])
         if not records:
-            err = f"Raw cache empty for {source}/{group}"
+            err = f"Raw cache empty for {canonical_source}/{group}"
             print(f"  SKIP: {err}")
             result["errors"].append(err)
             continue
 
-        print(f"[NORMALIZE] {source}/{group}: {len(records)} raw records")
+        print(f"[NORMALIZE] {canonical_source}/{group}: {len(records)} raw records")
 
         # Convert dicts back to TLERecord-like for the normalizer
         from celestrak_client import TLERecord
@@ -597,7 +905,7 @@ def run_normalize_only(
         satellites=all_satellites,
         positions=all_positions,
         groups=groups,
-        source=source,
+        source=canonical_source,
         errors=result["errors"],
     )
 
@@ -616,20 +924,37 @@ def run_persist_from_cache(
     cache_dir: str = "",
     max_objects: int | None = None,
     database_url: str | None = None,
+    missing_only: bool = False,
 ) -> dict[str, Any]:
-    """Read normalized cache and write to database.  No provider calls."""
+    """Read normalized cache and write to database.  No provider calls.
+
+    Args:
+        source: Source identifier (celestrak, space-track, space_track).
+        cache_dir: Cache directory.
+        max_objects: Limit records to process (for safe testing).
+        database_url: PostgreSQL connection URL.
+        missing_only: When True, filter out any NORAD catalog IDs
+            that already exist in DB across all sources. Used by
+            Space-Track gap-fill to avoid duplicating CelesTrak rows.
+    """
+    canonical_source = normalize_source_id(source)
     db_url = database_url or DEFAULT_DATABASE_URL
     cache = SourceCache(cache_dir)
 
     result: dict[str, Any] = {
-        "source": source,
+        "source": canonical_source,
         "catalog_written": 0,
         "position_written": 0,
         "skipped_older": 0,
+        "skipped_existing": 0,
+        "existing_norad_count": 0,
+        "missing_norad_count": 0,
         "errors": [],
     }
 
     print(f"[PERSIST-FROM-CACHE] Cache: {cache.layer_dir}")
+    if missing_only:
+        print(f"[PERSIST-FROM-CACHE] Mode:  MISSING-ONLY (dedupe by NORAD ID)")
 
     manifest = cache.read_normalized()
     if manifest is None:
@@ -637,9 +962,6 @@ def run_persist_from_cache(
         print(f"[PERSIST-FROM-CACHE] ERROR: {err}")
         result["errors"].append(err)
         return result
-
-    sat_path = Path(manifest["satellites_path"])
-    pos_path = Path(manifest["positions_path"])
 
     # Read normalized satellite records
     sat_records = cache.read_normalized_satellites()
@@ -664,6 +986,41 @@ def run_persist_from_cache(
     before_cat = get_satellite_count(conn)
     before_pos = get_position_count(conn)
     print(f"[DB] Before: catalog={before_cat}, positions={before_pos}")
+
+    # Pre-load existing NORAD IDs if missing-only mode
+    existing_norad_ids: set[int] = set()
+    if missing_only:
+        existing_norad_ids = get_existing_norad_ids(conn)
+        result["existing_norad_count"] = len(existing_norad_ids)
+        print(f"[PERSIST-FROM-CACHE] Existing NORAD IDs in DB: {len(existing_norad_ids)}")
+
+    # Pre-filter records by NORAD existence if missing-only
+    if missing_only:
+        kept: list[dict[str, Any]] = []
+        for sat_json in sat_records:
+            norad = sat_json.get("norad_cat_id")
+            if norad is None:
+                kept.append(sat_json)
+                continue
+            try:
+                norad_int = int(norad)
+            except (ValueError, TypeError):
+                kept.append(sat_json)
+                continue
+            if norad_int in existing_norad_ids:
+                result["skipped_existing"] += 1
+                continue
+            kept.append(sat_json)
+        result["missing_norad_count"] = len(kept)
+        print(
+            f"[PERSIST-FROM-CACHE] Missing NORAD IDs: {result['missing_norad_count']} "
+            f"(skipped existing: {result['skipped_existing']})"
+        )
+        sat_records = kept
+        if not sat_records:
+            print("[PERSIST-FROM-CACHE] No missing NORAD records to insert")
+            conn.close()
+            return result
 
     try:
         from celestrak_client import TLERecord
@@ -690,10 +1047,13 @@ def run_persist_from_cache(
             normalized.source_updated_at = _parse_dt(sat_json.get("source_updated_at"))
             normalized.raw_source_json = sat_json.get("raw_source_json", normalized.raw_source_json)
 
+            # Use the source_id from the normalized JSON if present, else default
+            sat_source_id = sat_json.get("source_id") or canonical_source
+
             satellite_id, is_new_or_updated = upsert_satellite(
                 conn=conn,
                 layer_id=LAYER_ID,
-                source_id=SOURCE_ID,
+                source_id=sat_source_id,
                 source_object_id=normalized.source_object_id,
                 norad_cat_id=normalized.norad_cat_id,
                 name=normalized.name,
@@ -725,7 +1085,7 @@ def run_persist_from_cache(
                         conn=conn,
                         satellite_id=satellite_id,
                         layer_id=LAYER_ID,
-                        source_id=SOURCE_ID,
+                        source_id=sat_source_id,
                         source_object_id=normalized.source_object_id,
                         norad_cat_id=normalized.norad_cat_id,
                         estimated_at=estimated_at,
@@ -752,6 +1112,10 @@ def run_persist_from_cache(
         print(f"[PERSIST-FROM-CACHE] Catalog upserted: {result['catalog_written']}")
         print(f"[PERSIST-FROM-CACHE] Positions written: {result['position_written']}")
         print(f"[PERSIST-FROM-CACHE] Skipped (older): {result['skipped_older']}")
+        if missing_only:
+            print(f"[PERSIST-FROM-CACHE] Skipped (existing NORAD): {result['skipped_existing']}")
+            print(f"[PERSIST-FROM-CACHE] Existing NORAD count: {result['existing_norad_count']}")
+            print(f"[PERSIST-FROM-CACHE] Missing NORAD count: {result['missing_norad_count']}")
         print("[PERSIST-FROM-CACHE] Done.")
 
     except Exception as e:
@@ -828,9 +1192,27 @@ def main() -> None:
         "--cache-dir", type=str, default=None,
         help="Cache directory for staged pipeline (e.g. E:\\god-eyes-data\\space)",
     )
+    parser.add_argument(
+        "--missing-only", action="store_true",
+        help=(
+            "Gap-fill mode: persist-from-cache only inserts objects whose "
+            "NORAD ID is not already in the DB. Avoids duplicating CelesTrak "
+            "rows when running a Space-Track full-catalog fetch."
+        ),
+    )
     args = parser.parse_args()
 
-    groups = args.groups if args.groups else DEFAULT_GROUPS
+    # Normalize source ID early (celestrak / space-track / space_track)
+    canonical_source = normalize_source_id(args.source)
+    is_st = is_space_track_source(canonical_source)
+
+    # For Space-Track, default group is "all" if none provided
+    if is_st and not args.groups:
+        groups = ["all"]
+    elif args.groups:
+        groups = args.groups
+    else:
+        groups = DEFAULT_GROUPS
 
     # --- Staged modes ---
     if args.download_only:
@@ -838,7 +1220,7 @@ def main() -> None:
             parser.error("--download-only requires --cache-dir")
         result = run_download_only(
             groups=groups,
-            source=args.source,
+            source=canonical_source,
             cache_dir=args.cache_dir,
             max_objects=args.max_objects,
         )
@@ -857,7 +1239,7 @@ def main() -> None:
             parser.error("--normalize-only requires --cache-dir")
         result = run_normalize_only(
             groups=groups,
-            source=args.source,
+            source=canonical_source,
             cache_dir=args.cache_dir,
             max_objects=args.max_objects,
         )
@@ -873,15 +1255,21 @@ def main() -> None:
         if not args.cache_dir:
             parser.error("--persist-from-cache requires --cache-dir")
         result = run_persist_from_cache(
-            source=args.source,
+            source=canonical_source,
             cache_dir=args.cache_dir,
             max_objects=args.max_objects,
             database_url=args.database_url,
+            missing_only=args.missing_only,
         )
         print("\n[SUMMARY]")
-        print(f"  Catalog written:  {result['catalog_written']}")
+        print(f"  Source: {result['source']}")
+        print(f"  Catalog written:   {result['catalog_written']}")
         print(f"  Positions written: {result['position_written']}")
         print(f"  Skipped (older):   {result['skipped_older']}")
+        if args.missing_only:
+            print(f"  Skipped (existing NORAD): {result['skipped_existing']}")
+            print(f"  Existing NORAD count: {result['existing_norad_count']}")
+            print(f"  Missing NORAD count:  {result['missing_norad_count']}")
         if result["errors"]:
             print(f"  Errors: {result['errors']}")
             sys.exit(1)
@@ -896,7 +1284,7 @@ def main() -> None:
 
     result = run_worker(
         groups=groups,
-        source=args.source,
+        source=canonical_source,
         dry_run=dry_run,
         database_url=args.database_url,
         max_objects=args.max_objects,
