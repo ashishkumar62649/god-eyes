@@ -9,6 +9,7 @@ export interface SpaceSatelliteFilter {
   category?: string[];
   objectType?: string[];
   orbitClass?: string[];
+  sourceId?: string[];
   importantOnly?: boolean;
   minAltitude?: number;
   maxAltitude?: number;
@@ -132,6 +133,11 @@ export function applyFilters(
   if (filters.orbitClass && filters.orbitClass.length > 0) {
     const classSet = new Set(filters.orbitClass.map((c) => c.toLowerCase()));
     filtered = filtered.filter((s) => classSet.has(s.orbitClass.toLowerCase()));
+  }
+
+  if (filters.sourceId && filters.sourceId.length > 0) {
+    const sourceSet = new Set(filters.sourceId.map((s) => s.toLowerCase()));
+    filtered = filtered.filter((s) => sourceSet.has(s.sourceId.toLowerCase()));
   }
 
   if (filters.importantOnly) {

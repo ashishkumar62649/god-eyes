@@ -281,6 +281,46 @@
 - External live network used in tests: NO (DB writer tests are mocked; only the manual validation command exercised the live CelesTrak endpoint)
 - Known issues: 1 pre-existing test `test_aviation_live_aircraft_work_order_changes_stay_in_allowed_paths` fails when the current diff includes layer_05 changes — that test is a layer_01 aviation-live work order guard and is out of scope for WO-082C1. No functional impact on Layer 05.
 - Next recommended task: Kiro review WO-082C1, then continue with the full Layer 05 MVP integration review and final PR per WO-082 PR policy.
+### 2026-06-01T22:35:46Z DeepSeek — WO-082D3 Layer 05 Filtered REST and WebSocket Satellite Snapshots
+
+- Work order: WO-082D3
+- Agent: DeepSeek
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Lane: API / WebSocket Filters
+- Working directory: E:\god-eyes-api
+- Branch: agent/wo-082d3-space-filtered-snapshots
+- Start time UTC: 2026-06-01T22:25:00Z
+- End time UTC: 2026-06-01T22:35:46Z
+- Commit hash: b36959d (local only)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- Filter support summary:
+  - Added `sourceId` filter to REST endpoint (`GET /api/space/satellites?sourceId=celestrak,space_track`) with parameterized SQL via `p.source_id IN ($1,$2)`
+  - Added `sourceId` filter to WebSocket `SpaceSatelliteFilter` and `SpaceSatellitesSnapshot.applyFilters()` for in-memory filtering
+  - Added `sourceId` extraction in WebSocket subscribe handler to support `{"type":"space.satellites.subscribe","filters":{"sourceId":["celestrak","space_track"]}}`
+  - Added `activeFilters` metadata to REST response reporting all active filters (category, objectType, orbitClass, sourceId, importantOnly, minAltitude, maxAltitude)
+  - Extended contracts `SpaceSatellitesListMetadataSchema` with optional `activeFilters` field
+  - Verified backward compatibility: existing frontend listener receives same message shape with optional extra fields
+  - All existing filters (category, objectType, orbitClass, importantOnly, minAltitude, maxAltitude, limit) preserved and unchanged
+- Files modified:
+  - `apps/api/src/routes/space/satellites.ts` — Added sourceId query param, SQL builder filter, route handler parsing, activeFilters metadata construction
+  - `apps/api/src/routes/space/space-satellites-broadcaster.ts` — Added sourceId to SpaceSatelliteFilter interface and applyFilters logic
+  - `apps/api/tests/space-satellites.test.ts` — 54 tests (up from 45): sourceId REST filter tests, sourceId broadcaster filter tests, combined filter tests, activeFilters metadata tests, WebSocket subscribe sourceId test
+  - `packages/contracts/src/index.ts` — Added optional activeFilters field to SpaceSatellitesListMetadataSchema
+  - `docs/state/HANDOFF_LOG.md` — this entry
+- REST behavior: Supports limit, category, objectType, orbitClass, sourceId, importantOnly, minAltitude, maxAltitude. Metadata reports count, requestedLimit, appliedLimit, maxLimit, activeFilters (object with all applied filter values), generatedAt, estimated, layerId. activeFilters omitted when no filters applied.
+- WebSocket behavior: Subscribe message accepts `{"type":"space.satellites.subscribe","filters":{"sourceId":["celestrak"],"category":["debris"],...}}`. Snapshot applies filters before sending. Does not hardcap. Clamps to safe max (MAX_SNAPSHOT_LIMIT=75000). Includes count in snapshot. Preserves existing message shape (backward compatible).
+- Manual API results: N/A (no local DB)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter api build (PASS), pnpm --filter api test (314/314 PASS), pnpm --filter web build (PASS), python -m pytest tests/data/layer_05_space_satellites -q (32/32 PASS, 1 known scope-guard skip), python -m pytest tests/data -q (453/455 PASS, 2 known scope-guard skips), git diff --check (PASS), git status --short
+- Validation results: 314 API tests pass (54 space satellite, 20 aviation aircraft, 26 live aircraft); aviation WebSocket unaffected; all existing tests preserved
+- API touched: YES
+- Frontend touched: NO
+- Fetching touched: NO
+- Database migrations touched: NO
+- Secrets touched: NO
+- Raw data committed: NO
+- Known issues: None
+- Next recommended task: Manual API validation with local DB: run `Invoke-RestMethod "http://localhost:4000/api/space/satellites?limit=10000&sourceId=space_track"` and confirm filtered count. WO-082E frontend integration for sourceId filter UI.
 
 ### 2026-06-01T21:12:30Z DeepSeek — WO-082D2 Fix Layer 05 Space Satellite 5000 Object API/WebSocket Cap
 
@@ -293,7 +333,7 @@
 - Branch: agent/wo-082d-space-snapshot-scale
 - Start time UTC: 2026-06-01T21:08:00Z
 - End time UTC: 2026-06-01T21:12:30Z
-- Commit hash: (see below, local only)
+- Commit hash: fdc7bdd (local only)
 - Push status: local only (NOT pushed — awaiting Kiro review)
 - Root cause: Two independent caps limited satellite objects to 5000/10000:
   1. **WebSocket broadcaster** (`space-satellites-broadcaster.ts:172,191`): `loadSatellitesSnapshot(limit = 5000)` and `SpaceSatellitesBroadcaster(limit = 5000)` both defaulted to 5000. The frontend uses the WebSocket snapshot stream, so it silently received only 5000 objects.

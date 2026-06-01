@@ -107,6 +107,29 @@ const MOCK_ORBIT_CLASSES = [
 
 const MOCK_TOTALS = [{ total_count: 27000, important_count: 50 }];
 
+const MOCK_SPACE_TRACK_SATELLITE = {
+  satelliteId: '550e8400-e29b-41d4-a716-446655440004',
+  noradId: 99999,
+  name: 'SPACE-TRACK-OBJECT',
+  objectType: 'satellite',
+  category: 'communications',
+  orbitClass: 'geo',
+  country: 'US',
+  launchDate: '2020-01-01',
+  latitude: 0.0,
+  longitude: -75.0,
+  altitudeKm: 35786.0,
+  velocityKms: 3.07,
+  headingDeg: 0.0,
+  visualShape: 'dot',
+  visualColor: '#ffffff',
+  important: false,
+  estimatedAt: '2026-06-01T00:00:00.000Z',
+  sourceId: 'space_track',
+  sourceObjectId: '99999',
+  sourceAgeSeconds: 600,
+};
+
 describe('Space Satellites API', () => {
   let app: ReturnType<typeof Fastify>;
 
@@ -172,7 +195,7 @@ describe('Space Satellites API', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/space/satellites?category=starlink&objectType=satellite&orbitClass=leo',
+      url: '/api/space/satellites?category=starlink&objectType=satellite&orbitClass=leo&sourceId=celestrak',
     });
 
     expect(response.statusCode).toBe(200);
@@ -185,9 +208,11 @@ describe('Space Satellites API', () => {
     expect(sql).toContain('p.category IN');
     expect(sql).toContain('p.object_type IN');
     expect(sql).toContain('p.orbit_class IN');
+    expect(sql).toContain('p.source_id IN');
     expect(params).toContain('starlink');
     expect(params).toContain('satellite');
     expect(params).toContain('leo');
+    expect(params).toContain('celestrak');
   });
 
   it('3. default limit is 1000', async () => {
@@ -534,6 +559,88 @@ describe('Space Satellites API', () => {
     expect(body.metadata.appliedLimit).toBe(1000); // default
     expect(body.metadata.maxLimit).toBe(75000);
   });
+
+  it('25. REST sourceId filter sends parameterized SQL', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?sourceId=celestrak,space_track',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const sql = callArgs[0] as string;
+    const params = callArgs[1] as unknown[];
+
+    expect(sql).toContain('p.source_id IN');
+    expect(sql).toContain('$1');
+    expect(sql).toContain('$2');
+    expect(params).toContain('celestrak');
+    expect(params).toContain('space_track');
+  });
+
+  it('26. REST sourceId filter reduces results', async () => {
+    const mixedSources = [...MOCK_SATELLITES, MOCK_SPACE_TRACK_SATELLITE];
+    vi.mocked(query).mockResolvedValueOnce(mixedSources);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?sourceId=celestrak',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.activeFilters).toBeDefined();
+    expect(body.metadata.activeFilters.sourceId).toEqual(['celestrak']);
+  });
+
+  it('27. REST importantOnly filter reduces results', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?importantOnly=true',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.activeFilters).toBeDefined();
+    expect(body.metadata.activeFilters.importantOnly).toBe(true);
+  });
+
+  it('28. REST metadata reports activeFilters with combined filters', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?category=debris&objectType=debris&orbitClass=leo&importantOnly=false&minAltitude=100&maxAltitude=1000&sourceId=celestrak',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.activeFilters).toBeDefined();
+    expect(body.metadata.activeFilters.category).toEqual(['debris']);
+    expect(body.metadata.activeFilters.objectType).toEqual(['debris']);
+    expect(body.metadata.activeFilters.orbitClass).toEqual(['leo']);
+    expect(body.metadata.activeFilters.importantOnly).toBe(false);
+    expect(body.metadata.activeFilters.minAltitude).toBe(100);
+    expect(body.metadata.activeFilters.maxAltitude).toBe(1000);
+    expect(body.metadata.activeFilters.sourceId).toEqual(['celestrak']);
+  });
+
+  it('29. REST metadata omits activeFilters when no filters', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.activeFilters).toBeUndefined();
+  });
 });
 
 describe('Space Satellites Broadcaster', () => {
@@ -603,6 +710,27 @@ describe('Space Satellites Broadcaster', () => {
     const snapshot = buildSnapshot(MOCK_SATELLITES);
     const filtered = applyFilters(snapshot, { limit: 1 });
     expect(filtered.count).toBe(1);
+  });
+
+  it('applyFilters filters by sourceId', () => {
+    const snapshot = buildSnapshot(MOCK_SATELLITES);
+    const filtered = applyFilters(snapshot, { sourceId: ['celestrak'] });
+    expect(filtered.count).toBe(3);
+    expect(filtered.satellites.every((s) => s.sourceId === 'celestrak')).toBe(true);
+  });
+
+  it('applyFilters filters by sourceId with no match', () => {
+    const snapshot = buildSnapshot(MOCK_SATELLITES);
+    const filtered = applyFilters(snapshot, { sourceId: ['space_track'] });
+    expect(filtered.count).toBe(0);
+  });
+
+  it('applyFilters combined with category and sourceId', () => {
+    const mixedRows = [...MOCK_SATELLITES, MOCK_SPACE_TRACK_SATELLITE];
+    const snapshot = buildSnapshot(mixedRows);
+    const filtered = applyFilters(snapshot, { category: ['communications'], sourceId: ['space_track'] });
+    expect(filtered.count).toBe(1);
+    expect(filtered.satellites[0].name).toBe('SPACE-TRACK-OBJECT');
   });
 
   it('applyFilters with no filters returns all', () => {
@@ -755,6 +883,15 @@ describe('Space Satellites Broadcaster', () => {
     const lastParam = params[params.length - 1];
     expect(lastParam).toBeLessThanOrEqual(MAX_SNAPSHOT_LIMIT);
     bc.stop();
+  });
+
+  it('applyFilters handles WebSocket subscribe with sourceId filter', () => {
+    const mixedRows = [...MOCK_SATELLITES, MOCK_SPACE_TRACK_SATELLITE];
+    const snapshot = buildSnapshot(mixedRows);
+    // Simulate a WebSocket subscribe message with sourceId filter
+    const filtered = applyFilters(snapshot, { sourceId: ['space_track'], limit: 10 });
+    expect(filtered.count).toBe(1);
+    expect(filtered.satellites[0].sourceId).toBe('space_track');
   });
 
   it('broadcaster loads more than 5000 when DB has more rows', async () => {
