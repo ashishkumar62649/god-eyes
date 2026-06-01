@@ -636,6 +636,7 @@ export const SpaceSatellitesListMetadataSchema = z.object({
   requestedLimit: z.number().int().positive().optional(),
   appliedLimit: z.number().int().positive().optional(),
   maxLimit: z.number().int().positive().optional(),
+  activeFilters: z.record(z.unknown()).optional(),
   generatedAt: z.string().datetime(),
   estimated: z.literal(true),
   layerId: z.literal('layer_05_space_satellites'),

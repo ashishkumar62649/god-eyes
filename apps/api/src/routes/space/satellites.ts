@@ -23,6 +23,7 @@ interface SpaceListQuerystring {
   category?: string;
   objectType?: string;
   orbitClass?: string;
+  sourceId?: string;
   importantOnly?: string;
   minAltitude?: string;
   maxAltitude?: string;
@@ -127,6 +128,7 @@ async function listSatellites(params: {
   category?: string[];
   objectType?: string[];
   orbitClass?: string[];
+  sourceId?: string[];
   importantOnly?: boolean;
   minAltitude?: number;
   maxAltitude?: number;
@@ -152,6 +154,12 @@ async function listSatellites(params: {
     const placeholders = params.orbitClass.map(() => `$${paramIndex++}`).join(', ');
     conditions.push(`p.orbit_class IN (${placeholders})`);
     sqlParams.push(...params.orbitClass);
+  }
+
+  if (params.sourceId && params.sourceId.length > 0) {
+    const placeholders = params.sourceId.map(() => `$${paramIndex++}`).join(', ');
+    conditions.push(`p.source_id IN (${placeholders})`);
+    sqlParams.push(...params.sourceId);
   }
 
   if (params.importantOnly) {
@@ -257,6 +265,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
         category: rawCategory,
         objectType: rawObjectType,
         orbitClass: rawOrbitClass,
+        sourceId: rawSourceId,
         importantOnly: rawImportantOnly,
         minAltitude: rawMinAltitude,
         maxAltitude: rawMaxAltitude,
@@ -274,6 +283,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
       const category = parseCommaList(rawCategory);
       const objectType = parseCommaList(rawObjectType);
       const orbitClass = parseCommaList(rawOrbitClass);
+      const sourceId = parseCommaList(rawSourceId);
 
       if (minAltitude !== undefined && (isNaN(minAltitude) || minAltitude < 0)) {
         reply.code(400);
@@ -297,6 +307,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
           category,
           objectType,
           orbitClass,
+          sourceId,
           importantOnly,
           minAltitude,
           maxAltitude,
@@ -311,6 +322,15 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
 
       const requestedLimit = rawLimit !== undefined && rawLimit !== '' ? parseInt(rawLimit, 10) : undefined;
 
+      const activeFilters: Record<string, unknown> = {};
+      if (category) activeFilters.category = category;
+      if (objectType) activeFilters.objectType = objectType;
+      if (orbitClass) activeFilters.orbitClass = orbitClass;
+      if (sourceId) activeFilters.sourceId = sourceId;
+      if (importantOnly !== undefined) activeFilters.importantOnly = importantOnly;
+      if (minAltitude !== undefined) activeFilters.minAltitude = minAltitude;
+      if (maxAltitude !== undefined) activeFilters.maxAltitude = maxAltitude;
+
       return SpaceSatellitesListResponseSchema.parse({
         satellites,
         metadata: {
@@ -318,6 +338,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
           requestedLimit: requestedLimit !== undefined && !isNaN(requestedLimit) ? requestedLimit : undefined,
           appliedLimit: parsedLimit.value,
           maxLimit: MAX_LIMIT,
+          activeFilters: Object.keys(activeFilters).length > 0 ? activeFilters : undefined,
           generatedAt: new Date().toISOString(),
           estimated: true,
           layerId: 'layer_05_space_satellites',
@@ -479,6 +500,7 @@ export function attachSpaceSatellitesWebSocket(
               if (Array.isArray(data.filters.category)) newFilters.category = data.filters.category;
               if (Array.isArray(data.filters.objectType)) newFilters.objectType = data.filters.objectType;
               if (Array.isArray(data.filters.orbitClass)) newFilters.orbitClass = data.filters.orbitClass;
+              if (Array.isArray(data.filters.sourceId)) newFilters.sourceId = data.filters.sourceId;
               if (typeof data.filters.importantOnly === 'boolean') newFilters.importantOnly = data.filters.importantOnly;
               if (typeof data.filters.minAltitude === 'number') newFilters.minAltitude = data.filters.minAltitude;
               if (typeof data.filters.maxAltitude === 'number') newFilters.maxAltitude = data.filters.maxAltitude;
