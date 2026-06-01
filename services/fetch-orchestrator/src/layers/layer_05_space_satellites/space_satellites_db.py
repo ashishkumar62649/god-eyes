@@ -105,7 +105,6 @@ def upsert_satellite(
     if launch_date:
         # Try to parse launch date (format: YYYY-MM or YYYY-MM-DD or YYYY-MM[A-Z])
         try:
-            from datetime import datetime
             if len(launch_date) >= 7:
                 launch_date_val = datetime.strptime(launch_date[:7], "%Y-%m").date()
         except ValueError:

@@ -431,5 +431,272 @@ def test_no_layer_04_space_naming():
         assert "layer_04_space" not in module_str.lower(), f"Found layer_04_space in {module_name}"
 
 
+# === DB WRITER PERSIST PATH TESTS (WO-082C1 regression) ===
+
+def test_safe_json_dumps_serializes_datetime():
+    """safe_json_dumps must serialize datetime values to ISO format strings."""
+    from space_satellites_db import safe_json_dumps
+
+    payload = {
+        "fetched_at": datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc),
+        "name": "ISS (ZARYA)",
+        "count": 1,
+    }
+    out = safe_json_dumps(payload)
+    parsed = json.loads(out)
+    assert parsed["name"] == "ISS (ZARYA)"
+    assert parsed["count"] == 1
+    # Datetime must be ISO 8601 string, not a Python repr
+    assert isinstance(parsed["fetched_at"], str)
+    assert "T" in parsed["fetched_at"]
+
+
+def test_safe_json_dumps_handles_nested_datetime():
+    """safe_json_dumps must recursively serialize datetime in nested structures."""
+    from space_satellites_db import safe_json_dumps
+
+    ts = datetime(2026, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+    payload = {
+        "satellites": [
+            {"id": 25544, "epoch": ts, "name": "ISS"},
+            {"id": 48274, "epoch": ts, "name": "TIANGONG"},
+        ]
+    }
+    out = safe_json_dumps(payload)
+    parsed = json.loads(out)
+    assert len(parsed["satellites"]) == 2
+    for entry in parsed["satellites"]:
+        assert isinstance(entry["epoch"], str)
+        assert "T" in entry["epoch"]
+
+
+def test_upsert_satellite_persist_no_unbound_local_error():
+    """Regression test for WO-082C1: upsert_satellite must not raise
+    UnboundLocalError on the datetime local-variable shadow bug.
+
+    The historical bug: a redundant `from datetime import datetime` inside
+    upsert_satellite() caused Python to treat `datetime` as a local variable,
+    raising UnboundLocalError when `datetime.now(timezone.utc)` was called
+    before the local import.
+    """
+    from space_satellites_db import upsert_satellite
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    # First fetchone: get_existing_satellite -> None (no existing record)
+    # Second fetchone: INSERT ... RETURNING id -> {"id": "fake-uuid-1234"}
+    fake_cursor.fetchone.side_effect = [None, {"id": "fake-uuid-1234"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    epoch_at = datetime(2026, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+    source_updated = datetime(2026, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+    # If the bug is present this raises UnboundLocalError.
+    sat_id, is_new = upsert_satellite(
+        conn=fake_conn,
+        layer_id="layer_05_space_satellites",
+        source_id="celestrak",
+        source_object_id="25544",
+        norad_cat_id=25544,
+        name="ISS (ZARYA)",
+        object_type="satellite",
+        category="crewed_or_station",
+        orbit_class="leo",
+        country="USA",
+        operator_or_owner="NASA",
+        launch_date="1998-067A",
+        tle_line1="1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+        tle_line2="2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+        orbital_epoch_at=epoch_at,
+        source_updated_at=source_updated,
+        is_active=True,
+        is_important=True,
+        raw_source_json={
+            "epoch_at": epoch_at,
+            "name": "ISS (ZARYA)",
+        },
+    )
+
+    assert sat_id == "fake-uuid-1234"
+    assert is_new is True
+    # Verify the SQL was actually executed with a parameterized query
+    # 2 execute calls: 1) get_existing_satellite SELECT, 2) INSERT ... RETURNING
+    assert fake_cursor.execute.call_count == 2
+    # Locate the INSERT statement (the second execute call)
+    insert_call = None
+    for call in fake_cursor.execute.call_args_list:
+        sql_arg = call[0][0]
+        if "INSERT INTO space_satellites" in sql_arg:
+            insert_call = call
+            break
+    assert insert_call is not None, "Did not find INSERT statement"
+    sql_arg = insert_call[0][0]
+    params = insert_call[0][1]
+    assert "INSERT INTO space_satellites" in sql_arg
+    assert "ON CONFLICT" in sql_arg
+    # Parameterized SQL — must use %s placeholders, not f-string
+    assert "%s" in sql_arg
+    assert len(params) == 20
+    # The first_seen_at slot must be a datetime (now()), not a string
+    # params[15] = first_seen_at, params[16] = last_seen_at
+    assert isinstance(params[15], datetime)
+    assert isinstance(params[16], datetime)
+    # raw_source_json must be a JSON string, with the datetime serialized
+    assert isinstance(params[19], str)
+    parsed_raw = json.loads(params[19])
+    assert isinstance(parsed_raw["epoch_at"], str)
+
+
+def test_upsert_position_persist_no_unbound_local_error():
+    """Regression test for WO-082C1: upsert_position must not raise
+    UnboundLocalError and must serialize datetime fields via safe_json_dumps.
+    """
+    from space_satellites_db import upsert_position
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"satellite_id": "fake-uuid-1234"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    estimated_at = datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    pos_id = upsert_position(
+        conn=fake_conn,
+        satellite_id="fake-uuid-1234",
+        layer_id="layer_05_space_satellites",
+        source_id="celestrak",
+        source_object_id="25544",
+        norad_cat_id=25544,
+        estimated_at=estimated_at,
+        latitude=12.34,
+        longitude=56.78,
+        altitude_km=420.0,
+        velocity_kms=7.66,
+        heading_deg=90.0,
+        orbit_class="leo",
+        object_type="satellite",
+        category="crewed_or_station",
+        visual_shape="dot",
+        visual_color="#ffd700",
+        is_important=True,
+        source_age_seconds=120,
+        computation_method="simplified_sgp4",
+        raw_position_json={
+            "estimated_at": estimated_at,
+            "epoch": estimated_at,
+        },
+    )
+
+    assert pos_id == "fake-uuid-1234"
+    assert fake_cursor.execute.call_count == 1
+    sql_arg = fake_cursor.execute.call_args[0][0]
+    params = fake_cursor.execute.call_args[0][1]
+    assert "INSERT INTO space_satellite_positions_latest" in sql_arg
+    assert "ON CONFLICT" in sql_arg
+    # Parameterized SQL — must use %s placeholders, not f-string
+    assert "%s" in sql_arg
+    assert len(params) == 20
+    # estimated_at must remain a datetime so psycopg serializes it
+    assert isinstance(params[5], datetime)
+    # raw_position_json must be a JSON string with datetime serialized
+    assert isinstance(params[19], str)
+    parsed_raw = json.loads(params[19])
+    assert isinstance(parsed_raw["estimated_at"], str)
+    assert isinstance(parsed_raw["epoch"], str)
+
+
+def test_upsert_satellite_persist_with_datetime_raw_source_json():
+    """raw_source_json containing a datetime must serialize without error."""
+    from space_satellites_db import upsert_satellite
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    # First fetchone: get_existing_satellite -> None (new record)
+    # Second fetchone: INSERT ... RETURNING id -> {"id": "fake-uuid-9999"}
+    fake_cursor.fetchone.side_effect = [None, {"id": "fake-uuid-9999"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    ts = datetime(2026, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+    sat_id, _ = upsert_satellite(
+        conn=fake_conn,
+        layer_id="layer_05_space_satellites",
+        source_id="celestrak",
+        source_object_id="48274",
+        norad_cat_id=48274,
+        name="TIANGONG",
+        object_type="satellite",
+        category="crewed_or_station",
+        orbit_class="leo",
+        country="China",
+        operator_or_owner="CNSA",
+        launch_date="2021-04",
+        tle_line1="1 48274U 21034A   23250.12345678  .00023456  00000-0  12345-6 0  9992",
+        tle_line2="2 48274  41.5803 312.4567 0008901  45.1234 315.6789 15.65432109876543",
+        orbital_epoch_at=ts,
+        source_updated_at=ts,
+        is_active=True,
+        is_important=True,
+        raw_source_json={
+            "epoch_at": ts,
+            "fetched_at": ts,
+            "nested": {"last_update": ts},
+            "list_with_dates": [ts, ts],
+        },
+    )
+
+    assert sat_id == "fake-uuid-9999"
+    # Locate the INSERT statement (skip the get_existing_satellite SELECT)
+    insert_call = None
+    for call in fake_cursor.execute.call_args_list:
+        sql_arg = call[0][0]
+        if "INSERT INTO space_satellites" in sql_arg:
+            insert_call = call
+            break
+    assert insert_call is not None
+    params = insert_call[0][1]
+    # raw_source_json must serialize datetimes to strings
+    parsed_raw = json.loads(params[19])
+    assert isinstance(parsed_raw["epoch_at"], str)
+    assert isinstance(parsed_raw["fetched_at"], str)
+    assert isinstance(parsed_raw["nested"]["last_update"], str)
+    assert all(isinstance(d, str) for d in parsed_raw["list_with_dates"])
+
+
+def test_db_writer_does_not_shadow_datetime_module():
+    """Module must not have any local `from datetime import datetime`
+    inside function bodies. This guards against the WO-082C1 regression
+    where a redundant local import shadowed the module-level `datetime`
+    and triggered UnboundLocalError.
+    """
+    import inspect
+    from space_satellites_db import upsert_satellite, upsert_position
+
+    for fn in (upsert_satellite, upsert_position):
+        source = inspect.getsource(fn)
+        # No `from datetime import datetime` lines should appear inside
+        # the function body. Strip docstrings (which sometimes mention
+        # datetime in plain English) to avoid false positives.
+        cleaned = "\n".join(
+            line for line in source.splitlines()
+            if "from datetime import" not in line or line.strip().startswith("#")
+        )
+        # We expect the function source to contain `from datetime` only
+        # at module level — there should be zero such statements inside
+        # the function body.
+        body_lines = [
+            line for line in cleaned.splitlines()
+            if line.lstrip().startswith("from datetime import")
+        ]
+        assert body_lines == [], (
+            f"{fn.__name__} contains an in-body `from datetime import` "
+            f"statement that shadows the module-level `datetime`. "
+            f"Remove it to avoid UnboundLocalError."
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

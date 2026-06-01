@@ -1,3 +1,40 @@
+### 2026-06-01T15:45:00Z MiniMax — WO-082C1 Layer 05 Satellite Fetcher Persist Datetime Bug Fix
+
+- Work order: WO-082C1
+- Agent: MiniMax
+- Lane: Fetching / Integration Fix
+- LLM model: MiniMax
+- Tool/CLI used: Kiro CLI
+- Working directory: E:\god-eyes-review
+- Branch: agent/wo-082-review
+- Start time UTC: 2026-06-01T15:30:00Z
+- End time UTC: 2026-06-01T15:45:00Z
+- Commit hash: 4bc7840b660e9ff45cfaee4f3e2fcc2d202908fb (final; prior self-references in this handoff entry were amended in-place to track the handoff log hash)
+- Push status: local only (NOT pushed — per WO-082C1 policy)
+- Bug found during boss/manual verification: dry-run worked, but `--persist` raised `UnboundLocalError: cannot access local variable 'datetime' where it is not associated with a value`. Root cause: a redundant `from datetime import datetime` inside `upsert_satellite()` shadowed the module-level `datetime` reference. Python's parser treats `datetime` as a local variable throughout the function, so `datetime.now(timezone.utc)` on line 102 (before the local import on line 108) raised UnboundLocalError.
+- Fix summary: Removed the redundant local `from datetime import datetime` import inside `upsert_satellite()`. The top-level `from datetime import datetime, timezone` (line 12) is the single source of truth for the symbol. Module-level style preserved per AGENTS.md conventions; no other refactors performed.
+- Files modified: services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_db.py, tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Files created: none
+- Files deleted: none
+- Tests added/updated: 6 new tests in test_space_satellites_fetcher.py
+  - test_safe_json_dumps_serializes_datetime (top-level ISO serialization of datetime values)
+  - test_safe_json_dumps_handles_nested_datetime (recursive datetime in nested dict + list)
+  - test_upsert_satellite_persist_no_unbound_local_error (regression test for the WO-082C1 UnboundLocalError, asserts parameterized SQL, datetime params, JSON serialization)
+  - test_upsert_position_persist_no_unbound_local_error (regression test for position path, asserts datetime parameter preserved for psycopg and datetime serialized in raw_position_json)
+  - test_upsert_satellite_persist_with_datetime_raw_source_json (deeply nested datetime serialization)
+  - test_db_writer_does_not_shadow_datetime_module (introspection guard — fails if any `from datetime import datetime` reappears inside a function body)
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q, python -m pytest tests/data -q (--ignore aviation-live migration guard unrelated to Layer 05), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter web build, pnpm --filter api test, git diff --check, git status --short
+- Validation results: layer 05 tests PASS (39/39), all data tests PASS (452/452 excluding pre-existing layer_01 aviation-live work-order guard which is unrelated to Layer 05), compileall PASS, contracts build PASS, api build PASS, web build PASS (76 modules, 674ms), api tests PASS (297/297 including 37 space-satellites tests), git diff --check PASS, git status --short clean
+- Manual persist result: SUCCESS — `python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --source celestrak --group stations --max-objects 20 --persist` ran end-to-end without error. Catalog written: 20. Positions written: 20. Skipped (older): 0. No errors in summary.
+- DB counts after persist: space_satellites=20, space_satellite_positions_latest=20 (verified via `docker exec god-eyes-postgis psql -U god_eyes -d god_eyes_dev`)
+- Secrets touched: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- External live network used in tests: NO (DB writer tests are mocked; only the manual validation command exercised the live CelesTrak endpoint)
+- Known issues: 1 pre-existing test `test_aviation_live_aircraft_work_order_changes_stay_in_allowed_paths` fails when the current diff includes layer_05 changes — that test is a layer_01 aviation-live work order guard and is out of scope for WO-082C1. No functional impact on Layer 05.
+- Next recommended task: Kiro review WO-082C1, then continue with the full Layer 05 MVP integration review and final PR per WO-082 PR policy.
+
 ### 2026-05-31T22:03:00Z MiniMax — WO-082C Space & Satellites Fetcher
 
 - Work order: WO-082C
