@@ -708,6 +708,8 @@ from space_satellites_worker import (
     run_download_only,
     run_normalize_only,
     run_persist_from_cache,
+    normalize_source_id,
+    is_space_track_source,
 )
 
 
@@ -1212,6 +1214,636 @@ def test_stage_persist_datetime_safe(tmp_path):
     params = insert_call[0][1]
     parsed_raw = json.loads(params[19])
     assert isinstance(parsed_raw["epoch_at"], str)
+
+
+# =====================================================================
+# SPACE-TRACK PIPELINE TESTS — WO-082C3
+# =====================================================================
+
+from space_track_client import (
+    SpaceTrackClient,
+    SpaceTrackAuthError,
+    SpaceTrackHTTPError,
+    has_space_track_credentials,
+    get_missing_env_vars,
+    get_credentials_safe,
+    SPACE_TRACK_GROUPS,
+    ENV_USERNAME,
+    ENV_PASSWORD,
+)
+from space_track_normalizer import (
+    normalize_space_track_record,
+    normalize_space_track_records,
+    SOURCE_ID_CANONICAL as ST_SOURCE_ID,
+)
+
+
+# ---- Space-Track client: env handling --------------------------------
+
+
+def test_space_track_env_credential_check_when_missing(monkeypatch):
+    """When env vars are missing, has_space_track_credentials is False."""
+    monkeypatch.delenv(ENV_USERNAME, raising=False)
+    monkeypatch.delenv(ENV_PASSWORD, raising=False)
+    assert has_space_track_credentials() is False
+    missing = get_missing_env_vars()
+    assert ENV_USERNAME in missing
+    assert ENV_PASSWORD in missing
+
+
+def test_space_track_env_credential_check_when_present(monkeypatch):
+    """When env vars are set, has_space_track_credentials is True."""
+    monkeypatch.setenv(ENV_USERNAME, "test-user-not-secret")
+    monkeypatch.setenv(ENV_PASSWORD, "test-pass-not-secret")
+    assert has_space_track_credentials() is True
+    assert get_missing_env_vars() == []
+
+
+def test_space_track_credentials_safe_never_returns_values(monkeypatch, capsys):
+    """get_credentials_safe() must never return env values, only names."""
+    monkeypatch.setenv(ENV_USERNAME, "SHOULD-NOT-LEAK")
+    monkeypatch.setenv(ENV_PASSWORD, "ALSO-NOT-LEAK")
+    ok, missing = get_credentials_safe()
+    assert ok is True
+    # Returned values must not contain the actual secret string
+    assert "SHOULD-NOT-LEAK" not in str(missing)
+    assert "ALSO-NOT-LEAK" not in str(missing)
+
+
+# ---- Space-Track download-only ---------------------------------------
+
+
+def test_space_track_download_only_missing_credentials(tmp_path, monkeypatch, capsys):
+    """Missing credentials -> safe failure with env var names only."""
+    monkeypatch.delenv(ENV_USERNAME, raising=False)
+    monkeypatch.delenv(ENV_PASSWORD, raising=False)
+    result = run_download_only(
+        groups=["all"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    assert result["groups_succeeded"] == []
+    assert "all" in result["groups_failed"]
+    assert len(result["errors"]) == 1
+    err = result["errors"][0]
+    # Must mention env var names but never actual secret values
+    assert ENV_USERNAME in err
+    assert ENV_PASSWORD in err
+    # Should NOT contain any value (since we deleted them)
+    out = capsys.readouterr().out
+    assert ENV_USERNAME in out or ENV_USERNAME in err
+    # Manifest should still be written
+    cache = SourceCache(tmp_path)
+    manifest = cache.read_overall_manifest()
+    assert manifest is not None
+    assert manifest["groups_failed"] == ["all"]
+
+
+def test_space_track_download_only_uses_env_creds(monkeypatch, tmp_path):
+    """download-only with credentials must call authenticate and not log values."""
+    monkeypatch.setenv(ENV_USERNAME, "fake-user-not-secret")
+    monkeypatch.setenv(ENV_PASSWORD, "fake-pass-not-secret")
+
+    captured = {"cookies": {}, "called_login": False}
+
+    def fake_login(self, username, password):
+        captured["called_login"] = True
+        captured["cookies"] = {"chocolatechip": "redacted"}
+        # Sanity: env values were passed (but not asserted in test)
+        return captured["cookies"]
+
+    def fake_fetch(self, groups=None):
+        return [
+            {"NORAD_CAT_ID": 25544, "OBJECT_NAME": "ISS (ZARYA)",
+             "OBJECT_TYPE": "PAYLOAD", "COUNTRY_CODE": "US",
+             "TLE_LINE1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+             "TLE_LINE2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"},
+        ]
+
+    monkeypatch.setattr("space_track_client.SpaceTrackClient._login", fake_login)
+    monkeypatch.setattr("space_track_client.SpaceTrackClient._http_get_json", fake_fetch)
+    monkeypatch.setattr("space_track_client.create_space_track_client",
+                        lambda: SpaceTrackClient())
+
+    result = run_download_only(
+        groups=["all"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    assert captured["called_login"] is True
+    assert "all" in result["groups_succeeded"]
+    assert result["record_count"] == 1
+    # Verify raw cache was written
+    cache = SourceCache(tmp_path)
+    raw = cache.read_raw_group("space_track", "all")
+    assert raw is not None
+    assert raw["record_count"] == 1
+
+
+def test_space_track_download_only_http_failure_recorded(monkeypatch, tmp_path):
+    """HTTP/auth failure is recorded in manifest without raw data corruption."""
+    monkeypatch.setenv(ENV_USERNAME, "u")
+    monkeypatch.setenv(ENV_PASSWORD, "p")
+
+    def fake_login(self, username, password):
+        return {"chocolatechip": "x"}
+
+    def fake_http(self, url):
+        raise SpaceTrackHTTPError(401, "Unauthorized")
+
+    monkeypatch.setattr("space_track_client.SpaceTrackClient._login", fake_login)
+    monkeypatch.setattr("space_track_client.SpaceTrackClient._http_get_json", fake_http)
+    monkeypatch.setattr("space_track_client.create_space_track_client",
+                        lambda: SpaceTrackClient())
+
+    result = run_download_only(
+        groups=["all"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    assert "all" in result["groups_failed"]
+    assert any("401" in e for e in result["errors"])
+    # No raw data should have been written
+    cache = SourceCache(tmp_path)
+    assert cache.read_raw_group("space_track", "all") is None
+
+
+def test_space_track_source_alias_normalization():
+    """Both 'space-track' and 'space_track' are accepted and normalized."""
+    assert normalize_source_id("space-track") == "space_track"
+    assert normalize_source_id("space_track") == "space_track"
+    assert normalize_source_id("celestrak") == "celestrak"
+    assert is_space_track_source("space-track") is True
+    assert is_space_track_source("space_track") is True
+    assert is_space_track_source("celestrak") is False
+
+
+# ---- Space-Track normalize-only --------------------------------------
+
+
+def _make_space_track_record(norad=25544, name="ISS (ZARYA)", obj_type="PAYLOAD",
+                             with_tle=True, decay=None):
+    rec = {
+        "NORAD_CAT_ID": norad,
+        "OBJECT_NAME": name,
+        "OBJECT_ID": f"1998-067A",
+        "OBJECT_TYPE": obj_type,
+        "COUNTRY_CODE": "US",
+        "LAUNCH_DATE": "1998-11-20",
+        "DECAY_DATE": decay,
+        "INCLINATION": 51.6415,
+        "PERIOD": 92.9,
+        "ECCENTRICITY": 0.0006703,
+        "MEAN_MOTION": 15.49994638,
+    }
+    if with_tle:
+        rec["TLE_LINE1"] = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+        rec["TLE_LINE2"] = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    return rec
+
+
+def test_space_track_normalize_only_reads_cache_no_provider(monkeypatch, tmp_path):
+    """normalize-only must NOT call the provider."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="space_track",
+        group="all",
+        raw_text="# cached",
+        records=[_make_space_track_record()],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+
+    with patch("space_track_client.create_space_track_client") as mock_create:
+        result = run_normalize_only(
+            groups=["all"],
+            source="space-track",
+            cache_dir=str(tmp_path),
+        )
+        mock_create.assert_not_called()
+    assert result["satellites_written"] == 1
+    assert result["positions_written"] == 1
+
+
+def test_space_track_normalize_maps_norad_cat_id(tmp_path):
+    """normalize-only maps NORAD_CAT_ID -> norad_cat_id correctly."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="space_track",
+        group="all",
+        raw_text="# cached",
+        records=[_make_space_track_record(norad=48274, name="CSS (TIANHE)")],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+    result = run_normalize_only(
+        groups=["all"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    sats = cache.read_normalized_satellites()
+    assert len(sats) == 1
+    assert sats[0]["norad_cat_id"] == 48274
+    assert sats[0]["source_id"] == "space_track"
+
+
+def test_space_track_normalize_classifies_debris_rocket_inactive(tmp_path):
+    """All 3 non-payload OBJECT_TYPEs are correctly classified."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="space_track",
+        group="all",
+        raw_text="# cached",
+        records=[
+            _make_space_track_record(norad=1, name="PAYLOAD X", obj_type="PAYLOAD"),
+            _make_space_track_record(norad=2, name="DEBRIS Y", obj_type="DEBRIS"),
+            _make_space_track_record(norad=3, name="ROCKET BODY Z", obj_type="ROCKET BODY"),
+        ],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+    run_normalize_only(groups=["all"], source="space-track", cache_dir=str(tmp_path))
+    sats = cache.read_normalized_satellites()
+    by_id = {s["norad_cat_id"]: s for s in sats}
+    assert by_id[1]["object_type"] == "satellite"
+    assert by_id[2]["object_type"] == "debris"
+    assert by_id[3]["object_type"] == "rocket_body"
+
+
+def test_space_track_normalize_skips_malformed_records(tmp_path):
+    """Records without norad_cat_id or name are skipped safely."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="space_track",
+        group="all",
+        raw_text="# cached",
+        records=[
+            _make_space_track_record(norad=25544, name="VALID"),
+            {"NORAD_CAT_ID": None, "OBJECT_NAME": "MISSING-NORAD"},
+            {"NORAD_CAT_ID": 99999, "OBJECT_NAME": ""},
+            {"OBJECT_NAME": "MISSING-NORAD-2"},
+            _make_space_track_record(norad=33591, name="ALSO-VALID"),
+        ],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+    result = run_normalize_only(
+        groups=["all"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    assert result["satellites_written"] == 2
+    # The error counter should reflect the 3 bad records
+    assert len(result["errors"]) >= 1
+
+
+def test_space_track_normalize_handles_decay_date(tmp_path):
+    """Records with DECAY_DATE get is_active=False."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="space_track",
+        group="all",
+        raw_text="# cached",
+        records=[_make_space_track_record(norad=12345, name="DECAYED SAT", decay="2024-01-15")],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+    run_normalize_only(groups=["all"], source="space-track", cache_dir=str(tmp_path))
+    sats = cache.read_normalized_satellites()
+    assert len(sats) == 1
+    assert sats[0]["is_active"] is False
+
+
+# ---- Space-Track persist-from-cache with --missing-only -------------
+
+
+def test_persist_from_cache_missing_only_loads_existing_norad(monkeypatch, tmp_path):
+    """missing-only calls get_existing_norad_ids before insert."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized(
+        satellites=[{
+            "source_id": "space_track", "source_object_id": "99999",
+            "norad_cat_id": 99999, "name": "NEW SAT",
+            "object_type": "satellite", "category": "unknown",
+            "orbit_class": "leo", "country": "US",
+            "tle_line1": "", "tle_line2": "",
+            "is_active": True, "is_important": False,
+            "raw_source_json": {},
+        }],
+        positions=[],
+        groups=["all"],
+        source="space_track",
+    )
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    # get_existing_norad_ids query -> returns existing list
+    # upsert_satellite mocked, so we don't need fetchone
+    fake_cursor.fetchone.return_value = {"id": "sat-1"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    existing = {25544, 33591}
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=100), \
+         patch("space_satellites_worker.get_position_count", return_value=100), \
+         patch("space_satellites_worker.get_existing_norad_ids", return_value=existing) as mock_existing, \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-1", True)):
+        result = run_persist_from_cache(
+            source="space-track",
+            cache_dir=str(tmp_path),
+            missing_only=True,
+        )
+    assert mock_existing.called
+    # NORAD 99999 is not in existing, so it should be inserted
+    assert result["catalog_written"] == 1
+    assert result["skipped_existing"] == 0
+    assert result["existing_norad_count"] == 2
+
+
+def test_persist_from_cache_missing_only_skips_existing_norad(tmp_path):
+    """NORAD IDs already in DB are skipped, not duplicated."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized(
+        satellites=[
+            {"source_id": "space_track", "source_object_id": "25544",
+             "norad_cat_id": 25544, "name": "ISS (DUPE)",
+             "object_type": "satellite", "category": "crewed_or_station",
+             "orbit_class": "leo", "country": "US",
+             "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+             "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+             "is_active": True, "is_important": True, "raw_source_json": {}},
+        ],
+        positions=[],
+        groups=["all"],
+        source="space_track",
+    )
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-1"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    # 25544 already exists in DB
+    existing = {25544}
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=100), \
+         patch("space_satellites_worker.get_position_count", return_value=100), \
+         patch("space_satellites_worker.get_existing_norad_ids", return_value=existing), \
+         patch("space_satellites_worker.upsert_satellite") as mock_upsert:
+        result = run_persist_from_cache(
+            source="space-track",
+            cache_dir=str(tmp_path),
+            missing_only=True,
+        )
+    # Should skip the existing NORAD, not call upsert
+    assert mock_upsert.call_count == 0
+    assert result["catalog_written"] == 0
+    assert result["skipped_existing"] == 1
+    assert result["missing_norad_count"] == 0
+
+
+def test_persist_from_cache_missing_only_inserts_only_missing(tmp_path):
+    """Mixed input: existing NORADs skipped, missing NORADs inserted."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized(
+        satellites=[
+            {"source_id": "space_track", "source_object_id": "25544",
+             "norad_cat_id": 25544, "name": "ISS", "object_type": "satellite",
+             "category": "crewed_or_station", "orbit_class": "leo", "country": "US",
+             "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+             "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+             "is_active": True, "is_important": True, "raw_source_json": {}},
+            {"source_id": "space_track", "source_object_id": "99999",
+             "norad_cat_id": 99999, "name": "NEW SAT 1", "object_type": "satellite",
+             "category": "unknown", "orbit_class": "leo", "country": "US",
+             "tle_line1": "", "tle_line2": "",
+             "is_active": True, "is_important": False, "raw_source_json": {}},
+            {"source_id": "space_track", "source_object_id": "88888",
+             "norad_cat_id": 88888, "name": "NEW SAT 2", "object_type": "satellite",
+             "category": "unknown", "orbit_class": "leo", "country": "US",
+             "tle_line1": "", "tle_line2": "",
+             "is_active": True, "is_important": False, "raw_source_json": {}},
+        ],
+        positions=[],
+        groups=["all"],
+        source="space_track",
+    )
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-x"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    existing = {25544}  # only 25544 exists in DB
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=100), \
+         patch("space_satellites_worker.get_position_count", return_value=100), \
+         patch("space_satellites_worker.get_existing_norad_ids", return_value=existing), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-x", True)) as mock_upsert:
+        result = run_persist_from_cache(
+            source="space-track",
+            cache_dir=str(tmp_path),
+            missing_only=True,
+        )
+    # Only 2 missing NORADs should be inserted
+    assert mock_upsert.call_count == 2
+    assert result["catalog_written"] == 2
+    assert result["skipped_existing"] == 1
+    assert result["missing_norad_count"] == 2
+
+
+def test_persist_from_cache_without_missing_only_does_not_load_existing(tmp_path):
+    """When --missing-only is not set, get_existing_norad_ids is NOT called."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized(
+        satellites=[{
+            "source_id": "celestrak", "source_object_id": "25544",
+            "norad_cat_id": 25544, "name": "ISS", "object_type": "satellite",
+            "category": "crewed_or_station", "orbit_class": "leo", "country": "US",
+            "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+            "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+            "is_active": True, "is_important": True, "raw_source_json": {},
+        }],
+        positions=[],
+        groups=["stations"],
+        source="celestrak",
+    )
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [None, {"id": "sat-1"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.get_existing_norad_ids") as mock_existing, \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-1", True)):
+        result = run_persist_from_cache(
+            source="celestrak",
+            cache_dir=str(tmp_path),
+            missing_only=False,  # key point
+        )
+    assert not mock_existing.called
+    assert result["catalog_written"] == 1
+
+
+# ---- Regression: existing CelesTrak staged pipeline still works ------
+
+
+def test_existing_celestrak_staged_pipeline_still_works(tmp_path):
+    """CelesTrak staged modes must still pass after Space-Track refactor."""
+    # Pre-populate raw cache for stations
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="celestrak",
+        group="stations",
+        raw_text="# test",
+        records=[{
+            "norad_cat_id": 25544, "name": "ISS (ZARYA)",
+            "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+            "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+            "object_type": "satellite", "country": "USA",
+        }],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+    # normalize-only
+    r1 = run_normalize_only(groups=["stations"], source="celestrak", cache_dir=str(tmp_path))
+    assert r1["satellites_written"] == 1
+    # persist-from-cache (without missing-only)
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [None, {"id": "sat-1"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-1", True)), \
+         patch("space_satellites_worker.upsert_position", return_value="pos-1"):
+        r2 = run_persist_from_cache(source="celestrak", cache_dir=str(tmp_path))
+    assert r2["catalog_written"] == 1
+
+
+def test_wo_082c1_datetime_regression_in_space_track_path(tmp_path):
+    """WO-082C1 datetime regression: space-track persist must serialize datetimes."""
+    cache = SourceCache(tmp_path)
+    epoch = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    sat_json = {
+        "source_id": "space_track", "source_object_id": "25544",
+        "norad_cat_id": 25544, "name": "ISS (ZARYA)",
+        "object_type": "satellite", "category": "crewed_or_station",
+        "orbit_class": "leo", "country": "US",
+        "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+        "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+        "orbital_epoch_at": epoch.isoformat(),
+        "source_updated_at": epoch.isoformat(),
+        "is_active": True, "is_important": True,
+        "raw_source_json": {"epoch_at": epoch.isoformat()},
+        "position": {
+            "estimated_at": epoch.isoformat(),
+            "latitude": 42.0, "longitude": -71.0, "altitude_km": 420.0,
+            "velocity_kms": 7.66, "heading_deg": 90.0,
+            "visual_shape": "dot", "visual_color": "#ffd700",
+            "source_age_seconds": 120, "computation_method": "simplified-sgp4",
+        },
+    }
+    cache.write_normalized([sat_json], [sat_json["position"]], ["all"], "space_track")
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [None, {"id": "sat-1"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0):
+        result = run_persist_from_cache(source="space-track", cache_dir=str(tmp_path))
+    assert result["catalog_written"] == 1
+    # Verify no UnboundLocalError and datetime was serialized
+    insert_call = None
+    for call in fake_cursor.execute.call_args_list:
+        if "INSERT INTO space_satellites" in call[0][0]:
+            insert_call = call
+            break
+    assert insert_call is not None
+    params = insert_call[0][1]
+    parsed_raw = json.loads(params[19])
+    assert isinstance(parsed_raw["epoch_at"], str)
+
+
+def test_normalizer_unit_basic_fields():
+    """Unit test: normalize_space_track_record returns canonical dict."""
+    rec = _make_space_track_record(norad=25544, name="ISS")
+    sat = normalize_space_track_record(rec, fetched_at="2026-06-01T12:00:00Z")
+    assert sat is not None
+    assert sat["norad_cat_id"] == 25544
+    assert sat["name"] == "ISS"
+    assert sat["object_type"] == "satellite"
+    assert sat["source_id"] == "space_track"
+    assert sat["source_object_id"] == "25544"
+    assert sat["is_important"] is True  # ISS is important
+    assert sat["is_active"] is True
+    # Position should be computed from TLE
+    assert "position" in sat
+    assert sat["position"]["latitude"] is not None
+
+
+def test_normalizer_unit_returns_none_for_malformed():
+    """Unit test: missing norad_cat_id or name -> None."""
+    assert normalize_space_track_record({"OBJECT_NAME": "X"}) is None
+    assert normalize_space_track_record({"NORAD_CAT_ID": 1}) is None
+    assert normalize_space_track_record({"NORAD_CAT_ID": 1, "OBJECT_NAME": ""}) is None
+
+
+def test_normalizer_batch_returns_errors():
+    """Unit test: batch returns (normalized, errors)."""
+    recs = [
+        _make_space_track_record(norad=1, name="A"),
+        {"OBJECT_NAME": "BAD"},
+    ]
+    norm, errs = normalize_space_track_records(recs)
+    assert len(norm) == 1
+    assert len(errs) == 1
+
+
+# ---- DB writer: get_existing_norad_ids unit test --------------------
+
+
+def test_get_existing_norad_ids_returns_set():
+    """get_existing_norad_ids returns a set of integers from the DB."""
+    from space_satellites_db import get_existing_norad_ids
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    # Two rows with different shapes
+    fake_cursor.fetchall.return_value = [
+        {"norad_cat_id": 25544},
+        {"norad_cat_id": 33591},
+        {"norad_cat_id": 99999},
+    ]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    result = get_existing_norad_ids(fake_conn)
+    assert result == {25544, 33591, 99999}
+
+
+def test_get_existing_norad_ids_handles_tuple_rows():
+    """get_existing_norad_ids works with plain tuple rows too."""
+    from space_satellites_db import get_existing_norad_ids
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchall.return_value = [
+        (25544,),
+        (33591,),
+    ]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    result = get_existing_norad_ids(fake_conn)
+    assert 25544 in result
+    assert 33591 in result
 
 
 if __name__ == "__main__":

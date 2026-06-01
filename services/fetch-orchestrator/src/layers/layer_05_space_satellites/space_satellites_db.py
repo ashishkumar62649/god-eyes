@@ -262,3 +262,26 @@ def get_position_count(conn: Any) -> int:
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) as cnt FROM space_satellite_positions_latest")
         return cur.fetchone()["cnt"]
+
+
+def get_existing_norad_ids(conn: Any) -> set[int]:
+    """Return the set of NORAD catalog IDs already present in the catalog.
+
+    Used by the Space-Track gap-fill pipeline to skip objects that
+    already exist (e.g. from CelesTrak) so we never create duplicate
+    satellite rows for the same NORAD ID.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT norad_cat_id FROM space_satellites WHERE norad_cat_id IS NOT NULL"
+        )
+        rows = cur.fetchall()
+    ids: set[int] = set()
+    for row in rows:
+        val = row.get("norad_cat_id") if isinstance(row, dict) else row[0]
+        if val is not None:
+            try:
+                ids.add(int(val))
+            except (ValueError, TypeError):
+                continue
+    return ids
