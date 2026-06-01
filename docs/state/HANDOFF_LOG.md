@@ -1,3 +1,46 @@
+### 2026-06-01T21:12:30Z DeepSeek — WO-082D2 Fix Layer 05 Space Satellite 5000 Object API/WebSocket Cap
+
+- Work order: WO-082D2
+- Agent: DeepSeek
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Lane: API / WebSocket Scale
+- Working directory: E:\god-eyes-api
+- Branch: agent/wo-082d-space-snapshot-scale
+- Start time UTC: 2026-06-01T21:08:00Z
+- End time UTC: 2026-06-01T21:12:30Z
+- Commit hash: (see below, local only)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- Root cause: Two independent caps limited satellite objects to 5000/10000:
+  1. **WebSocket broadcaster** (`space-satellites-broadcaster.ts:172,191`): `loadSatellitesSnapshot(limit = 5000)` and `SpaceSatellitesBroadcaster(limit = 5000)` both defaulted to 5000. The frontend uses the WebSocket snapshot stream, so it silently received only 5000 objects.
+  2. **REST API** (`satellites.ts:19`): `MAX_LIMIT = 10000` limited REST queries to 10000. Metadata lacked informative limit fields (appliedLimit, maxLimit, requestedLimit).
+- Fix summary:
+  - Raised broadcaster default from 5000 to 75000 using `DEFAULT_SNAPSHOT_LIMIT` named constant.
+  - Added `MAX_SNAPSHOT_LIMIT = 75000` and clamp in `SpaceSatellitesBroadcaster` constructor.
+  - Raised REST API `MAX_LIMIT` from 10000 to 75000.
+  - Added rich metadata fields (`requestedLimit`, `appliedLimit`, `maxLimit`) to REST response.
+  - Extended contracts `SpaceSatellitesListMetadataSchema` with optional metadata fields (`totalAvailable`, `requestedLimit`, `appliedLimit`, `maxLimit`).
+- Files modified:
+  - `apps/api/src/routes/space/satellites.ts` — MAX_LIMIT 10000→75000, richer metadata response
+  - `apps/api/src/routes/space/space-satellites-broadcaster.ts` — DEFAULT_SNAPSHOT_LIMIT=75000, MAX_SNAPSHOT_LIMIT=75000, constructor clamp, default arg from 5000→75000
+  - `apps/api/tests/space-satellites.test.ts` — 45 tests (updated max limit test from 10000→75000, added metadata checks to test 1, added REST scale limit tests 21-24, added broadcaster scale limit tests)
+  - `packages/contracts/src/index.ts` — extended SpaceSatellitesListMetadataSchema with optional limit fields
+  - `docs/state/HANDOFF_LOG.md` — this entry
+- REST API limit behavior: Default 1000, max clamped to 75000, metadata reports `count`, `appliedLimit`, `maxLimit`, `requestedLimit` (when provided), `generatedAt`, `estimated`, `layerId`
+- WebSocket snapshot limit behavior: Default 75000, max clamped to 75000 via named constant
+- Manual API count result: N/A (no local DB running at time of fix)
+- Frontend follow-up needed: NO (WebSocket snapshot limit raised from 5000 to 75000; frontend will now receive up to 75000 objects via WS stream)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter api build (PASS), pnpm --filter api test (305/305 PASS — 13 test files), pnpm --filter web build (PASS), git diff --check (PASS — trailing whitespace cosmetic warning only)
+- Validation results: Contracts build PASS, API build PASS, API tests PASS (305/305: 13 files, including 45 space satellite tests), Web build PASS, git diff --check PASS
+- API touched: YES
+- Frontend touched: NO
+- Fetching touched: NO
+- Database migrations touched: NO
+- Secrets touched: NO
+- Raw data committed: NO
+- Known issues: None
+- Next recommended task: Manual API count verification with local DB running: `Invoke-RestMethod "http://localhost:4000/api/space/satellites?limit=50000" | Select-Object -ExpandProperty metadata` — confirm returned count > 5000 if DB has > 5000 positioned rows. WO-082E frontend integration to consume richer metadata fields.
+
 ### 2026-05-31T22:03:00Z MiniMax — WO-082C Space & Satellites Fetcher
 
 - Work order: WO-082C
@@ -3760,7 +3803,7 @@ All agents must append to this file after completing work.
 - Branch: agent/wo-082d-space-api
 - Start time UTC: 2026-06-01T09:00:00Z
 - End time UTC: 2026-06-01T09:15:00Z
-- Commit hash: (local only)
+- Commit hash: 5aa8905 (local only)
 - Push status: local only (NOT pushed — per Layer 05 PR policy)
 - What was done: Implemented Layer 05 Space & Satellites API gateway. Created REST endpoints (list, detail, categories), WebSocket broadcaster for estimated positions, TypeScript contracts.
 - Files created:
