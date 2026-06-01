@@ -9,16 +9,26 @@ Modes:
     --download-only: fetch from provider, save raw to cache, no DB
     --normalize-only: read raw cache, normalize + compute, save normalized
     --persist-from-cache: read normalized cache, write to DB only
+    --refresh-positions-from-cache: recompute positions from cached TLEs
+        and write them to the DB. No provider calls, no catalog upserts.
+        Use on a 1-5 min cadence between TLE refreshes.
+
+Propagator selection (--propagator):
+    auto (default): sgp4 if python-sgp4 is installed, else simplified
+    sgp4:           high-fidelity SGP4 propagation; raises if missing
+    simplified-fallback: always-available display-grade math
 
 Usage:
-    python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py
-    python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --persist
-    python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --source celestrak --group starlink --persist
+    python space_satellites_worker.py
+    python space_satellites_worker.py --persist
+    python space_satellites_worker.py --source celestrak --group starlink --persist
+    python space_satellites_worker.py --print-sync-plan
 
 Staged pipeline:
-    python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --source celestrak --group stations --group weather --download-only --cache-dir E:\\god-eyes-data\\space
-    python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --source celestrak --group stations --group weather --normalize-only --cache-dir E:\\god-eyes-data\\space --max-objects 1000
-    python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --persist-from-cache --cache-dir E:\\god-eyes-data\\space --max-objects 1000
+    python space_satellites_worker.py --source celestrak --group stations --group weather --download-only --cache-dir E:\\god-eyes-data\\space
+    python space_satellites_worker.py --source celestrak --group stations --group weather --normalize-only --cache-dir E:\\god-eyes-data\\space --max-objects 1000
+    python space_satellites_worker.py --persist-from-cache --cache-dir E:\\god-eyes-data\\space --max-objects 1000
+    python space_satellites_worker.py --refresh-positions-from-cache --cache-dir E:\\god-eyes-data\\space
 
 Source: CelesTrak public TLE feeds (no API key required)
 """
@@ -51,7 +61,13 @@ sys.path.insert(0, str(REPO_ROOT / "services" / "fetch-orchestrator" / "src" / "
 from celestrak_client import fetch_tle_group, CELESTRAK_GROUPS, get_group_display_name
 from tle_parser import normalize_records, LAYER_ID
 from classification import classify_object, get_visual_shape, get_visual_color
-from orbit_propagation import compute_position_from_tle
+from orbit_propagation import (
+    compute_position_from_tle,
+    get_propagation_engine,
+    sgp4_import_error,
+    ENGINE_SGP4,
+    ENGINE_SIMPLIFIED,
+)
 from space_satellites_db import (
     DEFAULT_DATABASE_URL,
     connect_db,
@@ -103,11 +119,16 @@ def is_space_track_source(source: str) -> bool:
 
 def _classify_and_compute(
     normalized: list,
+    engine: str | None = None,
 ) -> list[tuple[Any, Any | None]]:
     """Classify each normalized satellite and compute its position.
 
     Returns a list of (satellite, position_or_none) tuples with
     satellite fields updated in-place.
+
+    ``engine`` selects the orbital propagator: ``"auto"`` (default),
+    ``"sgp4"`` (require the python-sgp4 package), or
+    ``"simplified-fallback"``.
     """
     pairs: list[tuple[Any, Any | None]] = []
     for sat in normalized:
@@ -128,6 +149,7 @@ def _classify_and_compute(
                 sat.tle_line1,
                 sat.tle_line2,
                 orbital_epoch=sat.orbital_epoch_at,
+                engine=engine,
             )
             if position:
                 position.visual_shape = get_visual_shape(sat.object_type)
@@ -309,11 +331,16 @@ def run_worker(
     max_objects: int | None = None,
     show_raw: bool = False,
     cache_dir: str | None = None,
+    engine: str | None = None,
 ) -> dict[str, Any]:
     """Direct fetch -> normalize -> compute -> optional DB persist.
 
     Preserves original behavior. ``cache_dir`` is optional; when
     supplied the raw download is also saved locally as a side effect.
+
+    ``engine`` selects the orbital propagator: ``"auto"`` (default),
+    ``"sgp4"`` (require the python-sgp4 package), or
+    ``"simplified-fallback"``.
     """
     db_url = database_url or DEFAULT_DATABASE_URL
     if groups is None:
@@ -335,6 +362,10 @@ def run_worker(
     print(f"  Source: {source}")
     print(f"  Groups: {', '.join(groups)}")
     print(f"  Mode: {'DRY-RUN' if dry_run else 'PERSIST'}")
+    print(f"  Propagator: {engine or 'auto'} (resolved: {get_propagation_engine()})")
+    sgp4_err = sgp4_import_error()
+    if engine in ("auto", ENGINE_SGP4) and sgp4_err is not None:
+        print(f"  Note: 'sgp4' package unavailable ({sgp4_err}); using simplified-fallback.")
     print()
 
     # Connect DB if needed
@@ -429,7 +460,7 @@ def run_worker(
 
     # Classify + compute
     print(f"\n[COMPUTE] Computing orbital positions...")
-    pairs = _classify_and_compute(normalized)
+    pairs = _classify_and_compute(normalized, engine=engine)
     result["positions_computed"] = sum(1 for _, p in pairs if p is not None)
     print(f"  Computed: {result['positions_computed']} positions")
 
@@ -724,6 +755,7 @@ def run_normalize_space_track(
     groups: list[str],
     cache_dir: str = "",
     max_objects: int | None = None,
+    engine: str | None = None,
 ) -> dict[str, Any]:
     """Normalize-only mode for Space-Track.
 
@@ -747,6 +779,10 @@ def run_normalize_space_track(
     print(f"[NORMALIZE-ONLY] Source: space-track")
     print(f"  Groups: {', '.join(groups)}")
     print(f"  Cache:  {cache.layer_dir}")
+    print(f"  Propagator: {engine or 'auto'} (resolved: {get_propagation_engine()})")
+    sgp4_err = sgp4_import_error()
+    if engine in ("auto", ENGINE_SGP4) and sgp4_err is not None:
+        print(f"  Note: 'sgp4' package unavailable ({sgp4_err}); using simplified-fallback.")
     print()
 
     all_satellites: list[dict[str, Any]] = []
@@ -770,7 +806,7 @@ def run_normalize_space_track(
         print(f"[NORMALIZE] space-track/{group}: {len(records)} raw records")
 
         fetched_at = raw.get("fetched_at")
-        normalized, errors = normalize_space_track_records(records, fetched_at=fetched_at)
+        normalized, errors = normalize_space_track_records(records, fetched_at=fetched_at, engine=engine)
         if errors:
             for e in errors:
                 result["errors"].append(f"{group}: {e}")
@@ -815,11 +851,16 @@ def run_normalize_only(
     source: str = "celestrak",
     cache_dir: str = "",
     max_objects: int | None = None,
+    engine: str | None = None,
 ) -> dict[str, Any]:
     """Read raw cache, normalize + classify + compute positions.
 
     Writes ``normalized/latest/satellites.jsonl`` and
     ``normalized/latest/positions.jsonl``.  No provider calls, no DB.
+
+    ``engine`` selects the orbital propagator: ``"auto"`` (default),
+    ``"sgp4"`` (require the python-sgp4 package), or
+    ``"simplified-fallback"``.
     """
     canonical_source = normalize_source_id(source)
 
@@ -828,6 +869,7 @@ def run_normalize_only(
             groups=groups,
             cache_dir=cache_dir,
             max_objects=max_objects,
+            engine=engine,
         )
 
     cache = SourceCache(cache_dir)
@@ -845,6 +887,10 @@ def run_normalize_only(
     print(f"[NORMALIZE-ONLY] Source: {canonical_source}")
     print(f"  Groups: {', '.join(groups)}")
     print(f"  Cache:  {cache.layer_dir}")
+    print(f"  Propagator: {engine or 'auto'} (resolved: {get_propagation_engine()})")
+    sgp4_err = sgp4_import_error()
+    if engine in ("auto", ENGINE_SGP4) and sgp4_err is not None:
+        print(f"  Note: 'sgp4' package unavailable ({sgp4_err}); using simplified-fallback.")
     print()
 
     all_satellites: list[dict[str, Any]] = []
@@ -889,7 +935,7 @@ def run_normalize_only(
             print(f"  Limiting to {max_objects} records (from {len(normalized)})")
             normalized = normalized[:max_objects]
 
-        pairs = _classify_and_compute(normalized)
+        pairs = _classify_and_compute(normalized, engine=engine)
         result["tle_normalized"] += len(normalized)
         result["positions_computed"] += sum(1 for _, p in pairs if p is not None)
 
@@ -926,6 +972,8 @@ def run_persist_from_cache(
     max_objects: int | None = None,
     database_url: str | None = None,
     missing_only: bool = False,
+    refresh_positions: bool = False,
+    engine: str | None = None,
 ) -> dict[str, Any]:
     """Read normalized cache and write to database.  No provider calls.
 
@@ -937,6 +985,14 @@ def run_persist_from_cache(
         missing_only: When True, filter out any NORAD catalog IDs
             that already exist in DB across all sources. Used by
             Space-Track gap-fill to avoid duplicating CelesTrak rows.
+        refresh_positions: When True, recompute positions from the
+            cached TLEs at the current wall-clock time, instead of
+            reusing the positions stored in the normalized cache.
+            This is the right mode for periodic re-positioning when
+            the TLE catalog has not been refreshed.
+        engine: Propagator to use when ``refresh_positions`` is True.
+            ``"auto"`` (default) picks sgp4 if installed, otherwise
+            the simplified fallback.
 
     Behavior:
         - When missing_only is False: every record is upserted into
@@ -963,11 +1019,19 @@ def run_persist_from_cache(
         "existing_norad_count": 0,
         "missing_norad_count": 0,
         "errors": [],
+        "refresh_positions": refresh_positions,
+        "propagator": get_propagation_engine(),
     }
 
     print(f"[PERSIST-FROM-CACHE] Cache: {cache.layer_dir}")
     if missing_only:
         print(f"[PERSIST-FROM-CACHE] Mode:  MISSING-ONLY (dedupe by NORAD ID, position backfill enabled)")
+    if refresh_positions:
+        print(f"[PERSIST-FROM-CACHE] Mode:  REFRESH-POSITIONS (recompute from cached TLEs)")
+        print(f"[PERSIST-FROM-CACHE] Propagator: {engine or 'auto'} (resolved: {get_propagation_engine()})")
+        sgp4_err = sgp4_import_error()
+        if engine in ("auto", ENGINE_SGP4) and sgp4_err is not None:
+            print(f"  Note: 'sgp4' package unavailable ({sgp4_err}); using simplified-fallback.")
 
     manifest = cache.read_normalized()
     if manifest is None:
@@ -1113,14 +1177,76 @@ def run_persist_from_cache(
         return satellite_id
 
     def _write_position(sat_json: dict[str, Any], satellite_id: str) -> bool:
-        """Write the cached position (if present) for the given satellite."""
+        """Write the cached (or freshly recomputed) position for the given satellite."""
+        sat_source_id = sat_json.get("source_id") or canonical_source
+        source_object_id = str(
+            sat_json.get("source_object_id") or sat_json.get("norad_cat_id") or ""
+        )
+        norad_cat_id = sat_json.get("norad_cat_id")
+
+        if refresh_positions:
+            # Recompute at the current wall-clock time using the cached
+            # TLE. Useful for periodic re-positioning without re-fetching
+            # from the provider. Requires a valid TLE pair.
+            tle_line1 = sat_json.get("tle_line1")
+            tle_line2 = sat_json.get("tle_line2")
+            if not (tle_line1 and tle_line2):
+                # Fall back to cached position if we somehow lost the TLE.
+                if not sat_json.get("position"):
+                    return False
+            else:
+                try:
+                    orbital_epoch = _parse_dt(sat_json.get("orbital_epoch_at"))
+                    pos = compute_position_from_tle(
+                        tle_line1,
+                        tle_line2,
+                        orbital_epoch=orbital_epoch,
+                        engine=engine,
+                    )
+                except Exception as exc:
+                    result["errors"].append(
+                        f"position_recompute_error norad={norad_cat_id}: {exc}"
+                    )
+                    return False
+                if pos is None:
+                    return False
+                try:
+                    upsert_position(
+                        conn=conn,
+                        satellite_id=satellite_id,
+                        layer_id=LAYER_ID,
+                        source_id=sat_source_id,
+                        source_object_id=source_object_id,
+                        norad_cat_id=norad_cat_id,
+                        estimated_at=pos.estimated_at,
+                        latitude=pos.latitude,
+                        longitude=pos.longitude,
+                        altitude_km=pos.altitude_km if pos.altitude_km is not None and pos.altitude_km >= 0 else 0.0,
+                        velocity_kms=pos.velocity_kms,
+                        heading_deg=pos.heading_deg,
+                        orbit_class=sat_json.get("orbit_class", "unknown"),
+                        object_type=sat_json.get("object_type", "unknown"),
+                        category=sat_json.get("category", "unknown"),
+                        visual_shape=getattr(pos, "visual_shape", None) or sat_json.get("position", {}).get("visual_shape", "dot"),
+                        visual_color=getattr(pos, "visual_color", None) or sat_json.get("position", {}).get("visual_color", "#00d5ff"),
+                        is_important=sat_json.get("is_important", False),
+                        source_age_seconds=pos.source_age_seconds,
+                        computation_method=pos.computation_method,
+                        raw_position_json=None,
+                    )
+                    return True
+                except Exception as exc:
+                    result["errors"].append(
+                        f"position_write_error norad={norad_cat_id}: {exc}"
+                    )
+                    return False
+
         if not sat_json.get("position"):
             return False
         pos_data = sat_json["position"]
         estimated_at = _parse_dt(pos_data.get("estimated_at"))
         if not (estimated_at and satellite_id):
             return False
-        sat_source_id = sat_json.get("source_id") or canonical_source
         # Defensive: the DB schema requires altitude_km >= 0. Cached
         # positions from a prior run may have a slightly negative value
         # (e.g. simplified-SGP4 edge case). Clamp to 0 at the write
@@ -1134,8 +1260,8 @@ def run_persist_from_cache(
                 satellite_id=satellite_id,
                 layer_id=LAYER_ID,
                 source_id=sat_source_id,
-                source_object_id=str(sat_json.get("source_object_id") or sat_json.get("norad_cat_id") or ""),
-                norad_cat_id=sat_json.get("norad_cat_id"),
+                source_object_id=source_object_id,
+                norad_cat_id=norad_cat_id,
                 estimated_at=estimated_at,
                 latitude=pos_data.get("latitude", 0),
                 longitude=pos_data.get("longitude", 0),
@@ -1382,6 +1508,205 @@ def _parse_dt(val: Any) -> datetime | None:
         return None
 
 
+def print_sync_plan() -> None:
+    """Print the recommended incremental sync cadence for Layer 05.
+
+    Documented in WO-082C4 so operators have a single source of truth
+    for how often each stage of the pipeline should run. The numbers
+    are targets, not hard requirements; treat them as starting points
+    and tune against the rendered product.
+
+    Cadence summary (most-frequent first):
+        1. Frontend render: smooth / every animation frame (~16 ms).
+           Layer 05 positions are interpolated client-side between
+           DB updates; the server-side cadence only needs to be
+           "fast enough that motion looks continuous."
+        2. WebSocket broadcast: 1-5 s. The API streams position
+           deltas; the render cadence is decoupled from the SGP4
+           compute cadence by the WS layer.
+        3. Position recompute from cached TLEs: 60-300 s. SGP4
+           propagation against a recent TLE is cheap; recomputing
+           every minute gives ~0.001 deg sub-second ground track
+           drift on LEO. Triggered by the scheduler; does not call
+           any upstream provider.
+        4. Provider fetch (CelesTrak / Space-Track): 2-24 h. TLE
+           epochs age quickly on LEO, but the operators typically
+           refresh every few hours. The full Space-Track catalog
+           (60k+ objects) is bulky, so do not run it every minute.
+    """
+    print("[SYNC-PLAN] Recommended Layer 05 incremental sync cadence")
+    print("  - Frontend render:   smooth (~16 ms; client-side interp)")
+    print("  - WS broadcast:      1-5 s (position deltas to subscribers)")
+    print("  - Position recompute: 60-300 s (sgp4 from cached TLEs, no provider)")
+    print("  - Provider fetch:    2-24 h (CelesTrak / Space-Track full pull)")
+    print()
+    print("  Practical rollout for this MVP:")
+    print("    1. Bootstrap full catalog once via --download-only /")
+    print("       --normalize-only / --persist-from-cache (one-time).")
+    print("    2. Run --refresh-positions-from-cache every 1-5 min to")
+    print("       keep the latest-position table fresh without hitting")
+    print("       the provider. The 67k+ row scan is O(seconds) with")
+    print("       python-sgp4; the simplified fallback is O(minutes).")
+    print("    3. Re-run --normalize-only + --persist-from-cache every")
+    print("       2-24 h to pick up new TLEs from the provider.")
+    print("    4. The frontend subscribes via WS; no direct DB read.")
+
+
+def run_refresh_positions_from_cache(
+    source: str = "celestrak",
+    cache_dir: str = "",
+    max_objects: int | None = None,
+    database_url: str | None = None,
+    engine: str | None = None,
+) -> dict[str, Any]:
+    """Recompute positions from cached TLEs and write them to the DB.
+
+    No provider calls, no catalog upserts, no re-normalization. Use
+    this on a 1-5 min cadence to keep ``space_satellite_positions``
+    fresh between TLE refreshes.
+
+    ``engine`` selects the propagator: ``"auto"`` (default),
+    ``"sgp4"`` (requires the python-sgp4 package), or
+    ``"simplified-fallback"``.
+
+    Returns a result dict with counters and any errors encountered.
+    """
+    canonical_source = normalize_source_id(source)
+    db_url = database_url or DEFAULT_DATABASE_URL
+    cache = SourceCache(cache_dir)
+
+    result: dict[str, Any] = {
+        "source": canonical_source,
+        "propagator": get_propagation_engine(),
+        "engine_requested": engine or "auto",
+        "positions_recomputed": 0,
+        "positions_written": 0,
+        "skipped_no_tle": 0,
+        "skipped_no_satellite_id": 0,
+        "skipped_existing": 0,
+        "errors": [],
+    }
+
+    print(f"[REFRESH-POSITIONS] Cache: {cache.layer_dir}")
+    print(f"[REFRESH-POSITIONS] Propagator: {engine or 'auto'} (resolved: {get_propagation_engine()})")
+    sgp4_err = sgp4_import_error()
+    if engine in ("auto", ENGINE_SGP4) and sgp4_err is not None:
+        print(f"  Note: 'sgp4' package unavailable ({sgp4_err}); using simplified-fallback.")
+
+    sat_records = cache.read_normalized_satellites()
+    if not sat_records:
+        err = "No normalized satellite cache found; run --normalize-only first."
+        print(f"[REFRESH-POSITIONS] ERROR: {err}")
+        result["errors"].append(err)
+        return result
+    if max_objects and len(sat_records) > max_objects:
+        sat_records = sat_records[:max_objects]
+    print(f"[REFRESH-POSITIONS] Reading {len(sat_records)} satellite records from cache")
+
+    print("[DB] Connecting to database...")
+    try:
+        conn = connect_db(db_url)
+    except Exception as e:
+        result["errors"].append(f"DB connection failed: {e}")
+        print(f"[DB] ERROR: Could not connect: {e}")
+        return result
+
+    norad_to_satellite_id = get_existing_norad_to_id(conn)
+    print(f"[DB] Existing satellite_id map size: {len(norad_to_satellite_id)}")
+    before_pos = get_position_count(conn)
+    print(f"[DB] Positions before: {before_pos}")
+
+    now = datetime.now(timezone.utc)
+    try:
+        for sat_json in sat_records:
+            norad = sat_json.get("norad_cat_id")
+            tle_line1 = sat_json.get("tle_line1")
+            tle_line2 = sat_json.get("tle_line2")
+            if not (tle_line1 and tle_line2):
+                result["skipped_no_tle"] += 1
+                continue
+            try:
+                norad_int = int(norad) if norad is not None else None
+            except (ValueError, TypeError):
+                norad_int = None
+            satellite_id = norad_to_satellite_id.get(norad_int) if norad_int is not None else None
+            if not satellite_id:
+                result["skipped_no_satellite_id"] += 1
+                continue
+            try:
+                orbital_epoch = _parse_dt(sat_json.get("orbital_epoch_at"))
+                pos = compute_position_from_tle(
+                    tle_line1,
+                    tle_line2,
+                    orbital_epoch=orbital_epoch,
+                    target_time=now,
+                    engine=engine,
+                )
+            except Exception as exc:
+                result["errors"].append(
+                    f"recompute_error norad={norad}: {exc}"
+                )
+                continue
+            if pos is None:
+                continue
+            result["positions_recomputed"] += 1
+            sat_source_id = sat_json.get("source_id") or canonical_source
+            source_object_id = str(
+                sat_json.get("source_object_id") or sat_json.get("norad_cat_id") or ""
+            )
+            try:
+                upsert_position(
+                    conn=conn,
+                    satellite_id=satellite_id,
+                    layer_id=LAYER_ID,
+                    source_id=sat_source_id,
+                    source_object_id=source_object_id,
+                    norad_cat_id=norad,
+                    estimated_at=pos.estimated_at,
+                    latitude=pos.latitude,
+                    longitude=pos.longitude,
+                    altitude_km=pos.altitude_km if pos.altitude_km is not None and pos.altitude_km >= 0 else 0.0,
+                    velocity_kms=pos.velocity_kms,
+                    heading_deg=pos.heading_deg,
+                    orbit_class=sat_json.get("orbit_class", "unknown"),
+                    object_type=sat_json.get("object_type", "unknown"),
+                    category=sat_json.get("category", "unknown"),
+                    visual_shape=getattr(pos, "visual_shape", None) or "dot",
+                    visual_color=getattr(pos, "visual_color", None) or "#00d5ff",
+                    is_important=sat_json.get("is_important", False),
+                    source_age_seconds=pos.source_age_seconds,
+                    computation_method=pos.computation_method,
+                    raw_position_json=None,
+                )
+                result["positions_written"] += 1
+            except Exception as exc:
+                result["errors"].append(
+                    f"position_write_error norad={norad}: {exc}"
+                )
+        after_pos = get_position_count(conn)
+        print(f"[DB] Positions after:  {after_pos} (delta: {after_pos - before_pos})")
+        print(f"[REFRESH-POSITIONS] Recomputed: {result['positions_recomputed']}")
+        print(f"[REFRESH-POSITIONS] Written:    {result['positions_written']}")
+        if result["skipped_no_tle"]:
+            print(f"[REFRESH-POSITIONS] Skipped (no TLE): {result['skipped_no_tle']}")
+        if result["skipped_no_satellite_id"]:
+            print(
+                f"[REFRESH-POSITIONS] Skipped (no satellite_id in DB): "
+                f"{result['skipped_no_satellite_id']}"
+            )
+        if result["errors"]:
+            print(f"[REFRESH-POSITIONS] Errors: {len(result['errors'])} (first 5): {result['errors'][:5]}")
+            sys.exit(1)
+        print("[REFRESH-POSITIONS] Done.")
+    except Exception as e:
+        result["errors"].append(str(e))
+        print(f"[REFRESH-POSITIONS] ERROR: {e}")
+    finally:
+        conn.close()
+
+    return result
+
+
 # -------------------------------------------------------------------- main
 
 
@@ -1401,6 +1726,28 @@ def main() -> None:
     parser.add_argument(
         "--persist-from-cache", action="store_true",
         help="Read normalized cache and write to DB; no provider calls",
+    )
+    parser.add_argument(
+        "--refresh-positions-from-cache", action="store_true",
+        help=(
+            "Recompute positions from cached TLEs and write them to the DB. "
+            "No provider calls, no catalog upserts. Use on a 1-5 min cadence "
+            "to keep latest positions fresh between TLE refreshes."
+        ),
+    )
+    parser.add_argument(
+        "--propagator", type=str, default=None,
+        choices=["auto", ENGINE_SGP4, ENGINE_SIMPLIFIED],
+        help=(
+            "Select the orbital propagator: 'auto' picks sgp4 if installed, "
+            "otherwise the simplified fallback. 'sgp4' requires the "
+            "python-sgp4 package and raises if it is missing. "
+            "'simplified-fallback' is the always-available display-grade math."
+        ),
+    )
+    parser.add_argument(
+        "--print-sync-plan", action="store_true",
+        help="Print the recommended incremental sync cadence and exit.",
     )
     # Direct mode flags (preserved)
     parser.add_argument(
@@ -1458,6 +1805,11 @@ def main() -> None:
     else:
         groups = DEFAULT_GROUPS
 
+    # --- Info ---
+    if args.print_sync_plan:
+        print_sync_plan()
+        return
+
     # --- Staged modes ---
     if args.download_only:
         if not args.cache_dir:
@@ -1486,6 +1838,7 @@ def main() -> None:
             source=canonical_source,
             cache_dir=args.cache_dir,
             max_objects=args.max_objects,
+            engine=args.propagator,
         )
         print("\n[SUMMARY]")
         print(f"  Satellites written: {result['satellites_written']}")
@@ -1504,11 +1857,16 @@ def main() -> None:
             max_objects=args.max_objects,
             database_url=args.database_url,
             missing_only=args.missing_only,
+            refresh_positions=args.refresh_positions_from_cache,
+            engine=args.propagator,
         )
         print("\n[SUMMARY]")
         print(f"  Source: {result['source']}")
         print(f"  Catalog written:   {result['catalog_written']}")
         print(f"  Positions written: {result['position_written']}")
+        if args.refresh_positions_from_cache:
+            print(f"  Positions mode:    REFRESH (recomputed from cached TLEs)")
+            print(f"  Propagator used:   {result['propagator']}")
         if args.missing_only:
             print(f"  Positions backfilled (existing NORAD): {result['position_backfilled_existing_norad']}")
         print(f"  Skipped (older):   {result['skipped_older']}")
@@ -1516,6 +1874,30 @@ def main() -> None:
             print(f"  Skipped (existing NORAD): {result['skipped_existing']}")
             print(f"  Existing NORAD count: {result['existing_norad_count']}")
             print(f"  Missing NORAD count:  {result['missing_norad_count']}")
+        if result["errors"]:
+            print(f"  Errors: {result['errors']}")
+            sys.exit(1)
+        return
+
+    if args.refresh_positions_from_cache:
+        if not args.cache_dir:
+            parser.error("--refresh-positions-from-cache requires --cache-dir")
+        result = run_refresh_positions_from_cache(
+            source=canonical_source,
+            cache_dir=args.cache_dir,
+            max_objects=args.max_objects,
+            database_url=args.database_url,
+            engine=args.propagator,
+        )
+        print("\n[SUMMARY]")
+        print(f"  Source: {result['source']}")
+        print(f"  Propagator used:    {result['propagator']}")
+        print(f"  Positions recomputed: {result['positions_recomputed']}")
+        print(f"  Positions written:  {result['positions_written']}")
+        if result["skipped_no_tle"]:
+            print(f"  Skipped (no TLE):   {result['skipped_no_tle']}")
+        if result["skipped_no_satellite_id"]:
+            print(f"  Skipped (no satellite_id in DB): {result['skipped_no_satellite_id']}")
         if result["errors"]:
             print(f"  Errors: {result['errors']}")
             sys.exit(1)
@@ -1536,6 +1918,7 @@ def main() -> None:
         max_objects=args.max_objects,
         show_raw=args.show_raw,
         cache_dir=args.cache_dir,
+        engine=args.propagator,
     )
 
     print("\n[SUMMARY]")

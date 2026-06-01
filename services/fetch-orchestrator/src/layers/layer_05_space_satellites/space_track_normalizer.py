@@ -143,6 +143,7 @@ def _orbit_class_from_means(mean_motion: float | None) -> str | None:
 def normalize_space_track_record(
     record: dict[str, Any],
     fetched_at: str | None = None,
+    engine: str | None = None,
 ) -> dict[str, Any] | None:
     """Normalize one Space-Track GP record to a canonical satellite dict.
 
@@ -248,6 +249,7 @@ def normalize_space_track_record(
                 tle_line1,
                 tle_line2,
                 orbital_epoch=epoch_dt,
+                engine=engine,
             )
         except Exception as exc:
             pos = None
@@ -304,17 +306,22 @@ def normalize_space_track_record(
 def normalize_space_track_records(
     records: list[dict[str, Any]],
     fetched_at: str | None = None,
+    engine: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """Normalize a list of Space-Track records.
 
     Returns (normalized_records, error_messages). Malformed records
     are skipped and their identifiers reported in error_messages.
+
+    ``engine`` is forwarded to the propagator: ``"auto"`` (default),
+    ``"sgp4"`` (requires the python-sgp4 package), or
+    ``"simplified-fallback"``.
     """
     normalized: list[dict[str, Any]] = []
     errors: list[str] = []
     for idx, record in enumerate(records):
         try:
-            sat = normalize_space_track_record(record, fetched_at=fetched_at)
+            sat = normalize_space_track_record(record, fetched_at=fetched_at, engine=engine)
         except Exception as exc:
             errors.append(f"record[{idx}]: normalization failed: {exc}")
             continue
