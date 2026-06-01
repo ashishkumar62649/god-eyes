@@ -13,12 +13,26 @@ MIGRATION_PATH = (
     / "layer_05_space_satellites"
     / "001_space_satellites_tables.sql"
 )
+SCALE_INDEX_MIGRATION_PATH = (
+    REPO_ROOT
+    / "database"
+    / "migrations"
+    / "layers"
+    / "layer_05_space_satellites"
+    / "002_space_satellites_scale_indexes.sql"
+)
 
 
 def migration_text() -> str:
     if not MIGRATION_PATH.exists():
         return ""
     return MIGRATION_PATH.read_text(encoding="utf-8").lower()
+
+
+def scale_index_migration_text() -> str:
+    if not SCALE_INDEX_MIGRATION_PATH.exists():
+        return ""
+    return SCALE_INDEX_MIGRATION_PATH.read_text(encoding="utf-8").lower()
 
 
 def test_space_satellites_migration_exists_and_creates_required_tables():
@@ -186,6 +200,82 @@ def test_space_satellites_migration_has_required_indexes():
         assert term in migration
 
 
+def test_space_satellites_scale_index_migration_exists():
+    migration = scale_index_migration_text()
+
+    assert SCALE_INDEX_MIGRATION_PATH.exists()
+    assert "wo-082b2" in migration
+    assert "layer_05_space_satellites" in migration
+
+
+def test_space_satellites_scale_index_migration_has_required_catalog_indexes():
+    migration = scale_index_migration_text()
+
+    required_terms = [
+        "create index if not exists idx_space_satellites_source_id",
+        "on space_satellites(source_id)",
+        "create index if not exists idx_space_satellites_source_object_id",
+        "on space_satellites(source_object_id)",
+        "create index if not exists idx_space_satellites_source_filters",
+        "on space_satellites(source_id, object_type, category, orbit_class)",
+        "create index if not exists idx_space_satellites_source_important_filters",
+        "on space_satellites(source_id, object_type, category, orbit_class)",
+        "where is_important = true",
+    ]
+    for term in required_terms:
+        assert term in migration
+
+
+def test_space_satellites_scale_index_migration_has_required_latest_position_indexes():
+    migration = scale_index_migration_text()
+
+    required_terms = [
+        "create index if not exists idx_space_satellite_positions_latest_source_id",
+        "on space_satellite_positions_latest(source_id)",
+        "create index if not exists idx_space_satellite_positions_latest_source_object_id",
+        "on space_satellite_positions_latest(source_object_id)",
+        "create index if not exists idx_space_satellite_positions_latest_norad_cat_id",
+        "on space_satellite_positions_latest(norad_cat_id)",
+        "create index if not exists idx_space_satellite_positions_latest_object_type",
+        "on space_satellite_positions_latest(object_type)",
+        "create index if not exists idx_space_satellite_positions_latest_category",
+        "on space_satellite_positions_latest(category)",
+        "create index if not exists idx_space_satellite_positions_latest_orbit_class",
+        "on space_satellite_positions_latest(orbit_class)",
+        "create index if not exists idx_space_satellite_positions_latest_altitude_km",
+        "on space_satellite_positions_latest(altitude_km)",
+        "create index if not exists idx_space_satellite_positions_latest_important",
+        "on space_satellite_positions_latest(is_important)",
+        "where is_important = true",
+        "create index if not exists idx_space_satellite_positions_latest_source_filters",
+        "on space_satellite_positions_latest(source_id, object_type, category, orbit_class)",
+        "create index if not exists idx_space_satellite_positions_latest_source_estimated",
+        "on space_satellite_positions_latest(source_id, estimated_at desc)",
+        "create index if not exists idx_space_satellite_positions_latest_source_altitude",
+        "on space_satellite_positions_latest(source_id, altitude_km)",
+        "where altitude_km is not null",
+    ]
+    for term in required_terms:
+        assert term in migration
+
+
+def test_space_satellites_duplicate_prevention_constraints_remain_declared():
+    migration = migration_text()
+
+    required_terms = [
+        "constraint space_satellites_source_object_unique",
+        "unique (source_id, source_object_id)",
+        "constraint space_satellites_norad_cat_id_unique",
+        "unique (norad_cat_id)",
+        "constraint space_satellite_positions_latest_satellite_unique",
+        "unique (satellite_id)",
+        "constraint space_satellite_positions_latest_source_object_unique",
+        "unique (source_id, source_object_id)",
+    ]
+    for term in required_terms:
+        assert term in migration
+
+
 def test_space_satellites_migration_is_schema_only_and_uses_correct_layer_name():
     migration = migration_text()
 
@@ -204,6 +294,36 @@ def test_space_satellites_migration_is_schema_only_and_uses_correct_layer_name()
         "secret",
         ".env",
         "layer_04_space",
+    ]
+    for term in forbidden_terms:
+        assert term not in migration
+
+
+def test_space_satellites_scale_index_migration_is_additive_and_layer_scoped():
+    migration = scale_index_migration_text()
+
+    forbidden_terms = [
+        "drop table",
+        "drop column",
+        "drop index",
+        "drop extension",
+        "truncate",
+        "delete from",
+        "insert into space_satellites",
+        "insert into space_satellite_positions_latest",
+        "alter table",
+        "http://",
+        "https://",
+        "api_key",
+        "secret",
+        ".env",
+        "layer_04_space",
+        "'black'",
+        "'white'",
+        "#000000",
+        "#ffffff",
+        "#fff",
+        "#000",
     ]
     for term in forbidden_terms:
         assert term not in migration
