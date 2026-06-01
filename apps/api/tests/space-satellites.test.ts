@@ -8,6 +8,8 @@ import {
   buildEmptySnapshot,
   applyFilters,
   loadSatellitesSnapshot,
+  DEFAULT_SNAPSHOT_LIMIT,
+  MAX_SNAPSHOT_LIMIT,
 } from '../src/routes/space/space-satellites-broadcaster.js';
 
 const MOCK_SATELLITES = [
@@ -122,12 +124,12 @@ describe('Space Satellites API', () => {
     vi.clearAllMocks();
   });
 
-  it('1. GET /api/space/satellites returns valid shape', async () => {
+  it('1. GET /api/space/satellites returns valid shape and rich metadata', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/space/satellites',
+      url: '/api/space/satellites?limit=50000',
     });
 
     expect(response.statusCode).toBe(200);
@@ -138,6 +140,9 @@ describe('Space Satellites API', () => {
     expect(body.metadata.generatedAt).toBeDefined();
     expect(body.metadata.estimated).toBe(true);
     expect(body.metadata.layerId).toBe('layer_05_space_satellites');
+    expect(body.metadata.requestedLimit).toBe(50000);
+    expect(body.metadata.appliedLimit).toBeGreaterThanOrEqual(10000);
+    expect(body.metadata.maxLimit).toBe(75000);
 
     const sat = body.satellites[0];
     expect(sat.satelliteId).toBe(MOCK_SATELLITES[0].satelliteId);
@@ -199,7 +204,7 @@ describe('Space Satellites API', () => {
     expect(lastParam).toBe(1000);
   });
 
-  it('4. max limit is 10000', async () => {
+  it('4. max limit is 75000', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
 
     await app.inject({
@@ -210,7 +215,7 @@ describe('Space Satellites API', () => {
     const callArgs = vi.mocked(query).mock.calls[0];
     const params = callArgs[1] as unknown[];
     const lastParam = params[params.length - 1];
-    expect(lastParam).toBe(10000);
+    expect(lastParam).toBe(75000);
   });
 
   it('5. invalid limit returns 400', async () => {
@@ -461,6 +466,74 @@ describe('Space Satellites API', () => {
     expect(body.totalCount).toBe(0);
     expect(body.importantCount).toBe(0);
   });
+
+  it('21. REST endpoint accepts limit greater than 5000', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?limit=50000',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.appliedLimit).toBe(50000);
+    expect(body.metadata.maxLimit).toBe(75000);
+    expect(body.metadata.requestedLimit).toBe(50000);
+  });
+
+  it('22. REST endpoint clamps limit to MAX_LIMIT (75000)', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?limit=200000',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.appliedLimit).toBe(75000);
+    expect(body.metadata.maxLimit).toBe(75000);
+    expect(body.metadata.requestedLimit).toBe(200000);
+  });
+
+  it('23. REST metadata reports applied/returned/max limits', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites?limit=5000',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata).toHaveProperty('count');
+    expect(body.metadata).toHaveProperty('appliedLimit');
+    expect(body.metadata).toHaveProperty('maxLimit');
+    expect(body.metadata).toHaveProperty('requestedLimit');
+    expect(body.metadata).toHaveProperty('generatedAt');
+    expect(body.metadata).toHaveProperty('estimated');
+    expect(body.metadata).toHaveProperty('layerId');
+    expect(body.metadata.count).toBe(3);
+    expect(body.metadata.appliedLimit).toBe(5000);
+    expect(body.metadata.maxLimit).toBe(75000);
+    expect(body.metadata.requestedLimit).toBe(5000);
+  });
+
+  it('24. REST metadata omits requestedLimit when no limit param', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.requestedLimit).toBeUndefined();
+    expect(body.metadata.appliedLimit).toBe(1000); // default
+    expect(body.metadata.maxLimit).toBe(75000);
+  });
 });
 
 describe('Space Satellites Broadcaster', () => {
@@ -642,6 +715,61 @@ describe('Space Satellites Broadcaster', () => {
     const status = bc.getStatus();
     expect(status.satelliteCount).toBe(3);
     expect(status.lastSuccessAt).toBeTypeOf('number');
+    bc.stop();
+  });
+
+  // ---- Scale limit tests (WO-082D2) ----
+
+  it('loadSatellitesSnapshot default limit is DEFAULT_SNAPSHOT_LIMIT (not 5000)', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+    const snapshot = await loadSatellitesSnapshot();
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const params = callArgs[1] as unknown[];
+    const lastParam = params[params.length - 1];
+    expect(lastParam).toBe(DEFAULT_SNAPSHOT_LIMIT);
+    expect(DEFAULT_SNAPSHOT_LIMIT).toBeGreaterThan(5000);
+  });
+
+  it('SpaceSatellitesBroadcaster default limit is DEFAULT_SNAPSHOT_LIMIT (not 5000)', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+    const bc = new SpaceSatellitesBroadcaster();
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+    await bc.start();
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const params = callArgs[1] as unknown[];
+    const lastParam = params[params.length - 1];
+    expect(lastParam).toBe(DEFAULT_SNAPSHOT_LIMIT);
+    expect(DEFAULT_SNAPSHOT_LIMIT).toBeGreaterThan(5000);
+    bc.stop();
+  });
+
+  it('SpaceSatellitesBroadcaster clamps limit to MAX_SNAPSHOT_LIMIT', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+    const bc = new SpaceSatellitesBroadcaster(999999);
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+    await bc.start();
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const params = callArgs[1] as unknown[];
+    const lastParam = params[params.length - 1];
+    expect(lastParam).toBeLessThanOrEqual(MAX_SNAPSHOT_LIMIT);
+    bc.stop();
+  });
+
+  it('broadcaster loads more than 5000 when DB has more rows', async () => {
+    const manyRows = Array.from({ length: 6000 }, (_, i) => ({
+      ...MOCK_SATELLITES[0],
+      satelliteId: `550e8400-e29b-41d4-a716-44665544${String(i).padStart(4, '0')}`,
+      name: `SATELLITE-${i}`,
+    }));
+    vi.mocked(query).mockResolvedValueOnce(manyRows);
+    const bc = new SpaceSatellitesBroadcaster();
+    bc.onReady = () => {};
+    bc.onSnapshot = () => {};
+    await bc.start();
+    expect(bc.getLatestSnapshot()!.count).toBe(6000);
+    expect(bc.getLatestSnapshot()!.satellites).toHaveLength(6000);
     bc.stop();
   });
 });

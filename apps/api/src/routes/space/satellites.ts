@@ -16,7 +16,7 @@ import {
 } from './space-satellites-broadcaster.js';
 
 const DEFAULT_LIMIT = 1000;
-const MAX_LIMIT = 10000;
+const MAX_LIMIT = 75000;
 
 interface SpaceListQuerystring {
   limit?: string;
@@ -309,10 +309,15 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
 
       const satellites = rows.map(rowToItem);
 
+      const requestedLimit = rawLimit !== undefined && rawLimit !== '' ? parseInt(rawLimit, 10) : undefined;
+
       return SpaceSatellitesListResponseSchema.parse({
         satellites,
         metadata: {
           count: satellites.length,
+          requestedLimit: requestedLimit !== undefined && !isNaN(requestedLimit) ? requestedLimit : undefined,
+          appliedLimit: parsedLimit.value,
+          maxLimit: MAX_LIMIT,
           generatedAt: new Date().toISOString(),
           estimated: true,
           layerId: 'layer_05_space_satellites',

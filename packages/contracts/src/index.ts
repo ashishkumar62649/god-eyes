@@ -632,6 +632,10 @@ export type SpaceSatelliteItem = z.infer<typeof SpaceSatelliteItemSchema>;
 
 export const SpaceSatellitesListMetadataSchema = z.object({
   count: z.number().int().nonnegative(),
+  totalAvailable: z.number().int().nonnegative().optional(),
+  requestedLimit: z.number().int().positive().optional(),
+  appliedLimit: z.number().int().positive().optional(),
+  maxLimit: z.number().int().positive().optional(),
   generatedAt: z.string().datetime(),
   estimated: z.literal(true),
   layerId: z.literal('layer_05_space_satellites'),

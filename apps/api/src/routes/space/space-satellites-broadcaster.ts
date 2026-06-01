@@ -2,6 +2,8 @@ import { query } from '../../lib/db.js';
 import { SpaceSatelliteItem } from '@god-eyes/contracts';
 
 export const DEFAULT_REFRESH_INTERVAL_MS = 30000;
+export const DEFAULT_SNAPSHOT_LIMIT = 75000;
+export const MAX_SNAPSHOT_LIMIT = 75000;
 
 export interface SpaceSatelliteFilter {
   category?: string[];
@@ -169,7 +171,7 @@ export function buildEmptySnapshot(): SpaceSatellitesSnapshot {
   };
 }
 
-export async function loadSatellitesSnapshot(limit = 5000): Promise<SpaceSatellitesSnapshot> {
+export async function loadSatellitesSnapshot(limit = DEFAULT_SNAPSHOT_LIMIT): Promise<SpaceSatellitesSnapshot> {
   const rows = await query<PositionRow>(FETCH_SNAPSHOT_SQL, [limit]);
   if (rows.length === 0) {
     return buildEmptySnapshot();
@@ -188,8 +190,8 @@ export class SpaceSatellitesBroadcaster {
   onSnapshot: ((snapshot: SpaceSatellitesSnapshot) => void) | null = null;
   onError: ((err: { code: string; message: string }) => void) | null = null;
 
-  constructor(limit = 5000) {
-    this.limit = limit;
+  constructor(limit = DEFAULT_SNAPSHOT_LIMIT) {
+    this.limit = Math.min(limit, MAX_SNAPSHOT_LIMIT);
   }
 
   getLatestSnapshot(): SpaceSatellitesSnapshot | null {
