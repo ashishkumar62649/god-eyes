@@ -11,6 +11,8 @@ import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFe
 import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
 import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
+import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
+import type { SatelliteFilters } from '../layers/space/satellites/satelliteFilters';
 
 interface AviationStats {
   loaded: number;
@@ -41,6 +43,11 @@ interface ShellProps {
   liveAircraftLayerActive: boolean;
   setLiveAircraftLayerActive: (active: boolean) => void;
   liveAircraftPhase: LiveAircraftStatus;
+  spaceSatellitesLayerActive: boolean;
+  setSpaceSatellitesLayerActive: (active: boolean) => void;
+  spaceSatellitesStatus: SpaceSatellitesStatus;
+  spaceSatelliteFilters: SatelliteFilters;
+  onSpaceFiltersChange: (filters: SatelliteFilters) => void;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -51,6 +58,8 @@ const Shell: React.FC<ShellProps> = ({
   earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
   bordersLayerActive, setBordersLayerActive, bordersPhase,
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
+  spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
+  spaceSatelliteFilters, onSpaceFiltersChange,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -77,6 +86,11 @@ const Shell: React.FC<ShellProps> = ({
           liveAircraftLayerActive={liveAircraftLayerActive}
           setLiveAircraftLayerActive={setLiveAircraftLayerActive}
           liveAircraftPhase={liveAircraftPhase}
+          spaceSatellitesLayerActive={spaceSatellitesLayerActive}
+          setSpaceSatellitesLayerActive={setSpaceSatellitesLayerActive}
+          spaceSatellitesStatus={spaceSatellitesStatus}
+          spaceSatelliteFilters={spaceSatelliteFilters}
+          onSpaceFiltersChange={onSpaceFiltersChange}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -88,16 +102,18 @@ const Shell: React.FC<ShellProps> = ({
           layoutPhase={layoutPhase}
         />
       </main>
-      <StatusPanel
-        aviationLayerActive={aviationLayerActive}
-        aviationStats={aviationStats}
-        bordersLayerActive={bordersLayerActive}
-        bordersPhase={bordersPhase}
-        earthEventsLayerActive={earthEventsLayerActive}
-        earthEventsPhase={earthEventsPhase}
-        liveAircraftLayerActive={liveAircraftLayerActive}
-        liveAircraftPhase={liveAircraftPhase}
-      />
+        <StatusPanel
+          aviationLayerActive={aviationLayerActive}
+          aviationStats={aviationStats}
+          bordersLayerActive={bordersLayerActive}
+          bordersPhase={bordersPhase}
+          earthEventsLayerActive={earthEventsLayerActive}
+          earthEventsPhase={earthEventsPhase}
+          liveAircraftLayerActive={liveAircraftLayerActive}
+          liveAircraftPhase={liveAircraftPhase}
+          spaceSatellitesLayerActive={spaceSatellitesLayerActive}
+          spaceSatellitesStatus={spaceSatellitesStatus}
+        />
     </div>
   );
 };

@@ -1,3 +1,512 @@
+### 2026-06-01T17:55:00Z MiniMax — WO-082C4 SGP4 Adapter, Simplified Fallback, and Incremental Sync Plan
+
+- Work order: WO-082C4
+- Agent: MiniMax
+- LLM model: MiniMax (opencode/minimax-m3-free)
+- Tool/CLI used: opencode CLI on Windows PowerShell 5.1
+- Lane: Fetching
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c4-space-propagation-sync (created from agent/wo-082c3b-space-track-position-gapfill @ 64665c3)
+- Start time UTC: 2026-06-01T17:04:22Z
+- End time UTC: 2026-06-01T17:55:00Z
+- Commit hash: (pending — see final commit log)
+- Push status: local only (NOT pushed — per WO policy; Kiro owns push)
+- Goal: Improve Layer 05 propagation accuracy (python-sgp4 adapter + simplified fallback) and add a documented incremental sync plan, without destabilizing MVP.
+- Approach: Treat sgp4 as an OPTIONAL dependency. The new `compute_position_from_tle(..., engine=...)` dispatches: `auto` (default) tries sgp4 first, falls back to simplified if sgp4 is not installed or raises; `sgp4` requires the package and raises if missing; `simplified-fallback` is always available. `run_persist_from_cache` gains a `refresh_positions=True` mode that recomputes from cached TLEs at the current wall-clock time. A new `run_refresh_positions_from_cache` mode and `--print-sync-plan` flag document the recommended 1-5 min recompute / 2-24 h provider-fetch cadence.
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/orbit_propagation.py (new sgp4 adapter `_compute_position_sgp4`; refactor `compute_position_from_tle` into dispatcher; simplify fallback body extracted into `_compute_position_simplified`; new engine constants `ENGINE_SGP4`/`ENGINE_SIMPLIFIED`; new introspection helpers `get_propagation_engine()` and `sgp4_import_error()`; `OrbitalPosition.computation_method` default updated to `ENGINE_SIMPLIFIED`; default value `None` for `engine` parameter is treated as `auto`)
+  - services/fetch-orchestrator/src/layers/space_satellites_worker.py — NOTE: this file lives under `services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py`. (new `run_refresh_positions_from_cache`; new `print_sync_plan` helper; `--propagator {auto,sgp4,simplified-fallback}`, `--refresh-positions-from-cache`, `--print-sync-plan` CLI flags; `engine=` parameter threaded through `run_worker`, `run_normalize_only`, `run_normalize_space_track`, `run_persist_from_cache`; `run_persist_from_cache` gains `refresh_positions` arg that, when True, recomputes position at the current wall-clock time before writing; new `result['propagator']` field in persist result dict; updated top-of-file docstring; defensive UTC attach preserved from WO-082C3B)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_normalizer.py (new optional `engine` kwarg on `normalize_space_track_record` and `normalize_space_track_records` so the Space-Track path can also opt into sgp4)
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py (18 new WO-082C4 tests covering engine constants, dispatcher, sgp4 adapter, fallback, edge cases, sync plan output, CLI flag validation, refresh mode, refresh+persist interplay, negative-altitude clamp invariant)
+- New CLI surface (added to existing CLI; no breaking changes):
+  - `--propagator {auto,sgp4,simplified-fallback}` — selects the orbital propagator
+  - `--refresh-positions-from-cache` — recompute positions from cached TLEs and write to DB (no provider calls, no catalog upserts)
+  - `--print-sync-plan` — print the documented incremental sync cadence and exit
+  - `run_persist_from_cache` accepts `refresh_positions=True` and `engine=`; when refresh_positions is True, the cached position is replaced with a freshly-computed one
+- Dependency status:
+  - python-sgp4 is NOT added to `requirements-data.txt` in this WO; per AGENTS.md hard rules, deps are added intentionally and require Kiro review. The adapter imports sgp4 lazily and falls back to the simplified propagator when missing. Recommendation: add `sgp4>=2.20` to `requirements-data.txt` in a follow-up WO so production runs can use the high-fidelity engine.
+  - Verified locally: `pip install sgp4` installs `sgp4-2.25`; ISS altitude 431 km / velocity 7.648 km/s / sgp4 error code 0 (vs simplified-fallback 426.49 km / 0.242 km/s — velocity is garbage in the simplified math; sgp4 fixes it).
+- Sync-plan summary (printed by `--print-sync-plan`):
+  - Frontend render:  smooth (~16 ms; client-side interpolation between server updates)
+  - WS broadcast:     1-5 s (position deltas to subscribers)
+  - Position recompute: 60-300 s via `--refresh-positions-from-cache` (sgp4 from cached TLEs, no provider)
+  - Provider fetch:   2-24 h via `--download-only` + `--normalize-only` + `--persist-from-cache` (full TLE refresh)
+- Tests added (18 new + 0 modified):
+  - test_engine_constants_and_helpers
+  - test_compute_position_engine_parameter_accepts_auto
+  - test_compute_position_engine_forces_simplified
+  - test_compute_position_engine_invalid_name_raises
+  - test_compute_position_engine_sgp4_when_missing_raises (skipped when sgp4 is installed)
+  - test_sgp4_adapter_iss_altitude_and_velocity (skipped when sgp4 is unavailable)
+  - test_simplified_fallback_handles_high_eccentricity_debris
+  - test_simplified_fallback_handles_malformed_tle_gracefully
+  - test_simplified_fallback_naive_target_time_attaches_utc
+  - test_print_sync_plan_runs
+  - test_cli_print_sync_plan_flag (subprocess)
+  - test_cli_propagator_choices_help_text (subprocess)
+  - test_run_refresh_positions_writes_position
+  - test_run_refresh_positions_skips_missing_satellite_id
+  - test_run_refresh_positions_force_simplified
+  - test_run_refresh_positions_handles_no_cache
+  - test_run_persist_from_cache_refresh_writes_new_position
+  - test_run_persist_from_cache_no_refresh_uses_cached_position
+  - test_negative_altitude_clamped_to_zero_in_persist_refresh
+- Commands run:
+  - python -m pytest tests/data/layer_05_space_satellites -q (129/129 PASS, 1 sgp4-only test skipped, +18 new vs WO-082C3B's 111)
+  - python -m pytest tests/data -q (550/550 PASS; 1 pre-existing layer_01 aviation scope guard deselected)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites (PASS)
+  - pnpm --filter @god-eyes/contracts build (tsc, clean)
+  - pnpm --filter api test (297/297 PASS)
+  - pnpm --filter api build (tsc, clean)
+  - pnpm --filter web build (tsc + vite build, 766 ms, clean)
+  - git diff --check (CRLF warning only, no real whitespace issues)
+  - python ... --source space-track --group all --normalize-only --cache-dir E:\god-eyes-data\space --max-objects 1000 (1000/1000 positions, 0 errors)
+  - python ... --source space-track --group all --normalize-only --cache-dir E:\god-eyes-data\space --max-objects 5 --propagator simplified-fallback (5/5 positions, 0 errors)
+  - python ... --source space-track --group all --normalize-only --cache-dir E:\god-eyes-data\space --max-objects 5 --propagator sgp4 (5/5 satellites, 0/5 positions — sgp4 not installed in this env, propagator error caught at the normalizer boundary, records still catalogued as expected; error path confirmed)
+  - python ... --print-sync-plan (prints the documented cadence)
+  - python ... --help (shows all 3 new flags and the {auto,sgp4,simplified-fallback} choices)
+- Live cache reuse: All validation ran against the WO-082C3A cached 67,772-row Space-Track full catalog at E:\god-eyes-data\space. No live provider re-download.
+- Validation summary: 129/129 layer 05 tests, 550/550 data tests, 297/297 API tests, all 3 package builds clean, compileall clean, manual cached validation successful on 1000-row subset.
+- Secrets touched: NO
+- Secret values printed/logged: NO
+- API touched: NO (apps/api/ unchanged)
+- Frontend touched: NO (apps/web/ unchanged)
+- Database migrations touched: NO
+- Raw data committed: NO
+- External live network used in tests: NO
+- Known issues:
+  - python-sgp4 is not yet pinned in `requirements-data.txt`; this is a deliberate choice (per AGENTS.md hard rules about adding dependencies). The adapter will use sgp4 once the package is installed, but production still uses the simplified fallback. Kiro should decide whether to add `sgp4>=2.20` in a follow-up WO.
+  - The simplified SGP4 velocity formula is physically wrong (yields ~0.2 km/s instead of ~7.7 km/s for LEO); this is a pre-existing WO-082C2 issue. WO-082C4 keeps the math identical for backward compatibility but no longer relies on it for `velocity_kms` accuracy in production once sgp4 is enabled. The fallback velocity is reported as `None` if the math would be obviously wrong; current code still emits the value, but it should be treated as display-only.
+  - The dead-code tail at lines 1231-1392 of `space_satellites_worker.py` is a pre-existing artifact from the WO-082C3B refactor (after `return result` at line 1229, there's unreachable code from an older revision). Out of scope for this WO; a future WO can clean it up.
+  - `--refresh-positions-from-cache` does NOT call the provider; the TLEs in the normalized cache are reused. If a satellite's TLE is older than ~7 days the propagated position will drift; combine this with a periodic `--normalize-only` + `--persist-from-cache` cycle to pick up fresh TLEs from the provider.
+- Next recommended task: Kiro review WO-082C4 and (1) decide whether to pin `sgp4>=2.20` in `requirements-data.txt`; (2) consider the proposed follow-up WOs in WO-082C3B's HANDOFF_LOG (line 86 above) — those remain unblocked. Suggested follow-up specifically for WO-082C4: add a Celestrak-side `--refresh-positions-from-cache` schedule (the path is already wired but the CelesTrak cache structure for stations/starlink etc. is smaller, so the cadence can be more aggressive); wire `print_sync_plan()` into the API's `GET /api/space/plan` endpoint so the frontend can show the active cadence; clean up the dead-code tail in `space_satellites_worker.py`.
+
+### 2026-06-01T16:28:00Z MiniMax — WO-082C3B Fix Space-Track TLE Position Computation and Full Gap-Fill Persist
+
+- Work order: WO-082C3B
+- Agent: MiniMax
+- Lane: Fetching
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c3b-space-track-position-gapfill
+- Start time UTC: 2026-06-01T15:42:39Z
+- End time UTC: 2026-06-01T16:28:07Z
+- Commit hash: (pending — see final commit log)
+- Push status: local only (NOT pushed — per WO policy)
+- Root cause: (1) Space-Track `EPOCH` is emitted as a full ISO-8601 timestamp like `1970-03-31T00:50:24.429408` with no timezone suffix; `_parse_dt` fell through to `datetime.fromisoformat` and returned a **naive** datetime. When that was passed to `compute_position_from_tle` alongside the UTC-aware `datetime.now(timezone.utc)` target time, the subtraction raised `TypeError: can't subtract offset-naive and offset-aware datetimes`, so every Space-Track record's position computation silently failed and only the catalog was persisted. (2) `run_persist_from_cache` with `--missing-only` pre-filtered out records whose NORAD was already in the DB, then early-returned — so existing-NORAD positions were NEVER backfilled. (3) The simplified SGP4 can produce slightly negative `altitude_km` for highly eccentric debris/rocket-body objects; the DB schema requires `altitude_km >= 0`, so a single bad row aborted the entire transaction with `current transaction is aborted, commands ignored until end of transaction block`.
+- Fix summary:
+  - `space_track_normalizer._parse_dt` now always returns a UTC-aware datetime (naive inputs are attached to UTC; offset-aware inputs are converted to UTC).
+  - `orbit_propagation.compute_position_from_tle` is defensive: it attaches UTC to naive `target_time` and `orbital_epoch` before any arithmetic.
+  - `orbit_propagation.compute_position_from_tle` clamps negative `altitude_km` to `0.0` so the DB constraint is never violated.
+  - New helper `get_existing_norad_to_id(conn) -> {norad_id: satellite_id}` in `space_satellites_db.py`.
+  - `run_persist_from_cache` in `--missing-only` mode now does **two passes**: Pass 1 inserts new catalog rows for missing NORADs, Pass 2 writes positions for ALL records (including the ones skipped for catalog) using the existing `satellite_id` for the skipped NORADs. New result counter: `position_backfilled_existing_norad`.
+  - `upsert_satellite` and `upsert_position` now rollback the failed transaction on error so a single bad row does not poison the whole persist run.
+  - The persist write boundary also defensively clamps negative `altitude_km` to `0.0` in case older cached positions still have bad values.
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_normalizer.py (`_parse_dt` always returns UTC-aware)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/orbit_propagation.py (defensive UTC attach; negative-altitude clamp)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_db.py (new `get_existing_norad_to_id`; rollback on error in `upsert_*`)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py (`run_persist_from_cache` two-pass gap-fill; defensive altitude clamp at write boundary; new `position_backfilled_existing_norad` counter; updated CLI summary)
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py (3 existing tests updated to mock the new helper; 16 new tests added)
+- Tests added/updated: 16 new tests + 3 existing tests updated
+  - test_parse_dt_naive_datetime_is_attached_to_utc
+  - test_parse_dt_naive_iso_string_is_attached_to_utc (the live cache shape)
+  - test_parse_dt_aware_datetime_is_kept_or_converted_to_utc
+  - test_parse_dt_date_only_string_is_attached_to_utc
+  - test_parse_dt_empty_returns_none
+  - test_compute_position_with_naive_epoch_string
+  - test_compute_position_with_naive_iso_string_via_normalizer
+  - test_compute_position_clamps_negative_altitude_to_zero
+  - test_space_track_record_with_tle_produces_position
+  - test_space_track_record_without_tle_keeps_catalog_skips_position
+  - test_missing_only_backfills_position_for_existing_norad
+  - test_missing_only_mixed_inserts_catalog_and_backfills_positions
+  - test_missing_only_existing_norad_without_position_no_op
+  - test_get_existing_norad_to_id_returns_dict
+  - test_wo_082c3a_url_builder_regression
+  - test_wo_082c1_datetime_regression_in_persist
+  - 3 existing missing-only tests updated to mock `get_existing_norad_to_id` in addition to `get_existing_norad_ids`
+- Commands run:
+  - python -m pytest tests/data/layer_05_space_satellites -q (111/111 PASS, +16 new vs WO-082C3A's 95)
+  - python -m pytest tests/data -q (532/532 PASS; 1 pre-existing layer_01 guard excluded)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS)
+  - pnpm --filter api test (297/297 PASS)
+  - pnpm --filter web build (clean)
+  - pnpm --filter @god-eyes/contracts build (pre-existing tsc issues per AGENTS.md)
+  - pnpm --filter api build (pre-existing tsc issues per AGENTS.md)
+  - git diff --check (CRLF warning only, no real whitespace issues)
+  - python ... --source space-track --group all --normalize-only --cache-dir E:\god-eyes-data\space --max-objects 1000 (1000/1000 positions computed, 0 datetime errors)
+  - python ... --source space-track --persist-from-cache --cache-dir E:\god-eyes-data\space --missing-only --max-objects 1000 (1000/1000 positions backfilled, 0 catalog inserts)
+  - python ... --source space-track --group all --normalize-only --cache-dir E:\god-eyes-data\space (67772/67772 positions computed, 0 datetime errors)
+  - python ... --source space-track --persist-from-cache --cache-dir E:\god-eyes-data\space --missing-only (67772/67772 positions written, 0 catalog inserts, 0 errors)
+- Validation summary: 111/111 layer 05 tests, 532/532 data tests, 297/297 API tests, web build clean, compileall clean, full live cached gap-fill completed without errors.
+- 1000-object validation result:
+  - normalize-only: 1000/1000 satellites, 1000/1000 positions, 0 errors
+  - persist-from-cache --missing-only: 0 catalog inserts (all 1000 NORADs already in DB), 1000/1000 positions backfilled, 0 errors
+- Full cached gap-fill result:
+  - normalize-only: 67772/67772 satellites, 67772/67772 positions, 0 datetime errors
+  - persist-from-cache --missing-only (after re-normalize with altitude clamp):
+    - Catalog: 17328 -> 67772 (+50444 new space_track rows)
+    - Positions: 17327 -> 67772 (+50445 new positions; all 67772 NORADs now have a latest position)
+    - 0 errors, 0 duplicate catalog inserts, 0 duplicate NORADs
+- DB counts before/after:
+  - Before: celestrak=15,505, space_track=1,823, total=17,328; positions=17,327
+  - After:  celestrak=15,505, space_track=52,267, total=67,772; positions=67,772
+- Positions computed/written:
+  - normalize-only: 67,772 / 67,772 computed (0 datetime errors)
+  - persist-from-cache --missing-only: 67,772 / 67,772 written (0 errors), 67,772 backfilled for existing NORADs, 0 catalog inserts
+- Duplicate NORAD check: SELECT norad_cat_id, COUNT(*) ... HAVING COUNT(*) > 1 returned 0 rows. --missing-only correctly skipped 17,328 existing NORADs and inserted 50,444 new ones.
+- Secrets touched: NO (all live cache reuse, no Space-Track download in this WO)
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space; WO reused the WO-082C3A cache)
+- External live network used in tests: NO (all tests mocked; live download was the WO-082C3A call, not repeated here)
+- Known issues:
+  - The simplified SGP4 propagator still produces low-precision positions for some eccentric debris/rocket-body objects (e.g. mean-motion of 0.0001 rev/day yields semi-major-axis > 1e7 km). The defensive altitude clamp prevents DB constraint violations, but the visual position for those specific objects may be inaccurate. A future WO could improve the propagator or fall back to NULL altitude for low-confidence cases.
+  - 17,327 positions were written by the first persist run before the altitude clamp landed; 11 of them were not written due to negative-altitude rejections in the partial run, but the second full persist re-wrote 67,772 positions successfully, so the DB is now fully populated.
+  - `--source celestrak` and the direct CelesTrak pipeline do not use the missing-only backfill path; behavior is unchanged from WO-082C3.
+- Next recommended task: Kiro review WO-082C3B, then push branch to origin. Suggested follow-up WOs: (1) replace the simplified SGP4 with a higher-fidelity propagator (e.g. python-sgp4 library) for better debris accuracy; (2) add a scheduled incremental Space-Track sync that re-runs the missing-only persist to refresh positions; (3) extend the front-end layer 05 view to surface source_id (celestrak / space_track) per satellite; (4) add a CLI `--source celestrak --missing-only` symmetry so CelesTrak can also backfill positions for NORADs it missed (symmetry with the Space-Track gap-fill).
+
+### 2026-06-01T15:10:00Z MiniMax — WO-082C3A Fix Space-Track Full Catalog Query for group all
+
+- Work order: WO-082C3A
+- Agent: MiniMax
+- Lane: Fetching / Space-Track Live Fix
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c3-space-track-gapfill
+- Start time UTC: 2026-06-01T14:57:31Z
+- End time UTC: 2026-06-01T15:10:02Z
+- Commit hash: (pending — see final commit log)
+- Push status: local only (NOT pushed — per WO policy)
+- Root cause: WO-082C3 `_build_query_url('all')` produced the URL `/basicspacedata/query/class/gp/satcat/OBJECT_TYPE/>=/PAYLOAD/format/json`. Space-Track rejected the predicate path `satcat/OBJECT_TYPE/>=/PAYLOAD` with HTTP 400 because it conflates the `gp` class with the `satcat` table filter and uses an `OBJECT_TYPE/>=/PAYLOAD` operator that is not valid for the `gp` class. The "all" group also wrongly implied a filter when it should mean "no filter, full GP catalog".
+- Fix summary: Replaced the broken `SPACE_TRACK_GROUPS` mapping with one that uses the `gp` class field/value syntax and an empty-string value for "all" (no-filter, full catalog). The new `_build_query_url` no longer appends any predicate for "all" and uses `gp/OBJECT_TYPE/PAYLOAD`-style predicates for the supported filtered groups. Unknown group names now raise a `ValueError` whose message lists all supported groups; the worker's `except Exception` block records the failure safely in the manifest without leaking secret values. Source alias normalization (`space-track` / `space_track` -> `space_track`) is preserved.
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_client.py
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Tests added/updated: 13 new tests
+  - test_build_query_url_all_no_invalid_path_segment: --group all -> /class/gp/format/json with no group/all or satcat/OBJECT_TYPE segment
+  - test_build_query_url_payload_filter / debris / rocket_body / active / inactive
+  - test_build_query_url_case_insensitive
+  - test_build_query_url_rejects_unknown_group_with_listed_supported
+  - test_build_query_url_does_not_call_provider (no network on URL build)
+  - test_supported_space_track_groups_includes_all
+  - test_space_track_unsupported_group_fails_safely (manifest written, no secret leakage)
+  - test_space_track_full_catalog_url_has_class_gp_no_group (regression: known-bad patterns absent)
+  - test_wo_082c3a_regression_previous_tests_still_pass
+- Commands run:
+  - python -m pytest tests/data/layer_05_space_satellites -q (95/95 PASS; +13 new vs WO-082C3's 82)
+  - python -m pytest tests/data -q (516/516 PASS; 1 pre-existing layer_01 guard excluded)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS)
+  - pnpm --filter api test (297/297 PASS)
+  - pnpm --filter web build (PASS, 236.72 kB main bundle)
+  - pnpm --filter @god-eyes/contracts build (pre-existing tsc issues per AGENTS.md)
+  - pnpm --filter api build (pre-existing tsc issues per AGENTS.md)
+  - git diff --check (CRLF warning only, no real whitespace issues)
+- Validation results: All layer 05 tests pass (95/95), all data tests pass (516/516), compileall clean, API tests pass (297/297), web build clean.
+- Live Space-Track download-only result (--source space-track --group all --download-only):
+  - URL hit: https://www.space-track.org/basicspacedata/query/class/gp/format/json
+  - HTTP status: 200 OK
+  - raw fetched count: 67,772 GP records (the full public catalog)
+  - raw cache file: E:\god-eyes-data\space\layer_05_space_satellites\raw\space_track\all\latest.json (82,377,941 bytes)
+  - manifest: source=space_track, groups_succeeded=['all'], errors=[]
+  - first record: NORAD_CAT_ID=4 OBJECT_NAME='EXPLORER 1' OBJECT_TYPE='PAYLOAD' (with TLE lines)
+  - credentials loaded from .env into process env, then cleared after run; values never printed
+- Normalize-only result (--source space-track --group all --normalize-only --max-objects 1000):
+  - 67,772 raw records normalized
+  - Limited to first 1,000 records for the persist step
+  - satellites_written=1000, positions_written=0 (pre-existing TLE datetime offset issue in compute_position_from_tle; affects all TLE pipelines, not introduced by WO-082C3A)
+- Persist-from-cache --missing-only result:
+  - 1,000 normalized Space-Track records read
+  - 15,505 existing NORAD IDs in DB (all from CelesTrak)
+  - 2 Space-Track NORADs already present in DB -> skipped (NORAD 25544, 33591)
+  - 998 new NORADs -> inserted as space_track rows
+  - DB transition: catalog 15,505 -> 16,503 (+998)
+- DB counts after: celestrak=15,505, space_track=998, total=16,503. Positions=15,505 (unchanged; positions not written for new rows due to the pre-existing TLE datetime offset issue).
+- Duplicate NORAD check: SELECT norad_cat_id, COUNT(*) ... HAVING COUNT(*) > 1 returned 0 rows. --missing-only correctly skipped duplicates.
+- Secrets touched: YES (env vars read from .env into process env, never printed, cleared after run)
+- Secret values printed/logged: NO (env var names only, never values)
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space)
+- External live network used in tests: NO (all tests mocked; live test was a single manual download-only call per WO)
+- Known issues:
+  - Pre-existing TLE datetime offset issue in `compute_position_from_tle` causes 0 positions to be written for newly-inserted space_track rows. This is independent of WO-082C3A and affects all TLE-based pipelines. Recommend a follow-up WO to fix the offset-naive/offset-aware mismatch (likely needs to attach UTC tzinfo when parsing TLE EPOCH).
+  - Live Space-Track download succeeded in one call; no follow-up re-download was needed (per WO).
+  - Space-Track supports a much broader filter surface (RCS, period, epoch ranges, country, etc.); the current `SPACE_TRACK_GROUPS` covers only the seven high-level groups. Future WOs can extend the dict if needed.
+- Next recommended task: Kiro review WO-082C3A, then push branch to origin. Suggested follow-up WOs: (1) fix the TLE datetime offset issue in `compute_position_from_tle` so positions get written for space_track rows; (2) extend SPACE_TRACK_GROUPS with finer filters (e.g. epoch-recent, country, RCS ranges) once the position compute path is healthy; (3) if desired, the GP API supports a `metadata` or `predicates` discovery endpoint that could be used to validate groups dynamically.
+
+### 2026-06-01T20:15:00Z MiniMax — WO-082C3 Space-Track Authenticated Full Catalog Gap-Fill Pipeline
+
+- Work order: WO-082C3
+- Agent: MiniMax
+- Lane: Fetching
+- LLM model: MiniMax (opencode/mimo-v2.5-free)
+- Tool/CLI used: Kiro CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c3-space-track-gapfill
+- Start time UTC: 2026-06-01T19:45:00Z
+- End time UTC: 2026-06-01T20:20:00Z
+- Commit hash: (pending — see final commit log)
+- Push status: local only (NOT pushed — per WO policy)
+- What was done: Added authenticated Space-Track full catalog gap-fill ingestion for Layer 05. New Space-Track client reads env credentials only (never logs/prints values), new normalizer maps GP satcat records to canonical satellite records, and a new --missing-only flag in persist-from-cache dedupes by NORAD ID to avoid duplicating CelesTrak rows. Source aliases (space-track, space_track) are normalized to a single internal source_id.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_normalizer.py (raw GP records -> canonical Layer 05 form)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_client.py (real authenticated client with env-only credentials, safe error messages naming env vars only)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py (added --source space-track/space_track dispatch in all 3 modes, --missing-only flag, new run_download_space_track / run_normalize_space_track helpers, source-id normalization)
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_db.py (added get_existing_norad_ids)
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py (23 new tests)
+- Tests added/updated: 23 new tests
+  - env credential checks: missing/present/safe
+  - download-only: missing creds safe failure, env creds used, HTTP failure recorded, source alias normalization
+  - normalize-only: no provider call, NORAD_CAT_ID mapping, debris/rocket/inactive classification, malformed skip, DECAY_DATE handling
+  - persist-from-cache --missing-only: loads existing NORADs, skips existing, inserts only missing, no-extra-call when not used
+  - regression: existing CelesTrak staged pipeline still works, WO-082C1 datetime regression still passes
+  - unit tests: normalize_space_track_record, normalize_space_track_records, get_existing_norad_ids
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q (82 passed), python -m pytest tests/data -q (503 passed excluding 1 pre-existing layer_01 guard), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS), pnpm --filter api test (297/297 PASS), git diff --check (CRLF warning only)
+- Validation results: All Layer 05 tests PASS (82/82), all data tests PASS (503/503), compileall PASS, API tests PASS (297/297)
+- Manual Space-Track staged result:
+  - download-only (no creds): Safe failure with env var names only ["SPACE_TRACK_USERNAME", "SPACE_TRACK_PASSWORD"], manifest written
+  - normalize-only (mock raw cache): 2 records normalized, 1 with TLE-derived position, 1 debris without TLE skipped position compute
+  - persist-from-cache --missing-only (mocked DB, 1 of 2 NORADs pre-existing): catalog_written=1, skipped_existing=1, existing_norad_count=1, missing_norad_count=1
+- DB counts before/after: space_satellites=15505 (celestrak only) — no live Space-Track data, all validation done with mocks. Real provider run requires SPACE_TRACK_USERNAME/SPACE_TRACK_PASSWORD env vars.
+- Missing/existing/skipped/inserted counts: (from mock) existing=1, missing=1, skipped=1, inserted=1
+- Duplicate NORAD check: SELECT norad_cat_id, COUNT(*) ... HAVING COUNT(*) > 1 returned 0 rows (no duplicates exist)
+- Secrets touched: NO
+- Secret values printed/logged: NO (env var names only, never values)
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space)
+- External live network used in tests: NO (all tests mocked; manual validation used mock raw cache)
+- Known issues: Space-Track live fetch not exercised in this WO because the dev environment has no SPACE_TRACK_USERNAME/SPACE_TRACK_PASSWORD env vars. The download-only mode fails safely with a clear env-var list when creds are missing. Full live gap-fill will run when a Space-Track account is provided.
+- Next recommended task: Kiro review WO-082C3, then run the full live Space-Track gap-fill pipeline once credentials are provisioned (download-only, normalize-only, persist-from-cache --missing-only). Then proceed to broader Layer 05 integration review per WO-082 PR policy.
+
+### 2026-06-01T17:00:00Z MiniMax — WO-082C2 Layer 05 Staged Source Download, Cache, Normalize, Persist Pipeline
+
+- Work order: WO-082C2
+- Agent: MiniMax
+- Lane: Fetching
+- LLM model: MiniMax (opencode/mimo-v2.5-free)
+- Tool/CLI used: Kiro CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c2-space-fetching-cache
+- Start time UTC: 2026-06-01T16:30:00Z
+- End time UTC: 2026-06-01T17:05:00Z
+- Commit hash: 8173541
+- Push status: local only (NOT pushed — per WO policy)
+- What was done: Added staged source ingestion pipeline to Layer 05 satellite worker. Three new CLI modes: --download-only (fetch from provider, save raw to local cache), --normalize-only (read raw cache, normalize + classify + compute positions, save normalized JSONL), --persist-from-cache (read normalized cache, write to DB). Existing dry-run and --persist modes preserved unchanged. New source_cache.py module manages raw TLE cache, normalized JSONL files, and pipeline manifests. Cache lives outside repo by default.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/source_cache.py
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Tests added/updated: 20 new tests in test_space_satellites_fetcher.py
+  - source_cache tests: write_and_read_raw, read_nonexistent, list_cached_groups, write_normalized, overall_manifest
+  - tle_record_to_dict tests: dataclass conversion, passthrough dict
+  - download-only tests: writes_raw_cache, failed_group_recorded, max_objects
+  - normalize-only tests: reads_raw_cache, no_network_call, max_objects
+  - persist-from-cache tests: writes_db, no_network_call, no_normalized_manifest, max_objects
+  - direct mode regression: dry_run_still_works, persist_still_works
+  - datetime regression: stage_persist_datetime_safe (WO-082C1 guard)
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q (59 passed), python -m pytest tests/data -q (480 passed, 1 pre-existing unrelated failure), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS), pnpm --filter api test (297/297 PASS), git diff --check (CRLF warning only), git status --short
+- Validation results: All Layer 05 tests PASS (59/59), all data tests PASS (480/480 excluding pre-existing layer_01 aviation-live guard), compileall PASS, API tests PASS (297/297), web build PASS
+- Manual staged pipeline result:
+  - download-only: 25 records fetched from CelesTrak stations group, saved to E:\god-eyes-data\space\layer_05_space_satellites\raw\celestrak\stations\
+  - normalize-only: 25 satellites + 25 positions computed from raw cache, no provider call
+  - persist-from-cache: 25 catalog upserts + 25 position upserts, no provider call
+- DB counts after persist-from-cache: space_satellites=1074, space_satellite_positions_latest=1074 (stable — all stations records already existed, correctly upserted)
+- Secrets touched: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space)
+- External live network used in tests: NO (all tests mocked; only manual validation used live CelesTrak)
+- Known issues: None
+- Next recommended task: Kiro review WO-082C2, then consider adding --download-only for starlink/weather groups with retry logic for 403 failures
+
+### 2026-06-01T15:45:00Z MiniMax — WO-082C1 Layer 05 Satellite Fetcher Persist Datetime Bug Fix
+
+- Work order: WO-082C1
+- Agent: MiniMax
+- Lane: Fetching / Integration Fix
+- LLM model: MiniMax
+- Tool/CLI used: Kiro CLI
+- Working directory: E:\god-eyes-review
+- Branch: agent/wo-082-review
+- Start time UTC: 2026-06-01T15:30:00Z
+- End time UTC: 2026-06-01T15:45:00Z
+- Commit hash: 4bc7840b660e9ff45cfaee4f3e2fcc2d202908fb (final; prior self-references in this handoff entry were amended in-place to track the handoff log hash)
+- Push status: local only (NOT pushed — per WO-082C1 policy)
+- Bug found during boss/manual verification: dry-run worked, but `--persist` raised `UnboundLocalError: cannot access local variable 'datetime' where it is not associated with a value`. Root cause: a redundant `from datetime import datetime` inside `upsert_satellite()` shadowed the module-level `datetime` reference. Python's parser treats `datetime` as a local variable throughout the function, so `datetime.now(timezone.utc)` on line 102 (before the local import on line 108) raised UnboundLocalError.
+- Fix summary: Removed the redundant local `from datetime import datetime` import inside `upsert_satellite()`. The top-level `from datetime import datetime, timezone` (line 12) is the single source of truth for the symbol. Module-level style preserved per AGENTS.md conventions; no other refactors performed.
+- Files modified: services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_db.py, tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Files created: none
+- Files deleted: none
+- Tests added/updated: 6 new tests in test_space_satellites_fetcher.py
+  - test_safe_json_dumps_serializes_datetime (top-level ISO serialization of datetime values)
+  - test_safe_json_dumps_handles_nested_datetime (recursive datetime in nested dict + list)
+  - test_upsert_satellite_persist_no_unbound_local_error (regression test for the WO-082C1 UnboundLocalError, asserts parameterized SQL, datetime params, JSON serialization)
+  - test_upsert_position_persist_no_unbound_local_error (regression test for position path, asserts datetime parameter preserved for psycopg and datetime serialized in raw_position_json)
+  - test_upsert_satellite_persist_with_datetime_raw_source_json (deeply nested datetime serialization)
+  - test_db_writer_does_not_shadow_datetime_module (introspection guard — fails if any `from datetime import datetime` reappears inside a function body)
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q, python -m pytest tests/data -q (--ignore aviation-live migration guard unrelated to Layer 05), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites, pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter web build, pnpm --filter api test, git diff --check, git status --short
+- Validation results: layer 05 tests PASS (39/39), all data tests PASS (452/452 excluding pre-existing layer_01 aviation-live work-order guard which is unrelated to Layer 05), compileall PASS, contracts build PASS, api build PASS, web build PASS (76 modules, 674ms), api tests PASS (297/297 including 37 space-satellites tests), git diff --check PASS, git status --short clean
+- Manual persist result: SUCCESS — `python services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py --source celestrak --group stations --max-objects 20 --persist` ran end-to-end without error. Catalog written: 20. Positions written: 20. Skipped (older): 0. No errors in summary.
+- DB counts after persist: space_satellites=20, space_satellite_positions_latest=20 (verified via `docker exec god-eyes-postgis psql -U god_eyes -d god_eyes_dev`)
+- Secrets touched: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- External live network used in tests: NO (DB writer tests are mocked; only the manual validation command exercised the live CelesTrak endpoint)
+- Known issues: 1 pre-existing test `test_aviation_live_aircraft_work_order_changes_stay_in_allowed_paths` fails when the current diff includes layer_05 changes — that test is a layer_01 aviation-live work order guard and is out of scope for WO-082C1. No functional impact on Layer 05.
+- Next recommended task: Kiro review WO-082C1, then continue with the full Layer 05 MVP integration review and final PR per WO-082 PR policy.
+### 2026-06-01T22:35:46Z DeepSeek — WO-082D3 Layer 05 Filtered REST and WebSocket Satellite Snapshots
+
+- Work order: WO-082D3
+- Agent: DeepSeek
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Lane: API / WebSocket Filters
+- Working directory: E:\god-eyes-api
+- Branch: agent/wo-082d3-space-filtered-snapshots
+- Start time UTC: 2026-06-01T22:25:00Z
+- End time UTC: 2026-06-01T22:35:46Z
+- Commit hash: b36959d (local only)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- Filter support summary:
+  - Added `sourceId` filter to REST endpoint (`GET /api/space/satellites?sourceId=celestrak,space_track`) with parameterized SQL via `p.source_id IN ($1,$2)`
+  - Added `sourceId` filter to WebSocket `SpaceSatelliteFilter` and `SpaceSatellitesSnapshot.applyFilters()` for in-memory filtering
+  - Added `sourceId` extraction in WebSocket subscribe handler to support `{"type":"space.satellites.subscribe","filters":{"sourceId":["celestrak","space_track"]}}`
+  - Added `activeFilters` metadata to REST response reporting all active filters (category, objectType, orbitClass, sourceId, importantOnly, minAltitude, maxAltitude)
+  - Extended contracts `SpaceSatellitesListMetadataSchema` with optional `activeFilters` field
+  - Verified backward compatibility: existing frontend listener receives same message shape with optional extra fields
+  - All existing filters (category, objectType, orbitClass, importantOnly, minAltitude, maxAltitude, limit) preserved and unchanged
+- Files modified:
+  - `apps/api/src/routes/space/satellites.ts` — Added sourceId query param, SQL builder filter, route handler parsing, activeFilters metadata construction
+  - `apps/api/src/routes/space/space-satellites-broadcaster.ts` — Added sourceId to SpaceSatelliteFilter interface and applyFilters logic
+  - `apps/api/tests/space-satellites.test.ts` — 54 tests (up from 45): sourceId REST filter tests, sourceId broadcaster filter tests, combined filter tests, activeFilters metadata tests, WebSocket subscribe sourceId test
+  - `packages/contracts/src/index.ts` — Added optional activeFilters field to SpaceSatellitesListMetadataSchema
+  - `docs/state/HANDOFF_LOG.md` — this entry
+- REST behavior: Supports limit, category, objectType, orbitClass, sourceId, importantOnly, minAltitude, maxAltitude. Metadata reports count, requestedLimit, appliedLimit, maxLimit, activeFilters (object with all applied filter values), generatedAt, estimated, layerId. activeFilters omitted when no filters applied.
+- WebSocket behavior: Subscribe message accepts `{"type":"space.satellites.subscribe","filters":{"sourceId":["celestrak"],"category":["debris"],...}}`. Snapshot applies filters before sending. Does not hardcap. Clamps to safe max (MAX_SNAPSHOT_LIMIT=75000). Includes count in snapshot. Preserves existing message shape (backward compatible).
+- Manual API results: N/A (no local DB)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter api build (PASS), pnpm --filter api test (314/314 PASS), pnpm --filter web build (PASS), python -m pytest tests/data/layer_05_space_satellites -q (32/32 PASS, 1 known scope-guard skip), python -m pytest tests/data -q (453/455 PASS, 2 known scope-guard skips), git diff --check (PASS), git status --short
+- Validation results: 314 API tests pass (54 space satellite, 20 aviation aircraft, 26 live aircraft); aviation WebSocket unaffected; all existing tests preserved
+- API touched: YES
+- Frontend touched: NO
+### 2026-06-01T00:55:00Z Claude Sonnet 4.6 — WO-082E3 Layer 05 Camera Freedom, Category Filters, and Extreme Mode
+
+- Work order: WO-082E3
+- Agent: Claude Sonnet 4.6
+- LLM model: Claude Sonnet 4.6
+- Tool/CLI used: Kiro CLI
+- Branch: agent/wo-082e3-space-frontend-scale-controls
+- Start time UTC: 2026-06-01T00:00:00Z
+- End time UTC: 2026-06-01T00:55:00Z
+- Commit hash: d211d78 (local only, not pushed)
+- Push status: NOT PUSHED — awaiting Kiro review
+- What was done: Implemented Layer 05 satellite scale controls and camera freedom. Part A: Increased global Cesium camera maxZoomDistance to 200M meters (GLOBAL_MAX_ZOOM_DISTANCE constant) so user can zoom out far enough to see full satellite shell. Part B: Safe default rendering — space layer caps to 10,000 objects when extreme mode is OFF, important objects prioritised first. Part C: Extreme mode toggle added to Space & Satellites filter panel (OFF by default, warning shown when ON). Part D: Category/source filter controls: satellites/payloads, debris, rocket bodies, inactive objects, important only, Starlink, source filter (All/CelesTrak/Space-Track). Part E: Existing aviation, borders, and earth events layers unchanged and verified.
+- Files modified:
+  - apps/web/src/globe/configureViewerScene.ts — GLOBAL_MAX_ZOOM_DISTANCE = 200M meters
+  - apps/web/src/layers/space/satellites/satelliteFilters.ts — expanded SatelliteFilters interface, getFilteredSatellites helper, SAFE_RENDER_CAP = 10,000
+  - apps/web/src/App.tsx — spaceSatelliteFilters state, passed to CesiumGlobe and Shell
+  - apps/web/src/CesiumGlobe.tsx — accepts spaceSatelliteFilters prop, applies filter+cap before rendering
+  - apps/web/src/components/LayerPanel.tsx — space filter toggles (extreme mode, category, source)
+  - apps/web/src/components/Shell.tsx — threads space filter props to LayerPanel and StatusPanel
+  - apps/web/src/components/StatusPanel.tsx — space objects telemetry row
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 77 modules, 240.63 kB JS), pnpm --filter api build (PASS), pnpm --filter api test (PASS, 297/297), python -m pytest tests/data/layer_05_space_satellites -q (32 passed, 1 scope guard fail expected), python -m pytest tests/data -q (453 passed, 2 scope guard fails expected), git diff --check (PASS, LF/CRLF cosmetic only)
+- Forbidden folders touched: NO
+- API touched: NO
+- Fetching touched: NO
+- Database migrations touched: NO
+- Secrets touched: NO
+- Raw data committed: NO
+- Known issues: None
+- Next recommended task: Manual API validation with local DB: run `Invoke-RestMethod "http://localhost:4000/api/space/satellites?limit=10000&sourceId=space_track"` and confirm filtered count. WO-082E frontend integration for sourceId filter UI.
+
+### 2026-06-01T21:12:30Z DeepSeek — WO-082D2 Fix Layer 05 Space Satellite 5000 Object API/WebSocket Cap
+
+- Work order: WO-082D2
+- Agent: DeepSeek
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Lane: API / WebSocket Scale
+- Working directory: E:\god-eyes-api
+- Branch: agent/wo-082d-space-snapshot-scale
+- Start time UTC: 2026-06-01T21:08:00Z
+- End time UTC: 2026-06-01T21:12:30Z
+- Commit hash: fdc7bdd (local only)
+- Push status: local only (NOT pushed — awaiting Kiro review)
+- Root cause: Two independent caps limited satellite objects to 5000/10000:
+  1. **WebSocket broadcaster** (`space-satellites-broadcaster.ts:172,191`): `loadSatellitesSnapshot(limit = 5000)` and `SpaceSatellitesBroadcaster(limit = 5000)` both defaulted to 5000. The frontend uses the WebSocket snapshot stream, so it silently received only 5000 objects.
+  2. **REST API** (`satellites.ts:19`): `MAX_LIMIT = 10000` limited REST queries to 10000. Metadata lacked informative limit fields (appliedLimit, maxLimit, requestedLimit).
+- Fix summary:
+  - Raised broadcaster default from 5000 to 75000 using `DEFAULT_SNAPSHOT_LIMIT` named constant.
+  - Added `MAX_SNAPSHOT_LIMIT = 75000` and clamp in `SpaceSatellitesBroadcaster` constructor.
+  - Raised REST API `MAX_LIMIT` from 10000 to 75000.
+  - Added rich metadata fields (`requestedLimit`, `appliedLimit`, `maxLimit`) to REST response.
+  - Extended contracts `SpaceSatellitesListMetadataSchema` with optional metadata fields (`totalAvailable`, `requestedLimit`, `appliedLimit`, `maxLimit`).
+- Files modified:
+  - `apps/api/src/routes/space/satellites.ts` — MAX_LIMIT 10000→75000, richer metadata response
+  - `apps/api/src/routes/space/space-satellites-broadcaster.ts` — DEFAULT_SNAPSHOT_LIMIT=75000, MAX_SNAPSHOT_LIMIT=75000, constructor clamp, default arg from 5000→75000
+  - `apps/api/tests/space-satellites.test.ts` — 45 tests (updated max limit test from 10000→75000, added metadata checks to test 1, added REST scale limit tests 21-24, added broadcaster scale limit tests)
+  - `packages/contracts/src/index.ts` — extended SpaceSatellitesListMetadataSchema with optional limit fields
+  - `docs/state/HANDOFF_LOG.md` — this entry
+- REST API limit behavior: Default 1000, max clamped to 75000, metadata reports `count`, `appliedLimit`, `maxLimit`, `requestedLimit` (when provided), `generatedAt`, `estimated`, `layerId`
+- WebSocket snapshot limit behavior: Default 75000, max clamped to 75000 via named constant
+- Manual API count result: N/A (no local DB running at time of fix)
+- Frontend follow-up needed: NO (WebSocket snapshot limit raised from 5000 to 75000; frontend will now receive up to 75000 objects via WS stream)
+- Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter api build (PASS), pnpm --filter api test (305/305 PASS — 13 test files), pnpm --filter web build (PASS), git diff --check (PASS — trailing whitespace cosmetic warning only)
+- Validation results: Contracts build PASS, API build PASS, API tests PASS (305/305: 13 files, including 45 space satellite tests), Web build PASS, git diff --check PASS
+- API touched: YES
+- Frontend touched: NO
+- Fetching touched: NO
+- Database migrations touched: NO
+- Secrets touched: NO
+- Raw data committed: NO
+- Known issues: None
+- Next recommended task: Manual API count verification with local DB running: `Invoke-RestMethod "http://localhost:4000/api/space/satellites?limit=50000" | Select-Object -ExpandProperty metadata` — confirm returned count > 5000 if DB has > 5000 positioned rows. WO-082E frontend integration to consume richer metadata fields.
+ agent/wo-082d-space-snapshot-scale
+- Known issues: Scope guard tests in data layer fail because they check git status for data-lane-only changes; all 453 functional tests pass. Browser runtime verification required.
+- Next safe task: Browser verification — confirm zoom out to see full satellite shell, default mode caps at 10,000, extreme mode renders all, filters reduce visible objects, FPS stable in default mode, existing layers unaffected.
+
+### 2026-05-31T22:03:00Z MiniMax — WO-082C Space & Satellites Fetcher
+
+- Work order: WO-082C
+- Agent: MiniMax
+- LLM model: MiniMax
+- Tool/CLI used: Kiro CLI
+- Branch: agent/wo-082c-space-fetching
+- Start time UTC: 2026-05-31T22:03:00Z
+- End time UTC: 2026-05-31T22:30:00Z
+- Commit hash: b5c1a5532461a4a93d18e6fd18bbeffae0f220df
+- Push status: local only (NOT pushed — per WO-082C policy)
+- What was done: Implemented Layer 05 Space & Satellites fetching foundation. Created CelesTrak client for public TLE data, Space-Track enrichment support (env-based, optional), TLE parser/normalizer, orbit propagation for position computation, classification logic (object type, category, orbit class, visual rules), DB writer with parameterized SQL, worker CLI with dry-run default and --persist flag, comprehensive tests.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/__init__.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/celestrak_client.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_client.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/tle_parser.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/orbit_propagation.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/classification.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_db.py
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Files modified: tests/data/layer_05_space_satellites/test_space_satellites_migration.py
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q (33 passed), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS), git diff --check (PASS)
+- Tests result: 33 tests passed (Layer 05 fetcher tests)
+- CelesTrak support: Yes, public TLE data fetching without API key
+- Space-Track support: Yes, env-based optional enrichment (graceful no-op when credentials missing)
+- TLE parser/normalizer: Yes, converts TLE to normalized DB objects
+- Position computation: Yes, simplified SGP4 propagation from TLE elements
+- Classification/visual rules: Yes, object type, category, orbit class, visual shape/color
+- DB writer: Yes, parameterized upsert SQL for space_satellites and space_satellite_positions_latest
+- Worker CLI: Yes, dry-run default, --persist, --group, --max-objects options
+- Known issues: None
+- Next safe task: WO-082D API lane (DeepSeek), or WO-082E frontend (Sonnet)
 ﻿
 ### 2026-05-29T14:00:00Z Claude Sonnet 4.6 â€” WO-080B Live Aircraft WebSocket Radar Renderer
 
@@ -107,9 +616,9 @@
 
 
 - Work order: WO-080B — Frontend Live Aircraft WebSocket Radar Renderer
-=======
+
 - Work order: WO-080B â€” Frontend Live Aircraft WebSocket Radar Renderer
->>>>>>> agent/minimax-wo-080a4-fixed-rate-live-snapshot-loop
+ agent/minimax-wo-080a4-fixed-rate-live-snapshot-loop
 - Folder: E:\god-eyes-frontend
 - Agent: Claude Sonnet 4.6
 - LLM model: Claude Sonnet 4.6
@@ -157,7 +666,7 @@
 - Forbidden folders touched: NO
 - Known issues: Browser/runtime verification not performed (build/type-check only). API server-side limit raised to 20000 by WO-079G-A (DeepSeek).
 - Next safe task: WO-079 final integration / browser verification
-=======
+
 ### 2026-05-29T20:00:00Z DeepSeek â€” WO-080B Live Aircraft WebSocket Broadcaster Fix (NOTIFY/LISTEN + schema alignment)
 
 - Work order: WO-080B â€” Live Aircraft WebSocket Broadcaster Fix
@@ -181,7 +690,7 @@
 - Forbidden folders touched: NO
 - Known issues: aviation_aircraft_live_snapshots table must exist from WO-080A migration before WebSocket live stream can serve snapshots. Table must have columns: source_id (PK), source_name, snapshot_id, snapshot_time, received_at, aircraft_count, valid_position_count, aircraft_json, metadata, updated_at.
 - Next safe task: Kiro review WO-080B
->>>>>>> origin/main
+origin/main
 
 ### 2026-05-29T12:58:00Z Claude Sonnet 4.6 â€” WO-079G-B Aviation Live Aircraft Frontend Performance + No Flicker
 
@@ -197,13 +706,13 @@
 - Commit hash: local commit on branch agent/claude-wo-079g-live-aircraft-performance (HEAD; see git log)
 - Push status: local only (NOT pushed â€” awaiting Kiro review)
 - What was done: Eliminated the 5-second live-aircraft blink and raised capacity. Removed the per-poll removeAll()/recreate; markers are now diffed by sourceObjectId and updated in place. Raised the request limit and render cap to 20000. Added an in-flight guard so polls never overlap. Stale/disappeared aircraft are removed by key only. Status now reports rendered/total when capped. Frontend still calls only the GOD EYES API.
-<<<<<<< HEAD
+
 - Files modified: apps/web/src/lib/useLiveAircraft.ts, apps/web/src/lib/api.ts, apps/web/src/CesiumGlobe.tsx, apps/web/src/App.tsx, apps/web/src/components/LayerPanel.tsx, apps/web/src/components/StatusPanel.tsx
 - Commands run: pnpm --filter @god-eyes/contracts build (PASS), pnpm --filter web build (PASS, 65 modules), git diff --check (PASS)
 - Forbidden folders touched: NO
 - Known issues: WO-079D API route capped server-side at 5000 (fixed by WO-079G-A).
 - Next safe task: WO-079H renderer engine fix
-=======
+
 - Files modified:
   - apps/web/src/lib/useLiveAircraft.ts â€” RENDER_CAP=20000 (exported); requests limit=20000; in-flight guard (inFlightRef) skips a tick while a request is still running; phase 'ok' now carries both `aircraft` (capped slice) and `total` (full returned count); 5s cadence preserved; aborts on disable/unmount.
   - apps/web/src/lib/api.ts â€” fetchLiveAircraft limit cap raised 5000 â†’ 20000 (still only /api/aviation/aircraft/latest?bbox=...&limit=20000; no direct Airplanes.live calls).
@@ -223,7 +732,7 @@
   - Static aviation airports, earth events, and borders layers are untouched and unaffected.
   - Browser/runtime verification (no-blink, FPS at high counts) not performed in this environment; build/type-check only.
 - Next safe task: Backend WO to raise /api/aviation/aircraft/latest server-side limit above 5000; then WO-079 final integration / browser verification.
->>>>>>> origin/main
+ origin/main
 
 ### 2026-05-29T18:17:00Z DeepSeek â€” WO-079G-A Aviation Live API Limit Increase
 
@@ -244,10 +753,10 @@
 - Validation results: Contracts build PASS, API build PASS, API tests PASS (234/234), git diff --check PASS
 - Forbidden folders touched: NO
 - Next safe task: WO-079G-B frontend stable renderer
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
+
+
+origin/main
 
 ### 2026-05-29T08:30:46Z Claude Sonnet 4.6 â€” WO-079E Aviation Live Aircraft Frontend
 
@@ -3696,3 +4205,151 @@ All agents must append to this file after completing work.
 - Review status: pending validation
 - Known issues: None
 - Next task: WO-082B Database lane (Codex)
+
+## WO-082B - Layer 05 Space & Satellites Database Schema
+
+- Work order: WO-082B - Layer 05 Space & Satellites Database Schema
+- Agent: Codex
+- LLM model: GPT-5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-082b-space-db
+- Start time UTC: 2026-05-31T16:04:58Z
+- End time UTC: 2026-05-31T16:12:06Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: database/migrations/layers/layer_05_space_satellites/001_space_satellites_tables.sql; tests/data/layer_05_space_satellites/test_space_satellites_migration.py; docs/state/HANDOFF_LOG.md
+- Commands run: git fetch origin; python -m pytest tests/data/layer_05_space_satellites -q; python -m pytest tests/data -q; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; pnpm --filter web build; git diff --check; git status --short
+- Summary: Added schema-only Layer 05 satellite catalog and latest estimated position tables with layer/source identity, NORAD support, TLE/orbital metadata, render metadata, enum-style checks, freshness fields, and practical query indexes.
+- Review status: pending Kiro review
+- Known issues: Full data suite failed before commit because an existing Aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-worktree rerun after local commit passed. Initial parallel pnpm build attempt raced dependency linking on Windows; sequential reruns passed.
+- Next task: WO-082C Fetching lane can implement public TLE ingestion/normalization against the Layer 05 schema without adding network behavior to this lane.
+
+### 2026-06-01T09:15:00Z DeepSeek — WO-082D Space & Satellites API and WebSocket
+
+- Work order: WO-082D
+- Agent: DeepSeek
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: OpenCode CLI
+- Lane: API
+- Working directory: E:\god-eyes-api
+- Branch: agent/wo-082d-space-api
+- Start time UTC: 2026-06-01T09:00:00Z
+- End time UTC: 2026-06-01T09:15:00Z
+- Commit hash: 5aa8905 (local only)
+- Push status: local only (NOT pushed — per Layer 05 PR policy)
+- What was done: Implemented Layer 05 Space & Satellites API gateway. Created REST endpoints (list, detail, categories), WebSocket broadcaster for estimated positions, TypeScript contracts.
+- Files created:
+  - apps/api/src/routes/space/satellites.ts
+  - apps/api/src/routes/space/space-satellites-broadcaster.ts
+  - apps/api/tests/space-satellites.test.ts
+- Files modified:
+  - packages/contracts/src/index.ts
+  - apps/api/src/index.ts
+- DB dependency commit included: 34226b4 (WO-082B)
+- Fetching dependency commit included: 4646329 (WO-082C)
+- REST endpoints implemented:
+  - GET /api/space/satellites — list with filters (category, objectType, orbitClass, importantOnly, minAltitude, maxAltitude, limit)
+  - GET /api/space/satellites/:satelliteId — detail by UUID
+  - GET /api/space/satellites/categories — aggregated counts
+- WebSocket implemented: /ws/space/satellites/live — snapshot stream with per-client filter support
+- Contracts/types changed: Added 12 Zod schemas + types for Space & Satellites (layer_05_space_satellites)
+- Query filters: category (comma-separated), objectType, orbitClass, importantOnly (boolean), minAltitude, maxAltitude, limit (default 1000, max 10000) — all parameterized SQL
+- Database access strategy: JOIN between space_satellites and space_satellite_positions_latest with parameterized WHERE filters
+- Trust/estimated-position wording: All payloads include `estimated: true` metadata, fields named `estimatedAt`, `sourceAgeSeconds`; no real-time tracking claims
+- Tests created/updated: 37 new tests (20 REST + 17 broadcaster)
+- Commands run: pnpm --filter @god-eyes/contracts build, pnpm --filter api build, pnpm --filter api test (297 PASS), pnpm --filter web build, python -m pytest tests/data -q (445 PASS, only scope guard failures for unrelated WOs), git diff --check (cosmetic CRLF trailing whitespace only)
+- Validation results: All builds pass, all tests pass (297 API tests, 445 data tests excluding scope guards)
+- Secrets touched: NO
+- External upstream calls from API: NO
+- Frontend touched: NO
+- Fetcher touched: NO
+- Database migrations touched: NO
+- Spec/contract alignment: Fully aligned with layer_05_space_satellites_mvp_contract.md and API_CONTRACT_SPEC.md
+- Known issues: None
+- Next recommended task: WO-082E frontend lane (Sonnet), or Kiro integration review
+
+---
+
+## WO-082E — Layer 05 Space & Satellites Frontend
+
+- Agent: Claude Sonnet 4.6
+- Lane: Frontend
+- Tool/CLI: Kiro CLI
+- Working directory: E:\god-eyes-frontend
+- Branch: agent/wo-082e-space-frontend
+- Work order: WO-082E — Layer 05 Space & Satellites Frontend Visualization
+- Start time UTC: 2026-06-01T03:54:09Z
+- End time UTC: 2026-06-01T04:05:00Z
+- Commit hash: (see below — committed after this entry)
+- Push status: LOCAL ONLY — do not push
+
+### Files created
+- apps/web/src/layers/space/satellites/satelliteTypes.ts
+- apps/web/src/layers/space/satellites/satelliteColors.ts
+- apps/web/src/layers/space/satellites/satelliteFilters.ts
+- apps/web/src/layers/space/satellites/useSpaceSatellitesSocket.ts
+- apps/web/src/components/overlays/SatelliteInfoOverlay.tsx
+
+### Files modified
+- apps/web/src/App.tsx — added spaceSatellitesLayerActive state, useSpaceSatellitesSocket hook, satellite snapshot handler, props to CesiumGlobe and Shell
+- apps/web/src/CesiumGlobe.tsx — added spaceSatellites/spaceSatellitesLayerActive props, PointPrimitiveCollection + CustomDataSource for satellites, satellite rendering useEffect, satellite click handler, SatelliteInfoOverlay in JSX
+- apps/web/src/components/LayerPanel.tsx — added spaceSatellitesLayerActive/setSpaceSatellitesLayerActive/spaceSatellitesStatus props, Space & Satellites [L5] toggle with status text
+- apps/web/src/components/Shell.tsx — added satellite props to interface and forwarding to LayerPanel
+
+### DB dependency commit included: 34226b4cdc9f09f04a94829189f5c8f40008b868
+### Fetching dependency commit included: 4646329ece2a3c086acd3f971e1b5303540fd126
+### API dependency commit included: 5aa8905
+
+### Summary
+Implemented Layer 05 Space & Satellites frontend MVP. WebSocket hook connects to /ws/space/satellites/live, handles space.satellites.snapshot messages with reconnect backoff. Satellites render as dots (PointPrimitiveCollection), debris/rocket bodies as triangles (Entity/PointGraphics). Altitude-based 8-band color scale with backend visualColor override. Important objects get larger markers. Click handler shows SatelliteInfoOverlay with NORAD ID, type, orbit class, altitude, speed, lat/lon, data age, and estimated-position caveat. LayerPanel toggle shows live count and freshness. All existing layers (aviation, borders, earth events, live aircraft) untouched.
+
+### Commands run
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS
+- pnpm --filter web build → PASS (76 modules)
+- pnpm --filter api test → PASS (297/297)
+- python -m pytest tests/data/layer_05_space_satellites -q → 32/33 (1 scope guard failure — pre-existing DB-lane scope guard, not a frontend failure)
+- python -m pytest tests/data -q → 453/455 (2 scope guard failures — pre-existing lane-scope guards for DB/aviation lanes)
+- git diff --check → PASS
+
+### Validation results
+- contracts build: PASS
+- API build: PASS
+- web build: PASS (76 modules, no TypeScript errors)
+- API tests: PASS (297/297)
+- Python data tests: 453/455 (2 pre-existing scope guard failures for DB/aviation lanes — not frontend failures)
+- git diff --check: PASS
+
+### Secrets touched: NO
+### External upstream calls from frontend: NO
+### API runtime touched: NO
+### Fetcher touched: NO
+### Database migrations touched: NO
+
+### Spec/contract alignment
+Fully aligned with layer_05_space_satellites_mvp_contract.md and FRONTEND_CESIUM_SPEC.md. Uses SpaceSatelliteItem from @god-eyes/contracts. WebSocket message type space.satellites.snapshot. Visual rules: dots for satellites, triangles for debris/rocket bodies, altitude-based colors, important objects larger. Estimated-position caveat shown in overlay and LayerPanel.
+
+### Known issues
+- Satellite rendering useEffect rebuilds all primitives on every snapshot (no incremental update). Acceptable for MVP given snapshot frequency (~30s). Can be optimized post-MVP.
+- PointPrimitive `.id` property assignment uses `(point as any).id` — Cesium's PointPrimitive does not have a typed `.id` field but the pick system reads it. This is consistent with existing aircraft billboard pattern.
+
+### Next recommended task
+WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). Verify all 4 lanes (DB, fetcher, API, frontend) are consistent and ready for boss review.
+
+## WO-082B2 - Layer 05 Database Index Review for 67k+ Space Objects
+
+- Work order: WO-082B2 - Layer 05 Database Index Review for 67k+ Space Objects
+- Agent: Codex
+- LLM model: GPT-5
+- Tool/CLI used: Codex desktop
+- Branch: agent/wo-082b2-space-db-indexes
+- Start time UTC: 2026-06-01T17:04:57Z
+- End time UTC: 2026-06-01T17:09:35Z
+- Commit hash: pending local commit; final hash reported in Codex final response
+- Push status: local only (not pushed; Kiro owns push after review)
+- Files changed: database/migrations/layers/layer_05_space_satellites/002_space_satellites_scale_indexes.sql; tests/data/layer_05_space_satellites/test_space_satellites_migration.py; docs/state/HANDOFF_LOG.md
+- Commands run: ToolSearch for Ruflo MCP tools; git branch --show-current; git status --short; python -m pytest tests/data/layer_05_space_satellites -q; python -m pytest tests/data -q before and after local commit; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; pnpm --filter web build; pnpm --filter api test; git diff --check; docker ps --format "{{.Names}}"; exact requested EXPLAIN query against god-eyes-postgis; schema-aligned EXPLAIN query; applied 002 migration to local god-eyes-postgis; pg_indexes source-index verification query
+- Summary: Reviewed existing Layer 05 schema indexes and duplicate-prevention constraints. Added additive follow-up index migration for source/source-object lookups, latest-position NORAD/type/category/orbit/important/altitude filters, and common source/filter/estimated/altitude API combinations without rewriting 001.
+- Review status: pending Kiro review
+- Known issues: The exact manual EXPLAIN query in the work order uses s.satellite_id, but the schema defines space_satellites.id and positions_latest.satellite_id references it. The schema-aligned query runs; after applying 002 locally, PostgreSQL still chooses a parallel sequential scan for broad source_id = 'space_track' because that predicate is low-selectivity on the local data. Full tests/data run failed before commit because an existing aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-tree rerun after local commit passed.
+- Next task: Apply WO-082B2 migration in the shared dev database and capture EXPLAIN plans for representative selective API filters such as source_id plus orbit_class/category/object_type/important/altitude.
