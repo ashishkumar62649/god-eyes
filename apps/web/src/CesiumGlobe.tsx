@@ -29,6 +29,8 @@ import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, Air
 import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
 import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
 import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
+import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
+import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
 
 import {
   fetchAllAviationCategories,
@@ -109,6 +111,7 @@ interface CesiumGlobeProps {
   /** Layer 05: Space & Satellites */
   spaceSatellites?: SpaceSatelliteItem[];
   spaceSatellitesLayerActive?: boolean;
+  spaceSatelliteFilters?: SatelliteFilters;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -131,6 +134,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   onGetBboxRef,
   spaceSatellites,
   spaceSatellitesLayerActive,
+  spaceSatelliteFilters,
 }) => {
 
   /**
@@ -1179,7 +1183,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       return;
     }
 
-    for (const sat of spaceSatellites) {
+    const filters = spaceSatelliteFilters ?? DEFAULT_SATELLITE_FILTERS;
+    const renderSet = getFilteredSatellites(spaceSatellites, filters);
+
+    for (const sat of renderSet) {
       const altM = (sat.position.altitudeKm ?? 0) * 1000;
       const color = getSatelliteColor({
         ...sat,
@@ -1250,7 +1257,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
 
     viewerRef.current?.scene.requestRender();
-  }, [spaceSatellites, spaceSatellitesLayerActive]);
+  }, [spaceSatellites, spaceSatellitesLayerActive, spaceSatelliteFilters]);
 
   if (error) {
     return (

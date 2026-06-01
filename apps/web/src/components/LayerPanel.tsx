@@ -6,6 +6,7 @@ import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
 import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
+import { SatelliteFilters, SAFE_RENDER_CAP } from '../layers/space/satellites/satelliteFilters';
 
 interface AviationStats {
   loaded: number;
@@ -34,6 +35,8 @@ interface LayerPanelProps {
   spaceSatellitesLayerActive: boolean;
   setSpaceSatellitesLayerActive: (active: boolean) => void;
   spaceSatellitesStatus: SpaceSatellitesStatus;
+  spaceSatelliteFilters: SatelliteFilters;
+  onSpaceFiltersChange: (filters: SatelliteFilters) => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -53,12 +56,21 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   bordersLayerActive, setBordersLayerActive, bordersPhase,
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
   spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
+  spaceSatelliteFilters, onSpaceFiltersChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
 
   const toggleFilter = (key: keyof AviationFilters) =>
     onFiltersChange({ ...aviationFilters, [key]: !aviationFilters[key] });
+
+  const toggleSpaceFilter = (key: keyof SatelliteFilters, value?: unknown) => {
+    if (value !== undefined) {
+      onSpaceFiltersChange({ ...spaceSatelliteFilters, [key]: value });
+    } else {
+      onSpaceFiltersChange({ ...spaceSatelliteFilters, [key]: !(spaceSatelliteFilters as any)[key] });
+    }
+  };
 
   function earthEventsStatusText(): string {
     if (!earthEventsLayerActive) return 'READY — CLICK TO ACTIVATE';
@@ -264,11 +276,6 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                       {spaceSatellitesStatusText()}
                     </span>
                   </div>
-                  {spaceSatellitesLayerActive && (
-                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
-                      Estimated orbital positions from TLE data (CelesTrak). Not confirmed real-time tracking.
-                    </div>
-                  )}
                 </div>
               );
             }
@@ -316,6 +323,76 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            </>
+          )}
+
+          {spaceSatellitesLayerActive && (
+            <>
+              <div className="filter-section">
+                <div className="filter-section-header">SPACE FILTERS</div>
+                <div
+                  className={`filter-toggle ${spaceSatelliteFilters.extremeMode ? 'active' : ''}`}
+                  onClick={() => toggleSpaceFilter('extremeMode')}
+                  style={{ marginBottom: '4px' }}
+                >
+                  <span className="filter-toggle-dot"
+                    style={{ background: spaceSatelliteFilters.extremeMode ? '#ff4d4d' : '#555', opacity: spaceSatelliteFilters.extremeMode ? 1 : 0.4 }} />
+                  <span className="filter-toggle-label" style={{ color: spaceSatelliteFilters.extremeMode ? '#ff4d4d' : undefined }}>
+                    {spaceSatelliteFilters.extremeMode ? 'ALL OBJECTS ON' : 'Show all objects'}
+                  </span>
+                </div>
+                {spaceSatelliteFilters.extremeMode && (
+                  <div style={{ fontSize: '0.48rem', color: '#ff6b6b', lineHeight: 1.3, marginBottom: '6px', paddingLeft: '18px' }}>
+                    Extreme mode may reduce FPS or crash slower browsers.
+                  </div>
+                )}
+                {!spaceSatelliteFilters.extremeMode && (
+                  <div style={{ fontSize: '0.48rem', color: '#ffab00', opacity: 0.65, lineHeight: 1.3, marginBottom: '6px', paddingLeft: '18px' }}>
+                    Default: capped to {SAFE_RENDER_CAP.toLocaleString()} objects.
+                  </div>
+                )}
+
+                {[
+                  { key: 'showSatellites' as const, label: 'Satellites / Payloads', color: '#00e5ff' },
+                  { key: 'showDebris' as const, label: 'Debris', color: '#ff6b35' },
+                  { key: 'showRocketBodies' as const, label: 'Rocket Bodies', color: '#ffd166' },
+                  { key: 'showInactive' as const, label: 'Inactive Objects', color: '#a8dadc' },
+                  { key: 'importantOnly' as const, label: 'Important Only', color: '#ff2d55' },
+                  { key: 'showStarlink' as const, label: 'Starlink', color: '#00e676' },
+                ].map(({ key, label, color }) => {
+                  const active = key === 'importantOnly'
+                    ? spaceSatelliteFilters.importantOnly
+                    : key === 'showStarlink'
+                      ? spaceSatelliteFilters.showStarlink
+                      : (spaceSatelliteFilters as any)[key];
+                  return (
+                    <div key={key} className={`filter-toggle ${active ? 'active' : ''}`}
+                      onClick={() => toggleSpaceFilter(key)}>
+                      <span className="filter-toggle-dot"
+                        style={{ background: active ? color : '#555', opacity: active ? 1 : 0.4 }} />
+                      <span className="filter-toggle-label">{label}</span>
+                    </div>
+                  );
+                })}
+
+                <div style={{ marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>SOURCE</div>
+                  {([
+                    { value: 'all' as const, label: 'All' },
+                    { value: 'celestrak' as const, label: 'CelesTrak' },
+                    { value: 'space-track' as const, label: 'Space-Track' },
+                  ]).map(({ value, label }) => (
+                    <div key={value}
+                      className={`filter-toggle ${spaceSatelliteFilters.sourceFilter === value ? 'active' : ''}`}
+                      onClick={() => toggleSpaceFilter('sourceFilter', value)}>
+                      <span className="filter-toggle-dot"
+                        style={{ background: spaceSatelliteFilters.sourceFilter === value ? '#8a2be2' : '#555',
+                          opacity: spaceSatelliteFilters.sourceFilter === value ? 1 : 0.4 }} />
+                      <span className="filter-toggle-label">{label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}

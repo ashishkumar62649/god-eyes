@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
+import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
 
 interface AviationStats {
   loaded: number;
@@ -26,6 +27,8 @@ interface StatusPanelProps {
   earthEventsPhase: EarthEventsPhase;
   liveAircraftLayerActive: boolean;
   liveAircraftPhase: LiveAircraftStatus;
+  spaceSatellitesLayerActive?: boolean;
+  spaceSatellitesStatus?: SpaceSatellitesStatus;
 }
 
 const StatusPanel: React.FC<StatusPanelProps> = ({
@@ -33,6 +36,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
   bordersLayerActive, bordersPhase,
   earthEventsLayerActive, earthEventsPhase,
   liveAircraftLayerActive, liveAircraftPhase,
+  spaceSatellitesLayerActive, spaceSatellitesStatus,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -40,6 +44,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
   if (aviationLayerActive) activeLayers.push('L1');
   if (bordersLayerActive) activeLayers.push('L2');
   if (earthEventsLayerActive) activeLayers.push('L3');
+  if (spaceSatellitesLayerActive) activeLayers.push('L5');
 
   return (
     <footer className={`shell-panel shell-footer shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -120,6 +125,24 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
                   : liveAircraftPhase.phase === 'reconnecting' ? 'RECONNECTING...'
                   : liveAircraftPhase.phase === 'empty' ? 'NONE IN VIEW'
                   : liveAircraftPhase.phase === 'error' ? 'UNAVAILABLE'
+                  : 'IDLE'}
+              </div>
+            </div>
+          )}
+
+          {spaceSatellitesLayerActive && spaceSatellitesStatus && (
+            <div className="detail-row" style={{ marginBottom: 0, paddingLeft: 10 }}>
+              <div className="detail-label">Space Objects</div>
+              <div className="detail-value" style={{
+                color: spaceSatellitesStatus.phase === 'live' ? 'var(--shell-accent)'
+                  : spaceSatellitesStatus.phase === 'error' ? '#ff4d4d'
+                  : '#ffab00',
+              }}>
+                {spaceSatellitesStatus.phase === 'live'
+                  ? `${spaceSatellitesStatus.count.toLocaleString()} OBJECTS`
+                  : spaceSatellitesStatus.phase === 'connecting' ? 'CONNECTING...'
+                  : spaceSatellitesStatus.phase === 'reconnecting' ? 'RECONNECTING...'
+                  : spaceSatellitesStatus.phase === 'error' ? 'UNAVAILABLE'
                   : 'IDLE'}
               </div>
             </div>
