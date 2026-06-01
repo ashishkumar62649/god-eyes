@@ -1,9 +1,20 @@
 """Orbit Propagation / Position Computation from TLE.
 
 Computes estimated current positions from TLE orbital elements.
-This uses a simplified propagation method suitable for display purposes.
 
-Note: This is estimated position from orbital elements, not live sensor tracking.
+Engine selection (WO-082C4):
+    If the optional ``sgp4`` package is importable (Brandon Rhodes'
+    ``python-sgp4``), the high-fidelity SGP4 propagator is used.
+    Otherwise the original simplified propagator is used as a
+    fallback. ``get_propagation_engine()`` reports which engine is
+    active; callers can force a specific engine via the ``engine=``
+    keyword on :func:`compute_position_from_tle`. The simplified
+    fallback is intentionally kept so the pipeline never breaks if
+    ``sgp4`` is not installed in a given environment.
+
+Note: This is estimated position from orbital elements, not live
+sensor tracking. The simplified fallback is display-grade only and
+may be low precision for highly eccentric debris/rocket-body objects.
 """
 
 from __future__ import annotations
@@ -18,6 +29,43 @@ EARTH_RADIUS_KM = 6371.0  # Mean Earth radius
 MU = 398600.4418  # GM in km^3/s^2 (gravitational parameter)
 EARTH_ROTATION_RATE = 7.2921159e-5  # rad/s
 
+# Engine identifiers (also used as OrbitalPosition.computation_method).
+ENGINE_SGP4 = "sgp4"
+ENGINE_SIMPLIFIED = "simplified-fallback"
+
+# Optional high-fidelity SGP4 dependency. Imported lazily so the
+# fallback path works even if the package is not installed.
+_sgp4_mod: Any = None
+_sgp4_api: Any = None
+_sgp4_import_error: Exception | None = None
+try:
+    import sgp4 as _sgp4_mod  # type: ignore[import-not-found]
+    from sgp4 import api as _sgp4_api  # type: ignore[import-not-found]
+except Exception as _exc:  # pragma: no cover - environment-dependent
+    _sgp4_mod = None
+    _sgp4_api = None
+    _sgp4_import_error = _exc
+
+
+def get_propagation_engine() -> str:
+    """Return the name of the active propagation engine.
+
+    Returns ``"sgp4"`` when the ``sgp4`` package is importable and the
+    high-fidelity engine can be used. Returns ``"simplified-fallback"``
+    otherwise. The result is stable for the lifetime of the process.
+    """
+    return ENGINE_SGP4 if _sgp4_api is not None else ENGINE_SIMPLIFIED
+
+
+def sgp4_import_error() -> Exception | None:
+    """Return the import error from the optional ``sgp4`` dependency.
+
+    ``None`` if the dependency loaded successfully. Used by the
+    worker to log a clear hint about which optional package is
+    missing without leaking the import internals.
+    """
+    return _sgp4_import_error
+
 
 @dataclass
 class OrbitalPosition:
@@ -29,7 +77,7 @@ class OrbitalPosition:
     velocity_kms: float | None = None  # km/s
     heading_deg: float | None = None  # degrees, 0-360
     source_age_seconds: int | None = None
-    computation_method: str = "simplified-sgp4"
+    computation_method: str = ENGINE_SIMPLIFIED
     raw_position_json: dict[str, Any] | None = None
 
 
@@ -38,19 +86,28 @@ def compute_position_from_tle(
     tle_line2: str,
     orbital_epoch: datetime | None = None,
     target_time: datetime | None = None,
+    engine: str | None = None,
 ) -> OrbitalPosition | None:
     """Compute estimated position from TLE lines.
-    
-    Uses simplified SGP4 propagation for display purposes.
-    
+
+    Engine selection (``engine=``):
+        * ``"auto"`` (default) - use ``sgp4`` if available, otherwise
+          fall back to the simplified propagator.
+        * ``"sgp4"`` - force the high-fidelity SGP4 engine; raise
+          ``RuntimeError`` if the ``sgp4`` package is not installed.
+        * ``"simplified-fallback"`` - always use the simplified
+          propagator (useful for parity testing or environments where
+          ``sgp4`` is intentionally excluded).
+
     Args:
-        tle_line1: First TLE line
-        tle_line2: Second TLE line
-        orbital_epoch: Epoch of TLE (from TLE data)
-        target_time: Time to compute position for (default: now)
-        
+        tle_line1: First TLE line.
+        tle_line2: Second TLE line.
+        orbital_epoch: Epoch of TLE (from TLE data).
+        target_time: Time to compute position for (default: now).
+        engine: Engine override; ``"auto"`` by default.
+
     Returns:
-        Orbital position or None if computation fails
+        Orbital position or ``None`` if computation fails.
     """
     if target_time is None:
         target_time = datetime.now(timezone.utc)
@@ -64,23 +121,69 @@ def compute_position_from_tle(
     if orbital_epoch is not None and orbital_epoch.tzinfo is None:
         orbital_epoch = orbital_epoch.replace(tzinfo=timezone.utc)
 
+    chosen = engine or "auto"
+    if chosen not in ("auto", ENGINE_SGP4, ENGINE_SIMPLIFIED):
+        raise ValueError(
+            f"Unknown engine: {engine!r}. Use 'auto', "
+            f"'{ENGINE_SGP4}', or '{ENGINE_SIMPLIFIED}'."
+        )
+
+    if chosen == ENGINE_SGP4 and _sgp4_api is None:
+        raise RuntimeError(
+            "engine='sgp4' was requested but the 'sgp4' package is not "
+            "installed. Install python-sgp4 or use engine='auto' / "
+            "engine='simplified-fallback'."
+        )
+
+    if chosen in ("auto", ENGINE_SGP4) and _sgp4_api is not None:
+        try:
+            pos = _compute_position_sgp4(
+                tle_line1, tle_line2, orbital_epoch, target_time
+            )
+            if pos is not None:
+                return pos
+        except Exception as exc:
+            # Fall through to simplified on any sgp4 error so a single
+            # bad TLE doesn't kill the whole pipeline.
+            print(f"[POSITION] sgp4 engine failed, falling back: {exc}")
+
+    return _compute_position_simplified(
+        tle_line1, tle_line2, orbital_epoch, target_time
+    )
+
+
+def _compute_position_simplified(
+    tle_line1: str,
+    tle_line2: str,
+    orbital_epoch: datetime | None,
+    target_time: datetime,
+) -> OrbitalPosition | None:
+    """Display-grade simplified orbital propagator.
+
+    Always available (no external dependency). Lower fidelity than
+    the real SGP4 but safe for any TLE.
+
+    The math is unchanged from WO-082C2/082C3B; this function was
+    extracted so the sgp4 adapter and the simplified fallback can
+    share a single dispatch point.
+    """
     try:
         # Parse TLE elements
         elements = parse_tle_elements(tle_line1, tle_line2)
         if not elements:
             return None
-            
+
         # Get epoch
         epoch = orbital_epoch if orbital_epoch else elements.get("epoch")
         if not epoch:
             return None
-            
+
         # Calculate time since epoch in minutes
         dt = (target_time - epoch).total_seconds()
         if dt < 0:
             dt = 0  # Don't extrapolate backwards
         minutes_since_epoch = dt / 60.0
-        
+
         # Simplified mean anomaly propagation
         mean_motion = elements["mean_motion"]  # revs per day
         mean_anomaly_epoch = elements["mean_anomaly"]  # radians
@@ -88,52 +191,52 @@ def compute_position_from_tle(
         inclination = elements["inclination"]  # degrees
         raan = elements["raan"]  # right ascension of ascending node, degrees
         argument_of_perigee = elements["arg_perigee"]  # degrees
-        
+
         # Mean motion in radians per minute
         mean_motion_rad_per_min = mean_motion * 2 * math.pi / 1440.0
-        
+
         # Propagate mean anomaly
         mean_anomaly = mean_anomaly_epoch + mean_motion_rad_per_min * minutes_since_epoch
         mean_anomaly = mean_anomaly % (2 * math.pi)
-        
+
         # Estimate semi-major axis from mean motion
         # a = (MU / n^2)^(1/3) where n is mean motion in rad/s
         n = mean_motion * 2 * math.pi / 86400.0  # rad/s
         semi_major_axis = (MU / (n ** 2)) ** (1/3)  # km
-        
+
         # Perigee altitude from line 2 (approximate)
         perigee_km = elements.get("perigee_km", 400)
         apogee_km = elements.get("apogee_km", 400)
         altitude_km = (perigee_km + apogee_km) / 2.0
-        
+
         # Calculate position in orbital plane
         # Simplified: assume circular orbit for display purposes
         # True anomaly ≈ mean anomaly for low eccentricity
         true_anomaly = mean_anomaly
-        
+
         # Argument of latitude (sum of argument of perigee and true anomaly)
         arg_lat = math.radians(argument_of_perigee) + true_anomaly
-        
+
         # Convert orbital elements to ECI position
         inc_rad = math.radians(inclination)
         raan_rad = math.radians(raan)
-        
+
         # Position in orbital plane
         r = semi_major_axis * (1 - eccentricity ** 2) / (1 + eccentricity * math.cos(true_anomaly))
-        
+
         x_orb = r * math.cos(arg_lat)
         y_orb = r * math.sin(arg_lat)
-        
+
         # Transform to ECI coordinates
         cos_raan = math.cos(raan_rad)
         sin_raan = math.sin(raan_rad)
         cos_inc = math.cos(inc_rad)
         sin_inc = math.sin(inc_rad)
-        
+
         x_eci = x_orb * cos_raan - y_orb * sin_raan * cos_inc
         y_eci = x_orb * sin_raan + y_orb * cos_raan * cos_inc
         z_eci = y_orb * sin_inc
-        
+
         # Convert ECI to ECEF (accounting for Earth rotation)
         # Sidereal time at epoch
         if epoch:
@@ -143,30 +246,30 @@ def compute_position_from_tle(
             gmst = 4.894961211 * math.pi / 86400.0 * days_since_j2000 + math.pi
         else:
             gmst = 0
-            
+
         # Add rotation for target time
         earth_rotation_angle = EARTH_ROTATION_RATE * dt
         total_rotation = gmst + earth_rotation_angle
-        
+
         # ECEF coordinates
         x_ecef = x_eci * math.cos(total_rotation) + y_eci * math.sin(total_rotation)
         y_ecef = -x_eci * math.sin(total_rotation) + y_eci * math.cos(total_rotation)
         z_ecef = z_eci
-        
+
         # Convert to lat/lon
         lat = math.atan2(z_ecef, math.sqrt(x_ecef**2 + y_ecef**2))
         lon = math.atan2(y_ecef, x_ecef)
-        
+
         # Convert to degrees
         lat_deg = math.degrees(lat)
         lon_deg = math.degrees(lon)
-        
+
         # Ensure longitude is in -180 to 180 range
         while lon_deg > 180:
             lon_deg -= 360
         while lon_deg < -180:
             lon_deg += 360
-            
+
         # Altitude above mean sea level (simplified)
         surface_distance = math.sqrt(x_ecef**2 + y_ecef**2 + z_ecef**2)
         computed_altitude = surface_distance - EARTH_RADIUS_KM
@@ -176,18 +279,18 @@ def compute_position_from_tle(
         # than fail the insert.
         if computed_altitude < 0:
             computed_altitude = 0.0
-        
+
         # Compute velocity (vis-viva equation, simplified)
         # v = sqrt(mu * (2/r - 1/a))
         velocity_kms = math.sqrt(MU * (2.0 / (r/1000.0) - 1.0 / (semi_major_axis/1000.0))) / 1000.0
-        
+
         # Calculate heading (azimuth of motion)
         # Simplified: direction of motion in horizontal plane
         heading_deg = (math.degrees(math.atan2(y_ecef, x_ecef)) + 360) % 360
-        
+
         # Source age
         source_age_seconds = int(dt) if epoch else None
-        
+
         return OrbitalPosition(
             estimated_at=target_time,
             latitude=round(lat_deg, 6),
@@ -196,7 +299,7 @@ def compute_position_from_tle(
             velocity_kms=round(velocity_kms, 3) if velocity_kms else None,
             heading_deg=round(heading_deg, 1),
             source_age_seconds=source_age_seconds,
-            computation_method="simplified-sgp4",
+            computation_method=ENGINE_SIMPLIFIED,
             raw_position_json={
                 "tle_line1_hash": str(hash(tle_line1[:20])),
                 "tle_line2_hash": str(hash(tle_line2[:20])),
@@ -207,10 +310,118 @@ def compute_position_from_tle(
                 "mean_anomaly_rad": round(mean_anomaly, 4),
             }
         )
-        
+
     except Exception as e:
         print(f"[POSITION] Computation error: {e}")
         return None
+
+
+def _compute_position_sgp4(
+    tle_line1: str,
+    tle_line2: str,
+    orbital_epoch: datetime | None,
+    target_time: datetime,
+) -> OrbitalPosition | None:
+    """High-fidelity SGP4 propagation using the optional ``sgp4`` package.
+
+    Returns ``None`` if the package is not importable; the caller is
+    responsible for falling back. Raises on malformed TLEs so the
+    caller can decide to fall back per record.
+
+    Coordinate frame:
+        sgp4 returns position in TEME (True Equator Mean Equinox).
+        We rotate to ECEF using the IAU 1982 GMST formula and then
+        convert to geodetic latitude / longitude / altitude. The
+        Earth-fixed velocity is similarly rotated; the heading is
+        computed as the direction of the horizontal velocity.
+    """
+    if _sgp4_api is None:
+        return None
+
+    sat = _sgp4_api.Satrec.twoline2rv(
+        tle_line1, tle_line2, _sgp4_api.WGS72
+    )
+    jd, fr = _sgp4_api.jday(
+        target_time.year, target_time.month, target_time.day,
+        target_time.hour, target_time.minute,
+        target_time.second + target_time.microsecond / 1e6,
+    )
+    err, r_teme_km, v_teme_kms = sat.sgp4(jd, fr)
+    if err != 0:
+        raise RuntimeError(f"sgp4 returned error code {err}")
+
+    # GMST (Greenwich Mean Sidereal Time) in radians.
+    # Vallado / IAU 1982 formula:
+    #   gmst = 67310.54841 + (876600*3600 + 8640184.812866)*T
+    #          + 0.093104*T^2 - 6.2e-6*T^3   (seconds-of-arc)
+    # then convert to radians.
+    T = ((jd - 2451545.0) + fr) / 36525.0
+    gmst_sec = (
+        67310.54841
+        + (876600.0 * 3600.0 + 8640184.812866) * T
+        + 0.093104 * T * T
+        - 6.2e-6 * T * T * T
+    )
+    gmst_rad = math.radians((gmst_sec / 240.0) % 360.0)  # sec-of-arc -> degrees
+
+    cos_g = math.cos(gmst_rad)
+    sin_g = math.sin(gmst_rad)
+    x_teme, y_teme, z_teme = r_teme_km
+    vx_teme, vy_teme, vz_teme = v_teme_kms
+    # Rotate TEME -> ECEF: subtract Earth rotation around z-axis.
+    x_ecef = x_teme * cos_g + y_teme * sin_g
+    y_ecef = -x_teme * sin_g + y_teme * cos_g
+    z_ecef = z_teme
+    vx_ecef = vx_teme * cos_g + vy_teme * sin_g
+    vy_ecef = -vx_teme * sin_g + vy_teme * cos_g
+    vz_ecef = vz_teme
+
+    r_mag = math.sqrt(x_ecef * x_ecef + y_ecef * y_ecef + z_ecef * z_ecef)
+    lat = math.atan2(z_ecef, math.sqrt(x_ecef * x_ecef + y_ecef * y_ecef))
+    lon = math.atan2(y_ecef, x_ecef)
+    lat_deg = math.degrees(lat)
+    lon_deg = math.degrees(lon)
+    while lon_deg > 180:
+        lon_deg -= 360
+    while lon_deg < -180:
+        lon_deg += 360
+    computed_altitude = r_mag - EARTH_RADIUS_KM
+    if computed_altitude < 0:
+        computed_altitude = 0.0
+
+    # Velocity in km/s is already ECEF after rotation.
+    v_mag = math.sqrt(vx_ecef * vx_ecef + vy_ecef * vy_ecef + vz_ecef * vz_ecef)
+    # Heading: direction of horizontal velocity (atan2 over ground-track).
+    # Use projected horizontal velocity components for a meaningful azimuth.
+    heading_rad = math.atan2(vy_ecef, vx_ecef)
+    heading_deg = (math.degrees(heading_rad) + 360.0) % 360.0
+
+    # Source age: difference between target_time and TLE epoch.
+    source_age_seconds: int | None = None
+    if orbital_epoch is not None:
+        delta = (target_time - orbital_epoch).total_seconds()
+        source_age_seconds = max(0, int(delta))
+
+    return OrbitalPosition(
+        estimated_at=target_time,
+        latitude=round(lat_deg, 6),
+        longitude=round(lon_deg, 6),
+        altitude_km=round(computed_altitude, 2),
+        velocity_kms=round(v_mag, 3) if v_mag else None,
+        heading_deg=round(heading_deg, 1),
+        source_age_seconds=source_age_seconds,
+        computation_method=ENGINE_SGP4,
+        raw_position_json={
+            "tle_line1_hash": str(hash(tle_line1[:20])),
+            "tle_line2_hash": str(hash(tle_line2[:20])),
+            "sgp4_error_code": err,
+            "jd": round(jd + fr, 6),
+            "gmst_rad": round(gmst_rad, 6),
+            "r_teme_km": [round(c, 3) for c in (x_teme, y_teme, z_teme)],
+            "v_teme_kms": [round(c, 6) for c in (vx_teme, vy_teme, vz_teme)],
+            "satnum": int(getattr(sat, "satnum", 0) or 0),
+        },
+    )
 
 
 def parse_tle_elements(tle_line1: str, tle_line2: str) -> dict[str, Any] | None:

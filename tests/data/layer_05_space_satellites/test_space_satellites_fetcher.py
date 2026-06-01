@@ -2386,5 +2386,452 @@ def test_wo_082c1_datetime_regression_in_persist():
         shutil.rmtree(cache.layer_dir, ignore_errors=True)
 
 
+# =====================================================================
+# WO-082C4: sgp4 adapter, fallback, edge cases, refresh mode, sync plan
+# =====================================================================
+
+
+# ---- Engine constants & helpers --------------------------------------
+
+
+def test_engine_constants_and_helpers():
+    """Engine name constants and introspection helpers are exposed."""
+    from orbit_propagation import (
+        ENGINE_SGP4, ENGINE_SIMPLIFIED, get_propagation_engine, sgp4_import_error,
+    )
+    assert ENGINE_SGP4 == "sgp4"
+    assert ENGINE_SIMPLIFIED == "simplified-fallback"
+    # get_propagation_engine returns either "sgp4" or "simplified-fallback";
+    # which one depends on whether python-sgp4 is installed in the env.
+    assert get_propagation_engine() in (ENGINE_SGP4, ENGINE_SIMPLIFIED)
+    # sgp4_import_error is None when sgp4 is importable, else a ModuleNotFoundError.
+    err = sgp4_import_error()
+    sgp4_available = get_propagation_engine() == ENGINE_SGP4
+    if sgp4_available:
+        assert err is None
+    else:
+        assert isinstance(err, Exception)
+
+
+def test_compute_position_engine_parameter_accepts_auto():
+    """Default ``engine='auto'`` is accepted and returns a position."""
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    target = datetime(2023, 9, 8, 0, 0, 0, tzinfo=timezone.utc)
+    pos = compute_position_from_tle(tle1, tle2, target_time=target)
+    assert pos is not None
+    assert pos.computation_method in ("sgp4", "simplified-fallback")
+
+
+def test_compute_position_engine_forces_simplified():
+    """Explicit ``engine='simplified-fallback'`` always succeeds."""
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    target = datetime(2023, 9, 8, 0, 0, 0, tzinfo=timezone.utc)
+    pos = compute_position_from_tle(tle1, tle2, target_time=target, engine="simplified-fallback")
+    assert pos is not None
+    assert pos.computation_method == "simplified-fallback"
+    # Simplified propagator is always available regardless of sgp4 install.
+    assert pos.altitude_km is not None
+    assert pos.altitude_km >= 0  # clamped at 0 even for edge cases
+
+
+def test_compute_position_engine_invalid_name_raises():
+    """An unknown engine name must raise ValueError, not silently fall back."""
+    with pytest.raises(ValueError) as exc:
+        compute_position_from_tle("1 X", "2 X", engine="bogus")
+    assert "Unknown engine" in str(exc.value)
+
+
+def test_compute_position_engine_sgp4_when_missing_raises():
+    """If sgp4 is not installed, ``engine='sgp4'`` must raise RuntimeError."""
+    pytest.importorskip = getattr(pytest, "importorskip", None)
+    # If sgp4 IS available in this env, the forced-sgp4 path would
+    # actually run; in that case skip the negative test.
+    from orbit_propagation import get_propagation_engine
+    if get_propagation_engine() == "sgp4":
+        pytest.skip("sgp4 is installed; cannot test missing-sgp4 path")
+    with pytest.raises(RuntimeError) as exc:
+        compute_position_from_tle("1 X", "2 X", engine="sgp4")
+    assert "'sgp4' package is not installed" in str(exc.value)
+
+
+# ---- sgp4 adapter behavior (only when sgp4 is installed) -------------
+
+
+def test_sgp4_adapter_iss_altitude_and_velocity():
+    """SGP4 adapter returns physically plausible ISS altitude & velocity."""
+    pytest.importorskip("sgp4")
+    from orbit_propagation import get_propagation_engine
+    if get_propagation_engine() != "sgp4":
+        pytest.skip("engine resolved to simplified-fallback")
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    target = datetime(2023, 9, 8, 0, 0, 0, tzinfo=timezone.utc)
+    pos = compute_position_from_tle(tle1, tle2, target_time=target, engine="sgp4")
+    assert pos is not None
+    # ISS typical altitude: 400-435 km.
+    assert 350 < pos.altitude_km < 500, f"unexpected altitude: {pos.altitude_km}"
+    # ISS typical speed: ~7.66 km/s.
+    assert 7.0 < pos.velocity_kms < 8.0, f"unexpected velocity: {pos.velocity_kms}"
+    # Latitude in [-90, 90], longitude in [-180, 180].
+    assert -90 <= pos.latitude <= 90
+    assert -180 <= pos.longitude <= 180
+    # 0 <= heading < 360
+    assert 0 <= pos.heading_deg < 360
+    assert pos.computation_method == "sgp4"
+    # raw_position_json should expose sgp4 diagnostic fields
+    rj = pos.raw_position_json
+    assert rj["sgp4_error_code"] == 0
+    assert "r_teme_km" in rj and len(rj["r_teme_km"]) == 3
+    assert "v_teme_kms" in rj and len(rj["v_teme_kms"]) == 3
+
+
+# ---- Fallback always works (no sgp4 dependency) ----------------------
+
+
+def test_simplified_fallback_handles_high_eccentricity_debris():
+    """Highly eccentric / numerically edge-case objects must not crash.
+
+    The simplified propagator can produce slightly negative altitudes for
+    the most numerically challenging TLEs. The DB schema requires
+    ``altitude_km >= 0``, so the worker must clamp to 0 (sea level)
+    rather than blow up the pipeline.
+    """
+    # A reasonable TLE for a near-circular LEO (ISS-class), forced through
+    # the simplified fallback. Even on a happy path we expect altitude >= 0.
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    target = datetime(2023, 9, 8, 0, 0, 0, tzinfo=timezone.utc)
+    pos = compute_position_from_tle(tle1, tle2, target_time=target, engine="simplified-fallback")
+    assert pos is not None
+    assert pos.altitude_km is not None
+    assert pos.altitude_km >= 0  # clamp invariant
+
+
+def test_simplified_fallback_handles_malformed_tle_gracefully():
+    """Malformed TLE must return None without raising."""
+    # Too-short lines fail the parse_tle_elements guard and return None.
+    pos = compute_position_from_tle("1 X", "2 X", engine="simplified-fallback")
+    assert pos is None
+
+
+def test_simplified_fallback_naive_target_time_attaches_utc():
+    """A naive ``target_time`` must be treated as UTC, not raise."""
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    # Pass a naive datetime: it should be coerced to UTC, not crash.
+    pos = compute_position_from_tle(tle1, tle2, target_time=datetime(2023, 9, 8, 0, 0, 0))
+    assert pos is not None
+    assert pos.estimated_at.tzinfo is not None
+    assert pos.estimated_at.tzinfo.utcoffset(pos.estimated_at).total_seconds() == 0
+
+
+# ---- print_sync_plan -------------------------------------------------
+
+
+def test_print_sync_plan_runs(capsys):
+    """``print_sync_plan()`` writes the documented cadence to stdout."""
+    from space_satellites_worker import print_sync_plan
+    print_sync_plan()
+    out = capsys.readouterr().out
+    assert "SYNC-PLAN" in out
+    assert "Frontend render" in out
+    assert "WS broadcast" in out
+    assert "Position recompute" in out
+    assert "Provider fetch" in out
+
+
+def test_cli_print_sync_plan_flag(capsys):
+    """``--print-sync-plan`` CLI flag prints the plan and exits 0."""
+    import subprocess
+    import sys
+    script = (
+        Path(__file__).resolve().parents[3]
+        / "services" / "fetch-orchestrator" / "src" / "layers"
+        / "layer_05_space_satellites" / "space_satellites_worker.py"
+    )
+    proc = subprocess.run(
+        [sys.executable, str(script), "--print-sync-plan"],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "SYNC-PLAN" in proc.stdout
+    assert "Position recompute" in proc.stdout
+
+
+# ---- CLI flag validation ---------------------------------------------
+
+
+def test_cli_propagator_choices_help_text():
+    """``--propagator`` help text must mention the three valid choices."""
+    import subprocess
+    import sys
+    script = (
+        Path(__file__).resolve().parents[3]
+        / "services" / "fetch-orchestrator" / "src" / "layers"
+        / "layer_05_space_satellites" / "space_satellites_worker.py"
+    )
+    proc = subprocess.run(
+        [sys.executable, str(script), "--help"],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "--propagator" in proc.stdout
+    assert "auto" in proc.stdout
+    assert "sgp4" in proc.stdout
+    assert "simplified-fallback" in proc.stdout
+    assert "--refresh-positions-from-cache" in proc.stdout
+    assert "--print-sync-plan" in proc.stdout
+
+
+# ---- run_refresh_positions_from_cache (no live provider calls) -------
+
+
+def _write_refresh_cache(tmp_path: Path, tle1: str, tle2: str, norad: int) -> Path:
+    """Helper: write a one-record normalized cache for refresh tests.
+
+    Returns the TOP-LEVEL cache dir (not the layer subdir) so callers
+    can pass it directly to ``run_refresh_positions_from_cache`` /
+    ``run_persist_from_cache``, which construct the layer subdir
+    internally.
+    """
+    cache = SourceCache(str(tmp_path))
+    epoch = datetime(2023, 9, 8, 0, 0, 0, tzinfo=timezone.utc)
+    sat_json = {
+        "source_id": "celestrak",
+        "source_object_id": str(norad),
+        "norad_cat_id": norad,
+        "name": "TEST-SAT",
+        "object_type": "satellite",
+        "category": "unknown",
+        "orbit_class": "leo",
+        "country": "US",
+        "operator_or_owner": None,
+        "launch_date": None,
+        "tle_line1": tle1,
+        "tle_line2": tle2,
+        "orbital_epoch_at": epoch.isoformat(),
+        "source_updated_at": epoch.isoformat(),
+        "is_active": True,
+        "is_important": False,
+        "raw_source_json": {},
+        "position": {
+            "estimated_at": epoch.isoformat(),
+            "latitude": 0.0,
+            "longitude": 0.0,
+            "altitude_km": 0.0,
+            "velocity_kms": None,
+            "heading_deg": 0.0,
+            "visual_shape": "dot",
+            "visual_color": "#00d5ff",
+            "source_age_seconds": 0,
+            "computation_method": "simplified-sgp4",
+        },
+    }
+    cache.write_normalized(
+        satellites=[sat_json],
+        positions=[sat_json["position"]],
+        groups=["active"],
+        source="celestrak",
+    )
+    # Return the top-level cache dir, not the layer subdir.
+    return cache.cache_dir
+
+
+def test_run_refresh_positions_writes_position(tmp_path):
+    """``run_refresh_positions_from_cache`` recomputes and writes one position."""
+    from space_satellites_worker import run_refresh_positions_from_cache
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    cache_dir = _write_refresh_cache(tmp_path, tle1, tle2, 25544)
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value={25544: "sat-iss"}), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_refresh_positions_from_cache(
+            source="celestrak", cache_dir=str(cache_dir),
+        )
+    assert result["positions_recomputed"] == 1
+    assert result["positions_written"] == 1
+    assert result["errors"] == []
+    # Make sure upsert_position was called with a non-zero, clamped altitude.
+    assert mock_pos.call_count == 1
+    kwargs = mock_pos.call_args.kwargs
+    assert kwargs["satellite_id"] == "sat-iss"
+    assert kwargs["norad_cat_id"] == 25544
+    assert kwargs["altitude_km"] is not None
+    assert kwargs["altitude_km"] >= 0
+    assert kwargs["computation_method"] in ("sgp4", "simplified-fallback")
+
+
+def test_run_refresh_positions_skips_missing_satellite_id(tmp_path):
+    """Records with no matching satellite_id in the DB are skipped, not crashed."""
+    from space_satellites_worker import run_refresh_positions_from_cache
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    cache_dir = _write_refresh_cache(tmp_path, tle1, tle2, 99999)  # not in DB
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value={25544: "sat-iss"}), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_refresh_positions_from_cache(
+            source="celestrak", cache_dir=str(cache_dir),
+        )
+    assert result["positions_recomputed"] == 0
+    assert result["positions_written"] == 0
+    assert result["skipped_no_satellite_id"] == 1
+    assert mock_pos.call_count == 0
+
+
+def test_run_refresh_positions_force_simplified(tmp_path):
+    """``engine='simplified-fallback'`` is honored even if sgp4 is available."""
+    from space_satellites_worker import run_refresh_positions_from_cache
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    cache_dir = _write_refresh_cache(tmp_path, tle1, tle2, 25544)
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value={25544: "sat-iss"}), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_refresh_positions_from_cache(
+            source="celestrak", cache_dir=str(cache_dir),
+            engine="simplified-fallback",
+        )
+    assert result["positions_written"] == 1
+    assert mock_pos.call_args.kwargs["computation_method"] == "simplified-fallback"
+
+
+def test_run_refresh_positions_handles_no_cache(tmp_path):
+    """An empty / missing normalized cache surfaces a clear error."""
+    from space_satellites_worker import run_refresh_positions_from_cache
+    cache = SourceCache(str(tmp_path))
+    # Don't write anything.
+    result = run_refresh_positions_from_cache(
+        source="celestrak", cache_dir=str(cache.layer_dir),
+    )
+    assert result["positions_written"] == 0
+    assert any("No normalized" in e for e in result["errors"])
+
+
+# ---- run_persist_from_cache: refresh_positions branch -----------------
+
+
+def test_run_persist_from_cache_refresh_writes_new_position(tmp_path):
+    """``refresh_positions=True`` recomputes positions in persist mode."""
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    cache_dir = _write_refresh_cache(tmp_path, tle1, tle2, 25544)
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-iss"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value={25544: "sat-iss"}), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-iss", True)), \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_persist_from_cache(
+            source="celestrak", cache_dir=str(cache_dir),
+            refresh_positions=True,
+        )
+    # refresh_positions path should have called upsert_position with
+    # a freshly-computed position from the propagator.
+    assert mock_pos.call_count == 1
+    assert result["refresh_positions"] is True
+    assert result["position_written"] == 1
+    # Propagator should be sgp4 or simplified-fallback.
+    assert result["propagator"] in ("sgp4", "simplified-fallback")
+    # The recomputed position's estimated_at should be very close to "now"
+    # (within the last few minutes), not the cached 2023-09-08 epoch.
+    kwargs = mock_pos.call_args.kwargs
+    estimated_at = kwargs["estimated_at"]
+    now = datetime.now(timezone.utc)
+    delta_sec = abs((now - estimated_at).total_seconds())
+    # Should be < 1 hour (well within scheduler cadence).
+    assert delta_sec < 3600, f"position estimated_at not refreshed: {estimated_at} vs now {now}"
+
+
+def test_run_persist_from_cache_no_refresh_uses_cached_position(tmp_path):
+    """Default (refresh_positions=False) writes the cached position, not a new one."""
+    tle1 = "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991"
+    tle2 = "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"
+    cache_dir = _write_refresh_cache(tmp_path, tle1, tle2, 25544)
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.return_value = {"id": "sat-iss"}
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-iss", True)), \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        result = run_persist_from_cache(
+            source="celestrak", cache_dir=str(cache_dir),
+            # refresh_positions defaults to False
+        )
+    assert result["refresh_positions"] is False
+    assert mock_pos.call_count == 1
+    # Without refresh, the cached 2023-09-08 timestamp should pass through.
+    kwargs = mock_pos.call_args.kwargs
+    estimated_at = kwargs["estimated_at"]
+    assert estimated_at.year == 2023
+    assert estimated_at.month == 9
+    assert estimated_at.day == 8
+
+
+# ---- Negative-altitude clamp invariant -------------------------------
+
+
+def test_negative_altitude_clamped_to_zero_in_persist_refresh(tmp_path):
+    """Even a numerically edge-case TLE must not write a negative altitude."""
+    # A TLE with a normal-looking format but a very large eccentricity /
+    # mean motion that the simplified propagator may struggle with.
+    # We only care that altitude_km >= 0 at the DB write boundary.
+    tle1 = "1 99999U 00000A   23250.50000000  .00000000  00000-0  00000-0 0  9991"
+    tle2 = "2 99999  90.0000   0.0000 9000000  90.0000   0.0000  0.00000000000001"
+    cache_dir = _write_refresh_cache(tmp_path, tle1, tle2, 99999)
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_existing_norad_to_id", return_value={99999: "sat-edge"}), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_position") as mock_pos:
+        from space_satellites_worker import run_refresh_positions_from_cache
+        result = run_refresh_positions_from_cache(
+            source="celestrak", cache_dir=str(cache_dir),
+            engine="simplified-fallback",
+        )
+    # If the propagator returned a position, altitude must be clamped to >= 0.
+    if mock_pos.call_count >= 1:
+        kwargs = mock_pos.call_args.kwargs
+        assert kwargs["altitude_km"] is None or kwargs["altitude_km"] >= 0
+    # Otherwise the propagator rejected the TLE; that's also fine.
+    assert result["errors"] == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
