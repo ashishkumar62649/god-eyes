@@ -43,16 +43,25 @@ DEFAULT_USER_AGENT = "GodEyes/1.0 (space-satellite-fetcher; +https://github.com/
 
 
 # Supported group identifiers that map to Space-Track class predicates.
-# 'all' resolves to the union of payload + debris + rocket-body classes.
+# 'all' resolves to the full GP catalog (no predicate filter).
+# Other groups are filters on the ``gp`` class using the field/value
+# syntax understood by https://www.space-track.org/basicspacedata/query/class/gp/.
+# The mapping values are appended after ``/class/gp/`` in the URL.
+# An empty string means "no filter" -> the full public catalog.
 SPACE_TRACK_GROUPS: dict[str, str] = {
-    "all": "all",
-    "payload": "satcat/OBJECT_TYPE/PAYLOAD",
-    "debris": "satcat/OBJECT_TYPE/DEBRIS",
-    "rocket-body": "satcat/OBJECT_TYPE/ROCKET BODY",
-    "rocket_body": "satcat/OBJECT_TYPE/ROCKET BODY",
-    "inactive": "satcat/DECAYED/null",
-    "active": "satcat/DECAY_DATE/null",
+    "all": "",
+    "payload": "OBJECT_TYPE/PAYLOAD",
+    "debris": "OBJECT_TYPE/DEBRIS",
+    "rocket-body": "OBJECT_TYPE/ROCKET BODY",
+    "rocket_body": "OBJECT_TYPE/ROCKET BODY",
+    "inactive": "DECAY_DATE/>0",
+    "active": "DECAY_DATE/null",
 }
+
+
+def supported_space_track_groups() -> list[str]:
+    """Return the supported Space-Track group keys, sorted for stable output."""
+    return sorted(SPACE_TRACK_GROUPS.keys())
 
 
 def has_space_track_credentials() -> bool:
@@ -208,20 +217,30 @@ class SpaceTrackClient:
     def _build_query_url(self, group: str) -> str:
         """Build a Space-Track query URL for a group identifier.
 
-        Group is one of ``SPACE_TRACK_GROUPS`` keys (or ``all``).
-        The query uses the ``satcat`` table which contains the full
-        public catalog and is the most gap-fill friendly dataset.
-        """
-        predicate = SPACE_TRACK_GROUPS.get(group.lower())
-        if predicate is None:
-            raise ValueError(f"Unknown Space-Track group: {group!r}")
+        Group is one of ``SPACE_TRACK_GROUPS`` keys (case-insensitive).
+        The query uses the ``gp`` class which is the full public
+        catalog including TLE lines, epoch, and object metadata.
+        For ``all`` no filter is appended so the full catalog is
+        returned; for other groups, the matching field/value filter
+        is appended after ``/class/gp/``.
 
-        if predicate == "all":
-            query = "satcat/OBJECT_TYPE/>=/PAYLOAD"
-        else:
-            query = predicate
-        # /class/gp format
-        return f"{SPACE_TRACK_QUERY_BASE}/class/gp/{query}/format/json"
+        Example URLs:
+            all       -> /basicspacedata/query/class/gp/format/json
+            payload   -> /basicspacedata/query/class/gp/OBJECT_TYPE/PAYLOAD/format/json
+            debris    -> /basicspacedata/query/class/gp/OBJECT_TYPE/DEBRIS/format/json
+            active    -> /basicspacedata/query/class/gp/DECAY_DATE/null/format/json
+        """
+        key = (group or "").strip().lower()
+        if key not in SPACE_TRACK_GROUPS:
+            supported = ", ".join(supported_space_track_groups())
+            raise ValueError(
+                f"Unknown Space-Track group: {group!r}. "
+                f"Supported groups: {supported}"
+            )
+        predicate = SPACE_TRACK_GROUPS[key]
+        if predicate:
+            return f"{SPACE_TRACK_QUERY_BASE}/class/gp/{predicate}/format/json"
+        return f"{SPACE_TRACK_QUERY_BASE}/class/gp/format/json"
 
     def fetch_full_catalog(
         self,

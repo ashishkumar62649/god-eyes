@@ -1,3 +1,72 @@
+### 2026-06-01T15:10:00Z MiniMax — WO-082C3A Fix Space-Track Full Catalog Query for group all
+
+- Work order: WO-082C3A
+- Agent: MiniMax
+- Lane: Fetching / Space-Track Live Fix
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c3-space-track-gapfill
+- Start time UTC: 2026-06-01T14:57:31Z
+- End time UTC: 2026-06-01T15:10:02Z
+- Commit hash: (pending — see final commit log)
+- Push status: local only (NOT pushed — per WO policy)
+- Root cause: WO-082C3 `_build_query_url('all')` produced the URL `/basicspacedata/query/class/gp/satcat/OBJECT_TYPE/>=/PAYLOAD/format/json`. Space-Track rejected the predicate path `satcat/OBJECT_TYPE/>=/PAYLOAD` with HTTP 400 because it conflates the `gp` class with the `satcat` table filter and uses an `OBJECT_TYPE/>=/PAYLOAD` operator that is not valid for the `gp` class. The "all" group also wrongly implied a filter when it should mean "no filter, full GP catalog".
+- Fix summary: Replaced the broken `SPACE_TRACK_GROUPS` mapping with one that uses the `gp` class field/value syntax and an empty-string value for "all" (no-filter, full catalog). The new `_build_query_url` no longer appends any predicate for "all" and uses `gp/OBJECT_TYPE/PAYLOAD`-style predicates for the supported filtered groups. Unknown group names now raise a `ValueError` whose message lists all supported groups; the worker's `except Exception` block records the failure safely in the manifest without leaking secret values. Source alias normalization (`space-track` / `space_track` -> `space_track`) is preserved.
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_track_client.py
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Tests added/updated: 13 new tests
+  - test_build_query_url_all_no_invalid_path_segment: --group all -> /class/gp/format/json with no group/all or satcat/OBJECT_TYPE segment
+  - test_build_query_url_payload_filter / debris / rocket_body / active / inactive
+  - test_build_query_url_case_insensitive
+  - test_build_query_url_rejects_unknown_group_with_listed_supported
+  - test_build_query_url_does_not_call_provider (no network on URL build)
+  - test_supported_space_track_groups_includes_all
+  - test_space_track_unsupported_group_fails_safely (manifest written, no secret leakage)
+  - test_space_track_full_catalog_url_has_class_gp_no_group (regression: known-bad patterns absent)
+  - test_wo_082c3a_regression_previous_tests_still_pass
+- Commands run:
+  - python -m pytest tests/data/layer_05_space_satellites -q (95/95 PASS; +13 new vs WO-082C3's 82)
+  - python -m pytest tests/data -q (516/516 PASS; 1 pre-existing layer_01 guard excluded)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS)
+  - pnpm --filter api test (297/297 PASS)
+  - pnpm --filter web build (PASS, 236.72 kB main bundle)
+  - pnpm --filter @god-eyes/contracts build (pre-existing tsc issues per AGENTS.md)
+  - pnpm --filter api build (pre-existing tsc issues per AGENTS.md)
+  - git diff --check (CRLF warning only, no real whitespace issues)
+- Validation results: All layer 05 tests pass (95/95), all data tests pass (516/516), compileall clean, API tests pass (297/297), web build clean.
+- Live Space-Track download-only result (--source space-track --group all --download-only):
+  - URL hit: https://www.space-track.org/basicspacedata/query/class/gp/format/json
+  - HTTP status: 200 OK
+  - raw fetched count: 67,772 GP records (the full public catalog)
+  - raw cache file: E:\god-eyes-data\space\layer_05_space_satellites\raw\space_track\all\latest.json (82,377,941 bytes)
+  - manifest: source=space_track, groups_succeeded=['all'], errors=[]
+  - first record: NORAD_CAT_ID=4 OBJECT_NAME='EXPLORER 1' OBJECT_TYPE='PAYLOAD' (with TLE lines)
+  - credentials loaded from .env into process env, then cleared after run; values never printed
+- Normalize-only result (--source space-track --group all --normalize-only --max-objects 1000):
+  - 67,772 raw records normalized
+  - Limited to first 1,000 records for the persist step
+  - satellites_written=1000, positions_written=0 (pre-existing TLE datetime offset issue in compute_position_from_tle; affects all TLE pipelines, not introduced by WO-082C3A)
+- Persist-from-cache --missing-only result:
+  - 1,000 normalized Space-Track records read
+  - 15,505 existing NORAD IDs in DB (all from CelesTrak)
+  - 2 Space-Track NORADs already present in DB -> skipped (NORAD 25544, 33591)
+  - 998 new NORADs -> inserted as space_track rows
+  - DB transition: catalog 15,505 -> 16,503 (+998)
+- DB counts after: celestrak=15,505, space_track=998, total=16,503. Positions=15,505 (unchanged; positions not written for new rows due to the pre-existing TLE datetime offset issue).
+- Duplicate NORAD check: SELECT norad_cat_id, COUNT(*) ... HAVING COUNT(*) > 1 returned 0 rows. --missing-only correctly skipped duplicates.
+- Secrets touched: YES (env vars read from .env into process env, never printed, cleared after run)
+- Secret values printed/logged: NO (env var names only, never values)
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space)
+- External live network used in tests: NO (all tests mocked; live test was a single manual download-only call per WO)
+- Known issues:
+  - Pre-existing TLE datetime offset issue in `compute_position_from_tle` causes 0 positions to be written for newly-inserted space_track rows. This is independent of WO-082C3A and affects all TLE-based pipelines. Recommend a follow-up WO to fix the offset-naive/offset-aware mismatch (likely needs to attach UTC tzinfo when parsing TLE EPOCH).
+  - Live Space-Track download succeeded in one call; no follow-up re-download was needed (per WO).
+  - Space-Track supports a much broader filter surface (RCS, period, epoch ranges, country, etc.); the current `SPACE_TRACK_GROUPS` covers only the seven high-level groups. Future WOs can extend the dict if needed.
+- Next recommended task: Kiro review WO-082C3A, then push branch to origin. Suggested follow-up WOs: (1) fix the TLE datetime offset issue in `compute_position_from_tle` so positions get written for space_track rows; (2) extend SPACE_TRACK_GROUPS with finer filters (e.g. epoch-recent, country, RCS ranges) once the position compute path is healthy; (3) if desired, the GP API supports a `metadata` or `predicates` discovery endpoint that could be used to validate groups dynamically.
+
 ### 2026-06-01T20:15:00Z MiniMax — WO-082C3 Space-Track Authenticated Full Catalog Gap-Fill Pipeline
 
 - Work order: WO-082C3

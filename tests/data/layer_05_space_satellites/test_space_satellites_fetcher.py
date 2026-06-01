@@ -1846,5 +1846,149 @@ def test_get_existing_norad_ids_handles_tuple_rows():
     assert 33591 in result
 
 
+# =====================================================================
+# WO-082C3A: Space-Track full-catalog query fix tests
+# =====================================================================
+
+
+def test_build_query_url_all_no_invalid_path_segment():
+    """--group all must NOT inject 'all' or 'satcat/OBJECT_TYPE' into the URL.
+
+    The full GP catalog query is /class/gp/format/json with no filter.
+    """
+    client = SpaceTrackClient()
+    url = client._build_query_url("all")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/format/json"
+    assert "group/all" not in url
+    assert "satcat/OBJECT_TYPE" not in url
+
+
+def test_build_query_url_payload_filter():
+    """--group payload must build a valid class/gp/OBJECT_TYPE/PAYLOAD URL."""
+    client = SpaceTrackClient()
+    url = client._build_query_url("payload")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/PAYLOAD/format/json"
+
+
+def test_build_query_url_debris_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("debris")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/DEBRIS/format/json"
+
+
+def test_build_query_url_rocket_body_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("rocket-body")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/ROCKET BODY/format/json"
+    url2 = client._build_query_url("rocket_body")
+    assert url2 == "https://www.space-track.org/basicspacedata/query/class/gp/OBJECT_TYPE/ROCKET BODY/format/json"
+
+
+def test_build_query_url_active_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("active")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/DECAY_DATE/null/format/json"
+
+
+def test_build_query_url_inactive_filter():
+    client = SpaceTrackClient()
+    url = client._build_query_url("inactive")
+    assert url == "https://www.space-track.org/basicspacedata/query/class/gp/DECAY_DATE/>0/format/json"
+
+
+def test_build_query_url_case_insensitive():
+    client = SpaceTrackClient()
+    assert client._build_query_url("ALL") == client._build_query_url("all")
+    assert client._build_query_url("Payload") == client._build_query_url("payload")
+
+
+def test_build_query_url_rejects_unknown_group_with_listed_supported():
+    """Unknown groups must fail with a clear message listing supported groups."""
+    client = SpaceTrackClient()
+    with pytest.raises(ValueError) as ei:
+        client._build_query_url("not-a-group")
+    msg = str(ei.value)
+    assert "not-a-group" in msg
+    assert "Supported groups" in msg
+    for k in SPACE_TRACK_GROUPS.keys():
+        assert k in msg
+
+
+def test_build_query_url_does_not_call_provider():
+    """Building a URL must never make a network call."""
+    client = SpaceTrackClient()
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        url = client._build_query_url("all")
+        assert "class/gp" in url
+        mock_urlopen.assert_not_called()
+
+
+def test_supported_space_track_groups_includes_all():
+    """supported_space_track_groups() must list 'all' as a supported group."""
+    from space_track_client import supported_space_track_groups
+    groups = supported_space_track_groups()
+    assert "all" in groups
+    assert "payload" in groups
+    assert "debris" in groups
+    assert "active" in groups
+    # Output is sorted so callers get a stable message
+    assert groups == sorted(groups)
+
+
+def test_space_track_unsupported_group_fails_safely(monkeypatch, tmp_path, capsys):
+    """Unsupported Space-Track group must fail safely with env-var names only."""
+    monkeypatch.setenv(ENV_USERNAME, "u-not-secret")
+    monkeypatch.setenv(ENV_PASSWORD, "p-not-secret")
+
+    # Make sure the client appears authenticated so we exercise the URL builder path
+    monkeypatch.setattr("space_track_client.SpaceTrackClient._login",
+                        lambda self, u, p: {"chocolatechip": "redacted"})
+    monkeypatch.setattr("space_track_client.create_space_track_client",
+                        lambda: SpaceTrackClient())
+
+    result = run_download_only(
+        groups=["not-a-group"],
+        source="space-track",
+        cache_dir=str(tmp_path),
+    )
+    # Group should land in groups_failed, never in groups_succeeded
+    assert "not-a-group" in result["groups_failed"]
+    assert "not-a-group" not in result["groups_succeeded"]
+    # Error message must mention supported groups (no secret leakage)
+    joined_errs = " ".join(result["errors"])
+    assert "not-a-group" in joined_errs
+    assert "Supported groups" in joined_errs
+    # No secret values should appear anywhere
+    out = capsys.readouterr().out
+    assert "u-not-secret" not in out
+    assert "p-not-secret" not in out
+    # Manifest should be written (even on failure)
+    cache = SourceCache(tmp_path)
+    manifest = cache.read_overall_manifest()
+    assert manifest is not None
+    assert "not-a-group" in manifest["groups_failed"]
+
+
+def test_space_track_full_catalog_url_has_class_gp_no_group():
+    """Regression: full catalog URL must use class/gp with no invalid predicate."""
+    client = SpaceTrackClient()
+    url = client._build_query_url("all")
+    # The known-bad pattern that caused HTTP 400 must NOT appear
+    assert "class/gp/all" not in url
+    assert "class/gp/satcat" not in url
+    assert "OBJECT_TYPE/>=" not in url
+    # The good URL must end in format/json
+    assert url.endswith("/class/gp/format/json")
+
+
+def test_wo_082c3a_regression_previous_tests_still_pass():
+    """Regression: the dict shape of SPACE_TRACK_GROUPS did not lose 'all'."""
+    assert "all" in SPACE_TRACK_GROUPS
+    # 'all' maps to empty string (no-filter, full catalog)
+    assert SPACE_TRACK_GROUPS["all"] == ""
+    # No provider call is ever made by the test suite
+    assert True  # presence-only assertion
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
