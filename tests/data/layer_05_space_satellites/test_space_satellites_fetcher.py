@@ -698,5 +698,521 @@ def test_db_writer_does_not_shadow_datetime_module():
         )
 
 
+# =====================================================================
+# STAGED PIPELINE TESTS — WO-082C2
+# =====================================================================
+
+from source_cache import SourceCache, tle_record_to_dict, utcnow_iso
+from space_satellites_worker import (
+    run_worker,
+    run_download_only,
+    run_normalize_only,
+    run_persist_from_cache,
+)
+
+
+# --- Sample TLE fixtures -------------------------------------------------
+
+SAMPLE_TLE_TEXT = """ISS (ZARYA)
+1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991
+2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245
+NOAA 19
+1 33591U 09005A   23250.50000000  .00000123  00000-0  76543-4 0  9990
+2 33591  98.7381 208.9168 0012345  45.1234 315.6789 14.12345678901234"""
+
+
+def _make_mock_fetch(group: str):
+    """Return a mock for celestrak_client.fetch_tle_group."""
+    def mock_fetch(g: str):
+        if g == group:
+            return [
+                TLERecord(
+                    norad_cat_id=25544, name="ISS (ZARYA)",
+                    tle_line1="1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+                    tle_line2="2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+                    source_updated_at=datetime.now(timezone.utc),
+                ),
+                TLERecord(
+                    norad_cat_id=33591, name="NOAA 19",
+                    tle_line1="1 33591U 09005A   23250.50000000  .00000123  00000-0  76543-4 0  9990",
+                    tle_line2="2 33591  98.7381 208.9168 0012345  45.1234 315.6789 14.12345678901234",
+                    source_updated_at=datetime.now(timezone.utc),
+                ),
+            ]
+        return None
+    return mock_fetch
+
+
+def _make_mock_fetch_fail(group: str):
+    """Return a mock that always returns None (simulates failure)."""
+    def mock_fetch(g: str):
+        return None
+    return mock_fetch
+
+
+def _make_mock_fetch_partial(fail_groups: list[str]):
+    """Return a mock that fails for specified groups."""
+    def mock_fetch(g: str):
+        if g in fail_groups:
+            return None
+        return _make_mock_fetch(g)(g)
+    return mock_fetch
+
+
+# --- source_cache tests ---------------------------------------------------
+
+
+def test_source_cache_write_and_read_raw(tmp_path):
+    """Write raw group data, then read it back."""
+    cache = SourceCache(tmp_path)
+    result = cache.write_raw_group(
+        source="celestrak",
+        group="stations",
+        raw_text=SAMPLE_TLE_TEXT,
+        records=[{"norad_cat_id": 25544, "name": "ISS", "tle_line1": "1 ...", "tle_line2": "2 ..."}],
+        fetched_at="2026-06-01T12:00:00Z",
+    )
+    assert result.ok
+    assert result.record_count == 1
+
+    raw = cache.read_raw_group("celestrak", "stations")
+    assert raw is not None
+    assert raw["record_count"] == 1
+    assert raw["records"][0]["norad_cat_id"] == 25544
+
+
+def test_source_cache_read_nonexistent(tmp_path):
+    """Reading a non-existent group returns None."""
+    cache = SourceCache(tmp_path)
+    assert cache.read_raw_group("celestrak", "nope") is None
+
+
+def test_source_cache_list_cached_groups(tmp_path):
+    """list_cached_groups returns only groups with raw files."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group("celestrak", "stations", "", [])
+    cache.write_raw_group("celestrak", "weather", "", [])
+    groups = cache.list_cached_groups("celestrak")
+    assert groups == ["stations", "weather"]
+
+
+def test_source_cache_write_normalized(tmp_path):
+    """Write normalized satellite + position JSONL files."""
+    cache = SourceCache(tmp_path)
+    sats = [{"name": "ISS", "norad_cat_id": 25544}]
+    positions = [{"norad_cat_id": 25544, "lat": 42.0}]
+    manifest = cache.write_normalized(sats, positions, ["stations"], "celestrak")
+    assert manifest["satellite_count"] == 1
+    assert manifest["position_count"] == 1
+
+    read_sats = cache.read_normalized_satellites()
+    assert len(read_sats) == 1
+    assert read_sats[0]["name"] == "ISS"
+
+    read_pos = cache.read_normalized_positions()
+    assert len(read_pos) == 1
+
+
+def test_source_cache_overall_manifest(tmp_path):
+    """Overall manifest writes and reads correctly."""
+    cache = SourceCache(tmp_path)
+    path = cache.write_overall_manifest(
+        source="celestrak",
+        groups_requested=["stations", "weather"],
+        groups_succeeded=["stations"],
+        groups_failed=["weather"],
+        raw_files=["f1.json"],
+        normalized_files=[],
+        fetched_at="2026-06-01T12:00:00Z",
+        normalized_at=None,
+        satellite_count=10,
+        position_count=8,
+        errors=["weather failed"],
+    )
+    assert path.exists()
+    m = cache.read_overall_manifest()
+    assert m["groups_failed"] == ["weather"]
+    assert m["record_counts"]["satellites"] == 10
+
+
+def test_tle_record_to_dict_dataclass():
+    """tle_record_to_dict converts a TLERecord to dict with ISO datetimes."""
+    rec = TLERecord(
+        norad_cat_id=25544, name="ISS",
+        tle_line1="1 25544U ...", tle_line2="2 25544 ...",
+        source_updated_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+    )
+    d = tle_record_to_dict(rec)
+    assert d["norad_cat_id"] == 25544
+    assert isinstance(d["source_updated_at"], str)
+
+
+def test_tle_record_to_dict_passthrough_dict():
+    """tle_record_to_dict returns dict unchanged."""
+    d = {"a": 1}
+    assert tle_record_to_dict(d) is d
+
+
+# --- download-only tests -------------------------------------------------
+
+
+def test_download_only_writes_raw_cache(tmp_path):
+    """download-only writes raw files and manifest for each group."""
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch:
+        mock_fetch.side_effect = lambda g: [
+            TLERecord(norad_cat_id=25544, name="ISS", tle_line1="1 ...", tle_line2="2 ..."),
+        ] if g == "stations" else None
+
+        result = run_download_only(
+            groups=["stations", "weather"],
+            source="celestrak",
+            cache_dir=str(tmp_path),
+        )
+
+    assert result["groups_succeeded"] == ["stations"]
+    assert "weather" in result["groups_failed"]
+    assert result["record_count"] == 1
+    assert len(result["raw_files_written"]) == 1
+
+    # Verify raw files exist
+    cache = SourceCache(tmp_path)
+    raw = cache.read_raw_group("celestrak", "stations")
+    assert raw is not None
+    assert raw["record_count"] == 1
+
+    # weather should have no raw file
+    assert cache.read_raw_group("celestrak", "weather") is None
+
+    # Overall manifest exists
+    manifest = cache.read_overall_manifest()
+    assert manifest is not None
+    assert manifest["groups_succeeded"] == ["stations"]
+    assert "weather" in manifest["groups_failed"]
+
+
+def test_download_only_failed_group_recorded(tmp_path):
+    """Failed group is recorded in manifest without deleting successful output."""
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch:
+        mock_fetch.side_effect = lambda g: None  # all groups fail
+
+        result = run_download_only(
+            groups=["stations", "weather"],
+            source="celestrak",
+            cache_dir=str(tmp_path),
+        )
+
+    assert len(result["groups_failed"]) == 2
+    assert result["groups_succeeded"] == []
+    manifest = SourceCache(tmp_path).read_overall_manifest()
+    assert len(manifest["errors"]) == 2
+
+
+def test_download_only_max_objects(tmp_path):
+    """max_objects limits records saved to cache."""
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch:
+        mock_fetch.side_effect = lambda g: [
+            TLERecord(norad_cat_id=i, name=f"SAT {i}", tle_line1=f"1 {i:05d}U ...", tle_line2=f"2 {i:05d} ...")
+            for i in range(1, 101)
+        ]
+
+        result = run_download_only(
+            groups=["stations"],
+            source="celestrak",
+            cache_dir=str(tmp_path),
+            max_objects=5,
+        )
+
+    assert result["record_count"] == 5
+
+
+# --- normalize-only tests ------------------------------------------------
+
+
+def test_normalize_only_reads_raw_cache(tmp_path):
+    """normalize-only reads raw cache and writes normalized JSONL files."""
+    # First, populate raw cache
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group(
+        source="celestrak",
+        group="stations",
+        raw_text=SAMPLE_TLE_TEXT,
+        records=[
+            {"norad_cat_id": 25544, "name": "ISS (ZARYA)",
+             "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+             "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"},
+            {"norad_cat_id": 33591, "name": "NOAA 19",
+             "tle_line1": "1 33591U 09005A   23250.50000000  .00000123  00000-0  76543-4 0  9990",
+             "tle_line2": "2 33591  98.7381 208.9168 0012345  45.1234 315.6789 14.12345678901234"},
+        ],
+    )
+
+    result = run_normalize_only(
+        groups=["stations"],
+        source="celestrak",
+        cache_dir=str(tmp_path),
+    )
+
+    assert result["tle_normalized"] == 2
+    assert result["positions_computed"] >= 1
+    assert result["satellites_written"] == 2
+    assert result["positions_written"] >= 1
+
+    # Verify normalized files exist
+    normalized = cache.read_normalized()
+    assert normalized is not None
+    assert normalized["satellite_count"] == 2
+
+    sats = cache.read_normalized_satellites()
+    assert len(sats) == 2
+    names = [s["name"] for s in sats]
+    assert "ISS (ZARYA)" in names
+    assert "NOAA 19" in names
+
+
+def test_normalize_only_no_network_call(tmp_path):
+    """normalize-only must NOT call the provider."""
+    cache = SourceCache(tmp_path)
+    cache.write_raw_group("celestrak", "stations", "", [
+        {"norad_cat_id": 25544, "name": "ISS", "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+         "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245"},
+    ])
+
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch:
+        run_normalize_only(groups=["stations"], source="celestrak", cache_dir=str(tmp_path))
+        mock_fetch.assert_not_called()
+
+
+def test_normalize_only_max_objects(tmp_path):
+    """max_objects limits normalized records, not raw cache."""
+    cache = SourceCache(tmp_path)
+    records = [
+        {"norad_cat_id": i, "name": f"SAT {i}", "tle_line1": f"1 {i:05d}U ...", "tle_line2": f"2 {i:05d} ..."}
+        for i in range(1, 51)
+    ]
+    cache.write_raw_group("celestrak", "stations", "", records)
+
+    result = run_normalize_only(
+        groups=["stations"],
+        source="celestrak",
+        cache_dir=str(tmp_path),
+        max_objects=3,
+    )
+
+    assert result["tle_normalized"] == 3
+    # Raw cache should still have 50 records
+    raw = cache.read_raw_group("celestrak", "stations")
+    assert raw["record_count"] == 50
+
+
+# --- persist-from-cache tests --------------------------------------------
+
+
+def test_persist_from_cache_writes_db(tmp_path):
+    """persist-from-cache reads normalized cache and upserts to DB."""
+    # Populate normalized cache
+    cache = SourceCache(tmp_path)
+    sat_json = {
+        "layer_id": "layer_05_space_satellites",
+        "source_id": "celestrak",
+        "source_object_id": "25544",
+        "norad_cat_id": 25544,
+        "name": "ISS (ZARYA)",
+        "object_type": "satellite",
+        "category": "crewed_or_station",
+        "orbit_class": "leo",
+        "country": "USA",
+        "operator_or_owner": "NASA",
+        "launch_date": "1998-067A",
+        "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+        "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+        "orbital_epoch_at": datetime(2026, 6, 1, tzinfo=timezone.utc).isoformat(),
+        "source_updated_at": datetime(2026, 6, 1, tzinfo=timezone.utc).isoformat(),
+        "is_active": True,
+        "is_important": True,
+        "raw_source_json": {},
+        "position": {
+            "estimated_at": datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "latitude": 42.0,
+            "longitude": -71.0,
+            "altitude_km": 420.0,
+            "velocity_kms": 7.66,
+            "heading_deg": 90.0,
+            "visual_shape": "dot",
+            "visual_color": "#ffd700",
+            "source_age_seconds": 120,
+            "computation_method": "simplified-sgp4",
+        },
+    }
+    cache.write_normalized([sat_json], [sat_json["position"]], ["stations"], "celestrak")
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    # First call: get_existing_satellite -> None (new record)
+    # Second call: INSERT ... RETURNING id
+    fake_cursor.fetchone.side_effect = [None, {"id": "fake-sat-id-999"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("fake-sat-id-999", True)) as mock_sat, \
+         patch("space_satellites_worker.upsert_position", return_value="pos-1") as mock_pos:
+        result = run_persist_from_cache(
+            source="celestrak",
+            cache_dir=str(tmp_path),
+        )
+
+    assert result["catalog_written"] == 1
+    assert result["position_written"] == 1
+    assert result["errors"] == []
+    mock_sat.assert_called_once()
+    mock_pos.assert_called_once()
+
+
+def test_persist_from_cache_no_network_call(tmp_path):
+    """persist-from-cache must NOT call the provider."""
+    cache = SourceCache(tmp_path)
+    cache.write_normalized([], [], ["stations"], "celestrak")
+
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch:
+        result = run_persist_from_cache(source="celestrak", cache_dir=str(tmp_path))
+        mock_fetch.assert_not_called()
+
+
+def test_persist_from_cache_no_normalized_manifest(tmp_path):
+    """persist-from-cache reports error when no normalized data exists."""
+    result = run_persist_from_cache(source="celestrak", cache_dir=str(tmp_path))
+    assert len(result["errors"]) == 1
+    assert "No normalized manifest" in result["errors"][0]
+
+
+def test_persist_from_cache_max_objects(tmp_path):
+    """max_objects limits records read from normalized cache."""
+    cache = SourceCache(tmp_path)
+    sats = [
+        {"source_object_id": str(i), "norad_cat_id": i, "name": f"SAT {i}",
+         "object_type": "satellite", "category": "unknown", "orbit_class": "leo",
+         "tle_line1": f"1 {i:05d}U ...", "tle_line2": f"2 {i:05d} ...",
+         "orbital_epoch_at": None, "source_updated_at": None, "is_active": True,
+         "is_important": False, "raw_source_json": {}}
+        for i in range(1, 21)
+    ]
+    cache.write_normalized(sats, [], ["stations"], "celestrak")
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [{"id": f"id-{i}"} for i in range(1, 6)]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("id", True)) as mock_sat:
+        result = run_persist_from_cache(
+            source="celestrak",
+            cache_dir=str(tmp_path),
+            max_objects=5,
+        )
+
+    assert mock_sat.call_count == 5
+
+
+# --- direct mode still works --------------------------------------------
+
+
+def test_direct_dry_run_still_works():
+    """Direct dry-run mode (no --persist, no --cache-dir) still works."""
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch:
+        mock_fetch.return_value = [
+            TLERecord(norad_cat_id=25544, name="ISS", tle_line1="1 ...", tle_line2="2 ..."),
+        ]
+        result = run_worker(groups=["stations"], dry_run=True)
+
+    assert result["tle_fetched"] == 1
+    assert result["tle_normalized"] == 1
+
+
+def test_direct_persist_still_works():
+    """Direct --persist mode still works with mocked DB."""
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [None, {"id": "sat-1"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    with patch("space_satellites_worker.fetch_tle_group") as mock_fetch, \
+         patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0), \
+         patch("space_satellites_worker.upsert_satellite", return_value=("sat-1", True)), \
+         patch("space_satellites_worker.upsert_position", return_value="pos-1"):
+        mock_fetch.return_value = [
+            TLERecord(
+                norad_cat_id=25544, name="ISS",
+                tle_line1="1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+                tle_line2="2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+            ),
+        ]
+        result = run_worker(groups=["stations"], dry_run=False)
+
+    assert result["catalog_written"] == 1
+    assert result["position_written"] == 1
+
+
+# --- WO-082C1 datetime regression still passes ---------------------------
+
+def test_stage_persist_datetime_safe(tmp_path):
+    """persist-from-cache must not trigger the WO-082C1 datetime bug."""
+    cache = SourceCache(tmp_path)
+    epoch = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    sat_json = {
+        "layer_id": "layer_05_space_satellites", "source_id": "celestrak",
+        "source_object_id": "25544", "norad_cat_id": 25544,
+        "name": "ISS (ZARYA)", "object_type": "satellite",
+        "category": "crewed_or_station", "orbit_class": "leo",
+        "country": "USA", "operator_or_owner": "NASA",
+        "launch_date": "1998-067A",
+        "tle_line1": "1 25544U 98067A   23250.50000000  .00016717  00000-0  10270-3 0  9991",
+        "tle_line2": "2 25544  51.6415 208.9168 0006703  35.0853 325.0284 15.49994638427245",
+        "orbital_epoch_at": epoch.isoformat(),
+        "source_updated_at": epoch.isoformat(),
+        "is_active": True, "is_important": True,
+        "raw_source_json": {"epoch_at": epoch.isoformat()},
+        "position": {
+            "estimated_at": epoch.isoformat(),
+            "latitude": 42.0, "longitude": -71.0, "altitude_km": 420.0,
+            "velocity_kms": 7.66, "heading_deg": 90.0,
+            "visual_shape": "dot", "visual_color": "#ffd700",
+            "source_age_seconds": 120, "computation_method": "simplified-sgp4",
+        },
+    }
+    cache.write_normalized([sat_json], [sat_json["position"]], ["stations"], "celestrak")
+
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.fetchone.side_effect = [None, {"id": "sat-1"}]
+    fake_conn.cursor.return_value.__enter__.return_value = fake_cursor
+    fake_conn.cursor.return_value.__exit__.return_value = False
+
+    with patch("space_satellites_worker.connect_db", return_value=fake_conn), \
+         patch("space_satellites_worker.get_satellite_count", return_value=0), \
+         patch("space_satellites_worker.get_position_count", return_value=0):
+        result = run_persist_from_cache(source="celestrak", cache_dir=str(tmp_path))
+
+    assert result["catalog_written"] == 1
+    # Verify raw_source_json datetime was serialized (no UnboundLocalError)
+    insert_call = None
+    for call in fake_cursor.execute.call_args_list:
+        if "INSERT INTO space_satellites" in call[0][0]:
+            insert_call = call
+            break
+    assert insert_call is not None
+    params = insert_call[0][1]
+    parsed_raw = json.loads(params[19])
+    assert isinstance(parsed_raw["epoch_at"], str)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

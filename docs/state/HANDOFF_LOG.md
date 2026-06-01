@@ -1,3 +1,46 @@
+### 2026-06-01T17:00:00Z MiniMax — WO-082C2 Layer 05 Staged Source Download, Cache, Normalize, Persist Pipeline
+
+- Work order: WO-082C2
+- Agent: MiniMax
+- Lane: Fetching
+- LLM model: MiniMax (opencode/mimo-v2.5-free)
+- Tool/CLI used: Kiro CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-082c2-space-fetching-cache
+- Start time UTC: 2026-06-01T16:30:00Z
+- End time UTC: 2026-06-01T17:05:00Z
+- Commit hash: 9c76e0d
+- Push status: local only (NOT pushed — per WO policy)
+- What was done: Added staged source ingestion pipeline to Layer 05 satellite worker. Three new CLI modes: --download-only (fetch from provider, save raw to local cache), --normalize-only (read raw cache, normalize + classify + compute positions, save normalized JSONL), --persist-from-cache (read normalized cache, write to DB). Existing dry-run and --persist modes preserved unchanged. New source_cache.py module manages raw TLE cache, normalized JSONL files, and pipeline manifests. Cache lives outside repo by default.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/source_cache.py
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_05_space_satellites/space_satellites_worker.py
+  - tests/data/layer_05_space_satellites/test_space_satellites_fetcher.py
+- Tests added/updated: 20 new tests in test_space_satellites_fetcher.py
+  - source_cache tests: write_and_read_raw, read_nonexistent, list_cached_groups, write_normalized, overall_manifest
+  - tle_record_to_dict tests: dataclass conversion, passthrough dict
+  - download-only tests: writes_raw_cache, failed_group_recorded, max_objects
+  - normalize-only tests: reads_raw_cache, no_network_call, max_objects
+  - persist-from-cache tests: writes_db, no_network_call, no_normalized_manifest, max_objects
+  - direct mode regression: dry_run_still_works, persist_still_works
+  - datetime regression: stage_persist_datetime_safe (WO-082C1 guard)
+- Commands run: python -m pytest tests/data/layer_05_space_satellites -q (59 passed), python -m pytest tests/data -q (480 passed, 1 pre-existing unrelated failure), python -m compileall services/fetch-orchestrator/src/layers/layer_05_space_satellites tests/data/layer_05_space_satellites (PASS), pnpm --filter api test (297/297 PASS), git diff --check (CRLF warning only), git status --short
+- Validation results: All Layer 05 tests PASS (59/59), all data tests PASS (480/480 excluding pre-existing layer_01 aviation-live guard), compileall PASS, API tests PASS (297/297), web build PASS
+- Manual staged pipeline result:
+  - download-only: 25 records fetched from CelesTrak stations group, saved to E:\god-eyes-data\space\layer_05_space_satellites\raw\celestrak\stations\
+  - normalize-only: 25 satellites + 25 positions computed from raw cache, no provider call
+  - persist-from-cache: 25 catalog upserts + 25 position upserts, no provider call
+- DB counts after persist-from-cache: space_satellites=1074, space_satellite_positions_latest=1074 (stable — all stations records already existed, correctly upserted)
+- Secrets touched: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (cache lives outside repo at E:\god-eyes-data\space)
+- External live network used in tests: NO (all tests mocked; only manual validation used live CelesTrak)
+- Known issues: None
+- Next recommended task: Kiro review WO-082C2, then consider adding --download-only for starlink/weather groups with retry logic for 403 failures
+
 ### 2026-06-01T15:45:00Z MiniMax — WO-082C1 Layer 05 Satellite Fetcher Persist Datetime Bug Fix
 
 - Work order: WO-082C1
