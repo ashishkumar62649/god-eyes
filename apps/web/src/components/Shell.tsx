@@ -11,6 +11,7 @@ import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFe
 import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
 import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
+import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
 
 interface AviationStats {
   loaded: number;
@@ -41,6 +42,9 @@ interface ShellProps {
   liveAircraftLayerActive: boolean;
   setLiveAircraftLayerActive: (active: boolean) => void;
   liveAircraftPhase: LiveAircraftStatus;
+  spaceSatellitesLayerActive: boolean;
+  setSpaceSatellitesLayerActive: (active: boolean) => void;
+  spaceSatellitesStatus: SpaceSatellitesStatus;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -51,6 +55,7 @@ const Shell: React.FC<ShellProps> = ({
   earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
   bordersLayerActive, setBordersLayerActive, bordersPhase,
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
+  spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -77,6 +82,9 @@ const Shell: React.FC<ShellProps> = ({
           liveAircraftLayerActive={liveAircraftLayerActive}
           setLiveAircraftLayerActive={setLiveAircraftLayerActive}
           liveAircraftPhase={liveAircraftPhase}
+          spaceSatellitesLayerActive={spaceSatellitesLayerActive}
+          setSpaceSatellitesLayerActive={setSpaceSatellitesLayerActive}
+          spaceSatellitesStatus={spaceSatellitesStatus}
         />
         <DetailPanel
           selectedObject={selectedObject}

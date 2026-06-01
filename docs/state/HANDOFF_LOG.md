@@ -3792,3 +3792,71 @@ All agents must append to this file after completing work.
 - Spec/contract alignment: Fully aligned with layer_05_space_satellites_mvp_contract.md and API_CONTRACT_SPEC.md
 - Known issues: None
 - Next recommended task: WO-082E frontend lane (Sonnet), or Kiro integration review
+
+---
+
+## WO-082E — Layer 05 Space & Satellites Frontend
+
+- Agent: Claude Sonnet 4.6
+- Lane: Frontend
+- Tool/CLI: Kiro CLI
+- Working directory: E:\god-eyes-frontend
+- Branch: agent/wo-082e-space-frontend
+- Work order: WO-082E — Layer 05 Space & Satellites Frontend Visualization
+- Start time UTC: 2026-06-01T03:54:09Z
+- End time UTC: 2026-06-01T04:05:00Z
+- Commit hash: (see below — committed after this entry)
+- Push status: LOCAL ONLY — do not push
+
+### Files created
+- apps/web/src/layers/space/satellites/satelliteTypes.ts
+- apps/web/src/layers/space/satellites/satelliteColors.ts
+- apps/web/src/layers/space/satellites/satelliteFilters.ts
+- apps/web/src/layers/space/satellites/useSpaceSatellitesSocket.ts
+- apps/web/src/components/overlays/SatelliteInfoOverlay.tsx
+
+### Files modified
+- apps/web/src/App.tsx — added spaceSatellitesLayerActive state, useSpaceSatellitesSocket hook, satellite snapshot handler, props to CesiumGlobe and Shell
+- apps/web/src/CesiumGlobe.tsx — added spaceSatellites/spaceSatellitesLayerActive props, PointPrimitiveCollection + CustomDataSource for satellites, satellite rendering useEffect, satellite click handler, SatelliteInfoOverlay in JSX
+- apps/web/src/components/LayerPanel.tsx — added spaceSatellitesLayerActive/setSpaceSatellitesLayerActive/spaceSatellitesStatus props, Space & Satellites [L5] toggle with status text
+- apps/web/src/components/Shell.tsx — added satellite props to interface and forwarding to LayerPanel
+
+### DB dependency commit included: 34226b4cdc9f09f04a94829189f5c8f40008b868
+### Fetching dependency commit included: 4646329ece2a3c086acd3f971e1b5303540fd126
+### API dependency commit included: 5aa8905
+
+### Summary
+Implemented Layer 05 Space & Satellites frontend MVP. WebSocket hook connects to /ws/space/satellites/live, handles space.satellites.snapshot messages with reconnect backoff. Satellites render as dots (PointPrimitiveCollection), debris/rocket bodies as triangles (Entity/PointGraphics). Altitude-based 8-band color scale with backend visualColor override. Important objects get larger markers. Click handler shows SatelliteInfoOverlay with NORAD ID, type, orbit class, altitude, speed, lat/lon, data age, and estimated-position caveat. LayerPanel toggle shows live count and freshness. All existing layers (aviation, borders, earth events, live aircraft) untouched.
+
+### Commands run
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS
+- pnpm --filter web build → PASS (76 modules)
+- pnpm --filter api test → PASS (297/297)
+- python -m pytest tests/data/layer_05_space_satellites -q → 32/33 (1 scope guard failure — pre-existing DB-lane scope guard, not a frontend failure)
+- python -m pytest tests/data -q → 453/455 (2 scope guard failures — pre-existing lane-scope guards for DB/aviation lanes)
+- git diff --check → PASS
+
+### Validation results
+- contracts build: PASS
+- API build: PASS
+- web build: PASS (76 modules, no TypeScript errors)
+- API tests: PASS (297/297)
+- Python data tests: 453/455 (2 pre-existing scope guard failures for DB/aviation lanes — not frontend failures)
+- git diff --check: PASS
+
+### Secrets touched: NO
+### External upstream calls from frontend: NO
+### API runtime touched: NO
+### Fetcher touched: NO
+### Database migrations touched: NO
+
+### Spec/contract alignment
+Fully aligned with layer_05_space_satellites_mvp_contract.md and FRONTEND_CESIUM_SPEC.md. Uses SpaceSatelliteItem from @god-eyes/contracts. WebSocket message type space.satellites.snapshot. Visual rules: dots for satellites, triangles for debris/rocket bodies, altitude-based colors, important objects larger. Estimated-position caveat shown in overlay and LayerPanel.
+
+### Known issues
+- Satellite rendering useEffect rebuilds all primitives on every snapshot (no incremental update). Acceptable for MVP given snapshot frequency (~30s). Can be optimized post-MVP.
+- PointPrimitive `.id` property assignment uses `(point as any).id` — Cesium's PointPrimitive does not have a typed `.id` field but the pick system reads it. This is consistent with existing aircraft billboard pattern.
+
+### Next recommended task
+WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). Verify all 4 lanes (DB, fetcher, API, frontend) are consistent and ready for boss review.

@@ -24,8 +24,11 @@ import AirportMapPopup from './components/intel/AirportMapPopup';
 import { AircraftInfoOverlay } from './components/overlays/AircraftInfoOverlay';
 import { EarthquakeInfoOverlay } from './components/overlays/EarthquakeInfoOverlay';
 import { TokenWarningOverlay } from './components/overlays/TokenWarningOverlay';
-import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest } from '@god-eyes/contracts';
+import { SatelliteInfoOverlay } from './components/overlays/SatelliteInfoOverlay';
+import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest, SpaceSatelliteItem } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
+import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
+import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
 
 import {
   fetchAllAviationCategories,
@@ -103,6 +106,9 @@ interface CesiumGlobeProps {
   onGetBbox?: () => [number, number, number, number] | null;
   /** Ref that CesiumGlobe populates with its bbox getter (for WS bbox updates). */
   onGetBboxRef?: React.MutableRefObject<(() => [number, number, number, number] | null) | undefined>;
+  /** Layer 05: Space & Satellites */
+  spaceSatellites?: SpaceSatelliteItem[];
+  spaceSatellitesLayerActive?: boolean;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -123,6 +129,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   liveAircraftLayerActive,
   onGetBbox,
   onGetBboxRef,
+  spaceSatellites,
+  spaceSatellitesLayerActive,
 }) => {
 
   /**
@@ -198,6 +206,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   // Selected live aircraft for minimal info overlay (WO-079E)
   const [selectedAircraft, setSelectedAircraft] = useState<AircraftLatest | null>(null);
+
+  // Selected satellite for info overlay (WO-082E)
+  const [selectedSatellite, setSelectedSatellite] = useState<SatelliteFrontendItem | null>(null);
+  const satelliteDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
+  const satelliteEntityDataSourceRef = useRef<CustomDataSource | null>(null);
 
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
@@ -441,6 +454,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       viewer.scene.primitives.add(aircraftCollection);
       aircraftCollectionRef.current = aircraftCollection;
 
+      // Layer 05: satellite dot collection + entity data source for triangles
+      const satDotCollection = new PointPrimitiveCollection();
+      viewer.scene.primitives.add(satDotCollection);
+      satelliteDotCollectionRef.current = satDotCollection;
+
+      const satEntityDs = new CustomDataSource('space-satellites');
+      satelliteEntityDataSourceRef.current = satEntityDs;
+      viewer.dataSources.add(satEntityDs);
+
       stopFpsCounter = startFpsCounter(viewer);
 
       // Camera changed — debounced occlusion update only, NO data fetching
@@ -508,6 +530,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             if (isPositionVisible(viewer!, pos)) {
               setSelectedAircraft(ac);
             }
+          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._satelliteData) {
+            // Satellite dot pick (WO-082E)
+            const sat = (pickedObject.id as any)._satelliteData as SatelliteFrontendItem;
+            const altM = (sat.altitudeKm ?? 0) * 1000;
+            const pos = Cartesian3.fromDegrees(sat.longitude, sat.latitude, altM);
+            if (isPositionVisible(viewer!, pos)) {
+              setSelectedSatellite(sat);
+            }
           } else {
             onObjectSelectRef.current(null);
           }
@@ -524,6 +554,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         // Earthquake entity click
         if (entity.properties && entity.properties.earthquakeData) {
           setSelectedEarthquake(entity.properties.earthquakeData.getValue() as EarthEvent);
+          return;
+        }
+
+        // Satellite triangle entity click (WO-082E)
+        if (entity.properties && entity.properties.satelliteData) {
+          const sat = entity.properties.satelliteData.getValue() as SatelliteFrontendItem;
+          setSelectedSatellite(sat);
           return;
         }
 
@@ -1124,6 +1161,97 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }, [liveAircraftLayerActive, viewerReady]);
 
 
+  // Layer 05: Render satellites and debris on the globe (WO-082E).
+  // Dots (satellites) → PointPrimitiveCollection for performance.
+  // Triangles (debris/rocket_body) → Entity with PointGraphics (larger, distinct).
+  // Clear all markers when layer is OFF.
+  useEffect(() => {
+    const dotColl = satelliteDotCollectionRef.current;
+    const ds = satelliteEntityDataSourceRef.current;
+    if (!dotColl || !ds) return;
+
+    // Clear previous markers.
+    dotColl.removeAll();
+    ds.entities.removeAll();
+
+    if (!spaceSatellitesLayerActive || !spaceSatellites || spaceSatellites.length === 0) {
+      if (!spaceSatellitesLayerActive) setSelectedSatellite(null);
+      return;
+    }
+
+    for (const sat of spaceSatellites) {
+      const altM = (sat.position.altitudeKm ?? 0) * 1000;
+      const color = getSatelliteColor({
+        ...sat,
+        latitude: sat.position.latitude,
+        longitude: sat.position.longitude,
+        altitudeKm: sat.position.altitudeKm,
+        velocityKms: sat.velocity.speedKms,
+      });
+      const pixelSize = getSatellitePixelSize({
+        ...sat,
+        latitude: sat.position.latitude,
+        longitude: sat.position.longitude,
+        altitudeKm: sat.position.altitudeKm,
+        velocityKms: sat.velocity.speedKms,
+      });
+      const cesiumColor = Color.fromCssColorString(color);
+      const satItem = {
+        satelliteId: sat.satelliteId,
+        noradId: sat.noradId,
+        name: sat.name,
+        objectType: sat.objectType,
+        category: sat.category,
+        orbitClass: sat.orbitClass,
+        country: sat.country,
+        launchDate: sat.launchDate,
+        latitude: sat.position.latitude,
+        longitude: sat.position.longitude,
+        altitudeKm: sat.position.altitudeKm,
+        velocityKms: sat.velocity.speedKms,
+        headingDeg: sat.headingDeg,
+        visualShape: sat.visualShape,
+        visualColor: sat.visualColor,
+        important: sat.important,
+        estimatedAt: sat.estimatedAt,
+        sourceId: sat.sourceId,
+        sourceObjectId: sat.sourceObjectId,
+        sourceAgeSeconds: sat.sourceAgeSeconds,
+      };
+
+      if (sat.visualShape === 'dot') {
+        // Satellite: PointPrimitive for performance.
+        const point = dotColl.add({
+          position: Cartesian3.fromDegrees(sat.position.longitude, sat.position.latitude, altM),
+          color: cesiumColor,
+          pixelSize,
+          outlineColor: sat.important ? Color.fromCssColorString('#ffffff').withAlpha(0.6) : Color.BLACK.withAlpha(0.3),
+          outlineWidth: sat.important ? 2 : 1,
+          scaleByDistance: undefined,
+        });
+        (point as any).id = { _satelliteData: satItem };
+      } else {
+        // Debris / rocket body: Entity with PointGraphics.
+        const entity = new Entity({
+          id: `satellite-${sat.satelliteId}`,
+          position: new ConstantPositionProperty(
+            Cartesian3.fromDegrees(sat.position.longitude, sat.position.latitude, altM),
+          ),
+          point: new PointGraphics({
+            pixelSize: new ConstantProperty(pixelSize),
+            color: new ConstantProperty(cesiumColor),
+            outlineColor: new ConstantProperty(Color.BLACK.withAlpha(0.4)),
+            outlineWidth: new ConstantProperty(1),
+          }),
+        });
+        (entity as any).properties = { satelliteData: new ConstantProperty(satItem) };
+        ds.entities.add(entity);
+      }
+    }
+
+    viewerRef.current?.scene.requestRender();
+  }, [spaceSatellites, spaceSatellitesLayerActive]);
+
   if (error) {
     return (
       <div style={{
@@ -1162,6 +1290,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         <AircraftInfoOverlay
           aircraft={selectedAircraft}
           onClose={() => setSelectedAircraft(null)}
+        />
+      )}
+      {selectedSatellite && (
+        <SatelliteInfoOverlay
+          satellite={selectedSatellite}
+          onClose={() => setSelectedSatellite(null)}
         />
       )}
     </div>

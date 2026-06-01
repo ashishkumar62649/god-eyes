@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import CesiumGlobe from './CesiumGlobe';
 import Shell from './components/Shell';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
-import type { AircraftLatest } from '@god-eyes/contracts';
+import type { AircraftLatest, SpaceSatelliteItem } from '@god-eyes/contracts';
 import { SearchResult } from './lib/searchTypes';
 import { fetchAirportDetail } from './lib/api';
 import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './layers/aviation/airports/aviationCategories';
@@ -10,6 +10,8 @@ import { useAirportLayoutFeatures } from './layers/aviation/airports/useAirportL
 import { useEarthEvents } from './layers/earth-events/useEarthEvents';
 import { useBordersBoundaries } from './layers/borders/useBordersBoundaries';
 import { useLiveAircraftSocket, LiveAircraftStatus } from './layers/aviation/aircraft/useLiveAircraftSocket';
+import { useSpaceSatellitesSocket } from './layers/space/satellites/useSpaceSatellitesSocket';
+import type { SpaceSatellitesStatus } from './layers/space/satellites/satelliteTypes';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -24,6 +26,8 @@ const App: React.FC = () => {
   const [earthEventsLayerActive, setEarthEventsLayerActive] = useState(false);
   const [bordersLayerActive, setBordersLayerActive] = useState(false);
   const [liveAircraftLayerActive, setLiveAircraftLayerActive] = useState(false);
+  const [spaceSatellitesLayerActive, setSpaceSatellitesLayerActive] = useState(false);
+  const [spaceSatellites, setSpaceSatellites] = useState<SpaceSatelliteItem[]>([]);
   const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -79,6 +83,15 @@ const App: React.FC = () => {
   );
 
   const liveAircraftPhase: LiveAircraftStatus = { ...liveAircraftStatus, renderedCount };
+
+  const handleSatelliteSnapshot = useCallback((satellites: SpaceSatelliteItem[]) => {
+    setSpaceSatellites(satellites);
+  }, []);
+
+  const spaceSatellitesStatus: SpaceSatellitesStatus = useSpaceSatellitesSocket(
+    spaceSatellitesLayerActive,
+    handleSatelliteSnapshot,
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setIsBooting(false), 1500);
@@ -138,6 +151,8 @@ const App: React.FC = () => {
         onSnapshotCbRef={onSnapshotCbRef}
         onDeltaCbRef={onDeltaCbRef}
         liveAircraftLayerActive={liveAircraftLayerActive}
+        spaceSatellites={spaceSatellites}
+        spaceSatellitesLayerActive={spaceSatellitesLayerActive}
       />
 
       <div style={{ opacity: isBooting ? 0 : 1, transition: 'opacity 1s ease-in', pointerEvents: isBooting ? 'none' : 'auto' }}>
@@ -162,6 +177,9 @@ const App: React.FC = () => {
           liveAircraftLayerActive={liveAircraftLayerActive}
           setLiveAircraftLayerActive={setLiveAircraftLayerActive}
           liveAircraftPhase={liveAircraftPhase}
+          spaceSatellitesLayerActive={spaceSatellitesLayerActive}
+          setSpaceSatellitesLayerActive={setSpaceSatellitesLayerActive}
+          spaceSatellitesStatus={spaceSatellitesStatus}
         />
       </div>
     </div>

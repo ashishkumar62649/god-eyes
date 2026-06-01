@@ -5,6 +5,7 @@ import { useLayerRegistry } from '../lib/useLayerRegistry';
 import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
 import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
+import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
 
 interface AviationStats {
   loaded: number;
@@ -30,6 +31,9 @@ interface LayerPanelProps {
   liveAircraftLayerActive: boolean;
   setLiveAircraftLayerActive: (active: boolean) => void;
   liveAircraftPhase: LiveAircraftStatus;
+  spaceSatellitesLayerActive: boolean;
+  setSpaceSatellitesLayerActive: (active: boolean) => void;
+  spaceSatellitesStatus: SpaceSatellitesStatus;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -48,6 +52,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   earthEventsLayerActive, setEarthEventsLayerActive, earthEventsPhase,
   bordersLayerActive, setBordersLayerActive, bordersPhase,
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
+  spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -97,6 +102,20 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         return renderedCount > 0
           ? `API UNAVAILABLE — SHOWING LAST GOOD SNAPSHOT FROM ${secs ?? '?'}s AGO`
           : `API UNAVAILABLE — ${errorMessage}`;
+      default: return 'ACTIVE';
+    }
+  }
+
+  function spaceSatellitesStatusText(): string {
+    if (!spaceSatellitesLayerActive) return 'READY — CLICK TO ACTIVATE';
+    const { phase, count, lastSuccessAt, errorMessage } = spaceSatellitesStatus;
+    const secs = lastSuccessAt > 0 ? Math.max(0, Math.round((Date.now() - lastSuccessAt) / 1000)) : null;
+    const ago = secs !== null ? ` (${secs}s AGO)` : '';
+    switch (phase) {
+      case 'connecting': return 'CONNECTING — SPACE & SATELLITES';
+      case 'reconnecting': return count > 0 ? `RECONNECTING — ${count} OBJECTS${ago}` : 'RECONNECTING...';
+      case 'live': return `LIVE — ${count.toLocaleString()} OBJECTS${ago}`;
+      case 'error': return count > 0 ? `ERROR — LAST SNAPSHOT ${count} OBJECTS${ago}` : `ERROR — ${errorMessage}`;
       default: return 'ACTIVE';
     }
   }
@@ -224,6 +243,32 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                       {earthEventsStatusText()}
                     </span>
                   </div>
+                </div>
+              );
+            }
+
+            const isSpaceSatellites = entry.layerId === 'layer_05_space_satellites';
+            if (isSpaceSatellites) {
+              return (
+                <div key={entry.layerId} className={`layer-item ${spaceSatellitesLayerActive ? 'active' : ''}`}
+                  onClick={() => setSpaceSatellitesLayerActive(!spaceSatellitesLayerActive)} style={{ cursor: 'pointer' }}>
+                  <div className="layer-name">Space &amp; Satellites [L5]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: spaceSatellitesLayerActive
+                        ? (spaceSatellitesStatus.phase === 'error' ? '#ff4d4d' : 'var(--shell-accent)')
+                        : undefined,
+                      fontWeight: spaceSatellitesLayerActive ? 600 : undefined,
+                      opacity: spaceSatellitesLayerActive ? 1 : 0.7,
+                    }}>
+                      {spaceSatellitesStatusText()}
+                    </span>
+                  </div>
+                  {spaceSatellitesLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      Estimated orbital positions from TLE data (CelesTrak). Not confirmed real-time tracking.
+                    </div>
+                  )}
                 </div>
               );
             }
