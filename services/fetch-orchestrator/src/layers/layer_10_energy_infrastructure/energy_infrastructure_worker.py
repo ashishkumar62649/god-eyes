@@ -452,8 +452,6 @@ def run_persist_from_cache(args: argparse.Namespace) -> dict[str, Any]:
     if args.dry_run:
         # Just count what would be written; the in-memory mock still
         # provides parameter-validation guarantees.
-        if is_in_memory_connection_only:
-            pass
         conn = _connect_for_persist(args)
         try:
             summary = persist_features(conn, features, dry_run=True)
@@ -580,16 +578,22 @@ def main(argv: list[str] | None = None) -> int:
         dl = run_download_only(args)
         if dl.get("groups_failed"):
             print("[DIRECT] Download had failures; normalize will skip those groups")
-        return _run_direct_persist(args) if not dl.get("groups_failed") else 0
+        return _run_direct_persist(args) if not dl.get("groups_failed") else 1
 
     if args.download_only:
-        run_download_only(args)
+        dl = run_download_only(args)
+        if dl.get("groups_failed"):
+            return 1
         return 0
     if args.normalize_only:
-        run_normalize_only(args)
+        res = run_normalize_only(args)
+        if res.get("errors"):
+            return 1
         return 0
     if args.persist_from_cache:
-        run_persist_from_cache(args)
+        res = run_persist_from_cache(args)
+        if res.get("errors") or res.get("error"):
+            return 1
         return 0
 
     return 0
@@ -626,3 +630,7 @@ __all__ = [
     "run_persist_from_cache",
     "_resolve_source",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
