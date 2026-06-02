@@ -4354,9 +4354,9 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Known issues: The exact manual EXPLAIN query in the work order uses s.satellite_id, but the schema defines space_satellites.id and positions_latest.satellite_id references it. The schema-aligned query runs; after applying 002 locally, PostgreSQL still chooses a parallel sequential scan for broad source_id = 'space_track' because that predicate is low-selectivity on the local data. Full tests/data run failed before commit because an existing aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-tree rerun after local commit passed.
 - Next task: Apply WO-082B2 migration in the shared dev database and capture EXPLAIN plans for representative selective API filters such as source_id plus orbit_class/category/object_type/important/altitude.
 
-## WO-083A - Layer 06 Energy Infrastructure Contract / Spec
+## WO-083A - Layer 10 Energy Infrastructure Contract / Spec
 
-- Work order: WO-083A — Layer 06 Energy Infrastructure Contract / Spec
+- Work order: WO-083A — Layer 10 Energy Infrastructure Contract / Spec
 - Agent: Kimi 2.6 Free via OpenRouter
 - LLM model: Kimi 2.6 Free via OpenRouter
 - Tool/CLI used: opencode CLI on Windows PowerShell 5.1
@@ -4367,16 +4367,16 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - End time UTC: 2026-06-02T06:48:04Z
 - Commit hash: cec7adb
 - Push status: local only (NOT pushed — per WO policy; Kiro owns push)
-- Goal: Define Layer 06 Energy Infrastructure MVP contract, specification, implementation plan, and task breakdown for parallel lane implementation.
+- Goal: Define Layer 10 Energy Infrastructure MVP contract, specification, implementation plan, and task breakdown for parallel lane implementation.
 - Approach: Created comprehensive contract document defining layer identity, MVP scope, data sources, canonical data model, visual rules, API contract, database lane requirements, fetching lane requirements, frontend lane requirements, security/safety rules, and acceptance criteria. Created specification document with detailed feature goals, data model, API contract, frontend requirements, database schema, data pipeline, testing strategy, and worktree strategy. Created implementation plan with timeline, dependencies, parallel work strategy, and risk mitigation. Created task breakdown with detailed tasks for database, fetching, API, frontend, integration, and documentation lanes.
 - Files created:
-  - docs/control/layer_06_energy_infrastructure_mvp_contract.md (comprehensive lane contract)
-  - specs/004-layer-06-energy-infrastructure-mvp/spec.md (full specification)
-  - specs/004-layer-06-energy-infrastructure-mvp/plan.md (implementation plan)
-  - specs/004-layer-06-energy-infrastructure-mvp/tasks.md (task breakdown)
+  - docs/control/layer_10_energy_infrastructure_mvp_contract.md (comprehensive lane contract)
+  - specs/004-layer-10-energy-infrastructure-mvp/spec.md (full specification)
+  - specs/004-layer-10-energy-infrastructure-mvp/plan.md (implementation plan)
+  - specs/004-layer-10-energy-infrastructure-mvp/tasks.md (task breakdown)
   - docs/state/HANDOFF_LOG.md (updated with this entry)
 - Files modified: None (only new files created)
-- Layer ID: layer_06_energy_infrastructure
+- Layer ID: layer_10_energy_infrastructure
 - Sources included:
   1. wri_global_power_plant_database (WRI Global Power Plant Database)
   2. osm_energy_infrastructure (OpenStreetMap via Overpass API)
@@ -4415,6 +4415,5 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Commands run: None (specification work only)
 - Validation results: Pending (will run validation commands after commit)
 - Known issues:
-  - Layer ID conflict: Existing registry shows layer_06 as Maritime, but this work order defines layer_06 as Energy Infrastructure. Registry update will be needed.
   - Source license verification required for Global Energy Monitor datasets before implementation.
-- Recommended next task: WO-083B — Layer 06 Energy Infrastructure Database Schema (Codex)
+- Recommended next task: WO-083B — Layer 10 Energy Infrastructure Database Schema (Codex)

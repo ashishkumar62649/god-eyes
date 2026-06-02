@@ -25,6 +25,7 @@ layer_{NN}_{short_name}
 | 7 | `layer_07_infrastructure` | Infrastructure | coming_soon |
 | 8 | `layer_08_news_osint` | News & OSINT | coming_soon |
 | 9 | `layer_09_user_shapes` | User Shapes | coming_soon |
+| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | coming_soon |
 
 ## Folder Conventions
 
