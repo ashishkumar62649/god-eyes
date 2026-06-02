@@ -13,6 +13,8 @@ import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
 import type { SatelliteFilters } from '../layers/space/satellites/satelliteFilters';
+import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 
 interface AviationStats {
   loaded: number;
@@ -48,6 +50,12 @@ interface ShellProps {
   spaceSatellitesStatus: SpaceSatellitesStatus;
   spaceSatelliteFilters: SatelliteFilters;
   onSpaceFiltersChange: (filters: SatelliteFilters) => void;
+  energyInfrastructureLayerActive: boolean;
+  setEnergyInfrastructureLayerActive: (active: boolean) => void;
+  energyInfrastructureFilters: EnergyFilters;
+  onEnergyFiltersChange: (filters: EnergyFilters) => void;
+  selectedEnergyFeature: EnergyFeature | null;
+  onEnergyFeatureClose: () => void;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -60,6 +68,8 @@ const Shell: React.FC<ShellProps> = ({
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
   spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
   spaceSatelliteFilters, onSpaceFiltersChange,
+  energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
+  selectedEnergyFeature, onEnergyFeatureClose
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -91,6 +101,10 @@ const Shell: React.FC<ShellProps> = ({
           spaceSatellitesStatus={spaceSatellitesStatus}
           spaceSatelliteFilters={spaceSatelliteFilters}
           onSpaceFiltersChange={onSpaceFiltersChange}
+          energyInfrastructureLayerActive={energyInfrastructureLayerActive}
+          setEnergyInfrastructureLayerActive={setEnergyInfrastructureLayerActive}
+          energyInfrastructureFilters={energyInfrastructureFilters}
+          onEnergyFiltersChange={onEnergyFiltersChange}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -100,6 +114,8 @@ const Shell: React.FC<ShellProps> = ({
           isCollapsed={detailPanelCollapsed}
           setIsCollapsed={setDetailPanelCollapsed}
           layoutPhase={layoutPhase}
+          selectedEnergyFeature={selectedEnergyFeature}
+          onEnergyFeatureClose={onEnergyFeatureClose}
         />
       </main>
         <StatusPanel

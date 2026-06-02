@@ -12,6 +12,7 @@ import type { PublicProfileData, PublicProfileAttribution } from '../layers/avia
 import type { AirportIntelImages } from '../layers/aviation/airports/airportIntelligenceTypes';
 import AirportLayoutOverlayToggle from './intel/AirportLayoutOverlayToggle';
 import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
+import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | null;
@@ -21,6 +22,8 @@ interface DetailPanelProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   layoutPhase: LayoutPhase;
+  selectedEnergyFeature: EnergyFeature | null;
+  onEnergyFeatureClose: () => void;
 }
 
 // ── error boundary ────────────────────────────────────────────────────────────
@@ -264,6 +267,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   isCollapsed,
   setIsCollapsed,
   layoutPhase,
+  selectedEnergyFeature,
+  onEnergyFeatureClose: _onEnergyFeatureClose,
 }) => {
   const { state: profileState, retry } = useAirportPublicProfile(selectedObject?.id ?? null);
   const intelState = useAirportIntelligence(selectedObject?.id ?? null);
@@ -286,12 +291,150 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   const intelImages =
     intelState.phase === 'ok' ? (intelState.data.images ?? null) : null;
 
+  // Energy infrastructure feature detail content
+  const energyFeatureContent = selectedEnergyFeature ? (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--shell-accent)', lineHeight: 1.2, marginBottom: '2px' }}>
+        {selectedEnergyFeature.name || 'Unnamed Energy Feature'}
+      </div>
+      <div style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '10px', fontFamily: 'var(--shell-font-mono)', letterSpacing: '1px' }}>
+        {selectedEnergyFeature.featureType.replace('_', ' ').toUpperCase()}
+        {selectedEnergyFeature.fuelType ? ` · ${selectedEnergyFeature.fuelType.toUpperCase()}` : ''}
+      </div>
+      
+      <div className="detail-row">
+        <div className="detail-label">Type</div>
+        <div className="detail-value">{selectedEnergyFeature.featureType.replace('_', ' ')}</div>
+      </div>
+      
+      {selectedEnergyFeature.fuelType && (
+        <div className="detail-row">
+          <div className="detail-label">Fuel Type</div>
+          <div className="detail-value">{selectedEnergyFeature.fuelType}</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.capacityMw && (
+        <div className="detail-row">
+          <div className="detail-label">Capacity</div>
+          <div className="detail-value">{selectedEnergyFeature.capacityMw.toLocaleString()} MW</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.voltageKv && (
+        <div className="detail-row">
+          <div className="detail-label">Voltage</div>
+          <div className="detail-value">{selectedEnergyFeature.voltageKv.toLocaleString()} kV</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.operator && (
+        <div className="detail-row">
+          <div className="detail-label">Operator</div>
+          <div className="detail-value">{selectedEnergyFeature.operator}</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.owner && (
+        <div className="detail-row">
+          <div className="detail-label">Owner</div>
+          <div className="detail-value">{selectedEnergyFeature.owner}</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.country && (
+        <div className="detail-row">
+          <div className="detail-label">Country</div>
+          <div className="detail-value">{selectedEnergyFeature.country}</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.status && (
+        <div className="detail-row">
+          <div className="detail-label">Status</div>
+          <div className="detail-value">{selectedEnergyFeature.status}</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.pipelineProduct && (
+        <div className="detail-row">
+          <div className="detail-label">Pipeline Product</div>
+          <div className="detail-value">{selectedEnergyFeature.pipelineProduct}</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.pipelineLengthKm && (
+        <div className="detail-row">
+          <div className="detail-label">Pipeline Length</div>
+          <div className="detail-value">{selectedEnergyFeature.pipelineLengthKm.toLocaleString()} km</div>
+        </div>
+      )}
+      
+      {selectedEnergyFeature.terminalType && (
+        <div className="detail-row">
+          <div className="detail-label">Terminal Type</div>
+          <div className="detail-value">{selectedEnergyFeature.terminalType}</div>
+        </div>
+      )}
+      
+      {/* Source and Provenance */}
+      <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 600, marginBottom: '6px', color: 'var(--shell-accent)' }}>
+          SOURCE & PROVENANCE
+        </div>
+        <div className="detail-row">
+          <div className="detail-label">Source ID</div>
+          <div className="detail-value">{selectedEnergyFeature.sourceId}</div>
+        </div>
+        <div className="detail-row">
+          <div className="detail-label">Source Confidence</div>
+          <div className="detail-value">{selectedEnergyFeature.sourceConfidence}</div>
+        </div>
+        {selectedEnergyFeature.sourceUpdatedAt && (
+          <div className="detail-row">
+            <div className="detail-label">Source Updated</div>
+            <div className="detail-value">{new Date(selectedEnergyFeature.sourceUpdatedAt).toLocaleDateString()}</div>
+          </div>
+        )}
+        {selectedEnergyFeature.firstSeenAt && (
+          <div className="detail-row">
+            <div className="detail-label">First Seen</div>
+            <div className="detail-value">{new Date(selectedEnergyFeature.firstSeenAt).toLocaleDateString()}</div>
+          </div>
+        )}
+        {selectedEnergyFeature.lastSeenAt && (
+          <div className="detail-row">
+            <div className="detail-label">Last Seen</div>
+            <div className="detail-value">{new Date(selectedEnergyFeature.lastSeenAt).toLocaleDateString()}</div>
+          </div>
+        )}
+      </div>
+      
+      {/* Safety Copy */}
+      <div style={{
+        marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: '12px', opacity: 0.6, fontSize: '0.6rem',
+        lineHeight: 1.5, color: 'var(--shell-text-dim)',
+      }}>
+        Static public-source infrastructure data. Not live operational status.
+      </div>
+      
+      <div style={{
+        marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: '20px', opacity: 0.3, fontSize: '0.6rem',
+        fontFamily: 'var(--shell-font-mono)',
+      }}>
+        SYSTEM ID: {selectedEnergyFeature.id}
+      </div>
+    </div>
+  ) : null;
+
   const headerContent = detailLoading ? (
     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <span style={{ ...spinner, width: '10px', height: '10px' }} />
       Object Intel
     </span>
-  ) : 'Object Intel';
+  ) : selectedEnergyFeature ? 'Energy Infrastructure' : 'Object Intel';
 
   return (
     <aside className={`shell-panel shell-panel-right shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -307,7 +450,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         <div className="collapsed-label">INTEL</div>
       ) : (
         <div className="panel-content">
-          {!selectedObject ? (
+          {/* Energy Infrastructure Feature Detail */}
+          {selectedEnergyFeature && energyFeatureContent}
+          
+          {/* Airport Object Detail */}
+          {!selectedEnergyFeature && !selectedObject && (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               height: '100%', color: 'var(--shell-text-dim)', fontSize: '0.75rem',
@@ -319,7 +466,10 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                 Enable Aviation [L1] in the layer panel<br />to explore global airport intelligence.
               </div>
             </div>
-          ) : (
+          )}
+          
+          {/* Airport Object Detail */}
+          {!selectedEnergyFeature && selectedObject && (
             <IntelBoundary key={selectedObject.id}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
 

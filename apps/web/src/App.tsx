@@ -14,6 +14,8 @@ import { useSpaceSatellitesSocket } from './layers/space/satellites/useSpaceSate
 import type { SpaceSatellitesStatus } from './layers/space/satellites/satelliteTypes';
 import { DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
 import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
+import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
+import { useEnergyInfrastructure } from './layers/energy/infrastructure/useEnergyInfrastructure';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -43,6 +45,9 @@ const App: React.FC = () => {
   } | null>(null);
   const [aviationFilters, setAviationFilters] = useState<AviationFilters>(DEFAULT_AVIATION_FILTERS);
   const [renderedCount, setRenderedCount] = useState(0);
+  const [energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive] = useState(false);
+  const [energyInfrastructureFilters, setEnergyInfrastructureFilters] = useState<EnergyFilters>(DEFAULT_ENERGY_FILTERS);
+  const [selectedEnergyFeature, setSelectedEnergyFeature] = useState<EnergyFeature | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
@@ -58,6 +63,7 @@ const App: React.FC = () => {
   const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
   const earthEventsPhase = useEarthEvents(earthEventsLayerActive);
   const bordersPhase = useBordersBoundaries(bordersLayerActive);
+  const energyInfrastructureData = useEnergyInfrastructure(energyInfrastructureLayerActive, energyInfrastructureFilters);
 
   // Stable wrappers that delegate to refs CesiumGlobe sets.
   const handleSnapshot = useCallback((aircraft: AircraftLatest[]) => {
@@ -126,6 +132,7 @@ const App: React.FC = () => {
     setCameraTarget({ position: result.position, type: result.type, timestamp: Date.now() });
   }, []);
   const handleFiltersChange = useCallback((filters: AviationFilters) => setAviationFilters(filters), []);
+  const handleEnergyFeatureClose = useCallback(() => setSelectedEnergyFeature(null), []);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
@@ -157,6 +164,9 @@ const App: React.FC = () => {
         spaceSatellites={spaceSatellites}
         spaceSatellitesLayerActive={spaceSatellitesLayerActive}
         spaceSatelliteFilters={spaceSatelliteFilters}
+        energyInfrastructureFeatures={energyInfrastructureData.features}
+        energyInfrastructureLayerActive={energyInfrastructureLayerActive}
+        onEnergyFeatureSelect={setSelectedEnergyFeature}
       />
 
       <div style={{ opacity: isBooting ? 0 : 1, transition: 'opacity 1s ease-in', pointerEvents: isBooting ? 'none' : 'auto' }}>
@@ -186,6 +196,12 @@ const App: React.FC = () => {
           spaceSatellitesStatus={spaceSatellitesStatus}
           spaceSatelliteFilters={spaceSatelliteFilters}
           onSpaceFiltersChange={setSpaceSatelliteFilters}
+          energyInfrastructureLayerActive={energyInfrastructureLayerActive}
+          setEnergyInfrastructureLayerActive={setEnergyInfrastructureLayerActive}
+          energyInfrastructureFilters={energyInfrastructureFilters}
+          onEnergyFiltersChange={setEnergyInfrastructureFilters}
+          selectedEnergyFeature={selectedEnergyFeature}
+          onEnergyFeatureClose={handleEnergyFeatureClose}
         />
       </div>
     </div>
