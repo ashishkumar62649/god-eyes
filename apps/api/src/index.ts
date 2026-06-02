@@ -13,6 +13,7 @@ import { bordersBoundariesRoutes } from './routes/borders-boundaries.js';
 import { aviationAircraftRoutes } from './routes/aviation-aircraft.js';
 import { attachLiveAircraftWebSocket } from './routes/live-aircraft.js';
 import { spaceSatellitesRoutes, attachSpaceSatellitesWebSocket } from './routes/space/satellites.js';
+import { energyInfrastructureRoutes } from './routes/energy/infrastructure.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -38,6 +39,7 @@ async function start() {
     await fastify.register(bordersBoundariesRoutes);
     await fastify.register(aviationAircraftRoutes);
     await fastify.register(spaceSatellitesRoutes);
+    await fastify.register(energyInfrastructureRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {
