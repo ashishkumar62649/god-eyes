@@ -4418,6 +4418,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - Source license verification required for Global Energy Monitor datasets before implementation.
 - Recommended next task: WO-083B — Layer 10 Energy Infrastructure Database Schema (Codex)
 
+
 ## WO-083B - Layer 10 Energy Infrastructure Database Schema
 
 - Work order: WO-083B - Layer 10 Energy Infrastructure Database Schema
@@ -4467,3 +4468,55 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Validation results: 7/7 layer 10 tests pass, 561/561 data tests pass, all builds pass, API tests pass 314/314, git diff clean, migration applied successfully
 - Remaining blockers: None
 - Recommended next task: Kiro review WO-083B, then push branch to origin. WO-083C fetching/normalizer implementation can proceed.
+
+## WO-083C - Layer 10 Energy Infrastructure Fetching Pipeline
+
+- Work order: WO-083C - Layer 10 Energy Infrastructure Fetching Pipeline
+- Agent: Codex
+- LLM model: MiniMax-M3
+- Tool/CLI used: opencode CLI on Windows PowerShell 5.1
+- Lane: Fetching
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/wo-083c-energy-fetching
+- Start time UTC: 2026-06-02T09:00:00Z
+- End time UTC: 2026-06-02T09:49:34Z
+- Commit hash: 9ae8943
+- Push status: local only (NOT pushed - per WO policy; Kiro owns push)
+- Goal: Implement the Layer 10 Energy Infrastructure static fetch / normalize / persist pipeline (CLI worker + cache + DB writer) per the WO-083A contract, with WRI Global Power Plant Database, OpenStreetMap Overpass, and Global Energy Monitor (mock-only) sources.
+- Approach: Implemented a staged fetch/normalize/persist pipeline as 9 Python modules under services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/ plus a 90-test pytest suite under tests/data/layer_10_energy_infrastructure/. The worker is CLI-driven with --download-only, --normalize-only, --persist-from-cache, --source, --category, --country, --bbox, --max-features, --cache-dir, --dry-run, --csv-text (test injection) and --in-memory-db flags. SourceCache writes raw + normalized JSONL + manifest envelope under <cache>/<source>/<group>/ with a latest.<ext> + latest.json pattern. Normalizer applies per-source classification (WRI fuel map, OSM tag parsing incl. voltage_kv + pipeline product, GEM terminal type) and produces canonical records with geometry (point / line / polygon), centroid, and bbox. DB layer uses parameterized ST_SetSRID(ST_GeomFromGeoJSON(%s),4326) upsert with composite unique (source_id, source_object_id); rolls back on bad rows; dry-run is true no-write. Connection layer falls back to an in-memory mock when psycopg is missing so the suite is self-contained. WRI live CSV download is best-effort with graceful failure recorded in the manifest; GEM live download is blocked pending license verification (mock records supported). OSM refuses queries without --bbox / --country unless --allow-global is passed and treats bboxes larger than 25 deg^2 as global. Geometry helpers reject empty or invalid geometry with an error count. All required canonical columns match the WO-083B schema (energy_infrastructure, geom geometry column, TEXT enums, composite unique (source_id, source_object_id)).
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/__init__.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/source_cache.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/energy_sources.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/wri_power_plants_client.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/osm_energy_client.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/gem_energy_client.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/energy_normalizer.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/energy_infrastructure_db.py
+  - services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure/energy_infrastructure_worker.py
+  - tests/data/layer_10_energy_infrastructure/test_energy_infrastructure_fetcher.py
+  - docs/state/HANDOFF_LOG.md (updated with this entry)
+- Files modified: None
+- Layer ID: layer_10_energy_infrastructure
+- Sources wired:
+  1. wri_global_power_plant_database (P1; CSV, real download with graceful failure)
+  2. osm_energy_infrastructure (P2; Overpass, no global queries without --allow-global)
+  3. global_energy_monitor_energy (P3; live download blocked pending license, mock records supported)
+- Canonical feature fields: source_id, source_object_id, layer_id, feature_type, name, operator, country, status, fuel_type, capacity_mw, voltage_kv, pipeline_product, terminal_type, geometry_type, geometry (GeoJSON), centroid, bbox, properties, fetched_at, valid_from, valid_to
+- Commands run: python -m pytest tests/data/layer_10_energy_infrastructure -q (90 passed); python -m pytest tests/data -q (layer_10 90 passed, full suite has 2 pre-existing aviation/space dirty-worktree scope guard failures, see Known Issues); python -m compileall services/fetch-orchestrator/src/layers/layer_10_energy_infrastructure tests/data/layer_10_energy_infrastructure -q (clean); pnpm --filter @god-eyes/contracts build (clean); pnpm --filter api build (clean); pnpm --filter web build (clean); pnpm --filter api test (314/314 passed); git diff --check (clean); git status --short (only 2 allowed untracked paths).
+- Validation results: 90/90 layer_10 tests pass; full tests/data run shows 644 passed + 1 skipped, with 2 pre-existing dirty-worktree scope-guard failures in aviation and space lanes that intentionally reject out-of-scope dirty paths; all pnpm workspaces build; api test suite 314/314 green; git diff --check clean; no raw data committed; no secrets printed.
+- Known issues:
+  - Full tests/data run fails only in the pre-existing aviation/space dirty-worktree scope guards because the new layer_10 dirty paths are not in their allow-lists. Rerun on a clean tree after Kiro review + commit lands the layer_10 work as expected; this is by design.
+  - GEM live download intentionally blocked pending license verification. Mock records are supported and covered by tests.
+  - The WRI live download is best-effort; failure is recorded in the manifest and the worker continues.
+  - The layer_10 worker imports its layer-local source_cache and energy_sources modules via a worktree-local sys.path injection so that running the full tests/data suite does not collide with layer_05_space_satellites's same-named source_cache module.
+- Secrets touched: NO
+- External upstream calls from frontend: NO (worker is CLI only)
+- API runtime touched: NO
+- Database migrations touched: NO (uses WO-083B schema as the source of truth; no migration files added)
+- Frontend touched: NO
+- Contracts touched: NO
+- .env touched: NO
+- Raw data committed: NO
+- Recommended next task: WO-083D - Layer 10 Energy Infrastructure API (Claude)
+
