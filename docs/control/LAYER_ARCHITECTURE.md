@@ -20,6 +20,7 @@ GOD EYES is built as a stack of visual layers on a 3D globe. Each layer represen
 | 7 | `layer_07_infrastructure` | Infrastructure | Power grids, fiber optics, water systems, transport networks | coming_soon | static |
 | 8 | `layer_08_news_osint` | News & OSINT | Geotagged news, open-source intelligence feeds | coming_soon | live |
 | 9 | `layer_09_user_shapes` | User Shapes | User-created polygons, lines, markers | coming_soon | static |
+| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | Power plants, substations, transmission lines, oil/gas pipelines, LNG terminals | coming_soon | static |
 
 ## Layer 0: Globe Core
 

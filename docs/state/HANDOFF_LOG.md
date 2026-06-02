@@ -4353,3 +4353,67 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Review status: pending Kiro review
 - Known issues: The exact manual EXPLAIN query in the work order uses s.satellite_id, but the schema defines space_satellites.id and positions_latest.satellite_id references it. The schema-aligned query runs; after applying 002 locally, PostgreSQL still chooses a parallel sequential scan for broad source_id = 'space_track' because that predicate is low-selectivity on the local data. Full tests/data run failed before commit because an existing aviation dirty-worktree scope guard rejects Layer 05 dirty paths; clean-tree rerun after local commit passed.
 - Next task: Apply WO-082B2 migration in the shared dev database and capture EXPLAIN plans for representative selective API filters such as source_id plus orbit_class/category/object_type/important/altitude.
+
+## WO-083A - Layer 10 Energy Infrastructure Contract / Spec
+
+- Work order: WO-083A — Layer 10 Energy Infrastructure Contract / Spec
+- Agent: Kimi 2.6 Free via OpenRouter
+- LLM model: Kimi 2.6 Free via OpenRouter
+- Tool/CLI used: opencode CLI on Windows PowerShell 5.1
+- Lane: Spec/Contract Architect
+- Working directory: E:\god-eyes
+- Branch: agent/wo-083a-energy-infrastructure-contract
+- Start time UTC: 2026-06-02T06:43:07Z
+- End time UTC: 2026-06-02T06:48:04Z
+- Commit hash: cec7adb
+- Push status: local only (NOT pushed — per WO policy; Kiro owns push)
+- Goal: Define Layer 10 Energy Infrastructure MVP contract, specification, implementation plan, and task breakdown for parallel lane implementation.
+- Approach: Created comprehensive contract document defining layer identity, MVP scope, data sources, canonical data model, visual rules, API contract, database lane requirements, fetching lane requirements, frontend lane requirements, security/safety rules, and acceptance criteria. Created specification document with detailed feature goals, data model, API contract, frontend requirements, database schema, data pipeline, testing strategy, and worktree strategy. Created implementation plan with timeline, dependencies, parallel work strategy, and risk mitigation. Created task breakdown with detailed tasks for database, fetching, API, frontend, integration, and documentation lanes.
+- Files created:
+  - docs/control/layer_10_energy_infrastructure_mvp_contract.md (comprehensive lane contract)
+  - specs/004-layer-10-energy-infrastructure-mvp/spec.md (full specification)
+  - specs/004-layer-10-energy-infrastructure-mvp/plan.md (implementation plan)
+  - specs/004-layer-10-energy-infrastructure-mvp/tasks.md (task breakdown)
+  - docs/state/HANDOFF_LOG.md (updated with this entry)
+- Files modified: None (only new files created)
+- Layer ID: layer_10_energy_infrastructure
+- Sources included:
+  1. wri_global_power_plant_database (WRI Global Power Plant Database)
+  2. osm_energy_infrastructure (OpenStreetMap via Overpass API)
+  3. global_energy_monitor_energy (Global Energy Monitor)
+- MVP scope:
+  - Power plants (generation)
+  - Power substations (transmission nodes)
+  - High-voltage power transmission lines
+  - Oil pipelines
+  - Gas pipelines
+  - LNG terminals
+  - Major oil/gas terminals (if source allows)
+- Deferred scope:
+  - Live energy flow data
+  - Real-time grid balancing
+  - Operational control data
+  - Classified/secret energy infrastructure
+  - Substation internals/transformer details
+  - Low-voltage distribution networks
+  - Individual consumer connections
+  - Energy pricing data
+  - Demand/supply forecasting
+  - Detailed pipeline flow rates
+  - Tank farm inventory levels
+  - Security vulnerability assessments
+- Security/safety notes:
+  - Public/open data sources only
+  - No secret sources
+  - No targeting/sabotage recommendations
+  - No vulnerability scoring
+  - No operational attack guidance
+  - No raw data committed
+  - No .env committed
+  - No credentials printed
+  - Attribution required for CC BY 4.0 and ODbL licenses
+- Commands run: None (specification work only)
+- Validation results: Pending (will run validation commands after commit)
+- Known issues:
+  - Source license verification required for Global Energy Monitor datasets before implementation.
+- Recommended next task: WO-083B — Layer 10 Energy Infrastructure Database Schema (Codex)
