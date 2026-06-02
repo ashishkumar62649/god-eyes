@@ -27,6 +27,8 @@ import { TokenWarningOverlay } from './components/overlays/TokenWarningOverlay';
 import { SatelliteInfoOverlay } from './components/overlays/SatelliteInfoOverlay';
 import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest, SpaceSatelliteItem } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
+import type { EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
+import EnergyInfrastructureLayer from './layers/energy/infrastructure/EnergyInfrastructureLayer';
 import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
 import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
@@ -112,6 +114,10 @@ interface CesiumGlobeProps {
   spaceSatellites?: SpaceSatelliteItem[];
   spaceSatellitesLayerActive?: boolean;
   spaceSatelliteFilters?: SatelliteFilters;
+  /** Layer 10: Energy Infrastructure */
+  energyInfrastructureFeatures?: EnergyFeature[];
+  energyInfrastructureLayerActive?: boolean;
+  onEnergyFeatureSelect?: (feature: EnergyFeature | null) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -135,6 +141,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   spaceSatellites,
   spaceSatellitesLayerActive,
   spaceSatelliteFilters,
+  energyInfrastructureFeatures,
+  energyInfrastructureLayerActive,
+  onEnergyFeatureSelect,
 }) => {
 
   /**
@@ -159,6 +168,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const aviationDataSourceRef = useRef<CustomDataSource | null>(null);
   const layoutDataSourceRef = useRef<CustomDataSource | null>(null);
   const earthEventsDataSourceRef = useRef<CustomDataSource | null>(null);
+  const energyInfrastructureDataSourceRef = useRef<CustomDataSource | null>(null);
   const aircraftCollectionRef = useRef<BillboardCollection | null>(null);
   // Per-aircraft record: direct billboard reference + positions for interpolation + DR fields.
   interface AircraftRecord {
@@ -215,6 +225,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const [selectedSatellite, setSelectedSatellite] = useState<SatelliteFrontendItem | null>(null);
   const satelliteDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const satelliteEntityDataSourceRef = useRef<CustomDataSource | null>(null);
+  const onEnergyFeatureSelectRef = useRef(onEnergyFeatureSelect);
 
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
@@ -232,6 +243,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onAircraftDeltaRef.current = onAircraftDelta;
     onAircraftRenderedRef.current = onAircraftRendered;
     onGetBboxRef2.current = onGetBbox;
+    onEnergyFeatureSelectRef.current = onEnergyFeatureSelect;
     // Populate the external bbox ref so App.tsx can forward bbox to WS.
     if (onGetBboxRef) onGetBboxRef.current = onGetBbox;
   });
@@ -467,6 +479,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       satelliteEntityDataSourceRef.current = satEntityDs;
       viewer.dataSources.add(satEntityDs);
 
+      // Layer 10: energy infrastructure data source
+      const energyInfrastructureDataSource = new CustomDataSource('energy-infrastructure');
+      energyInfrastructureDataSourceRef.current = energyInfrastructureDataSource;
+      viewer.dataSources.add(energyInfrastructureDataSource);
+
       stopFpsCounter = startFpsCounter(viewer);
 
       // Camera changed — debounced occlusion update only, NO data fetching
@@ -565,6 +582,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (entity.properties && entity.properties.satelliteData) {
           const sat = entity.properties.satelliteData.getValue() as SatelliteFrontendItem;
           setSelectedSatellite(sat);
+          return;
+        }
+        
+        // Energy infrastructure feature click
+        if (entity.id && typeof entity.id === 'string' && entity.id.startsWith('energy-')) {
+          const energyFeature = entity.properties?.rawData?.getValue() as EnergyFeature;
+          if (energyFeature) {
+            onEnergyFeatureSelect?.(energyFeature);
+          }
           return;
         }
 
@@ -1305,6 +1331,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           onClose={() => setSelectedSatellite(null)}
         />
       )}
+      <EnergyInfrastructureLayer
+        dataSource={energyInfrastructureDataSourceRef.current}
+        features={energyInfrastructureFeatures ?? []}
+        active={energyInfrastructureLayerActive ?? false}
+      />
     </div>
   );
 };

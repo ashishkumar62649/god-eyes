@@ -145,6 +145,20 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
     isEnabled: false,
     isImplemented: false,
   },
+  {
+    layerId: 'layer_10_energy_infrastructure',
+    name: 'Energy Infrastructure',
+    category: 'infrastructure',
+    status: 'active',
+    dataStatus: 'static',
+    description: 'Power plants, transmission lines, pipelines, terminals',
+    sourceRule: 'WRI, OpenStreetMap, Global Energy Monitor',
+    apiStatus: 'active',
+    frontendStatus: 'active',
+    safetyNotes: 'Static public-source data only. Not live operational status.',
+    isEnabled: true,
+    isImplemented: true,
+  },
 ];
 
 interface UseLayerRegistryResult {

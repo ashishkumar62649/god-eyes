@@ -4417,3 +4417,118 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Known issues:
   - Source license verification required for Global Energy Monitor datasets before implementation.
 - Recommended next task: WO-083B — Layer 10 Energy Infrastructure Database Schema (Codex)
+
+---
+
+### 2026-06-02T16:30:00Z Mimo V2.5 — WO-083E Layer 10 Energy Infrastructure Frontend
+
+- Work order: WO-083E
+- Agent: Mimo V2.5
+- LLM model: Mimo V2.5 (opencode/mimo-v2.5-free)
+- Tool/CLI used: opencode CLI on Windows PowerShell 5.1
+- Lane: Frontend
+- Note: Temporary frontend implementation substitute because Qwen 3 was unavailable.
+- Working directory: E:\god-eyes-frontend
+- Branch: agent/wo-083e-energy-frontend
+- Start time UTC: 2026-06-02T16:30:00Z
+- End time UTC: 2026-06-02T17:30:00Z
+- Commit hash: 8dd50c2
+- Push status: local only / not pushed
+- Goal: Implement Layer 10 Energy Infrastructure frontend integration with dedicated component architecture.
+- Approach: Created a dedicated energy infrastructure layer folder under `apps/web/src/layers/energy/infrastructure/` with types, API client, hook, and rendering component. EnergyInfrastructureLayer.tsx owns all Cesium entity creation, styling, geometry handling, and cleanup. CesiumGlobe.tsx only orchestrates: creates the data source during viewer init, passes it + features + active state to the component, and handles click detection via its existing ScreenSpaceEventHandler. REST-only (no WebSocket). Layer OFF by default.
+- Files created:
+  - `apps/web/src/layers/energy/infrastructure/energyInfrastructureTypes.ts` — TypeScript interfaces for EnergyFeature, EnergyFilters, fuel type colors, feature type colors
+  - `apps/web/src/layers/energy/infrastructure/energyInfrastructureApi.ts` — API client for fetching energy infrastructure data from REST endpoints
+  - `apps/web/src/layers/energy/infrastructure/useEnergyInfrastructure.ts` — React hook for fetching and managing energy infrastructure data with filters
+  - `apps/web/src/layers/energy/infrastructure/EnergyInfrastructureLayer.tsx` — Dedicated Cesium rendering component. Owns data source lifecycle, entity creation/styling/cleanup, geometry handling (points for power plants/substations, lines for pipelines/transmission)
+- Files modified:
+  - `apps/web/src/App.tsx` — Added energy infrastructure state, hook integration, props to CesiumGlobe and Shell
+  - `apps/web/src/CesiumGlobe.tsx` — Orchestration only: creates energy data source in viewer init, renders EnergyInfrastructureLayer component, handles energy click detection in existing ScreenSpaceEventHandler
+  - `apps/web/src/components/LayerPanel.tsx` — Added energy infrastructure layer toggle, feature type filter, fuel type filter, country text input, status filter, and legend section
+  - `apps/web/src/components/Shell.tsx` — Added energy infrastructure props passthrough to LayerPanel and DetailPanel
+  - `apps/web/src/components/DetailPanel.tsx` — Added energy infrastructure feature detail display with name, type, fuel, capacity, voltage, operator, country, status, pipeline info, source/provenance, and safety copy
+  - `apps/web/src/lib/useLayerRegistry.ts` — Added layer_10_energy_infrastructure to local fallback registry with status 'active'
+- Files deleted: None
+- Frontend behavior added:
+  - Layer 10 Energy Infrastructure appears in the layer panel with toggle on/off
+  - Layer is OFF by default
+  - Toggling on fetches data from /api/energy/infrastructure with filters
+  - Graceful handling when API is unavailable
+  - Power plants rendered as colored circles (nuclear=bright orange, coal=dark red, gas=orange-yellow, oil=brown, hydro=blue, solar=yellow, wind=light green, biomass/other=olive)
+  - Substations rendered as purple diamonds
+  - Transmission lines rendered as light blue lines
+  - Oil pipelines rendered as red lines
+  - Gas pipelines rendered as orange lines
+  - Clicking an energy feature shows detail panel with all relevant fields
+  - Filters: feature type, fuel type, country (text input), status
+  - Legend showing all color/shape mappings
+  - Safety copy: "Static public-source infrastructure data. Not live operational status."
+  - No WebSocket used — REST-only
+- Components/hooks/types added:
+  - `EnergyFeature` interface
+  - `EnergyFilters` interface and `DEFAULT_ENERGY_FILTERS`
+  - `ENERGY_FUEL_TYPES` color map
+  - `ENERGY_FEATURE_TYPES` color map
+  - `useEnergyInfrastructure` hook
+  - `fetchEnergyInfrastructure` API function
+  - `EnergyInfrastructureLayer` component (dedicated Cesium rendering)
+- Confirm EnergyInfrastructureLayer.tsx exists: YES
+- Confirm CesiumGlobe is orchestration only: YES
+- Layer toggle/filter summary:
+  - Energy Infrastructure [L10] toggle in layer panel
+  - Feature type filter (power_plant, substation, transmission_line, oil_pipeline, gas_pipeline)
+  - Fuel type filter (nuclear, coal, gas, oil, hydro, solar, wind, biomass/other)
+  - Country text input filter
+  - Status filter (operational, planned, decommissioned)
+- API endpoints consumed:
+  - GET /api/energy/infrastructure with query params (featureType, category, sourceId, fuelType, pipelineProduct, country, minCapacityMw, maxCapacityMw, minVoltageKv, maxVoltageKv, status, limit)
+- Rendering summary:
+  - EnergyInfrastructureLayer creates/manages its own CustomDataSource
+  - Points (power plants, substations) via Entity + PointGraphics
+  - Lines (pipelines, transmission lines) via Entity + PolylineGraphics
+  - Color-coded by fuel type and feature type per spec
+  - Browser-safe render cap (limit=1000 default)
+  - Cleanup on layer toggle off via data source removal
+- Detail/provenance summary:
+  - Shows: name, feature type, fuel type, capacity (MW), voltage (kV), operator, owner, country, status, pipeline product, pipeline length (km), terminal type
+  - Shows source ID, source confidence, source updated at, first seen at, last seen at
+  - Safety copy included
+- Safety copy summary:
+  - "Static public-source infrastructure data. Not live operational status."
+  - No vulnerability scores
+  - No targeting/sabotage language
+  - No real-time operational status implied
+- Tests added/updated:
+  - No test files exist in apps/web/tests/ (project has no frontend test infrastructure)
+  - Build verification passes (tsc + vite build)
+- Manual browser validation: NOT RUN — requires user/local browser validation.
+- Commands run:
+  - `pnpm --filter @god-eyes/contracts build` — PASS
+  - `pnpm --filter web build` — PASS
+  - `pnpm --filter api build` — PASS
+  - `git diff --cached --check` — PASS (0 whitespace errors)
+  - `git status --short` — Clean (staged all changes)
+- Validation results:
+  - TypeScript compilation: PASS (0 errors)
+  - Vite production build: PASS (736ms, 3 output files)
+  - git diff --check: PASS (0 errors)
+  - No API code touched
+  - No fetching code touched
+  - No database migrations touched
+  - No .env files touched
+  - No raw data committed
+  - No secrets printed
+- API touched: NO
+- Frontend touched: YES
+- Fetching touched: NO
+- Database migrations touched: NO
+- Contracts touched: NO
+- Secrets touched: NO
+- Raw data committed: NO
+- Known issues:
+  - No frontend test infrastructure exists in this project
+  - Energy Infrastructure API may not be available in dev environment; graceful fallback implemented
+- Remaining blockers:
+  - WO-083D API endpoints must be deployed for live data
+  - Browser manual validation needed when dev server is available
+- Recommended next task: Mimo V2.5 frontend review of WO-083E

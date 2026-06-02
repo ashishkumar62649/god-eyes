@@ -7,6 +7,7 @@ import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
 import { SatelliteFilters, SAFE_RENDER_CAP } from '../layers/space/satellites/satelliteFilters';
+import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 
 interface AviationStats {
   loaded: number;
@@ -37,6 +38,10 @@ interface LayerPanelProps {
   spaceSatellitesStatus: SpaceSatellitesStatus;
   spaceSatelliteFilters: SatelliteFilters;
   onSpaceFiltersChange: (filters: SatelliteFilters) => void;
+  energyInfrastructureLayerActive: boolean;
+  setEnergyInfrastructureLayerActive: (active: boolean) => void;
+  energyInfrastructureFilters: EnergyFilters;
+  onEnergyFiltersChange: (filters: EnergyFilters) => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -57,6 +62,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
   spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
   spaceSatelliteFilters, onSpaceFiltersChange,
+  energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -151,13 +157,16 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
             </div>
           )}
 
-          {layers.map((entry) => {
+{layers.map((entry) => {
             const isGlobeCore = entry.layerId === 'layer_00_globe_core';
             const isAviation = entry.layerId === 'layer_01_aviation';
             const isBorders = entry.layerId === 'layer_02_borders_boundaries';
             const isEarthEvents = entry.layerId === 'layer_03_earth_events';
             const isInactive = entry.status !== 'active';
             const layerIndex = entry.layerId.match(/layer_(\d+)/)?.[1] ?? '';
+            
+            // Check for energy infrastructure layer
+            const isEnergyInfrastructure = entry.layerId === 'layer_10_energy_infrastructure';
 
             if (isGlobeCore) {
               return (
@@ -222,7 +231,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               return (
                 <div key={entry.layerId} className={`layer-item ${bordersLayerActive ? 'active' : ''}`}
                   onClick={() => setBordersLayerActive(!bordersLayerActive)} style={{ cursor: 'pointer' }}>
-                  <div className="layer-name">Borders &amp; Boundaries [L2]</div>
+                  <div className="layer-name">Borders & Boundaries [L2]</div>
                   <div className="layer-status">
                     <span style={{
                       color: bordersLayerActive ? 'var(--shell-accent)' : undefined,
@@ -264,7 +273,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               return (
                 <div key={entry.layerId} className={`layer-item ${spaceSatellitesLayerActive ? 'active' : ''}`}
                   onClick={() => setSpaceSatellitesLayerActive(!spaceSatellitesLayerActive)} style={{ cursor: 'pointer' }}>
-                  <div className="layer-name">Space &amp; Satellites [L5]</div>
+                  <div className="layer-name">Space & Satellites [L5]</div>
                   <div className="layer-status">
                     <span style={{
                       color: spaceSatellitesLayerActive
@@ -276,6 +285,30 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                       {spaceSatellitesStatusText()}
                     </span>
                   </div>
+                </div>
+              );
+            }
+            
+            // Handle energy infrastructure layer
+            if (isEnergyInfrastructure) {
+              return (
+                <div key={entry.layerId} className={`layer-item ${energyInfrastructureLayerActive ? 'active' : ''}`}
+                  onClick={() => setEnergyInfrastructureLayerActive(!energyInfrastructureLayerActive)} style={{ cursor: 'pointer' }}>
+                  <div className="layer-name">{entry.name} [L10]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: energyInfrastructureLayerActive ? 'var(--shell-accent)' : undefined,
+                      fontWeight: energyInfrastructureLayerActive ? 600 : undefined,
+                      opacity: energyInfrastructureLayerActive ? 1 : 0.7,
+                    }}>
+                      {energyInfrastructureLayerActive ? 'ACTIVE' : 'READY — CLICK TO ACTIVATE'}
+                    </span>
+                  </div>
+                  {energyInfrastructureLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      Static public-source infrastructure data. Not live operational status.
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -394,8 +427,156 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   ))}
                 </div>
               </div>
-            </>
-          )}
+              </>
+            )}
+            
+            {/* Energy Infrastructure Layer Filters */}
+            {energyInfrastructureLayerActive && (
+              <>
+                <div className="filter-section">
+                  <div className="filter-section-header">ENERGY FILTERS</div>
+                  
+                  {/* Feature Type Filter */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>FEATURE TYPE</div>
+                    {([
+                      { value: null, label: 'All' },
+                      { value: 'power_plant', label: 'Power Plant' },
+                      { value: 'substation', label: 'Substation' },
+                      { value: 'transmission_line', label: 'Transmission Line' },
+                      { value: 'oil_pipeline', label: 'Oil Pipeline' },
+                      { value: 'gas_pipeline', label: 'Gas Pipeline' },
+                    ]).map(({ value, label }) => (
+                      <div key={value ?? 'all'}
+                        className={`filter-toggle ${energyInfrastructureFilters.featureType === value ? 'active' : ''}`}
+                        onClick={() => onEnergyFiltersChange({ ...energyInfrastructureFilters, featureType: value })}>
+                        <span className="filter-toggle-dot"
+                          style={{ background: energyInfrastructureFilters.featureType === value ? '#90ee90' : '#555',
+                            opacity: energyInfrastructureFilters.featureType === value ? 1 : 0.4 }} />
+                        <span className="filter-toggle-label">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Fuel Type Filter */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>FUEL TYPE</div>
+                    {([
+                      { value: null, label: 'All' },
+                      { value: 'nuclear', label: 'Nuclear', color: '#ff8c00' },
+                      { value: 'coal', label: 'Coal', color: '#8b0000' },
+                      { value: 'gas', label: 'Gas', color: '#ffa500' },
+                      { value: 'oil', label: 'Oil', color: '#8b4513' },
+                      { value: 'hydro', label: 'Hydro', color: '#4169e1' },
+                      { value: 'solar', label: 'Solar', color: '#ffff00' },
+                      { value: 'wind', label: 'Wind', color: '#90ee90' },
+                      { value: 'biomass', label: 'Biomass/Other', color: '#556b2f' },
+                    ]).map(({ value, label, color }) => (
+                      <div key={value ?? 'all'}
+                        className={`filter-toggle ${energyInfrastructureFilters.fuelType === value ? 'active' : ''}`}
+                        onClick={() => onEnergyFiltersChange({ ...energyInfrastructureFilters, fuelType: value })}>
+                        <span className="filter-toggle-dot"
+                          style={{ background: energyInfrastructureFilters.fuelType === value ? (color || '#90ee90') : '#555',
+                            opacity: energyInfrastructureFilters.fuelType === value ? 1 : 0.4 }} />
+                        <span className="filter-toggle-label">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Country Filter */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>COUNTRY</div>
+                    <input
+                      type="text"
+                      placeholder="Filter by country..."
+                      value={energyInfrastructureFilters.country || ''}
+                      onChange={(e) => onEnergyFiltersChange({ ...energyInfrastructureFilters, country: e.target.value || null })}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '3px',
+                        color: 'var(--shell-text-dim)',
+                        padding: '4px 8px',
+                        fontSize: '0.6rem',
+                        marginBottom: '4px'
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Status Filter */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>STATUS</div>
+                    {([
+                      { value: null, label: 'All' },
+                      { value: 'operational', label: 'Operational' },
+                      { value: 'planned', label: 'Planned' },
+                      { value: 'decommissioned', label: 'Decommissioned' },
+                    ]).map(({ value, label }) => (
+                      <div key={value ?? 'all'}
+                        className={`filter-toggle ${energyInfrastructureFilters.status === value ? 'active' : ''}`}
+                        onClick={() => onEnergyFiltersChange({ ...energyInfrastructureFilters, status: value })}>
+                        <span className="filter-toggle-dot"
+                          style={{ background: energyInfrastructureFilters.status === value ? '#90ee90' : '#555',
+                            opacity: energyInfrastructureFilters.status === value ? 1 : 0.4 }} />
+                        <span className="filter-toggle-label">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Legend */}
+                <div className="legend-section">
+                  <div className="legend-section-header">ENERGY LEGEND</div>
+                  
+                  {/* Power Plant Colors */}
+                  <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>POWER PLANTS</div>
+                  {([
+                    { color: '#ff8c00', label: 'Nuclear' },
+                    { color: '#8b0000', label: 'Coal' },
+                    { color: '#ffa500', label: 'Gas' },
+                    { color: '#8b4513', label: 'Oil' },
+                    { color: '#4169e1', label: 'Hydro' },
+                    { color: '#ffff00', label: 'Solar' },
+                    { color: '#90ee90', label: 'Wind' },
+                    { color: '#556b2f', label: 'Biomass/Other' },
+                  ]).map(({ color, label }) => (
+                    <div key={label} className="legend-item">
+                      <span style={{
+                        display: 'inline-block', width: '10px', height: '10px',
+                        borderRadius: '50%', background: color,
+                        marginRight: '8px', verticalAlign: 'middle', opacity: 0.8,
+                      }} />
+                      <span className="legend-label">{label}</span>
+                    </div>
+                  ))}
+                  
+                  {/* Infrastructure Types */}
+                  <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px', marginTop: '4px' }}>INFRASTRUCTURE</div>
+                  {[
+                    { color: '#800080', label: 'Substation', shape: 'diamond' },
+                    { color: '#87cefa', label: 'Transmission Line', shape: 'dashed' },
+                    { color: '#ff0000', label: 'Oil Pipeline', shape: 'solid' },
+                    { color: '#ffa500', label: 'Gas Pipeline', shape: 'solid' },
+                  ].map(({ color, label, shape }) => (
+                    <div key={label} className="legend-item">
+                      <span style={{
+                        display: 'inline-block', width: '10px', height: '10px',
+                        background: color,
+                        marginRight: '8px', verticalAlign: 'middle', opacity: 0.8,
+                        ...(shape === 'diamond' ? { transform: 'rotate(45deg)' } : {}),
+                        ...(shape === 'dashed' ? { borderStyle: 'dashed' } : {})
+                      }} />
+                      <span className="legend-label">{label}</span>
+                    </div>
+                  ))}
+                  
+                  <div style={{ fontSize: '0.48rem', color: '#ffab00', opacity: 0.65, marginTop: '6px', lineHeight: 1.4 }}>
+                    Static public-source infrastructure data. Not live operational status.
+                  </div>
+                </div>
+              </>
+            )}
         </div>
       )}
     </aside>
