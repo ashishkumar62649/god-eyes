@@ -66,10 +66,10 @@ INSERT INTO energy_infrastructure (
 ) VALUES (
     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
     %s, %s, %s, %s, %s, %s, %s,
-    ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326),
+    ST_SetSRID(ST_GeomFromGeoJSON(%s::text), 4326),
     %s, %s,
-    CASE WHEN %s IS NULL THEN NULL
-         ELSE ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
+    CASE WHEN %s::text IS NULL THEN NULL
+         ELSE ST_SetSRID(ST_GeomFromGeoJSON(%s::text), 4326)
     END,
     %s, %s, %s, %s, %s::jsonb
 )

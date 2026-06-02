@@ -582,17 +582,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.download_only:
         dl = run_download_only(args)
-        if dl.get("groups_failed"):
+        if dl.get("groups_failed") or dl.get("record_count", 0) == 0:
             return 1
         return 0
     if args.normalize_only:
         res = run_normalize_only(args)
-        if res.get("errors"):
+        if res.get("errors") or res.get("features_normalized", 0) == 0:
             return 1
         return 0
     if args.persist_from_cache:
         res = run_persist_from_cache(args)
-        if res.get("errors") or res.get("error"):
+        if res.get("error") or res.get("errors", 0) > 0:
             return 1
         return 0
 
@@ -605,6 +605,8 @@ def _run_direct_persist(args: argparse.Namespace) -> int:
     if norm.get("errors"):
         print(f"[DIRECT] Normalize reported {len(norm['errors'])} non-fatal errors")
     res = run_persist_from_cache(args)
+    if res.get("error") or res.get("errors", 0) > 0:
+        return 1
     return 0
 
 

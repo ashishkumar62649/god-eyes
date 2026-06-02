@@ -42,6 +42,12 @@ SOURCE_ID = SOURCE_WRI
 
 DEFAULT_DOWNLOAD_URL = WRI_CONFIG.default_download_url
 
+# Public fallback: WRI's own GitHub mirror of the same CSV.
+_FALLBACK_DOWNLOAD_URL = (
+    "https://raw.githubusercontent.com/wri/global-power-plant-database"
+    "/master/output_database/global_power_plant_database.csv"
+)
+
 # WRI's known column set. We keep these as constants so the parser
 # stays robust against header re-ordering.
 COL_GPPD_IDNR = "gppd_idnr"
@@ -245,30 +251,46 @@ def download_wri_csv(
     url: str = DEFAULT_DOWNLOAD_URL,
     timeout: int = 60,
 ) -> str:
-    """Best-effort download of the WRI CSV. Returns the CSV text.
+    """Download the WRI CSV, falling back to GitHub if the primary fails.
 
-    Raises ``WRIHttpError`` on any transport / HTTP error so the caller
-    can record the failure in the manifest and fall back to cache.
+    Tries ``url`` first.  On any HTTP / transport error the function
+    retries with ``_FALLBACK_DOWNLOAD_URL``.  Returns the CSV text on
+    success.  Raises ``WRIHttpError`` only when *both* attempts fail.
     The DB URL is never logged.
     """
-    if not url:
+    errors: list[str] = []
+    urls_to_try = [url] if url else []
+    if _FALLBACK_DOWNLOAD_URL and _FALLBACK_DOWNLOAD_URL not in urls_to_try:
+        urls_to_try.append(_FALLBACK_DOWNLOAD_URL)
+
+    if not urls_to_try:
         raise WRIHttpError("No WRI download URL configured")
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "god-eyes-fetching/wo-083c (energy-infrastructure)"},
+
+    for attempt_url in urls_to_try:
+        req = urllib.request.Request(
+            attempt_url,
+            headers={"User-Agent": "god-eyes-fetching/wo-083c (energy-infrastructure)"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+                status = getattr(resp, "status", None) or resp.getcode()
+                if status and int(status) >= 400:
+                    raise WRIHttpError(f"HTTP {status}")
+                data = resp.read()
+            try:
+                csv_text = data.decode("utf-8")
+            except UnicodeDecodeError:
+                csv_text = data.decode("utf-8", errors="replace")
+            # Basic sanity check: must look like CSV (has a header row).
+            if csv_text and "\n" in csv_text:
+                return csv_text
+            errors.append(f"Empty or invalid CSV from {attempt_url}")
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as exc:
+            errors.append(f"{attempt_url}: {exc.__class__.__name__}")
+
+    raise WRIHttpError(
+        "All WRI download URLs failed: " + "; ".join(errors)
     )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-            status = getattr(resp, "status", None) or resp.getcode()
-            if status and int(status) >= 400:
-                raise WRIHttpError(f"HTTP {status}")
-            data = resp.read()
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as exc:
-        raise WRIHttpError(f"Download failed: {exc.__class__.__name__}") from exc
-    try:
-        return data.decode("utf-8")
-    except UnicodeDecodeError:
-        return data.decode("utf-8", errors="replace")
 
 
 def fetch_wri(
