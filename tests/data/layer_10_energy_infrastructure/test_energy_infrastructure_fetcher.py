@@ -527,7 +527,8 @@ def test_fetch_wri_in_memory_csv_text():
 
 
 def test_fetch_wri_network_failure_returns_envelope():
-    result = fetch_wri(csv_text=None, url="http://127.0.0.1:1/nope")
+    with patch.object(wri_power_plants_client, "_FALLBACK_DOWNLOAD_URL", ""):
+        result = fetch_wri(csv_text=None, url="http://127.0.0.1:1/nope")
     assert result["ok"] is False
     assert result["records"] == []
     assert result["error"]
@@ -1103,7 +1104,7 @@ def test_invalid_geometry_skipped_by_normalizer():
 def test_upsert_sql_uses_parameterized_placeholders():
     # No string interpolation of values; every value is a %s slot.
     assert UPSERT_SQL.count("%s") >= 26
-    assert "ST_GeomFromGeoJSON(%s)" in UPSERT_SQL
+    assert "ST_GeomFromGeoJSON(%s::text)" in UPSERT_SQL
     # No f-string interpolation of user data.
     assert "{" not in UPSERT_SQL.split("VALUES")[0]
 
@@ -1362,7 +1363,10 @@ def test_cli_source_failure_recorded(tmp_path):
     ]
     # Passing csv_text=None forces a real download attempt.
     ns = build_arg_parser().parse_args(args)
-    with patch.object(wri_power_plants_client, "DEFAULT_DOWNLOAD_URL", "http://127.0.0.1:1/nope"):
+    with (
+        patch.object(wri_power_plants_client, "DEFAULT_DOWNLOAD_URL", "http://127.0.0.1:1/nope"),
+        patch.object(wri_power_plants_client, "_FALLBACK_DOWNLOAD_URL", ""),
+    ):
         res = run_download_only(ns)
     assert res["groups_failed"] == ["latest"]
     cache = SourceCache(tmp_path)
