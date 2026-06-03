@@ -178,7 +178,21 @@ export function useLayerRegistry(): UseLayerRegistryResult {
       .then((res) => {
         if (cancelled) return;
         if (res.layers && res.layers.length > 0) {
-          setLayers(res.layers);
+          // Merge API layers with local registry so frontend-only layers
+          // (e.g. layer_07_infrastructure) are never dropped when the API
+          // does not yet include them.
+          const apiMap = new Map(res.layers.map((l) => [l.layerId, l]));
+          const merged = LOCAL_LAYER_REGISTRY.map((local) => {
+            const apiEntry = apiMap.get(local.layerId);
+            return apiEntry ?? local;
+          });
+          // Append any API-only layers not present in local (future-proofing)
+          for (const apiEntry of res.layers) {
+            if (!merged.some((m) => m.layerId === apiEntry.layerId)) {
+              merged.push(apiEntry);
+            }
+          }
+          setLayers(merged);
           setApiAvailable(true);
         }
       })
