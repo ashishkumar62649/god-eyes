@@ -73,3 +73,8 @@ packages/contracts/src/*.d.ts.map
 *.swp
 *.swo
 
+
+# MiniMax-M3 private session memory and local tooling
+.m3-session-memory.md
+.opencode/
+graphify-out/
