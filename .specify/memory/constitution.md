@@ -1,50 +1,119 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# GOD EYES Constitution
+
+This Constitution defines the non-negotiable principles that govern all code, configuration, data, and agent behavior in the GOD EYES project. It supersedes ad-hoc decisions. The authoritative source of truth for layer IDs and layer order remains `docs/control/MVP_LAYER_REGISTRY.md`.
+
+**Version**: 1.0.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05
+
+---
+
+## Preamble — MVP Focus
+
+The current project phase is **MVP** (minimum viable product). The MVP goal: take data from a **provider or organization** that has the data, **fetch and store** it in the database, **normalize** it, expose it through the **API**, and render it on the **frontend**. Not everything is organized yet. The MVP must just work. The Constitution applies to all layers in principle; layers that are already implemented will be brought into compliance **after the MVP is complete**.
+
+---
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Layer Integrity (NON-NEGOTIABLE)
+Every entity in GOD EYES — data source, database table, API route, frontend component, fetch job, normalizer — must declare which `layer_id` it belongs to. No orphans. Every layer has a unique `layer_id` and authoritative entry in the layer registry. The layer order in `MVP_LAYER_REGISTRY.md` is binding; if any document or code disagrees with the registry, the registry wins.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Strict Agent Boundaries (NON-NEGOTIABLE)
+Frontend code lives in `apps/web/`, `packages/ui/`, `packages/layers/`. API code lives in `apps/api/`, `packages/contracts/`, `packages/auth/`. Data pipeline lives in `services/`, `packages/source-catalog/`, `packages/schemas/`. Database lives in `database/`. **Frontend never connects directly to the database** — it must call the API. The API is the only component that talks to the database.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Data Provenance and Pipeline Order
+Fetchers always store **raw data first** (path includes `layer_id` and `source_id` per `docs/control/DATA_LOCATION_RULES.md`), then normalizers read raw object metadata (never random files) to produce normalized records. Raw storage is immutable; normalization is reproducible. For the MVP, this means: pull from provider → write raw to disk → normalize → write to DB.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Secrets and Configuration Safety
+Real API keys and credentials **must never be committed**. `.env.example` files contain placeholders only. Production secrets are injected at runtime via environment variables or secret managers. BYOK (Bring Your Own Key) sources require user-provided keys at runtime, never in code.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Two-Phase Review (NON-NEGOTIABLE)
+No code reaches the main `E:\god-eyes\` folder or the GitHub remote without:
+1. A **local commit by the worker agent** in a cloned worktree, following the commit format with full handoff metadata
+2. A **review by Mimo V2.5** in a second VS Code terminal opened in the same worktree folder
+3. A **merge into the main folder** (local)
+4. **Kiro CLI pushes to GitHub** after integration review
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Worker agents do not push. Mimo does not commit worker code. Kiro does not author code.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VI. Handoff Traceability
+Every work order produces a handoff entry in `docs/state/HANDOFF_LOG.md` with: Work order ID, Agent, LLM model, Tool/CLI used, Branch, Start time UTC, End time UTC, Commit hash, Push status, Files changed, Commands run, Review status. The handoff log is the audit trail of GOD EYES. No work is "done" until its handoff is logged.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### VII. Spec-Driven Development
+New features and layers use the Spec-Kit workflow: `constitution` → `specify` → `clarify` → `plan` → `tasks` → `analyze` → `implement`. Specifications live in `specs/NNN-feature-name/` and contain `spec.md`, `plan.md`, `tasks.md` at minimum. The `NNN` prefix is a zero-padded sequential number.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### VIII. Test-First and Scope-Guard Discipline (NON-NEGOTIABLE)
+Tests are written before or alongside implementation. Scope-guard tests verify that a worker's changes do not bleed outside its assigned folder. Pre-merge diff checks must pass. Failing tests or scope-guard violations block the merge, not the commit. The MVP adopts the **progressive integration workflow** (see Section 3) where each lane is tested in isolation before merge, and the full system is tested after all merges.
+
+### IX. Source and Safety Discipline
+Every data source is registered in the source catalog with a layer assignment. Sources that handle user-generated content (news, OSINT) must implement: source attribution, content moderation rules, no private data, no doxxing, no targeting. Sources are open-source-first; BYOK is the optional path for premium sources.
+
+---
+
+## Section 2: Tooling Governance
+
+- **Approved agent frameworks**: Kiro CLI (orchestrator), Mimo V2.5 (reviewer), worker CLIs running their assigned models (Gemini 3.5 Flash, Sonnet 4.6, DeepSeek V4, MiniMax M3). Tools that auto-install hooks, MCP servers, agents, or configuration files into the repo root are **not approved** without an explicit work order and review.
+- **Approved MCP servers** (no cap on count): graphify (knowledge graph), Context7 (live library docs), Filesystem (structured file ops with allowed paths). Others require work-order approval.
+- **Approved skills**: graphify, spec-kit extensions. New skills require work-order approval.
+- **MCP configs live in user-level `~/.config/opencode/opencode.jsonc`**, never in the project's `.opencode/opencode.json`. Reason: a project's `opencode.json` is auto-executed on clone by anyone who runs opencode in that folder, which is a security risk for any `mcp.command` array.
+- **Approved version control**: Git, pnpm workspaces, Docker Compose. No new infrastructure tools without a work order.
+
+---
+
+## Section 3: Development Workflow
+
+### Per-Lane Work Order Lifecycle (Progressive Integration)
+
+The MVP uses a **progressive integration** workflow. Each lane is tested in isolation, merged to the local main folder, and then the full system is tested after all lanes merge.
+
+1. Kiro creates a work order in `docs/work-orders/WO-XXX-{name}.md` listing scope, allowed folders, deliverables, and worker assignment.
+2. The assigned worker opens a cloned worktree (e.g. `E:\god-eyes-{lane}\`) on a branch `agent/wo-XXX-{lane}-{name}`.
+3. The worker does the work in **terminal 1** of VS Code, restricted to its assigned folders, writes tests (Test-First), then writes the implementation.
+4. The worker runs the per-lane tests. If tests pass, the worker makes a **local commit** with the required commit message format.
+5. The worker opens **terminal 2 in the same worktree** (split in VS Code) and runs **Mimo V2.5** to review the diff, the tests, and the handoff log.
+6. After Mimo approves, the worker **merges the worktree branch into the main `E:\god-eyes\` folder** (local — not GitHub).
+7. The next lane repeats steps 1–6.
+
+### Full Integration Test (After All Lanes Merge)
+
+8. After all lanes are merged, the user (or Kiro) runs a **full integration test** of the combined system in the local main folder.
+9. **If the full test passes**: Kiro runs the integration review, creates `docs/state/INTEGRATION_REVIEW_WO-XXX.md`, and pushes to GitHub. The handoff log entry is the final closure artifact.
+10. **If the full test fails**:
+    - **Localize the failure** to a specific lane (e.g., "database is not working properly in the main folder").
+    - **Return to the individual lane worktree** (e.g., `E:\god-eyes-db\`).
+    - **Patch the bug** in the worktree, re-run the per-lane tests, re-commit, re-merge to main.
+    - **Re-run the full integration test**.
+    - **If still failing**: investigate cross-lane synchronization (contract mismatches, schema mismatches, integration points). Get a report. Patch the specific layer; if the issue is cross-cutting and not in any lane's scope, it can be patched directly in the main root folder.
+
+### Commit Message Format
+`<type>(<area>): <description>`
+Required footer fields: Agent, Work Order, LLM model, Tool/CLI used, Branch, Start time UTC, End time UTC, Summary, Commands, Known Issues, Forbidden Folders.
+
+### Time Standard
+All handoff and commit timestamps are in **UTC**. Local time is for humans only.
+
+---
+
+## Section 4: Quality Gates and Review
+
+- **Pre-commit**: Worker self-checks diff is within allowed folders (per scope-guard tests).
+- **Pre-merge**: Mimo review must produce a clear PASS / FAIL verdict with reasons.
+- **Pre-push**: Kiro integration review must produce `INTEGRATION_REVIEW_WO-XXX.md` and verify handoff log completeness.
+- **Post-merge**: Cross-lane consistency check (layer IDs, source IDs, contract types align).
+- **Mimo's review uses both formats**:
+  - `/speckit.analyze` for spec-level consistency (does the implementation match the spec?)
+  - `docs/state/INTEGRATION_REVIEW_WO-XXX.md` for the final integration review (verdict, files checked, issues found, recommendation)
+
+---
+
+## Section 5: Migration Path For Existing Layers
+
+The Constitution applies to all layers, including those already implemented (Layers 00–04 and any others). Existing layers will be brought into compliance **after the MVP is complete**, in a dedicated work order series. The MVP focuses on the **data ingestion pipeline** (provider → fetcher → DB → normalizer → API → frontend) and is not blocked on retrofitting existing layers.
+
+---
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+- This Constitution supersedes all other practices, including individual work orders, except where a work order explicitly grants a documented exception.
+- Amendments require: (1) a written proposal, (2) review by Mimo V2.5, (3) approval by the project lead, (4) version bump in the footer, (5) a `Last Amended` date update.
+- All PRs and reviews must verify compliance with this Constitution.
+- Complexity must be justified in the relevant spec or work order.
