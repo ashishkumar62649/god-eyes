@@ -375,7 +375,7 @@ class MaritimeIngestion:
                 stats["errors"].append(f"vessel_upsert_error: {e}")
         
         # Process positions
-        for position in positions:
+        for position in norm_result.get("positions", []):
             try:
                 mmsi = position["mmsi"]
                 received_at = datetime.fromisoformat(position["received_at"].replace("Z", "+00:00")) if position.get("received_at") else datetime.now(timezone.utc)

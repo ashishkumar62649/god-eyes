@@ -212,6 +212,136 @@ class TestMaritimeCli:
         assert "MaritimeIngestion" in source
 
 
+class TestIngestLivePositionsVariable:
+    """Tests that ingest_live reads positions from norm_result, not undefined variable."""
+
+    def test_ingest_live_reads_positions_from_norm_result(self):
+        """Verify ingest_live does not reference undefined 'positions' variable.
+
+        This catches the bug where line 378 used bare `positions` instead of
+        `norm_result.get('positions', [])`.
+        """
+        import inspect
+        from layers.layer_06_maritime.maritime_ingestion import MaritimeIngestion
+
+        source = inspect.getsource(MaritimeIngestion.ingest_live)
+
+        # The fixed code should reference norm_result.get("positions", [])
+        assert 'norm_result.get("positions"' in source or "norm_result.get('positions'" in source
+
+        # The buggy bare `for position in positions:` should NOT exist
+        # in ingest_live. We check that the only `for position in` in
+        # ingest_live uses norm_result.
+        lines = source.split("\n")
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("for position in ") and "norm_result" not in stripped:
+                pytest.fail(
+                    f"ingest_live references bare variable in: {stripped!r}. "
+                    "Should use norm_result.get('positions', [])"
+                )
+
+    def test_ingest_live_handles_empty_positions(self):
+        """Verify ingest_live handles empty positions list without error."""
+        from layers.layer_06_maritime.maritime_ingestion import MaritimeIngestion
+
+        ingestion = MaritimeIngestion(dry_run=True)
+
+        # Mock normalize_from_cache to return empty positions
+        mock_norm_result = {
+            "raw_messages_read": 10,
+            "position_normalized": 0,
+            "static_normalized": 0,
+            "joined_vessels": 0,
+            "skipped_invalid": 0,
+            "positions": [],
+            "static_records": [],
+            "latest_by_mmsi": {},
+        }
+
+        with patch(
+            "layers.layer_06_maritime.maritime_ingestion.normalize_from_cache",
+            return_value=mock_norm_result,
+        ), patch(
+            "layers.layer_06_maritime.maritime_ingestion.maritime_db_writer"
+        ), patch(
+            "layers.layer_06_maritime.maritime_fetcher.MaritimeFetcher"
+        ) as mock_fetcher_cls:
+            mock_fetcher = mock_fetcher_cls.return_value
+            mock_fetcher.run_proof.return_value = {
+                "run_dir": "/tmp/fake_run",
+                "message_count": 10,
+                "unique_mmsi_count": 0,
+            }
+
+            # This should NOT raise NameError for undefined 'positions'
+            stats = ingestion.ingest_live(max_messages=10, max_duration_seconds=5.0)
+
+        assert stats["positions_upserted"] == 0
+        assert stats["errors"] == []
+        ingestion.close()
+
+    def test_ingest_live_processes_positions_from_norm_result(self):
+        """Verify ingest_live iterates over positions returned by normalize_from_cache."""
+        from layers.layer_06_maritime.maritime_ingestion import MaritimeIngestion
+
+        ingestion = MaritimeIngestion(dry_run=True)
+
+        sample_position = {
+            "mmsi": 123456789,
+            "latitude": 37.7749,
+            "longitude": -122.4194,
+            "speed_over_ground": 12.5,
+            "course_over_ground": 180.0,
+            "true_heading": 178,
+            "navigation_status": 0,
+            "navigation_status_text": "under_way_using_engine",
+            "position_accuracy": True,
+            "ais_timestamp_second": 30,
+            "metadata_time_utc": "2026-06-09T12:00:00Z",
+            "received_at": "2026-06-09T12:00:00Z",
+            "raw_evidence_uri": "/tmp/raw_messages.jsonl",
+            "source_id": "aisstream",
+            "message_type": "PositionReport",
+            "provider_metadata": {"source": "aisstream"},
+        }
+
+        mock_norm_result = {
+            "raw_messages_read": 5,
+            "position_normalized": 1,
+            "static_normalized": 0,
+            "joined_vessels": 0,
+            "skipped_invalid": 0,
+            "positions": [sample_position],
+            "static_records": [],
+            "latest_by_mmsi": {},
+        }
+
+        with patch(
+            "layers.layer_06_maritime.maritime_ingestion.normalize_from_cache",
+            return_value=mock_norm_result,
+        ), patch(
+            "layers.layer_06_maritime.maritime_ingestion.maritime_db_writer"
+        ) as mock_db, patch(
+            "layers.layer_06_maritime.maritime_fetcher.MaritimeFetcher"
+        ) as mock_fetcher_cls:
+            mock_fetcher = mock_fetcher_cls.return_value
+            mock_fetcher.run_proof.return_value = {
+                "run_dir": "/tmp/fake_run",
+                "message_count": 5,
+                "unique_mmsi_count": 1,
+            }
+
+            stats = ingestion.ingest_live(max_messages=5, max_duration_seconds=5.0)
+
+        # Position should have been processed
+        assert stats["positions_upserted"] == 1
+        assert stats["history_rows_inserted"] == 1
+        assert stats["raw_refs_inserted"] == 1
+        assert len(stats["errors"]) == 0
+        ingestion.close()
+
+
 class TestIngestionFlow:
     """Integration-style tests for the full ingestion flow."""
 
