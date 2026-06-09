@@ -1,3 +1,103 @@
+### 2026-06-09T18:30:00Z Fetching Worker — WO-MAR-F-PATCH Maritime CLI Path Fix
+
+- Work order: WO-MAR-F-PATCH
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T18:25:00Z
+- End time UTC: 2026-06-09T18:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Fix CLI import path issue that failed WO-MAR-F review.
+- Fix applied:
+  1. Removed duplicate sys.path manipulation blocks in maritime_cli.py
+  2. Used Path(__file__).resolve().parents[2] to correctly compute source root (services/fetch-orchestrator/src)
+  3. Single import block now works for both direct script execution and module execution
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (rewrote import handling)
+- Commands run:
+  - python services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py --help (PASS)
+  - python -m layers.layer_06_maritime.maritime_cli --help with PYTHONPATH (PASS)
+  - python .../maritime_cli.py inspect-cache raw/.../run_20260609T120430Z (PASS)
+  - python -m pytest tests/data/layer_06_maritime -q (15 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- CLI validation results:
+  - Direct script --help: PASS
+  - Module --help with PYTHONPATH: PASS
+  - inspect-cache: PASS (100 messages, correct types)
+- Live network used: NO
+- Secrets touched: NO
+- Known issues: None
+- Next recommended task: WO-MAR-F re-review
+### 2026-06-09T18:10:00Z Fetching Worker — WO-MAR-F Maritime Fetcher Implementation
+
+- Work order: WO-MAR-F
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI + websockets library
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T17:30:00Z
+- End time UTC: 2026-06-09T18:10:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Turn minimal proof script into clean reusable fetcher with proof/raw-capture/inspect-cache modes.
+- Approach: Created modular fetcher architecture with AISStreamClient, MaritimeRawStorage, MaritimeFetcher, and maritime_cli.
+- Implementation summary:
+  1. aisstream_client.py: WebSocket client with subscription building, message streaming, API key from env only
+  2. maritime_raw_storage.py: Run directory creation, JSONL read/write, metadata/preview/observed_fields output
+  3. maritime_fetcher.py: Orchestrates fetch runs, supports proof/raw-capture/inspect-cache modes, generates all outputs
+  4. maritime_cli.py: Terminal CLI wrapper with proof/raw-capture/inspect-cache commands
+  5. aisstream_proof.py: Kept as legacy proof script (can be wrapper or removed)
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/__init__.py (package init)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/aisstream_client.py (WebSocket client)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_raw_storage.py (raw storage)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_fetcher.py (orchestrator)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (CLI)
+  - tests/data/layer_06_maritime/test_maritime_fetcher.py (15 tests)
+  - tests/data/layer_06_maritime/fixtures/raw_messages_sample.jsonl (test fixture)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Run modes implemented:
+  - proof: YES (default 100 messages or 60 seconds)
+  - raw-capture: YES (configurable duration/message count)
+  - inspect-cache: YES (read existing raw_messages.jsonl, summarize)
+- Secret safety:
+  - API key read from environment only: YES
+  - API key printed: NO
+  - API key written to files: NO
+  - .env modified: NO
+- Tests:
+  - 15 tests created
+  - pytest result: 15 passed
+  - Key behaviors covered: subscription payload, bbox format, message type filters, MetaData camelCase, raw storage read/write, inspect-cache counts, preview extraction
+- Live validation:
+  - inspect-cache on existing run: 100 messages, 84 PositionReport, 16 ShipStaticData
+  - proof run: 20 messages, 17 PositionReport, 3 ShipStaticData
+- Commands run:
+  - python -m pytest tests/data/layer_06_maritime -q (15 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Dependencies: websockets (already added in WO-MAR-S)
+- Secrets touched: YES (AISSTREAM_API_KEY from env for live validation)
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO
+- External live network used: YES (live fetch validation)
+- Known issues: None
+- Next recommended task: WO-MAR-F Reviewer — review fetcher implementation. If approved, proceed to WO-MAR-N (Normalization Implementation).
 ### 2026-06-09T12:05:00Z Fetching Worker — WO-MAR-S AISStream Real Fetch Proof
 
 - Work order: WO-MAR-S
