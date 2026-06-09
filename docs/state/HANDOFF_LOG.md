@@ -1,3 +1,106 @@
+### 2026-06-09T20:02:00Z API Worker — WO-MAR-A Maritime API Implementation
+
+- Work order: WO-MAR-A
+- Agent: API Worker
+- Lane: API
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-api
+- Branch: agent/layer-maritime-api
+- Start time UTC: 2026-06-09T19:30:00Z
+- End time UTC: 2026-06-09T20:02:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Implement REST API endpoints for Layer 06 Maritime using approved database schema.
+- Approach: Created contracts (Zod schemas), route module with 4 endpoints, registered in Fastify, comprehensive test suite.
+- Files created:
+  - apps/api/src/routes/maritime.ts (maritime API route module — 4 endpoints with validation, SQL queries, error handling)
+  - apps/api/tests/maritime.test.ts (30 API tests covering all endpoints, filters, validation, empty-state, error cases)
+- Files modified:
+  - packages/contracts/src/index.ts (added MaritimeObjectSchema, MaritimeDetailSchema, MaritimeStatsSchema, MaritimePositionHistorySchema, list/detail/stats/history response schemas)
+  - apps/api/src/index.ts (imported and registered maritimeRoutes)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- API implementation summary:
+  - 4 REST endpoints implemented in a single maritime route module
+  - Follows existing project patterns (direct SQL via `query<T>()`, parameterized queries, Zod response schemas)
+  - Registered in index.ts alongside existing routes
+  - Contracts package extended with maritime-specific Zod schemas
+- Endpoints implemented:
+  1. GET /api/layers/layer_06_maritime/objects — list latest vessel positions with bbox, vessel_type, speed, updated_since, mmsi, search, limit, offset filters
+  2. GET /api/layers/layer_06_maritime/objects/:objectId — vessel detail by MMSI with all identity + position fields
+  3. GET /api/layers/layer_06_maritime/stats — layer summary with total/active/stale vessel counts, by-vessel-type breakdown, freshness
+  4. GET /api/layers/layer_06_maritime/vessels/:mmsi/positions — position history for one vessel with hours and limit params
+- Query support:
+  - bbox: validated, uses geom && ST_MakeEnvelope for PostGIS spatial query
+  - vessel_type: exact match on v.vessel_type
+  - min_speed/max_speed: range on p.speed_over_ground
+  - updated_since: ISO 8601 datetime filter on p.received_at
+  - mmsi: exact match on p.mmsi
+  - search: ILIKE across v.vessel_name, v.callsign, p.mmsi::text
+  - limit/offset: pagination with 10000 max, capped
+  - hours: for history endpoint, range 1-168
+- Response shape:
+  - Objects list: { objects: MaritimeVesselObject[], metadata: { count, limit, offset, generatedAt } }
+  - Object detail: { vessel: MaritimeVesselDetail }
+  - Stats: { layerId, totalVessels, activeVessels, staleVessels, byVesselType, lastUpdated, dataFreshnessSeconds, sourceId, generatedAt }
+  - History: { mmsi, vesselName, positions[], count, layerId }
+- Database access:
+  - Tables queried: maritime_positions_latest (p), maritime_vessels (v), maritime_position_history
+  - JOINs: LEFT JOIN maritime_vessels ON source_id + mmsi for vessel name/type enrichment
+  - Parameterized: All SQL uses $N parameterized queries (no string interpolation)
+  - Bbox: geom && ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326)
+  - Empty-state: Returns empty arrays, zero counts, null values gracefully
+- Tests:
+  - File: tests/maritime.test.ts
+  - 30 tests total, all passing
+  - Key behaviors covered:
+    - Route registration (objects, detail, stats, history endpoints respond)
+    - Objects list returns vessel objects with all fields
+    - Bbox filter (validates SQL contains ST_MakeEnvelope)
+    - Vessel_type filter parameterized
+    - Speed filters (min_speed, max_speed)
+    - Updated_since filter
+    - Mmsi filter
+    - Search filter (ILIKE with vessel_name, callsign, mmsi::text)
+    - Limit/offset (capped at MAX, correct SQL params)
+    - Invalid bbox rejection (400 INVALID_BBOX)
+    - Invalid limit rejection (400 INVALID_LIMIT)
+    - Invalid offset rejection (400 INVALID_QUERY)
+    - Object detail by MMSI (200 with full vessel data)
+    - Object detail 404 (OBJECT_NOT_FOUND)
+    - Object detail invalid MMSI (400 INVALID_QUERY)
+    - Stats endpoint with vessel type breakdown
+    - Positions history with vessel name
+    - Positions history hours/limit params
+    - Positions history empty state
+    - Positions history invalid MMSI/hours
+    - Empty database (objects, stats — zero counts, empty arrays)
+    - No external network calls (fetch spy)
+    - No frontend imports in route source
+    - SQL parameterized (contains $1)
+    - No secrets exposed
+    - Internal error on DB failure (500 INTERNAL_ERROR, no SQL leak)
+- Validation:
+  - pnpm --filter @god-eyes/contracts build: PASS
+  - pnpm --filter api build (tsc): PASS
+  - pnpm --filter api test: 384/384 PASS (15 test files, 30 maritime tests)
+  - git status --short --branch: clean branch, 2 modified, 2 untracked
+  - git diff --stat: 2 files changed, +103 lines
+  - git diff --check: no whitespace errors
+- Implementation boundary:
+  - fetching code touched: NO
+  - database migrations touched: NO
+  - frontend touched: NO
+  - live network used: NO
+  - secrets touched: NO
+  - raw data committed: NO
+- Issues found: None
+- Blockers: None
+- Commit: (pending — local only, per WO policy)
+- Push status: local only
+- Ready for WO-MAR-A Reviewer: YES
+- Recommended next task: WO-MAR-A Reviewer, then WO-MAR-U Frontend Integration if review passes
+
 ### 2026-06-09T19:05:00Z Fetching Worker — WO-MAR-N Maritime Normalization Implementation
 
 - Work order: WO-MAR-N
