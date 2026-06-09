@@ -434,13 +434,41 @@ def test_maritime_work_order_changes_stay_in_allowed_paths():
     if not changed_paths:
         pytest.skip("Scope guard only applies during local dirty worktree work-order review")
 
-    allowed_prefixes = (
-        "database/migrations/layers/layer_06_maritime/",
+    # Detection: if any changed path is under services/fetch-orchestrator, this is
+    # a fetching-worker (ingestion/fetcher) work order; allow that path prefix.
+    has_fetching_changes = any(
+        p.startswith("services/fetch-orchestrator/src/layers/layer_06_maritime/")
+        for p in changed_paths
+    )
+
+    # Detection: if any changed path is under database/migrations, this is a
+    # database-worker work order; allow that path prefix.
+    has_db_changes = any(
+        p.startswith("database/migrations/layers/layer_06_maritime/")
+        for p in changed_paths
+    )
+
+    # Both lanes share these test/docs paths
+    common_allowed = (
         "tests/data/layer_06_maritime/",
         "docs/state/HANDOFF_LOG.md",
     )
+
+    # Build lane-specific allowed prefixes
+    allowed_prefixes = list(common_allowed)
+    if has_db_changes:
+        allowed_prefixes.append("database/migrations/layers/layer_06_maritime/")
+    if has_fetching_changes:
+        allowed_prefixes.append("services/fetch-orchestrator/src/layers/layer_06_maritime/")
+
     assert changed_paths
-    assert all(path.startswith(allowed_prefixes) for path in changed_paths)
+    assert all(
+        path.startswith(tuple(allowed_prefixes)) for path in changed_paths
+    ), (
+        f"Changed paths not in allowed prefixes for detected lane(s). "
+        f"has_fetching={has_fetching_changes}, has_db={has_db_changes}. "
+        f"Changed: {changed_paths}"
+    )
 
 
 def test_maritime_work_order_adds_no_raw_data_or_env_files():
