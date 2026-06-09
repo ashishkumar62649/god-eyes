@@ -1,0 +1,15 @@
+{
+  "input_file": "tests\\data\\layer_06_maritime\\fixtures\\raw_messages_sample.jsonl",
+  "output_dir": "tests\\data\\layer_06_maritime\\fixtures\\normalized",
+  "raw_messages_read": 5,
+  "position_normalized": 3,
+  "static_normalized": 2,
+  "joined_vessels": 5,
+  "skipped_invalid": 0,
+  "skipped_reasons": {},
+  "outputs": {
+    "positions": "tests\\data\\layer_06_maritime\\fixtures\\normalized\\normalized_positions.jsonl",
+    "static": "tests\\data\\layer_06_maritime\\fixtures\\normalized\\normalized_static.jsonl",
+    "vessels": "tests\\data\\layer_06_maritime\\fixtures\\normalized\\normalized_vessels_latest.jsonl"
+  }
+}

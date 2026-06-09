@@ -8,16 +8,14 @@ import sys
 from pathlib import Path
 
 # Determine source root: services/fetch-orchestrator/src
-# maritime_cli.py is at: .../layers/layer_06_maritime/maritime_cli.py
-# So parents[2] = src, parents[3] = fetch-orchestrator, parents[4] = services
 _this_file = Path(__file__).resolve()
 _services_src = _this_file.parents[2]
 
-# Add to sys.path if not already present
 if str(_services_src) not in sys.path:
     sys.path.insert(0, str(_services_src))
 
 from layers.layer_06_maritime.maritime_fetcher import MaritimeFetcher
+from layers.layer_06_maritime.maritime_normalizer import normalize_from_cache
 
 
 def main():
@@ -64,22 +62,27 @@ def main():
         "input_run_dir", type=Path, help="Run directory to inspect"
     )
 
+    # Normalize from cache mode
+    normalize_parser = subparsers.add_parser("normalize-from-cache", help="Normalize raw messages")
+    normalize_parser.add_argument(
+        "input_path", type=Path, help="Run directory or raw_messages.jsonl file"
+    )
+    normalize_parser.add_argument(
+        "--output-dir", type=Path, help="Output directory (default: normalized/ subdirectory)"
+    )
+
     args = parser.parse_args()
 
     if not args.command:
         parser.print_help()
         return
 
-    # Parse message types
-    message_types = args.message_types.split(",") if hasattr(args, "message_types") else None
-
-    # Initialize fetcher
-    fetcher = MaritimeFetcher(
-        output_root=getattr(args, "output_root", None),
-        message_types=message_types,
-    )
-
     if args.command == "proof":
+        message_types = args.message_types.split(",") if args.message_types else None
+        fetcher = MaritimeFetcher(
+            output_root=args.output_root,
+            message_types=message_types,
+        )
         result = fetcher.run_proof(
             max_messages=args.max_messages,
             max_duration_seconds=args.duration_seconds,
@@ -93,6 +96,11 @@ def main():
         return
 
     if args.command == "raw-capture":
+        message_types = args.message_types.split(",") if args.message_types else None
+        fetcher = MaritimeFetcher(
+            output_root=args.output_root,
+            message_types=message_types,
+        )
         result = fetcher.run_raw_capture(
             max_messages=args.max_messages,
             max_duration_seconds=args.duration_seconds,
@@ -106,6 +114,7 @@ def main():
         return
 
     if args.command == "inspect-cache":
+        fetcher = MaritimeFetcher()
         result = fetcher.inspect_cache(args.input_run_dir)
         print("\n=== CACHE INSPECTION ===")
         print(f"Run: {result['run_id']}")
@@ -114,6 +123,17 @@ def main():
         print(f"Types: {result['message_type_counts']}")
         print(f"Observed fields: {result['observed_fields']['message_types_observed']}")
         print(f"File sizes: {result['file_sizes']}")
+        return
+
+    if args.command == "normalize-from-cache":
+        result = normalize_from_cache(args.input_path, args.output_dir)
+        print("\n=== NORMALIZATION COMPLETE ===")
+        print(f"Raw messages read: {result['raw_messages_read']}")
+        print(f"Positions normalized: {result['position_normalized']}")
+        print(f"Static normalized: {result['static_normalized']}")
+        print(f"Joined vessels: {result['joined_vessels']}")
+        print(f"Skipped: {result['skipped_invalid']}")
+        print(f"\nOutput directory: {result['output_dir']}")
         return
 
 

@@ -1,3 +1,61 @@
+### 2026-06-09T19:05:00Z Fetching Worker — WO-MAR-N Maritime Normalization Implementation
+
+- Work order: WO-MAR-N
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T18:35:00Z
+- End time UTC: 2026-06-09T19:05:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Implement normalization of raw AISStream messages into standard vessel/position objects.
+- Approach: Created maritime_normalizer.py with normalize_position_report, normalize_ship_static_data, join_vessel, normalize_from_cache. Added normalize-from-cache CLI command.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_normalizer.py (normalization logic)
+  - tests/data/layer_06_maritime/test_maritime_normalizer.py (normalization tests - 10 tests added to existing)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/__init__.py (exports normalizer)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (normalize-from-cache command)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Normalization implementation:
+  - normalize_position_report: PositionReport -> position object with mmsi, lat, lon, sog, cog, true_heading, nav_status
+  - normalize_ship_static_data: ShipStaticData -> static object with mmsi, vessel_name, type, dimensions, eta, destination
+  - join_vessel: merges position + static by MMSI
+  - normalize_from_cache: reads raw_messages.jsonl, outputs normalized_*.jsonl + report
+- Mapping decisions:
+  - Sog → speed_over_ground
+  - Cog → course_over_ground
+  - TrueHeading 511 → None (unavailable)
+  - Timestamp integer stored as ais_timestamp_second
+  - Dimension A+B → length_meters, C+D → width_meters
+  - ETA preserved as partial fields (eta_month, eta_day, eta_hour, eta_minute, eta_display)
+  - Navigation status code → text mapping
+  - Ship type code range → vessel_type mapping
+  - ImoNumber 0 → None
+  - Empty strings → None
+- Normalize-from-cache validation:
+  - Fixture: 5 messages -> 3 positions, 2 static, 5 joined vessels
+  - Real proof run: 100 messages -> 84 positions, 16 static, 100 joined vessels
+  - Output written to normalized/ subdirectory
+- Tests:
+  - 10 new tests added (normalization focused)
+  - pytest result: 25 passed (15 existing + 10 new)
+- Commands run:
+  - python services/.../maritime_cli.py normalize-from-cache tests/data/.../raw_messages_sample.jsonl
+  - python services/.../maritime_cli.py normalize-from-cache raw/.../run_20260609T120430Z
+  - python -m pytest tests/data/layer_06_maritime -q (25 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Secrets touched: NO
+- Live network used: NO
+- Raw/ normalized output committed: NO
+- Known issues: None
+- Next recommended task: WO-MAR-N Reviewer — review normalization. If approved, proceed to WO-MAR-D (Database Schema).
 ### 2026-06-09T18:30:00Z Fetching Worker — WO-MAR-F-PATCH Maritime CLI Path Fix
 
 - Work order: WO-MAR-F-PATCH
