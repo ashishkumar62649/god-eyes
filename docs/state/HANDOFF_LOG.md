@@ -1,3 +1,49 @@
+### 2026-06-09T12:05:00Z Fetching Worker — WO-MAR-S AISStream Real Fetch Proof
+
+- Work order: WO-MAR-S
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI + websockets library
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T12:00:00Z
+- End time UTC: 2026-06-09T12:05:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Prove AISStream delivers real live AIS vessel data, capture small dataset, save raw messages, create preview files, document observed fields.
+- Approach: Created minimal proof script (aisstream_proof.py) in services/fetch-orchestrator/src/layers/layer_06_maritime/. Connected to wss://stream.aisstream.io/v0/stream with AISSTREAM_API_KEY from environment. Subscribed to global bounding box [[-90,-180],[90,180]] with PositionReport and ShipStaticData filters. Captured 100 messages (or 60s max). Saved raw_messages.jsonl, metadata.json, preview.json, observed_fields.json, and proof_report.md.
+- Critical findings:
+  1. Real live AIS data successfully captured from AISStream WebSocket
+  2. 100 unique vessels observed in ~12 seconds
+  3. Both PositionReport (84) and ShipStaticData (16) message types received
+  4. MetaData field is camelCase (not Metadata as expected from docs)
+  5. All expected fields present: UserID/MMSI, Latitude, Longitude, Sog, Cog, TrueHeading, Name, Type, Destination
+  6. API key read from environment only, never printed or stored
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/aisstream_proof.py (proof script)
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/raw_messages.jsonl (100 messages)
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/metadata.json
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/preview.json
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/observed_fields.json
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/proof_report.md
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - pip install websockets
+  - python services/fetch-orchestrator/src/layers/layer_06_maritime/aisstream_proof.py
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Secrets touched: YES (AISSTREAM_API_KEY read from environment)
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (raw data in raw/ folder per data location rules)
+- External live network used: YES (connected to AISStream WebSocket)
+- Known issues: None
+- Next recommended task: WO-MAR-S Reviewer — review fetch proof. If approved, proceed to WO-MAR-F (Fetcher Implementation).
 ### 2026-06-09T17:12:00Z Fetching Worker — WO-MAR-R Maritime Source Research
 
 - Work order: WO-MAR-R
