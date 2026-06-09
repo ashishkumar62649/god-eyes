@@ -5350,3 +5350,60 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Known issues: None.
 - Review status: Ready for Kiro review.
 - Recommended next task: WO-MAR-D Reviewer, then WO-MAR-A API Implementation if review passes.
+### 2026-06-09T17:00:00Z Fetching Worker — WO-MAR-I Maritime Live Ingestion / DB Upsert Worker
+
+- Work order: WO-MAR-I
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-ingestion
+- Start time UTC: 2026-06-09T16:30:00Z
+- End time UTC: 2026-06-09T17:00:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Implement the missing MVP ingestion path: AISStream live messages → raw capture → normalization → database upsert → API returns real vessels → frontend can show real ship markers.
+- Implementation summary:
+  1. Created maritime_db_writer.py with parameterized SQL for all table operations (sources, vessels, positions_latest, position_history, raw_message_refs)
+  2. Created maritime_ingestion.py orchestrator that reads normalized cache files and writes to database
+  3. Added ingest-from-cache and live-ingest-proof CLI commands to maritime_cli.py
+  4. Handles dry-run mode, ETA value clamping for DB constraints, valid run_mode values
+  5. All DB writes use parameterized queries (no SQL injection risk)
+  6. No secrets printed or stored
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_db_writer.py (DB operations)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_ingestion.py (orchestrator)
+  - tests/data/layer_06_maritime/test_maritime_ingestion.py (22 tests)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (new commands)
+- Commands run:
+  - python -m py_compile services/.../maritime_db_writer.py (PASS)
+  - python -m py_compile services/.../maritime_ingestion.py (PASS)
+  - python -m py_compile services/.../maritime_cli.py (PASS)
+  - python -m pytest tests/data/layer_06_maritime/test_maritime_ingestion.py -v (22 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check (trailing whitespace warning only)
+- Ingestion validation:
+  - python -m layers.layer_06_maritime.maritime_cli ingest-from-cache raw/.../run_20260609T120430Z --dry-run (PASS: 100 messages, 84 positions, 16 static)
+  - Ingested to local DB: vessels=16, positions=84, history=84, raw_refs=84
+  - DB row counts: maritime_vessels=100, maritime_positions_latest=84, maritime_position_history=89, maritime_raw_message_refs=84
+- Tests:
+  - 22 tests covering: SQL parameterization, upsert shapes, dry-run behavior, no API/frontend imports, CLI command registration
+- Database write behavior:
+  - maritime_sources: upserted for AISStream
+  - maritime_fetch_runs: inserted with run metadata
+  - maritime_vessels: upserted with static data, minimal rows for position-only
+  - maritime_positions_latest: upserted with latest position per MMSI
+  - maritime_position_history: appended for each position
+  - maritime_raw_message_refs: inserted for audit trail
+- Secrets touched: NO (DATABASE_URL from environment, never printed)
+- Live network used: NO (implementation supports live-ingest-proof but validation used local raw proof data only; ingest-from-cache used local files)
+- Raw data committed: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO (used existing tables)
+- Known issues: None
+- Next recommended task: WO-MAR-I Reviewer — review ingestion implementation. If approved, test frontend with live ingested database rows.
