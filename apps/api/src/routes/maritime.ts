@@ -108,6 +108,35 @@ interface VesselNameRow {
   vesselName: string | null;
 }
 
+function toNumber(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const n = Number(value);
+    if (!isNaN(n) && isFinite(n)) return n;
+  }
+  return 0;
+}
+
+function toInteger(value: unknown): number {
+  return Math.round(toNumber(value));
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const n = Number(value);
+    if (!isNaN(n) && isFinite(n)) return n;
+  }
+  return null;
+}
+
+function toIntegerOrNull(value: unknown): number | null {
+  const n = toNumberOrNull(value);
+  if (n === null) return null;
+  return Math.round(n);
+}
+
 function toIsoString(value: unknown): string {
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'string') return value;
@@ -210,26 +239,26 @@ function rowToVesselObject(row: VesselObjectRow) {
     id: row.id,
     layerId: LAYER_ID,
     sourceId: row.sourceId,
-    mmsi: row.mmsi,
+    mmsi: toInteger(row.mmsi),
     dedupeKey: row.dedupeKey,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    speedOverGround: row.speedOverGround,
-    courseOverGround: row.courseOverGround,
-    trueHeading: row.trueHeading,
-    navigationStatus: row.navigationStatus,
+    latitude: toNumber(row.latitude),
+    longitude: toNumber(row.longitude),
+    speedOverGround: toNumberOrNull(row.speedOverGround),
+    courseOverGround: toNumberOrNull(row.courseOverGround),
+    trueHeading: toIntegerOrNull(row.trueHeading),
+    navigationStatus: toIntegerOrNull(row.navigationStatus),
     navigationStatusText: row.navigationStatusText,
-    positionAccuracy: row.positionAccuracy,
+    positionAccuracy: row.positionAccuracy === null ? null : Boolean(row.positionAccuracy),
     receivedAt,
     dataAgeSeconds,
     vesselName: row.vesselName,
     vesselType: row.vesselType,
-    vesselTypeCode: row.vesselTypeCode,
+    vesselTypeCode: toIntegerOrNull(row.vesselTypeCode),
     callsign: row.callsign,
-    imo: row.imo,
+    imo: toIntegerOrNull(row.imo),
     destination: row.destination,
-    lengthMeters: row.lengthMeters,
-    widthMeters: row.widthMeters,
+    lengthMeters: toNumberOrNull(row.lengthMeters),
+    widthMeters: toNumberOrNull(row.widthMeters),
   };
 }
 
@@ -238,11 +267,11 @@ function rowToVesselDetail(row: VesselDetailRow) {
   return {
     ...base,
     rawEvidenceUri: row.rawEvidenceUri,
-    draughtMeters: row.draughtMeters,
-    etaMonth: row.etaMonth,
-    etaDay: row.etaDay,
-    etaHour: row.etaHour,
-    etaMinute: row.etaMinute,
+    draughtMeters: toNumberOrNull(row.draughtMeters),
+    etaMonth: toIntegerOrNull(row.etaMonth),
+    etaDay: toIntegerOrNull(row.etaDay),
+    etaHour: toIntegerOrNull(row.etaHour),
+    etaMinute: toIntegerOrNull(row.etaMinute),
     etaDisplay: row.etaDisplay,
     lastPositionAt: row.lastPositionAt ? toIsoString(row.lastPositionAt) : null,
     lastReceivedAt: row.lastReceivedAt ? toIsoString(row.lastReceivedAt) : null,
@@ -650,7 +679,7 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
       const byVesselTypeRecord: Record<string, number> = {};
       for (const row of byVesselType) {
         const key = row.vesselType || 'unknown';
-        byVesselTypeRecord[key] = row.count;
+        byVesselTypeRecord[key] = toInteger(row.count);
       }
 
       let dataFreshnessSeconds: number | null = null;
@@ -663,9 +692,9 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
 
       return MaritimeStatsResponseSchema.parse({
         layerId: LAYER_ID,
-        totalVessels: stats.totalVessels,
-        activeVessels: stats.activeVessels,
-        staleVessels: stats.staleVessels,
+        totalVessels: toInteger(stats.totalVessels),
+        activeVessels: toInteger(stats.activeVessels),
+        staleVessels: toInteger(stats.staleVessels),
         byVesselType: byVesselTypeRecord,
         lastUpdated: stats.lastUpdated ? toIsoString(stats.lastUpdated) : null,
         dataFreshnessSeconds,
@@ -748,16 +777,16 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
       }
 
       const positions = result.positions.map((row) => ({
-        latitude: row.latitude,
-        longitude: row.longitude,
-        speedOverGround: row.speedOverGround,
-        courseOverGround: row.courseOverGround,
-        trueHeading: row.trueHeading,
+        latitude: toNumber(row.latitude),
+        longitude: toNumber(row.longitude),
+        speedOverGround: toNumberOrNull(row.speedOverGround),
+        courseOverGround: toNumberOrNull(row.courseOverGround),
+        trueHeading: toIntegerOrNull(row.trueHeading),
         receivedAt: toIsoString(row.receivedAt),
       }));
 
       return MaritimePositionHistoryResponseSchema.parse({
-        mmsi,
+        mmsi: toInteger(mmsi),
         vesselName: result.vesselName,
         positions,
         count: positions.length,

@@ -716,3 +716,277 @@ describe('Maritime API', () => {
     expect(params).toContain(10000);
   });
 });
+
+describe('Maritime API Numeric Coercion', () => {
+  let app: ReturnType<typeof Fastify>;
+
+  beforeAll(async () => {
+    app = Fastify({ logger: false });
+    await app.register(maritimeRoutes);
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Mock rows where Postgres returns BIGINT/NUMERIC as strings (common pg behavior)
+  const STRING_MMSI_VESSELS = [
+    {
+      id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      layerId: 'layer_06_maritime',
+      sourceId: 'aisstream',
+      mmsi: '258674000',
+      dedupeKey: 'aisstream:258674000',
+      latitude: '57.65717',
+      longitude: '11.88733',
+      speedOverGround: '12.1',
+      courseOverGround: '173.4',
+      trueHeading: '172',
+      navigationStatus: '0',
+      navigationStatusText: 'under_way_using_engine',
+      positionAccuracy: null,
+      receivedAt: new Date('2026-06-09T12:04:31.743Z'),
+      vesselName: 'LANDRATH KUESTER',
+      vesselType: 'tanker',
+      vesselTypeCode: '80',
+      callsign: null,
+      imo: '0',
+      destination: 'ROTTERDAM',
+      lengthMeters: '100',
+      widthMeters: '30',
+    },
+  ];
+
+  const STRING_DETAIL = {
+    ...STRING_MMSI_VESSELS[0],
+    rawEvidenceUri: 'raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/raw_messages.jsonl',
+    draughtMeters: '12.5',
+    etaMonth: '6',
+    etaDay: '12',
+    etaHour: '8',
+    etaMinute: '30',
+    etaDisplay: null,
+    lastPositionAt: new Date('2026-06-09T12:04:31.743Z'),
+    lastReceivedAt: new Date('2026-06-09T12:04:31.743Z'),
+  };
+
+  const STRING_STATS = [{
+    totalVessels: '84',
+    activeVessels: '0',
+    staleVessels: '84',
+    lastUpdated: new Date('2026-06-09T12:04:34.345Z'),
+  }];
+
+  const STRING_VESSEL_TYPES = [
+    { vesselType: 'tanker', count: '50' },
+    { vesselType: 'cargo', count: '34' },
+  ];
+
+  const STRING_POSITIONS = [
+    {
+      latitude: '57.65717',
+      longitude: '11.88733',
+      speedOverGround: '12.1',
+      courseOverGround: '173.4',
+      trueHeading: '172',
+      receivedAt: new Date('2026-06-09T12:04:31.743Z'),
+    },
+  ];
+
+  it('1. objects endpoint coerces string MMSI to number', async () => {
+    vi.mocked(query).mockResolvedValueOnce(STRING_MMSI_VESSELS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const obj = body.objects[0];
+    expect(obj.mmsi).toBeTypeOf('number');
+    expect(obj.mmsi).toBe(258674000);
+  });
+
+  it('2. objects endpoint coerces all string numeric fields to numbers', async () => {
+    vi.mocked(query).mockResolvedValueOnce(STRING_MMSI_VESSELS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const obj = body.objects[0];
+
+    expect(obj.latitude).toBeTypeOf('number');
+    expect(obj.longitude).toBeTypeOf('number');
+    expect(obj.speedOverGround).toBeTypeOf('number');
+    expect(obj.courseOverGround).toBeTypeOf('number');
+    expect(obj.trueHeading).toBeTypeOf('number');
+    expect(obj.navigationStatus).toBeTypeOf('number');
+    expect(obj.vesselTypeCode).toBeTypeOf('number');
+    expect(obj.imo).toBeTypeOf('number');
+    expect(obj.lengthMeters).toBeTypeOf('number');
+    expect(obj.widthMeters).toBeTypeOf('number');
+    expect(obj.dataAgeSeconds).toBeTypeOf('number');
+
+    expect(obj.latitude).toBe(57.65717);
+    expect(obj.longitude).toBe(11.88733);
+    expect(obj.speedOverGround).toBe(12.1);
+    expect(obj.courseOverGround).toBe(173.4);
+    expect(obj.trueHeading).toBe(172);
+    expect(obj.navigationStatus).toBe(0);
+    expect(obj.vesselTypeCode).toBe(80);
+    expect(obj.imo).toBe(0);
+    expect(obj.lengthMeters).toBe(100);
+    expect(obj.widthMeters).toBe(30);
+  });
+
+  it('3. detail endpoint coerces string MMSI and all numeric fields', async () => {
+    vi.mocked(query).mockResolvedValueOnce([STRING_DETAIL]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects/258674000',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const v = body.vessel;
+
+    expect(v.mmsi).toBeTypeOf('number');
+    expect(v.mmsi).toBe(258674000);
+    expect(v.draughtMeters).toBeTypeOf('number');
+    expect(v.draughtMeters).toBe(12.5);
+    expect(v.etaMonth).toBeTypeOf('number');
+    expect(v.etaMonth).toBe(6);
+    expect(v.etaDay).toBeTypeOf('number');
+    expect(v.etaDay).toBe(12);
+    expect(v.etaHour).toBeTypeOf('number');
+    expect(v.etaHour).toBe(8);
+    expect(v.etaMinute).toBeTypeOf('number');
+    expect(v.etaMinute).toBe(30);
+  });
+
+  it('4. stats endpoint coerces string counts to numbers', async () => {
+    vi.mocked(query)
+      .mockResolvedValueOnce(STRING_STATS)
+      .mockResolvedValueOnce(STRING_VESSEL_TYPES);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/stats',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+
+    expect(body.totalVessels).toBeTypeOf('number');
+    expect(body.activeVessels).toBeTypeOf('number');
+    expect(body.staleVessels).toBeTypeOf('number');
+    expect(body.dataFreshnessSeconds).toBeTypeOf('number');
+
+    expect(body.totalVessels).toBe(84);
+    expect(body.activeVessels).toBe(0);
+    expect(body.staleVessels).toBe(84);
+
+    expect(body.byVesselType.tanker).toBeTypeOf('number');
+    expect(body.byVesselType.cargo).toBeTypeOf('number');
+    expect(body.byVesselType.tanker).toBe(50);
+    expect(body.byVesselType.cargo).toBe(34);
+  });
+
+  it('5. position history endpoint coerces string numeric fields to numbers', async () => {
+    vi.mocked(query)
+      .mockResolvedValueOnce([{ vesselName: 'LANDRATH KUESTER' }])
+      .mockResolvedValueOnce(STRING_POSITIONS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/vessels/258674000/positions',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+
+    expect(body.mmsi).toBeTypeOf('number');
+    expect(body.mmsi).toBe(258674000);
+    expect(body.count).toBeTypeOf('number');
+    expect(body.count).toBe(1);
+
+    const pos = body.positions[0];
+    expect(pos.latitude).toBeTypeOf('number');
+    expect(pos.longitude).toBeTypeOf('number');
+    expect(pos.speedOverGround).toBeTypeOf('number');
+    expect(pos.courseOverGround).toBeTypeOf('number');
+    expect(pos.trueHeading).toBeTypeOf('number');
+
+    expect(pos.latitude).toBe(57.65717);
+    expect(pos.longitude).toBe(11.88733);
+    expect(pos.speedOverGround).toBe(12.1);
+    expect(pos.courseOverGround).toBe(173.4);
+    expect(pos.trueHeading).toBe(172);
+  });
+
+  it('6. IMO 0 from DB is coerced to number 0 (not null)', async () => {
+    vi.mocked(query).mockResolvedValueOnce(STRING_MMSI_VESSELS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.objects[0].imo).toBe(0);
+  });
+
+  it('7. speedOverGround null stays null after coercion', async () => {
+    const rowWithNullSpeed = [{
+      ...STRING_MMSI_VESSELS[0],
+      speedOverGround: null,
+      courseOverGround: null,
+      trueHeading: null,
+    }];
+
+    vi.mocked(query).mockResolvedValueOnce(rowWithNullSpeed);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.objects[0].speedOverGround).toBeNull();
+    expect(body.objects[0].courseOverGround).toBeNull();
+    expect(body.objects[0].trueHeading).toBeNull();
+  });
+
+  it('8. Zod validation passes with all-string numeric rows', async () => {
+    vi.mocked(query).mockResolvedValueOnce(STRING_MMSI_VESSELS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects',
+    });
+
+    expect(response.statusCode).toBe(200);
+    // Should not throw Zod validation error
+    const body = JSON.parse(response.body);
+    expect(Array.isArray(body.objects)).toBe(true);
+  });
+});
