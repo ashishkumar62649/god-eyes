@@ -1,0 +1,115 @@
+{
+  "work_order": "WO-MAR-R",
+  "agent": "Fetching Worker",
+  "date": "2026-06-09",
+  "status": "complete",
+  "primary_source": {
+    "name": "AISStream",
+    "verification_status": "VERIFIED",
+    "decision": "READY_FOR_FETCH_PROOF",
+    "endpoint": "wss://stream.aisstream.io/v0/stream",
+    "protocol": "wss",
+    "auth_required": true,
+    "api_key_required": true,
+    "env_var_name": "AISSTREAM_API_KEY",
+    "free_tier": true,
+    "coverage": "global",
+    "realtime": true,
+    "bbox_required": true,
+    "bbox_format_global": [[[-90, -180], [90, 180]]],
+    "discrepancies_from_planning": [
+      {
+        "id": 1,
+        "planning": "BoundingBoxes optional",
+        "actual": "Required in docs",
+        "impact": "Must always include bbox in subscription"
+      },
+      {
+        "id": 2,
+        "planning": "Global subscription via no bbox",
+        "actual": "Global via [[-90,-180],[90,180]]",
+        "impact": "Works, but bbox is mandatory"
+      },
+      {
+        "id": 3,
+        "planning": "TimeStamp as ISO string",
+        "actual": "Integer (seconds since minute start)",
+        "impact": "Must parse differently"
+      },
+      {
+        "id": 4,
+        "planning": "Dimension as length/width",
+        "actual": "A/B/C/D format",
+        "impact": "Must compute length/width from A+B and C+D"
+      },
+      {
+        "id": 5,
+        "planning": "Eta as ISO string",
+        "actual": "Object {Day, Hour, Minute, Month}",
+        "impact": "Must reconstruct ISO datetime"
+      },
+      {
+        "id": 6,
+        "planning": "Speed field name",
+        "actual": "Sog field name",
+        "impact": "Must map Sog → speed_over_ground"
+      },
+      {
+        "id": 7,
+        "planning": "Course field name",
+        "actual": "Cog field name",
+        "impact": "Must map Cog → course_over_ground"
+      },
+      {
+        "id": 8,
+        "planning": "Metadata not documented",
+        "actual": "Metadata object with MMSI, ShipName, lat/lon, time_utc",
+        "impact": "Use for quick access"
+      }
+    ],
+    "rate_limits": {
+      "free_tier_throughput": "~300 messages/second global",
+      "subscription_timeout_ms": 3000,
+      "subscription_update_throttle": "max 1 per second",
+      "mmsi_filter_max": 50
+    },
+    "risks": [
+      "BETA service — no SLA, no uptime guarantee",
+      "Unstable API — object models may change without notice",
+      "Rate limits — free tier limit not precisely documented",
+      "Subscription timeout — 3 second window",
+      "ShipStaticData not guaranteed on every position",
+      "Connection drops — no explicit reconnect documentation",
+      "Global subscription volume may overwhelm free tier"
+    ]
+  },
+  "secondary_sources": [
+    {
+      "name": "BarentsWatch Live AIS",
+      "decision": "FUTURE_SOURCE",
+      "reason": "Regional fallback only; not global enough for MVP"
+    },
+    {
+      "name": "AISHub",
+      "decision": "FUTURE_SOURCE",
+      "reason": "Requires hardware/data contribution; uncertain availability"
+    },
+    {
+      "name": "Danish Maritime Authority",
+      "decision": "FUTURE_ANALYSIS_SOURCE",
+      "reason": "Historical only, not live"
+    },
+    {
+      "name": "NOAA AccessAIS",
+      "decision": "FUTURE_ANALYSIS_SOURCE",
+      "reason": "Historical only, US-only"
+    },
+    {
+      "name": "Global Fishing Watch",
+      "decision": "FUTURE_ANALYSIS_SOURCE",
+      "reason": "Delayed (5+ days), fishing-vessel focus"
+    }
+  ],
+  "ready_for_fetch_proof": true,
+  "verified_at": "2026-06-09T17:12:00Z"
+}

@@ -25,10 +25,11 @@ import { AircraftInfoOverlay } from './components/overlays/AircraftInfoOverlay';
 import { EarthquakeInfoOverlay } from './components/overlays/EarthquakeInfoOverlay';
 import { TokenWarningOverlay } from './components/overlays/TokenWarningOverlay';
 import { SatelliteInfoOverlay } from './components/overlays/SatelliteInfoOverlay';
-import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest, SpaceSatelliteItem } from '@god-eyes/contracts';
+import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest, SpaceSatelliteItem, MaritimeVesselObject } from '@god-eyes/contracts';
 import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
 import type { EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
 import EnergyInfrastructureLayer from './layers/energy/infrastructure/EnergyInfrastructureLayer';
+import MaritimeLayer from './layers/maritime/MaritimeLayer';
 import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
 import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
@@ -118,6 +119,9 @@ interface CesiumGlobeProps {
   energyInfrastructureFeatures?: EnergyFeature[];
   energyInfrastructureLayerActive?: boolean;
   onEnergyFeatureSelect?: (feature: EnergyFeature | null) => void;
+  maritimeLayerActive?: boolean;
+  maritimeVessels?: MaritimeVesselObject[];
+  onMaritimeBboxChange?: (bbox: string | null) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -144,6 +148,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   energyInfrastructureFeatures,
   energyInfrastructureLayerActive,
   onEnergyFeatureSelect,
+  maritimeLayerActive,
+  maritimeVessels,
+  onMaritimeBboxChange,
 }) => {
 
   /**
@@ -551,13 +558,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             if (isPositionVisible(viewer!, pos)) {
               setSelectedAircraft(ac);
             }
-          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._satelliteData) {
-            // Satellite dot pick (WO-082E)
-            const sat = (pickedObject.id as any)._satelliteData as SatelliteFrontendItem;
-            const altM = (sat.altitudeKm ?? 0) * 1000;
-            const pos = Cartesian3.fromDegrees(sat.longitude, sat.latitude, altM);
+          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._vesselData) {
+            const vessel = (pickedObject.id as any)._vesselData as MaritimeVesselObject;
+            const pos = Cartesian3.fromDegrees(vessel.longitude, vessel.latitude, 0);
             if (isPositionVisible(viewer!, pos)) {
-              setSelectedSatellite(sat);
+              onObjectSelectRef.current(vessel);
             }
           } else {
             onObjectSelectRef.current(null);
@@ -1285,6 +1290,64 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     viewerRef.current?.scene.requestRender();
   }, [spaceSatellites, spaceSatellitesLayerActive, spaceSatelliteFilters]);
 
+  // Camera view bounds tracking for Layer 06 Maritime polling
+  useEffect(() => {
+    if (!viewerReady || !maritimeLayerActive || !onMaritimeBboxChange) {
+      if (onMaritimeBboxChange) {
+        onMaritimeBboxChange(null);
+      }
+      return;
+    }
+
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    const reportBbox = () => {
+      try {
+        const rect = viewer.camera.computeViewRectangle();
+        if (!rect) {
+          onMaritimeBboxChange(null);
+          return;
+        }
+        const toDeg = (r: number) => r * (180 / Math.PI);
+        const minLon = toDeg(rect.west);
+        const minLat = toDeg(rect.south);
+        const maxLon = toDeg(rect.east);
+        const maxLat = toDeg(rect.north);
+
+        // Sanity check coordinates are finite and correct
+        if ([minLon, minLat, maxLon, maxLat].every(isFinite)) {
+          if (
+            minLon >= -180 && minLon <= 180 &&
+            maxLon >= -180 && maxLon <= 180 &&
+            minLat >= -90 && minLat <= 90 &&
+            maxLat >= -90 && maxLat <= 90 &&
+            minLat < maxLat &&
+            minLon < maxLon // Omit dateline crossings
+          ) {
+            const bboxStr = `${minLon.toFixed(6)},${minLat.toFixed(6)},${maxLon.toFixed(6)},${maxLat.toFixed(6)}`;
+            onMaritimeBboxChange(bboxStr);
+            return;
+          }
+        }
+        onMaritimeBboxChange(null); // Fallback to global query
+      } catch (e) {
+        console.warn('Failed to compute bbox for Maritime:', e);
+        onMaritimeBboxChange(null);
+      }
+    };
+
+    // Report initial bbox when layer becomes active
+    reportBbox();
+
+    viewer.camera.moveEnd.addEventListener(reportBbox);
+    return () => {
+      if (viewer && !viewer.isDestroyed()) {
+        viewer.camera.moveEnd.removeEventListener(reportBbox);
+      }
+    };
+  }, [viewerReady, maritimeLayerActive, onMaritimeBboxChange]);
+
   if (error) {
     return (
       <div style={{
@@ -1335,6 +1398,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         dataSource={energyInfrastructureDataSourceRef.current}
         features={energyInfrastructureFeatures ?? []}
         active={energyInfrastructureLayerActive ?? false}
+      />
+      <MaritimeLayer
+        viewer={viewerRef.current}
+        vessels={maritimeVessels ?? []}
+        active={maritimeLayerActive ?? false}
       />
     </div>
   );

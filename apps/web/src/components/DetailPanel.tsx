@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
+import { AirportObject, AirportDetailResponse, MaritimeVesselObject, MaritimeVesselDetail } from '@god-eyes/contracts';
 import IntelSection from './intel/IntelSection';
 import RunwaysSection from './intel/RunwaysSection';
 import FrequenciesSection from './intel/FrequenciesSection';
@@ -15,7 +15,7 @@ import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFe
 import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 
 interface DetailPanelProps {
-  selectedObject: AirportObject | null;
+  selectedObject: AirportObject | MaritimeVesselObject | null;
   airportDetail: AirportDetailResponse | null;
   detailLoading: boolean;
   detailError: string | null;
@@ -24,6 +24,7 @@ interface DetailPanelProps {
   layoutPhase: LayoutPhase;
   selectedEnergyFeature: EnergyFeature | null;
   onEnergyFeatureClose: () => void;
+  vesselDetail: MaritimeVesselDetail | null;
 }
 
 // ── error boundary ────────────────────────────────────────────────────────────
@@ -208,6 +209,164 @@ function AirportOverviewSection({
   );
 }
 
+// ── vessel overview section ──────────────────────────────────────────────────
+function VesselOverviewSection({
+  vessel,
+  detail,
+  loading,
+  error,
+}: {
+  vessel: MaritimeVesselObject;
+  detail: MaritimeVesselDetail | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  const name = vessel.vesselName || 'Unknown vessel';
+
+  return (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--shell-accent)', lineHeight: 1.2, marginBottom: '2px' }}>
+        {name}
+      </div>
+      <div style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '10px', fontFamily: 'var(--shell-font-mono)', letterSpacing: '1px' }}>
+        MMSI: {vessel.mmsi}
+      </div>
+
+      <div className="detail-row">
+        <div className="detail-label">Vessel Type</div>
+        <div className="detail-value">{vessel.vesselType || 'N/A'}</div>
+      </div>
+
+      {vessel.callsign && (
+        <div className="detail-row">
+          <div className="detail-label">Callsign</div>
+          <div className="detail-value">{vessel.callsign}</div>
+        </div>
+      )}
+
+      {vessel.imo && (
+        <div className="detail-row">
+          <div className="detail-label">IMO</div>
+          <div className="detail-value">{vessel.imo}</div>
+        </div>
+      )}
+
+      {vessel.speedOverGround !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Speed Over Ground</div>
+          <div className="detail-value">{vessel.speedOverGround.toFixed(1)} kn</div>
+        </div>
+      )}
+
+      {vessel.courseOverGround !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Course Over Ground</div>
+          <div className="detail-value">{vessel.courseOverGround.toFixed(1)}°</div>
+        </div>
+      )}
+
+      {vessel.trueHeading !== null && (
+        <div className="detail-row">
+          <div className="detail-label">True Heading</div>
+          <div className="detail-value">{vessel.trueHeading.toFixed(1)}°</div>
+        </div>
+      )}
+
+      {vessel.navigationStatusText && (
+        <div className="detail-row">
+          <div className="detail-label">Status</div>
+          <div className="detail-value">{vessel.navigationStatusText}</div>
+        </div>
+      )}
+
+      {vessel.destination && (
+        <div className="detail-row">
+          <div className="detail-label">Destination</div>
+          <div className="detail-value">{vessel.destination}</div>
+        </div>
+      )}
+
+      {vessel.lengthMeters !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Length</div>
+          <div className="detail-value">{vessel.lengthMeters} m</div>
+        </div>
+      )}
+
+      {vessel.widthMeters !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Width</div>
+          <div className="detail-value">{vessel.widthMeters} m</div>
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--shell-text-dim)', fontSize: '0.65rem', marginTop: '10px' }}>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', border: '2px solid var(--shell-text-dim)', borderTopColor: 'var(--shell-accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          Loading voyage details…
+        </div>
+      )}
+
+      {error && (
+        <div style={{ color: '#f87171', fontSize: '0.6rem', marginTop: '10px' }}>
+          Failed to load voyage details: {error}
+        </div>
+      )}
+
+      {detail && (
+        <>
+          {detail.draughtMeters !== null && (
+            <div className="detail-row">
+              <div className="detail-label">Draught</div>
+              <div className="detail-value">{detail.draughtMeters.toFixed(2)} m</div>
+            </div>
+          )}
+
+          {detail.etaDisplay && (
+            <div className="detail-row">
+              <div className="detail-label">ETA</div>
+              <div className="detail-value">{detail.etaDisplay}</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Source and Provenance */}
+      <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 600, marginBottom: '6px', color: 'var(--shell-accent)' }}>
+          SOURCE & PROVENANCE
+        </div>
+        <div className="detail-row">
+          <div className="detail-label">Source Attribution</div>
+          <div className="detail-value">AISStream</div>
+        </div>
+        <div className="detail-row">
+          <div className="detail-label">Source ID</div>
+          <div className="detail-value">{vessel.sourceId}</div>
+        </div>
+        {vessel.dataAgeSeconds !== null && (
+          <div className="detail-row">
+            <div className="detail-label">Data Age</div>
+            <div className="detail-value">{vessel.dataAgeSeconds}s</div>
+          </div>
+        )}
+        <div className="detail-row">
+          <div className="detail-label">Received At</div>
+          <div className="detail-value">{new Date(vessel.receivedAt).toLocaleTimeString()}</div>
+        </div>
+      </div>
+
+      <div style={{
+        marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: '20px', opacity: 0.3, fontSize: '0.6rem',
+        fontFamily: 'var(--shell-font-mono)',
+      }}>
+        SYSTEM ID: {vessel.id}
+      </div>
+    </div>
+  );
+}
+
 // ── sources section ───────────────────────────────────────────────────────────
 function SourcesSection({
   attribution,
@@ -269,9 +428,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   layoutPhase,
   selectedEnergyFeature,
   onEnergyFeatureClose: _onEnergyFeatureClose,
+  vesselDetail,
 }) => {
-  const { state: profileState, retry } = useAirportPublicProfile(selectedObject?.id ?? null);
-  const intelState = useAirportIntelligence(selectedObject?.id ?? null);
+  const isVessel = selectedObject && 'layerId' in selectedObject && selectedObject.layerId === 'layer_06_maritime';
+  const { state: profileState, retry } = useAirportPublicProfile(!isVessel && selectedObject ? selectedObject.id : null);
+  const intelState = useAirportIntelligence(!isVessel && selectedObject ? selectedObject.id : null);
 
   const profile =
     profileState.phase === 'ok' || profileState.phase === 'stale' || profileState.phase === 'low_confidence'
@@ -461,22 +622,34 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
               letterSpacing: '1px', textAlign: 'center', padding: '0 20px',
             }}>
               <div style={{ opacity: 0.5, marginBottom: '16px', fontSize: '2rem' }}>{'\u2316'}</div>
-              SELECT AN AIRPORT OR SEARCH TO INSPECT OBJECT INTELLIGENCE
+              SELECT AN OBJECT OR SEARCH TO INSPECT OBJECT INTELLIGENCE
               <div style={{ marginTop: '12px', fontSize: '0.6rem', opacity: 0.45, letterSpacing: '0.5px', lineHeight: 1.6 }}>
-                Enable Aviation [L1] in the layer panel<br />to explore global airport intelligence.
+                Enable layers in the operations panel<br />to explore global intelligence features.
               </div>
             </div>
           )}
           
+          {/* Vessel Detail Card rendering */}
+          {!selectedEnergyFeature && selectedObject && isVessel && (
+            <IntelSection title="Vessel Details">
+              <VesselOverviewSection
+                vessel={selectedObject as MaritimeVesselObject}
+                detail={vesselDetail}
+                loading={detailLoading}
+                error={detailError}
+              />
+            </IntelSection>
+          )}
+
           {/* Airport Object Detail */}
-          {!selectedEnergyFeature && selectedObject && (
+          {!selectedEnergyFeature && selectedObject && !isVessel && (
             <IntelBoundary key={selectedObject.id}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
 
                 {/* ── OVERVIEW (merged with public profile) ── */}
                 <IntelSection title="Overview">
                   <AirportOverviewSection
-                    airport={selectedObject}
+                    airport={selectedObject as AirportObject}
                     profile={profile}
                     profilePhase={profileState.phase}
                     onRetry={retry}
@@ -503,7 +676,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     <NearbyNavaidsSection navaids={airportDetail.nearbyNavaids} />
                     <IntelSection title="">
                       <DataQualityCard
-                        sourceId={selectedObject.sourceId}
+                        sourceId={(selectedObject as AirportObject).sourceId}
                         metadata={airportDetail.metadata}
                       />
                     </IntelSection>

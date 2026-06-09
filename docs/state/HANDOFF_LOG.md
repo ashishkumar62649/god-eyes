@@ -1,3 +1,509 @@
+### 2026-06-09T15:52:00Z Frontend Worker — WO-MAR-U Maritime Frontend Integration
+
+- Work order: WO-MAR-U
+- Agent: Frontend Worker
+- Lane: Frontend
+- LLM model: Antigravity (Gemini 1.5 Pro equivalent / Antigravity)
+- Tool/CLI used: Antigravity CLI / git
+- Working directory: E:\god-eyes-frontend
+- Branch: agent/layer-maritime-frontend
+- Start time UTC: 2026-06-09T15:00:00Z
+- End time UTC: 2026-06-09T15:52:00Z
+- Commit hash: f6b9afd651bf14f6db2c00b5942b42043095ed44 (local only)
+- Push status: local only (per WO policy)
+- Goal: Implement the Maritime / Live Ships frontend layer using the approved Maritime API.
+- Approach: Registered layer in registry, created API client, implemented useMaritime React hook for polling and filtering, created custom canvas markers (directional/non-directional) with staleness calculation, built MaritimeLayer Cesium subcomponent, integrated state and components into App.tsx, CesiumGlobe.tsx, LayerPanel.tsx, Shell.tsx, and DetailPanel.tsx, and created a comprehensive Vitest test suite.
+- Files created:
+  - apps/web/src/layers/maritime/maritimeApi.ts (maritime API client helper functions)
+  - apps/web/src/layers/maritime/useMaritime.ts (React hook for REST polling, bbox filtering, and dateline crossing safety)
+  - apps/web/src/layers/maritime/vesselMarker.ts (vessel marker color mapping, staleness check, true heading priority, canvas data URL generation)
+  - apps/web/src/layers/maritime/MaritimeLayer.tsx (Cesium billboard collection layer, selection picking reference, rotation, dimming)
+  - apps/web/src/layers/maritime/__tests__/maritime.test.ts (11 unit tests covering layer registry, API, marker styling, heading selection, stale detection, empty/error handling)
+- Files modified:
+  - apps/web/src/lib/useLayerRegistry.ts (registered layer_06_maritime)
+  - apps/web/src/App.tsx (added maritime layer state, filters, selection detail, useMaritime hook invocation)
+  - apps/web/src/CesiumGlobe.tsx (integrated MaritimeLayer, moveEnd camera bbox updates, pick picking listener for billboards)
+  - apps/web/src/components/LayerPanel.tsx (added Maritime layer visibility toggle, filters, statistics, refresh button)
+  - apps/web/src/components/Shell.tsx (stats wrapper alignment)
+  - apps/web/src/components/DetailPanel.tsx (rendered vessel card details, suppressed other panels for maritime objects)
+  - apps/web/package.json (added vitest dependency and script)
+  - pnpm-lock.yaml (locked vitest dependencies)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Frontend implementation summary:
+  - Registered layer_06_maritime (status: active, apiStatus: active, frontendStatus: active, isImplemented: true, isEnabled: false, sourceRule: 'AISStream')
+  - API Client: fetchMaritimeObjects, fetchVesselDetail, fetchMaritimeStats utilizing project API only (no AISStream direct calls)
+  - useMaritime hook: runs REST polling every 30s when active, filters by vessel_type, search, and validated bbox (with dateline crossing safety check)
+  - Globe marker rendering: uses a high-performance primitive BillboardCollection. Rotates billboards based on trueHeading/courseOverGround. Dims stale vessels (dataAgeSeconds > 3600 or receivedAt older than 1 hour). Removes collection on unmount.
+  - Detail card: displays vessel identity, speed, course, heading, destination, dimensions, and optional detail fields (draught, ETA) safely, attributing to AISStream and hiding rawEvidenceUri.
+  - Statistics: displays total, active, and stale vessels in the LayerPanel when active.
+  - Filters: exposes search, vessel type categories, and manual refresh controls in LayerPanel.
+- Tests:
+  - File: apps/web/src/layers/maritime/__tests__/maritime.test.ts
+  - 11 unit tests running via Vitest, all passing
+  - Covered layer registry, API client URL builder, bbox formatting, fallback query, vessel detail fetching, API error and empty-state handling, color resolving, stale vessel detection, heading priority (trueHeading first, then courseOverGround), and dot markers for non-directional vessels.
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter web build (PASS)
+  - pnpm --filter web test (11/11 PASS)
+  - git diff --check (PASS)
+  - git status (PASS)
+- Validation:
+  - contracts build: PASS (tsc completed successfully)
+  - web build: PASS (tsc && vite build completed successfully)
+  - unit tests: 11 tests passed successfully
+  - git diff check: no whitespace errors
+- Implementation boundary:
+  - fetching code touched: NO
+  - database migrations touched: NO
+  - API routes touched: NO
+  - API tests touched: NO
+  - MVP_LAYER_REGISTRY.md touched: NO
+  - live network used: NO
+  - secrets touched: NO
+  - raw data committed: NO
+- Issues found: None
+- Blockers: None
+- Commit: (pending — local only, per WO policy)
+- Push status: local only
+- Ready for WO-MAR-U Reviewer: YES
+- Recommended next task: WO-MAR-U Reviewer, then WO-MAR-V Full Layer Validation if review passes
+
+### 2026-06-09T20:02:00Z API Worker — WO-MAR-A Maritime API Implementation
+
+- Work order: WO-MAR-A
+- Agent: API Worker
+- Lane: API
+- LLM model: deepseek-v4-flash-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-api
+- Branch: agent/layer-maritime-api
+- Start time UTC: 2026-06-09T19:30:00Z
+- End time UTC: 2026-06-09T20:02:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Implement REST API endpoints for Layer 06 Maritime using approved database schema.
+- Approach: Created contracts (Zod schemas), route module with 4 endpoints, registered in Fastify, comprehensive test suite.
+- Files created:
+  - apps/api/src/routes/maritime.ts (maritime API route module — 4 endpoints with validation, SQL queries, error handling)
+  - apps/api/tests/maritime.test.ts (30 API tests covering all endpoints, filters, validation, empty-state, error cases)
+- Files modified:
+  - packages/contracts/src/index.ts (added MaritimeObjectSchema, MaritimeDetailSchema, MaritimeStatsSchema, MaritimePositionHistorySchema, list/detail/stats/history response schemas)
+  - apps/api/src/index.ts (imported and registered maritimeRoutes)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- API implementation summary:
+  - 4 REST endpoints implemented in a single maritime route module
+  - Follows existing project patterns (direct SQL via `query<T>()`, parameterized queries, Zod response schemas)
+  - Registered in index.ts alongside existing routes
+  - Contracts package extended with maritime-specific Zod schemas
+- Endpoints implemented:
+  1. GET /api/layers/layer_06_maritime/objects — list latest vessel positions with bbox, vessel_type, speed, updated_since, mmsi, search, limit, offset filters
+  2. GET /api/layers/layer_06_maritime/objects/:objectId — vessel detail by MMSI with all identity + position fields
+  3. GET /api/layers/layer_06_maritime/stats — layer summary with total/active/stale vessel counts, by-vessel-type breakdown, freshness
+  4. GET /api/layers/layer_06_maritime/vessels/:mmsi/positions — position history for one vessel with hours and limit params
+- Query support:
+  - bbox: validated, uses geom && ST_MakeEnvelope for PostGIS spatial query
+  - vessel_type: exact match on v.vessel_type
+  - min_speed/max_speed: range on p.speed_over_ground
+  - updated_since: ISO 8601 datetime filter on p.received_at
+  - mmsi: exact match on p.mmsi
+  - search: ILIKE across v.vessel_name, v.callsign, p.mmsi::text
+  - limit/offset: pagination with 10000 max, capped
+  - hours: for history endpoint, range 1-168
+- Response shape:
+  - Objects list: { objects: MaritimeVesselObject[], metadata: { count, limit, offset, generatedAt } }
+  - Object detail: { vessel: MaritimeVesselDetail }
+  - Stats: { layerId, totalVessels, activeVessels, staleVessels, byVesselType, lastUpdated, dataFreshnessSeconds, sourceId, generatedAt }
+  - History: { mmsi, vesselName, positions[], count, layerId }
+- Database access:
+  - Tables queried: maritime_positions_latest (p), maritime_vessels (v), maritime_position_history
+  - JOINs: LEFT JOIN maritime_vessels ON source_id + mmsi for vessel name/type enrichment
+  - Parameterized: All SQL uses $N parameterized queries (no string interpolation)
+  - Bbox: geom && ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326)
+  - Empty-state: Returns empty arrays, zero counts, null values gracefully
+- Tests:
+  - File: tests/maritime.test.ts
+  - 30 tests total, all passing
+  - Key behaviors covered:
+    - Route registration (objects, detail, stats, history endpoints respond)
+    - Objects list returns vessel objects with all fields
+    - Bbox filter (validates SQL contains ST_MakeEnvelope)
+    - Vessel_type filter parameterized
+    - Speed filters (min_speed, max_speed)
+    - Updated_since filter
+    - Mmsi filter
+    - Search filter (ILIKE with vessel_name, callsign, mmsi::text)
+    - Limit/offset (capped at MAX, correct SQL params)
+    - Invalid bbox rejection (400 INVALID_BBOX)
+    - Invalid limit rejection (400 INVALID_LIMIT)
+    - Invalid offset rejection (400 INVALID_QUERY)
+    - Object detail by MMSI (200 with full vessel data)
+    - Object detail 404 (OBJECT_NOT_FOUND)
+    - Object detail invalid MMSI (400 INVALID_QUERY)
+    - Stats endpoint with vessel type breakdown
+    - Positions history with vessel name
+    - Positions history hours/limit params
+    - Positions history empty state
+    - Positions history invalid MMSI/hours
+    - Empty database (objects, stats — zero counts, empty arrays)
+    - No external network calls (fetch spy)
+    - No frontend imports in route source
+    - SQL parameterized (contains $1)
+    - No secrets exposed
+    - Internal error on DB failure (500 INTERNAL_ERROR, no SQL leak)
+- Validation:
+  - pnpm --filter @god-eyes/contracts build: PASS
+  - pnpm --filter api build (tsc): PASS
+  - pnpm --filter api test: 384/384 PASS (15 test files, 30 maritime tests)
+  - git status --short --branch: clean branch, 2 modified, 2 untracked
+  - git diff --stat: 2 files changed, +103 lines
+  - git diff --check: no whitespace errors
+- Implementation boundary:
+  - fetching code touched: NO
+  - database migrations touched: NO
+  - frontend touched: NO
+  - live network used: NO
+  - secrets touched: NO
+  - raw data committed: NO
+- Issues found: None
+- Blockers: None
+- Commit: (pending — local only, per WO policy)
+- Push status: local only
+- Ready for WO-MAR-A Reviewer: YES
+- Recommended next task: WO-MAR-A Reviewer, then WO-MAR-U Frontend Integration if review passes
+
+### 2026-06-09T19:05:00Z Fetching Worker — WO-MAR-N Maritime Normalization Implementation
+
+- Work order: WO-MAR-N
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T18:35:00Z
+- End time UTC: 2026-06-09T19:05:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Implement normalization of raw AISStream messages into standard vessel/position objects.
+- Approach: Created maritime_normalizer.py with normalize_position_report, normalize_ship_static_data, join_vessel, normalize_from_cache. Added normalize-from-cache CLI command.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_normalizer.py (normalization logic)
+  - tests/data/layer_06_maritime/test_maritime_normalizer.py (normalization tests - 10 tests added to existing)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/__init__.py (exports normalizer)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (normalize-from-cache command)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Normalization implementation:
+  - normalize_position_report: PositionReport -> position object with mmsi, lat, lon, sog, cog, true_heading, nav_status
+  - normalize_ship_static_data: ShipStaticData -> static object with mmsi, vessel_name, type, dimensions, eta, destination
+  - join_vessel: merges position + static by MMSI
+  - normalize_from_cache: reads raw_messages.jsonl, outputs normalized_*.jsonl + report
+- Mapping decisions:
+  - Sog → speed_over_ground
+  - Cog → course_over_ground
+  - TrueHeading 511 → None (unavailable)
+  - Timestamp integer stored as ais_timestamp_second
+  - Dimension A+B → length_meters, C+D → width_meters
+  - ETA preserved as partial fields (eta_month, eta_day, eta_hour, eta_minute, eta_display)
+  - Navigation status code → text mapping
+  - Ship type code range → vessel_type mapping
+  - ImoNumber 0 → None
+  - Empty strings → None
+- Normalize-from-cache validation:
+  - Fixture: 5 messages -> 3 positions, 2 static, 5 joined vessels
+  - Real proof run: 100 messages -> 84 positions, 16 static, 100 joined vessels
+  - Output written to normalized/ subdirectory
+- Tests:
+  - 10 new tests added (normalization focused)
+  - pytest result: 25 passed (15 existing + 10 new)
+- Commands run:
+  - python services/.../maritime_cli.py normalize-from-cache tests/data/.../raw_messages_sample.jsonl
+  - python services/.../maritime_cli.py normalize-from-cache raw/.../run_20260609T120430Z
+  - python -m pytest tests/data/layer_06_maritime -q (25 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Secrets touched: NO
+- Live network used: NO
+- Raw/ normalized output committed: NO
+- Known issues: None
+- Next recommended task: WO-MAR-N Reviewer — review normalization. If approved, proceed to WO-MAR-D (Database Schema).
+### 2026-06-09T18:30:00Z Fetching Worker — WO-MAR-F-PATCH Maritime CLI Path Fix
+
+- Work order: WO-MAR-F-PATCH
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T18:25:00Z
+- End time UTC: 2026-06-09T18:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Fix CLI import path issue that failed WO-MAR-F review.
+- Fix applied:
+  1. Removed duplicate sys.path manipulation blocks in maritime_cli.py
+  2. Used Path(__file__).resolve().parents[2] to correctly compute source root (services/fetch-orchestrator/src)
+  3. Single import block now works for both direct script execution and module execution
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (rewrote import handling)
+- Commands run:
+  - python services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py --help (PASS)
+  - python -m layers.layer_06_maritime.maritime_cli --help with PYTHONPATH (PASS)
+  - python .../maritime_cli.py inspect-cache raw/.../run_20260609T120430Z (PASS)
+  - python -m pytest tests/data/layer_06_maritime -q (15 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- CLI validation results:
+  - Direct script --help: PASS
+  - Module --help with PYTHONPATH: PASS
+  - inspect-cache: PASS (100 messages, correct types)
+- Live network used: NO
+- Secrets touched: NO
+- Known issues: None
+- Next recommended task: WO-MAR-F re-review
+### 2026-06-09T18:10:00Z Fetching Worker — WO-MAR-F Maritime Fetcher Implementation
+
+- Work order: WO-MAR-F
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI + websockets library
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T17:30:00Z
+- End time UTC: 2026-06-09T18:10:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Turn minimal proof script into clean reusable fetcher with proof/raw-capture/inspect-cache modes.
+- Approach: Created modular fetcher architecture with AISStreamClient, MaritimeRawStorage, MaritimeFetcher, and maritime_cli.
+- Implementation summary:
+  1. aisstream_client.py: WebSocket client with subscription building, message streaming, API key from env only
+  2. maritime_raw_storage.py: Run directory creation, JSONL read/write, metadata/preview/observed_fields output
+  3. maritime_fetcher.py: Orchestrates fetch runs, supports proof/raw-capture/inspect-cache modes, generates all outputs
+  4. maritime_cli.py: Terminal CLI wrapper with proof/raw-capture/inspect-cache commands
+  5. aisstream_proof.py: Kept as legacy proof script (can be wrapper or removed)
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/__init__.py (package init)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/aisstream_client.py (WebSocket client)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_raw_storage.py (raw storage)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_fetcher.py (orchestrator)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (CLI)
+  - tests/data/layer_06_maritime/test_maritime_fetcher.py (15 tests)
+  - tests/data/layer_06_maritime/fixtures/raw_messages_sample.jsonl (test fixture)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Run modes implemented:
+  - proof: YES (default 100 messages or 60 seconds)
+  - raw-capture: YES (configurable duration/message count)
+  - inspect-cache: YES (read existing raw_messages.jsonl, summarize)
+- Secret safety:
+  - API key read from environment only: YES
+  - API key printed: NO
+  - API key written to files: NO
+  - .env modified: NO
+- Tests:
+  - 15 tests created
+  - pytest result: 15 passed
+  - Key behaviors covered: subscription payload, bbox format, message type filters, MetaData camelCase, raw storage read/write, inspect-cache counts, preview extraction
+- Live validation:
+  - inspect-cache on existing run: 100 messages, 84 PositionReport, 16 ShipStaticData
+  - proof run: 20 messages, 17 PositionReport, 3 ShipStaticData
+- Commands run:
+  - python -m pytest tests/data/layer_06_maritime -q (15 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Dependencies: websockets (already added in WO-MAR-S)
+- Secrets touched: YES (AISSTREAM_API_KEY from env for live validation)
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO
+- External live network used: YES (live fetch validation)
+- Known issues: None
+- Next recommended task: WO-MAR-F Reviewer — review fetcher implementation. If approved, proceed to WO-MAR-N (Normalization Implementation).
+### 2026-06-09T12:05:00Z Fetching Worker — WO-MAR-S AISStream Real Fetch Proof
+
+- Work order: WO-MAR-S
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI + websockets library
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-fetch-proof
+- Start time UTC: 2026-06-09T12:00:00Z
+- End time UTC: 2026-06-09T12:05:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Prove AISStream delivers real live AIS vessel data, capture small dataset, save raw messages, create preview files, document observed fields.
+- Approach: Created minimal proof script (aisstream_proof.py) in services/fetch-orchestrator/src/layers/layer_06_maritime/. Connected to wss://stream.aisstream.io/v0/stream with AISSTREAM_API_KEY from environment. Subscribed to global bounding box [[-90,-180],[90,180]] with PositionReport and ShipStaticData filters. Captured 100 messages (or 60s max). Saved raw_messages.jsonl, metadata.json, preview.json, observed_fields.json, and proof_report.md.
+- Critical findings:
+  1. Real live AIS data successfully captured from AISStream WebSocket
+  2. 100 unique vessels observed in ~12 seconds
+  3. Both PositionReport (84) and ShipStaticData (16) message types received
+  4. MetaData field is camelCase (not Metadata as expected from docs)
+  5. All expected fields present: UserID/MMSI, Latitude, Longitude, Sog, Cog, TrueHeading, Name, Type, Destination
+  6. API key read from environment only, never printed or stored
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/aisstream_proof.py (proof script)
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/raw_messages.jsonl (100 messages)
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/metadata.json
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/preview.json
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/observed_fields.json
+  - raw/layer_06_maritime/aisstream/2026/06/09/run_20260609T120430Z/proof_report.md
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - pip install websockets
+  - python services/fetch-orchestrator/src/layers/layer_06_maritime/aisstream_proof.py
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Secrets touched: YES (AISSTREAM_API_KEY read from environment)
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO (raw data in raw/ folder per data location rules)
+- External live network used: YES (connected to AISStream WebSocket)
+- Known issues: None
+- Next recommended task: WO-MAR-S Reviewer — review fetch proof. If approved, proceed to WO-MAR-F (Fetcher Implementation).
+### 2026-06-09T17:12:00Z Fetching Worker — WO-MAR-R Maritime Source Research
+
+- Work order: WO-MAR-R
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: opencode/mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: main
+- Start time UTC: 2026-06-09T17:05:00Z
+- End time UTC: 2026-06-09T17:12:00Z
+- Commit hash: (not committed — research only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Verify AISStream source details before live fetch proof (WO-MAR-S). Confirm WebSocket endpoint, subscription shape, required API key field name, message types, available fields, limitations, and discrepancies from planning docs.
+- Approach: Read all 8 planning documents from WO-MAR-P. Fetched AISStream official documentation from https://aisstream.io/documentation and https://aisstream.io/. Fetched BarentsWatch and AISHub websites for secondary source verification. Created 7 source research files in packages/source-catalog/layers/layer_06_maritime/.
+- Critical findings:
+  1. **BoundingBoxes is REQUIRED** in subscription (planning assumed optional). Global subscription uses [[-90,-180],[90,180]].
+  2. **Timestamp field is INTEGER** (seconds since minute start), NOT ISO string as planned.
+  3. **Dimensions use A/B/C/D format**, not length/width directly. Must compute: length = A+B, width = C+D.
+  4. **ETA is object** {Day, Hour, Minute, Month}, NOT ISO string. Year unknown — must reconstruct.
+  5. **Field names differ**: `Sog` (not Speed), `Cog` (not Course), `TrueHeading` (not Heading).
+  6. **Metadata envelope** provides quick access to MMSI, ShipName, lat/lon, time_utc.
+  7. **Subscription timeout is 3 seconds** — must send subscription within 3s of connection.
+  8. **Free tier throughput ~300 msg/s** global (not precisely documented).
+  9. **API is BETA** — no SLA, object models may change without notice.
+  10. **MMSI filter max 50 values**, string format.
+- Files created:
+  - packages/source-catalog/layers/layer_06_maritime/README.md (directory overview)
+  - packages/source-catalog/layers/layer_06_maritime/aisstream_source.json (source catalog entry)
+  - packages/source-catalog/layers/layer_06_maritime/maritime_source_research_summary.md (human-readable summary)
+  - packages/source-catalog/layers/layer_06_maritime/maritime_source_research_summary.json (machine-readable summary)
+  - packages/source-catalog/layers/layer_06_maritime/sample_subscriptions.md (example subscription payloads)
+  - packages/source-catalog/layers/layer_06_maritime/message_field_mapping.md (field mapping for all message types)
+  - packages/source-catalog/layers/layer_06_maritime/source_decisions.md (source decision rationale)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Source decisions:
+  - AISStream: **READY_FOR_FETCH_PROOF** — verified, discrepancies documented
+  - BarentsWatch: **FUTURE_SOURCE** — regional only
+  - AISHub: **FUTURE_SOURCE** — requires data contribution
+  - Danish Maritime Authority: **FUTURE_ANALYSIS_SOURCE** — historical only
+  - NOAA AccessAIS: **FUTURE_ANALYSIS_SOURCE** — historical only
+  - Global Fishing Watch: **FUTURE_ANALYSIS_SOURCE** — delayed, fishing focus
+  - MarineTraffic: **REJECT_FOR_MVP** — paid API required
+- Secrets touched: NO
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO
+- External live network used in research: YES (fetched aisstream.io documentation, barentswatch.no, aishub.net)
+- Known issues:
+  - BarentsWatch docs URL returned 404 — uncertain availability
+  - AISHub requires hardware/data contribution — not accessible without AIS receiver
+  - AISStream Timestamp field is integer (seconds), not ISO string — normalizer must handle
+  - AISStream ETA is object, not ISO string — must reconstruct
+  - AISStream Dimensions are A/B/C/D, not length/width — must compute
+- Next recommended task: WO-MAR-R Reviewer — review source research. If approved, proceed to WO-MAR-S (Fetch Proof) to prove real data delivery from AISStream.
+
+### 2026-06-09T17:15:00Z Planning Worker — Maritime Planning Correction Pass
+
+- Work order: WO-MAR-P (correction)
+- Agent: Planning Worker
+- Lane: Planning
+- Working directory: E:\god-eyes
+- Branch: main
+- Start time UTC: 2026-06-09T17:10:00Z
+- End time UTC: 2026-06-09T17:15:00Z
+- Commit hash: (not committed — planning only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Apply correction pass to Maritime planning docs. Remove model/tool/vendor names, fix work order dependency chain, clarify source-first rule wording, clarify WO-MAR-S scope.
+- Approach: Read all 10 planning docs. Applied 5 categories of corrections across README.md, SPEC_OVERVIEW.md, WORK_ORDERS.md, and HANDOFF_LOG.md. No implementation changes. No new documents created.
+- Corrections applied:
+  - Model/tool names removed: All lane assignments now use role names (Planning Worker, Fetching Worker, Database Worker, API Worker, Frontend Worker, Reviewer) instead of model/vendor names (Codex, Claude Code, Gemini, Kiro CLI, opencode)
+  - Work order dependencies corrected: WO-MAR-D now depends on WO-MAR-N (not WO-MAR-S). WO-MAR-A now depends on WO-MAR-D only (not WO-MAR-D + WO-MAR-N). WO-MAR-V depends on WO-MAR-U.
+  - Source-first wording clarified: "No full fetcher/database/API/frontend implementation starts before fetch proof succeeds. WO-MAR-S may create the smallest possible proof script needed to connect to AISStream, capture real messages, and save raw proof files."
+  - WO-MAR-S scope clarified: Explicit allow/deny list. May: connect, read env key, capture messages, save raw files, produce report. Must not: normalize, write to database, create API, create frontend, print or store API key.
+- Files modified:
+  - specs/005-layer-06-maritime-mvp/README.md (agent lane table, source-first wording, created-by line)
+  - specs/005-layer-06-maritime-mvp/SPEC_OVERVIEW.md (source-first rule section)
+  - specs/005-layer-06-maritime-mvp/WORK_ORDERS.md (dependency table, WO lane names, WO-MAR-S scope, WO-MAR-D inputs)
+  - docs/state/HANDOFF_LOG.md (removed model/tool names from WO-MAR-P entry, added this correction entry)
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Known issues: None
+- Next recommended task: Maritime Planning Reviewer — review corrected spec kit
+
+### 2026-06-09T16:48:00Z Planning Worker — WO-MAR-P Maritime Live Ships Spec Kit Planning
+
+- Work order: WO-MAR-P
+- Agent: Planning Worker
+- Lane: Planning
+- Working directory: E:\god-eyes
+- Branch: main
+- Start time UTC: 2026-06-09T16:30:00Z
+- End time UTC: 2026-06-09T16:48:00Z
+- Commit hash: (not committed — planning only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Create complete Spec Kit planning package for Layer 06 Maritime / Live Ships. Define all planning documents, source evaluation, architecture, work orders, and open questions.
+- Approach: Read all project control documents (AGENTS.md, MVP_LAYER_REGISTRY, LAYER_ID_CONVENTIONS, SOURCE_TO_FRONTEND_CONTRACT, PIPELINE_HANDOFF_RULES, DATA_LOCATION_RULES, CURRENT_PROJECT_STATE, HANDOFF_LOG, existing specs). Created 10 planning documents in specs/005-layer-06-maritime-mvp/. Confirmed layer_06_maritime is already registered. Identified AISStream as PRIMARY_MVP_SOURCE. Defined 9 work orders in sequence (WO-MAR-P through WO-MAR-V). Documented 10 open questions for resolution in later WOs.
+- Files created:
+  - specs/005-layer-06-maritime-mvp/README.md (spec index)
+  - specs/005-layer-06-maritime-mvp/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
+  - specs/005-layer-06-maritime-mvp/SOURCE_EVALUATION_MATRIX.md (AISStream + 6 alternative sources evaluated)
+  - specs/005-layer-06-maritime-mvp/FETCHING_DESIGN.md (WebSocket connection, raw storage, run modes)
+  - specs/005-layer-06-maritime-mvp/NORMALIZATION_DESIGN.md (AIS message parsing, vessel/position schema, MMSI join)
+  - specs/005-layer-06-maritime-mvp/DATABASE_PLANNING.md (PostGIS schema, 7 tables, indexes, upsert)
+  - specs/005-layer-06-maritime-mvp/API_PLANNING.md (REST endpoints, query patterns, response schemas)
+  - specs/005-layer-06-maritime-mvp/FRONTEND_PLANNING.md (Cesium markers, heading, click card, refresh)
+  - specs/005-layer-06-maritime-mvp/WORK_ORDERS.md (9 work orders with lane/goal/acceptance criteria)
+  - specs/005-layer-06-maritime-mvp/OPEN_QUESTIONS.md (10 unresolved decisions + confirmed decisions)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Known issues:
+  - All planning documents are based on expected AISStream fields from documentation. Actual fields must be confirmed during WO-MAR-S (fetch proof).
+  - Open questions about global subscription, retention strategy, and frontend density are deferred to appropriate WOs.
+  - No code was written. No implementation started. No secrets touched.
+- Next recommended task: Kiro review WO-MAR-P spec kit. If approved, proceed to WO-MAR-R (Source Research) to verify AISStream documentation, then WO-MAR-S (Fetch Proof) to prove real data delivery.
+
 ### 2026-06-01T17:55:00Z MiniMax — WO-082C4 SGP4 Adapter, Simplified Fallback, and Incremental Sync Plan
 
 - Work order: WO-082C4
@@ -4785,3 +5291,119 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Remaining blockers: NONE
 - Recommended next task: Manual browser validation per WO-083G checklist
 
+### 2026-06-09T14:12:52Z Codex - WO-MAR-D Maritime Database Schema
+
+- Work order: WO-MAR-D
+- Agent: Codex
+- Lane: Database Worker
+- LLM model: GPT-5
+- Tool/CLI used: Codex desktop on Windows PowerShell
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-maritime-database
+- Start time UTC: 2026-06-09T13:50:00Z
+- End time UTC: 2026-06-09T14:12:52Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (Kiro owns remote push after review)
+- Goal: Create the Layer 06 Maritime database schema from confirmed normalized AISStream objects: PositionRecord, StaticRecord, and VesselLatest.
+- Files created:
+  - database/migrations/layers/layer_06_maritime/001_maritime_tables.sql - Additive PostgreSQL/PostGIS migration for maritime source metadata, fetch run tracking, vessel identity/static state, latest positions, position history, and raw evidence references.
+  - tests/data/layer_06_maritime/test_maritime_migration.py - Schema contract, fixture compatibility, upsert semantics, bbox, constraint, scope, and no-raw/no-env tests.
+- Files modified:
+  - docs/state/HANDOFF_LOG.md - This handoff entry.
+- Migration summary:
+  - Extensions: pgcrypto, postgis.
+  - Tables: maritime_sources, maritime_fetch_runs, maritime_vessels, maritime_positions_latest, maritime_position_history, maritime_raw_message_refs.
+  - Identity: source_id + mmsi unique constraints for maritime_vessels and maritime_positions_latest; source_object_id stored as MMSI text; dedupe_key constrained to source_id || ':' || mmsi.
+  - Geometry: maritime_positions_latest.geom and maritime_position_history.geom use GEOMETRY(Point, 4326), populated by maritime_set_position_geom trigger from longitude/latitude.
+  - Auditability: raw_evidence_uri stored on vessel, latest position, history, and raw message ref rows; provider_metadata stored as JSONB.
+  - Partial ETA: eta_month, eta_day, eta_hour, eta_minute, eta_display only. No fake ETA timestamp column.
+  - Raw evidence storage: maritime_raw_message_refs stores minimal references and metadata, not raw AIS blobs.
+- Constraints/indexes:
+  - layer_id checks for layer_06_maritime on all tables.
+  - latitude/longitude range checks on latest/history.
+  - speed_over_ground >= 0, course_over_ground 0..360, true_heading 0..359, navigation_status 0..15.
+  - MMSI > 0; IMO > 0 when present.
+  - partial ETA range checks and non-negative vessel dimensions.
+  - GiST spatial indexes on latest/history geom plus btree longitude/latitude bbox fallback.
+  - Indexes for layer_id + source_id, source_object_id, mmsi, vessel_type, received_at/last_received_at, fetch run status, raw ref message_type.
+- Sample compatibility:
+  - normalized_positions.jsonl maps to maritime_positions_latest and maritime_position_history.
+  - normalized_static.jsonl maps to maritime_vessels.
+  - normalized_vessels_latest.jsonl supports both static-only and position-only rows.
+  - Latest position upsert semantics verified on source_id + mmsi.
+- Validation commands run:
+  - python -m pytest tests/data/layer_06_maritime -q - PASS, 44 passed.
+  - docker exec god-eyes-postgis createdb -U god_eyes god_eyes_maritime_schema_test - PASS.
+  - Get-Content database/migrations/layers/layer_06_maritime/001_maritime_tables.sql | docker exec -i god-eyes-postgis psql -U god_eyes -d god_eyes_maritime_schema_test -v ON_ERROR_STOP=1 - PASS.
+  - psql sample validation in temporary DB - PASS: inserted source/static/latest/history/raw-ref rows, upsert updated latest position, bbox query returned true, invalid latitude rejected.
+  - docker exec god-eyes-postgis dropdb -U god_eyes god_eyes_maritime_schema_test - PASS.
+  - git status --short --branch - PASS; only WO-MAR-D allowed files changed.
+  - git diff --check - PASS.
+- Implementation boundary:
+  - Fetching code touched: NO.
+  - API touched: NO.
+  - Frontend touched: NO.
+  - Live network used: NO.
+  - Secrets touched: NO.
+  - .env touched: NO.
+  - Raw data committed: NO.
+- Known issues: None.
+- Review status: Ready for Kiro review.
+- Recommended next task: WO-MAR-D Reviewer, then WO-MAR-A API Implementation if review passes.
+### 2026-06-09T17:00:00Z Fetching Worker — WO-MAR-I Maritime Live Ingestion / DB Upsert Worker
+
+- Work order: WO-MAR-I
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: minimax-m2.5
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-maritime-ingestion
+- Start time UTC: 2026-06-09T16:30:00Z
+- End time UTC: 2026-06-09T17:00:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (per WO policy)
+- Goal: Implement the missing MVP ingestion path: AISStream live messages → raw capture → normalization → database upsert → API returns real vessels → frontend can show real ship markers.
+- Implementation summary:
+  1. Created maritime_db_writer.py with parameterized SQL for all table operations (sources, vessels, positions_latest, position_history, raw_message_refs)
+  2. Created maritime_ingestion.py orchestrator that reads normalized cache files and writes to database
+  3. Added ingest-from-cache and live-ingest-proof CLI commands to maritime_cli.py
+  4. Handles dry-run mode, ETA value clamping for DB constraints, valid run_mode values
+  5. All DB writes use parameterized queries (no SQL injection risk)
+  6. No secrets printed or stored
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_db_writer.py (DB operations)
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_ingestion.py (orchestrator)
+  - tests/data/layer_06_maritime/test_maritime_ingestion.py (22 tests)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_06_maritime/maritime_cli.py (new commands)
+- Commands run:
+  - python -m py_compile services/.../maritime_db_writer.py (PASS)
+  - python -m py_compile services/.../maritime_ingestion.py (PASS)
+  - python -m py_compile services/.../maritime_cli.py (PASS)
+  - python -m pytest tests/data/layer_06_maritime/test_maritime_ingestion.py -v (22 passed)
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_06_maritime (PASS)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check (trailing whitespace warning only)
+- Ingestion validation:
+  - python -m layers.layer_06_maritime.maritime_cli ingest-from-cache raw/.../run_20260609T120430Z --dry-run (PASS: 100 messages, 84 positions, 16 static)
+  - Ingested to local DB: vessels=16, positions=84, history=84, raw_refs=84
+  - DB row counts: maritime_vessels=100, maritime_positions_latest=84, maritime_position_history=89, maritime_raw_message_refs=84
+- Tests:
+  - 22 tests covering: SQL parameterization, upsert shapes, dry-run behavior, no API/frontend imports, CLI command registration
+- Database write behavior:
+  - maritime_sources: upserted for AISStream
+  - maritime_fetch_runs: inserted with run metadata
+  - maritime_vessels: upserted with static data, minimal rows for position-only
+  - maritime_positions_latest: upserted with latest position per MMSI
+  - maritime_position_history: appended for each position
+  - maritime_raw_message_refs: inserted for audit trail
+- Secrets touched: NO (DATABASE_URL from environment, never printed)
+- Live network used: NO (implementation supports live-ingest-proof but validation used local raw proof data only; ingest-from-cache used local files)
+- Raw data committed: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO (used existing tables)
+- Known issues: None
+- Next recommended task: WO-MAR-I Reviewer — review ingestion implementation. If approved, test frontend with live ingested database rows.

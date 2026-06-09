@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import CesiumGlobe from './CesiumGlobe';
 import Shell from './components/Shell';
 import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
-import type { AircraftLatest, SpaceSatelliteItem } from '@god-eyes/contracts';
+import type { AircraftLatest, SpaceSatelliteItem, MaritimeVesselObject, MaritimeVesselDetail } from '@god-eyes/contracts';
 import { SearchResult } from './lib/searchTypes';
 import { fetchAirportDetail } from './lib/api';
 import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './layers/aviation/airports/aviationCategories';
@@ -16,6 +16,8 @@ import { DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFi
 import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
 import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
 import { useEnergyInfrastructure } from './layers/energy/infrastructure/useEnergyInfrastructure';
+import { useMaritime } from './layers/maritime/useMaritime';
+import { fetchVesselDetail } from './layers/maritime/maritimeApi';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -33,8 +35,12 @@ const App: React.FC = () => {
   const [spaceSatellitesLayerActive, setSpaceSatellitesLayerActive] = useState(false);
   const [spaceSatellites, setSpaceSatellites] = useState<SpaceSatelliteItem[]>([]);
   const [spaceSatelliteFilters, setSpaceSatelliteFilters] = useState<SatelliteFilters>(DEFAULT_SATELLITE_FILTERS);
-  const [selectedObject, setSelectedObject] = useState<AirportObject | null>(null);
+  const [selectedObject, setSelectedObject] = useState<AirportObject | MaritimeVesselObject | null>(null);
   const [airportDetail, setAirportDetail] = useState<AirportDetailResponse | null>(null);
+  const [vesselDetail, setVesselDetail] = useState<MaritimeVesselDetail | null>(null);
+  const [maritimeLayerActive, setMaritimeLayerActive] = useState(false);
+  const [maritimeFilters, setMaritimeFilters] = useState({ search: '', vesselType: null as string | null });
+  const [maritimeBbox, setMaritimeBbox] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [aviationStats, setAviationStats] = useState<AviationStats>({
@@ -60,10 +66,11 @@ const App: React.FC = () => {
   const sendBboxRef = useRef<((bbox: [number, number, number, number]) => void) | null>(null);
   const bboxDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const layoutPhase = useAirportLayoutFeatures(selectedObject?.id ?? null);
+  const layoutPhase = useAirportLayoutFeatures(selectedObject && 'layerId' in selectedObject && selectedObject.layerId === 'layer_06_maritime' ? null : (selectedObject?.id ?? null));
   const earthEventsPhase = useEarthEvents(earthEventsLayerActive);
   const bordersPhase = useBordersBoundaries(bordersLayerActive);
   const energyInfrastructureData = useEnergyInfrastructure(energyInfrastructureLayerActive, energyInfrastructureFilters);
+  const maritimeData = useMaritime(maritimeLayerActive, maritimeBbox, maritimeFilters);
 
   // Stable wrappers that delegate to refs CesiumGlobe sets.
   const handleSnapshot = useCallback((aircraft: AircraftLatest[]) => {
@@ -108,23 +115,60 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedObject) { setAirportDetail(null); setDetailError(null); return; }
-    const airportId = selectedObject.id;
-    const cached = detailCacheRef.current.get(airportId);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION_MS) {
-      setAirportDetail(cached.data); setDetailLoading(false); setDetailError(null); return;
+    if (!selectedObject) {
+      setAirportDetail(null);
+      setVesselDetail(null);
+      setDetailError(null);
+      return;
     }
+
     abortControllerRef.current?.abort();
-    setDetailLoading(true); setDetailError(null); setAirportDetail(null);
+    setDetailLoading(true);
+    setDetailError(null);
+    setAirportDetail(null);
+    setVesselDetail(null);
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    fetchAirportDetail(airportId, controller.signal)
-      .then((data) => { detailCacheRef.current.set(airportId, { data, timestamp: Date.now() }); setAirportDetail(data); setDetailLoading(false); })
-      .catch((err: Error) => { if (err.name === 'AbortError') return; setDetailError(err.message || 'Failed to load details'); setDetailLoading(false); });
-    return () => controller.abort();
-  }, [selectedObject?.id]);
 
-  const handleObjectSelect = useCallback((obj: unknown) => setSelectedObject(obj as AirportObject), []);
+    if ('layerId' in selectedObject && selectedObject.layerId === 'layer_06_maritime') {
+      const vessel = selectedObject as MaritimeVesselObject;
+      fetchVesselDetail(vessel.mmsi, controller.signal)
+        .then((data) => {
+          setVesselDetail(data.vessel);
+          setDetailLoading(false);
+        })
+        .catch((err: Error) => {
+          if (err.name === 'AbortError') return;
+          setDetailError(err.message || 'Failed to load vessel details');
+          setDetailLoading(false);
+        });
+    } else {
+      const airportId = selectedObject.id;
+      const cached = detailCacheRef.current.get(airportId);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION_MS) {
+        setAirportDetail(cached.data);
+        setDetailLoading(false);
+        setDetailError(null);
+        return;
+      }
+      fetchAirportDetail(airportId, controller.signal)
+        .then((data) => {
+          detailCacheRef.current.set(airportId, { data, timestamp: Date.now() });
+          setAirportDetail(data);
+          setDetailLoading(false);
+        })
+        .catch((err: Error) => {
+          if (err.name === 'AbortError') return;
+          setDetailError(err.message || 'Failed to load details');
+          setDetailLoading(false);
+        });
+    }
+
+    return () => controller.abort();
+  }, [selectedObject]);
+
+  const handleObjectSelect = useCallback((obj: unknown) => setSelectedObject(obj as AirportObject | MaritimeVesselObject), []);
   const handleAviationStatsChange = useCallback((stats: AviationStats) => setAviationStats(stats), []);
   const handleSearchResultSelect = useCallback((result: SearchResult) => {
     if (result.type === 'Airport' && result.rawData) { setAviationLayerActive(true); setSelectedObject(result.rawData); }
@@ -149,7 +193,7 @@ const App: React.FC = () => {
         onAviationStatsChange={handleAviationStatsChange}
         cameraTarget={cameraTarget}
         aviationFilters={aviationFilters}
-        selectedAirport={selectedObject}
+        selectedAirport={'layerId' in (selectedObject || {}) ? null : selectedObject as AirportObject}
         layoutFeatures={layoutPhase.phase === 'ok' ? layoutPhase.data : null}
         earthEvents={earthEventsPhase.phase === 'ok' ? earthEventsPhase.events : undefined}
         bordersData={bordersPhase.phase === 'ok' ? bordersPhase.data : null}
@@ -167,13 +211,16 @@ const App: React.FC = () => {
         energyInfrastructureFeatures={energyInfrastructureData.features}
         energyInfrastructureLayerActive={energyInfrastructureLayerActive}
         onEnergyFeatureSelect={setSelectedEnergyFeature}
+        maritimeLayerActive={maritimeLayerActive}
+        maritimeVessels={maritimeData.vessels}
+        onMaritimeBboxChange={setMaritimeBbox}
       />
 
       <div style={{ opacity: isBooting ? 0 : 1, transition: 'opacity 1s ease-in', pointerEvents: isBooting ? 'none' : 'auto' }}>
         <Shell
           aviationLayerActive={aviationLayerActive}
           setAviationLayerActive={setAviationLayerActive}
-          selectedObject={selectedObject}
+          selectedObject={'layerId' in (selectedObject || {}) ? null : selectedObject as AirportObject}
           airportDetail={airportDetail}
           detailLoading={detailLoading}
           detailError={detailError}
@@ -202,6 +249,13 @@ const App: React.FC = () => {
           onEnergyFiltersChange={setEnergyInfrastructureFilters}
           selectedEnergyFeature={selectedEnergyFeature}
           onEnergyFeatureClose={handleEnergyFeatureClose}
+          maritimeLayerActive={maritimeLayerActive}
+          setMaritimeLayerActive={setMaritimeLayerActive}
+          maritimeStats={maritimeData.stats}
+          maritimeFilters={maritimeFilters}
+          onMaritimeFiltersChange={setMaritimeFilters}
+          onMaritimeRefresh={maritimeData.refresh}
+          vesselDetail={vesselDetail}
         />
       </div>
     </div>

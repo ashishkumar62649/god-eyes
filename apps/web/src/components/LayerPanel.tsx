@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { LayerRegistryEntry } from '@god-eyes/contracts';
+import type { LayerRegistryEntry, MaritimeStatsResponse } from '@god-eyes/contracts';
 import { AviationFilters, AVIATION_CATEGORIES } from '../layers/aviation/airports/aviationCategories';
 import { useLayerRegistry } from '../lib/useLayerRegistry';
 import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
@@ -42,6 +42,12 @@ interface LayerPanelProps {
   setEnergyInfrastructureLayerActive: (active: boolean) => void;
   energyInfrastructureFilters: EnergyFilters;
   onEnergyFiltersChange: (filters: EnergyFilters) => void;
+  maritimeLayerActive: boolean;
+  setMaritimeLayerActive: (active: boolean) => void;
+  maritimeStats: MaritimeStatsResponse | null;
+  maritimeFilters: { search: string; vesselType: string | null };
+  onMaritimeFiltersChange: (filters: { search: string; vesselType: string | null }) => void;
+  onMaritimeRefresh: () => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -62,7 +68,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   liveAircraftLayerActive, setLiveAircraftLayerActive, liveAircraftPhase,
   spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
   spaceSatelliteFilters, onSpaceFiltersChange,
-  energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange
+  energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
+  maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -289,6 +296,31 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
               );
             }
             
+            const isMaritime = entry.layerId === 'layer_06_maritime';
+
+            if (isMaritime) {
+              return (
+                <div key={entry.layerId} className={`layer-item ${maritimeLayerActive ? 'active' : ''}`}
+                  onClick={() => setMaritimeLayerActive(!maritimeLayerActive)} style={{ cursor: 'pointer' }}>
+                  <div className="layer-name">{entry.name} [L6]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: maritimeLayerActive ? 'var(--shell-accent)' : undefined,
+                      fontWeight: maritimeLayerActive ? 600 : undefined,
+                      opacity: maritimeLayerActive ? 1 : 0.7,
+                    }}>
+                      {maritimeLayerActive ? 'ACTIVE' : 'READY — CLICK TO ACTIVATE'}
+                    </span>
+                  </div>
+                  {maritimeLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      Live vessel data via AISStream. REST polling (30s).
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             // Handle energy infrastructure layer
             if (isEnergyInfrastructure) {
               return (
@@ -574,6 +606,127 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   <div style={{ fontSize: '0.48rem', color: '#ffab00', opacity: 0.65, marginTop: '6px', lineHeight: 1.4 }}>
                     Static public-source infrastructure data. Not live operational status.
                   </div>
+                </div>
+              </>
+            )}
+
+            {maritimeLayerActive && (
+              <>
+                <div className="filter-section">
+                  <div className="filter-section-header">MARITIME CONTROLS</div>
+
+                  {/* Search */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>SEARCH VESSEL</div>
+                    <input
+                      type="text"
+                      placeholder="Search name, MMSI, callsign..."
+                      value={maritimeFilters.search || ''}
+                      onChange={(e) => onMaritimeFiltersChange({ ...maritimeFilters, search: e.target.value })}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '3px',
+                        color: 'var(--shell-text-dim)',
+                        padding: '4px 8px',
+                        fontSize: '0.6rem',
+                        marginBottom: '4px'
+                      }}
+                    />
+                  </div>
+
+                  {/* Vessel Type dropdown */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.48rem', color: '#888', marginBottom: '2px' }}>VESSEL TYPE</div>
+                    <select
+                      value={maritimeFilters.vesselType || ''}
+                      onChange={(e) => onMaritimeFiltersChange({ ...maritimeFilters, vesselType: e.target.value || null })}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '3px',
+                        color: 'var(--shell-text-dim)',
+                        padding: '4px 8px',
+                        fontSize: '0.6rem',
+                        marginBottom: '4px',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="">All Types</option>
+                      <option value="cargo">Cargo</option>
+                      <option value="tanker">Tanker</option>
+                      <option value="passenger">Passenger</option>
+                      <option value="fishing">Fishing</option>
+                      <option value="tug">Tug</option>
+                      <option value="military">Military</option>
+                      <option value="pleasure">Pleasure</option>
+                      <option value="sailing">Sailing</option>
+                      <option value="high speed craft">High Speed Craft</option>
+                    </select>
+                  </div>
+
+                  {/* Refresh button */}
+                  <button
+                    onClick={onMaritimeRefresh}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '3px',
+                      color: 'var(--shell-text-dim)',
+                      padding: '4px 8px',
+                      fontSize: '0.6rem',
+                      cursor: 'pointer',
+                      marginTop: '6px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Refresh Data
+                  </button>
+                </div>
+
+                {/* Stats Section */}
+                {maritimeStats && (
+                  <div className="legend-section" style={{ marginTop: '10px' }}>
+                    <div className="legend-section-header">MARITIME STATS</div>
+                    <div style={{ fontSize: '0.6rem', lineHeight: 1.5, color: 'var(--shell-text-dim)' }}>
+                      <div>Total Vessels: {maritimeStats.totalVessels}</div>
+                      <div>Active: {maritimeStats.activeVessels}</div>
+                      <div>Stale: {maritimeStats.staleVessels}</div>
+                      {maritimeStats.lastUpdated && (
+                        <div style={{ fontSize: '0.5rem', opacity: 0.6, marginTop: '4px' }}>
+                          Updated: {new Date(maritimeStats.lastUpdated).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Legend Section */}
+                <div className="legend-section">
+                  <div className="legend-section-header">VESSEL TYPES</div>
+                  {[
+                    { color: '#3b82f6', label: 'Cargo' },
+                    { color: '#f97316', label: 'Tanker' },
+                    { color: '#a855f7', label: 'Passenger' },
+                    { color: '#22c55e', label: 'Fishing' },
+                    { color: '#eab308', label: 'Tug' },
+                    { color: '#ef4444', label: 'Military' },
+                    { color: '#06b6d4', label: 'Pleasure / Sailing' },
+                    { color: '#00e5ff', label: 'High Speed Craft' },
+                    { color: '#9ca3af', label: 'Unknown' },
+                  ].map(({ color, label }) => (
+                    <div key={label} className="legend-item">
+                      <span style={{
+                        display: 'inline-block', width: '8px', height: '8px',
+                        borderRadius: '50%', background: color,
+                        marginRight: '8px', verticalAlign: 'middle', opacity: 0.8,
+                      }} />
+                      <span className="legend-label">{label}</span>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
