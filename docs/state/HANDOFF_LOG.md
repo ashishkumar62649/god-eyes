@@ -1,3 +1,73 @@
+### 2026-06-09T15:52:00Z Frontend Worker — WO-MAR-U Maritime Frontend Integration
+
+- Work order: WO-MAR-U
+- Agent: Frontend Worker
+- Lane: Frontend
+- LLM model: Antigravity (Gemini 1.5 Pro equivalent / Antigravity)
+- Tool/CLI used: Antigravity CLI / git
+- Working directory: E:\god-eyes-frontend
+- Branch: agent/layer-maritime-frontend
+- Start time UTC: 2026-06-09T15:00:00Z
+- End time UTC: 2026-06-09T15:52:00Z
+- Commit hash: f6b9afd651bf14f6db2c00b5942b42043095ed44 (local only)
+- Push status: local only (per WO policy)
+- Goal: Implement the Maritime / Live Ships frontend layer using the approved Maritime API.
+- Approach: Registered layer in registry, created API client, implemented useMaritime React hook for polling and filtering, created custom canvas markers (directional/non-directional) with staleness calculation, built MaritimeLayer Cesium subcomponent, integrated state and components into App.tsx, CesiumGlobe.tsx, LayerPanel.tsx, Shell.tsx, and DetailPanel.tsx, and created a comprehensive Vitest test suite.
+- Files created:
+  - apps/web/src/layers/maritime/maritimeApi.ts (maritime API client helper functions)
+  - apps/web/src/layers/maritime/useMaritime.ts (React hook for REST polling, bbox filtering, and dateline crossing safety)
+  - apps/web/src/layers/maritime/vesselMarker.ts (vessel marker color mapping, staleness check, true heading priority, canvas data URL generation)
+  - apps/web/src/layers/maritime/MaritimeLayer.tsx (Cesium billboard collection layer, selection picking reference, rotation, dimming)
+  - apps/web/src/layers/maritime/__tests__/maritime.test.ts (11 unit tests covering layer registry, API, marker styling, heading selection, stale detection, empty/error handling)
+- Files modified:
+  - apps/web/src/lib/useLayerRegistry.ts (registered layer_06_maritime)
+  - apps/web/src/App.tsx (added maritime layer state, filters, selection detail, useMaritime hook invocation)
+  - apps/web/src/CesiumGlobe.tsx (integrated MaritimeLayer, moveEnd camera bbox updates, pick picking listener for billboards)
+  - apps/web/src/components/LayerPanel.tsx (added Maritime layer visibility toggle, filters, statistics, refresh button)
+  - apps/web/src/components/Shell.tsx (stats wrapper alignment)
+  - apps/web/src/components/DetailPanel.tsx (rendered vessel card details, suppressed other panels for maritime objects)
+  - apps/web/package.json (added vitest dependency and script)
+  - pnpm-lock.yaml (locked vitest dependencies)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Frontend implementation summary:
+  - Registered layer_06_maritime (status: active, apiStatus: active, frontendStatus: active, isImplemented: true, isEnabled: false, sourceRule: 'AISStream')
+  - API Client: fetchMaritimeObjects, fetchVesselDetail, fetchMaritimeStats utilizing project API only (no AISStream direct calls)
+  - useMaritime hook: runs REST polling every 30s when active, filters by vessel_type, search, and validated bbox (with dateline crossing safety check)
+  - Globe marker rendering: uses a high-performance primitive BillboardCollection. Rotates billboards based on trueHeading/courseOverGround. Dims stale vessels (dataAgeSeconds > 3600 or receivedAt older than 1 hour). Removes collection on unmount.
+  - Detail card: displays vessel identity, speed, course, heading, destination, dimensions, and optional detail fields (draught, ETA) safely, attributing to AISStream and hiding rawEvidenceUri.
+  - Statistics: displays total, active, and stale vessels in the LayerPanel when active.
+  - Filters: exposes search, vessel type categories, and manual refresh controls in LayerPanel.
+- Tests:
+  - File: apps/web/src/layers/maritime/__tests__/maritime.test.ts
+  - 11 unit tests running via Vitest, all passing
+  - Covered layer registry, API client URL builder, bbox formatting, fallback query, vessel detail fetching, API error and empty-state handling, color resolving, stale vessel detection, heading priority (trueHeading first, then courseOverGround), and dot markers for non-directional vessels.
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter web build (PASS)
+  - pnpm --filter web test (11/11 PASS)
+  - git diff --check (PASS)
+  - git status (PASS)
+- Validation:
+  - contracts build: PASS (tsc completed successfully)
+  - web build: PASS (tsc && vite build completed successfully)
+  - unit tests: 11 tests passed successfully
+  - git diff check: no whitespace errors
+- Implementation boundary:
+  - fetching code touched: NO
+  - database migrations touched: NO
+  - API routes touched: NO
+  - API tests touched: NO
+  - MVP_LAYER_REGISTRY.md touched: NO
+  - live network used: NO
+  - secrets touched: NO
+  - raw data committed: NO
+- Issues found: None
+- Blockers: None
+- Commit: (pending — local only, per WO policy)
+- Push status: local only
+- Ready for WO-MAR-U Reviewer: YES
+- Recommended next task: WO-MAR-U Reviewer, then WO-MAR-V Full Layer Validation if review passes
+
 ### 2026-06-09T20:02:00Z API Worker — WO-MAR-A Maritime API Implementation
 
 - Work order: WO-MAR-A

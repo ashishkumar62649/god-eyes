@@ -4,7 +4,7 @@ import LayerPanel from './LayerPanel';
 import DetailPanel from './DetailPanel';
 import StatusPanel from './StatusPanel';
 import '../styles/shell.css';
-import { AirportObject, AirportDetailResponse } from '@god-eyes/contracts';
+import { AirportObject, AirportDetailResponse, MaritimeVesselObject, MaritimeVesselDetail, MaritimeStatsResponse } from '@god-eyes/contracts';
 import { SearchResult } from '../lib/searchTypes';
 import { AviationFilters } from '../layers/aviation/airports/aviationCategories';
 import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
@@ -27,7 +27,7 @@ interface AviationStats {
 interface ShellProps {
   aviationLayerActive: boolean;
   setAviationLayerActive: (active: boolean) => void;
-  selectedObject: AirportObject | null;
+  selectedObject: AirportObject | MaritimeVesselObject | null;
   airportDetail: AirportDetailResponse | null;
   detailLoading: boolean;
   detailError: string | null;
@@ -56,6 +56,13 @@ interface ShellProps {
   onEnergyFiltersChange: (filters: EnergyFilters) => void;
   selectedEnergyFeature: EnergyFeature | null;
   onEnergyFeatureClose: () => void;
+  maritimeLayerActive: boolean;
+  setMaritimeLayerActive: (active: boolean) => void;
+  maritimeStats: MaritimeStatsResponse | null;
+  maritimeFilters: { search: string; vesselType: string | null };
+  onMaritimeFiltersChange: (filters: { search: string; vesselType: string | null }) => void;
+  onMaritimeRefresh: () => void;
+  vesselDetail: MaritimeVesselDetail | null;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -69,7 +76,8 @@ const Shell: React.FC<ShellProps> = ({
   spaceSatellitesLayerActive, setSpaceSatellitesLayerActive, spaceSatellitesStatus,
   spaceSatelliteFilters, onSpaceFiltersChange,
   energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
-  selectedEnergyFeature, onEnergyFeatureClose
+  selectedEnergyFeature, onEnergyFeatureClose,
+  maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh, vesselDetail,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -105,6 +113,12 @@ const Shell: React.FC<ShellProps> = ({
           setEnergyInfrastructureLayerActive={setEnergyInfrastructureLayerActive}
           energyInfrastructureFilters={energyInfrastructureFilters}
           onEnergyFiltersChange={onEnergyFiltersChange}
+          maritimeLayerActive={maritimeLayerActive}
+          setMaritimeLayerActive={setMaritimeLayerActive}
+          maritimeStats={maritimeStats}
+          maritimeFilters={maritimeFilters}
+          onMaritimeFiltersChange={onMaritimeFiltersChange}
+          onMaritimeRefresh={onMaritimeRefresh}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -116,6 +130,7 @@ const Shell: React.FC<ShellProps> = ({
           layoutPhase={layoutPhase}
           selectedEnergyFeature={selectedEnergyFeature}
           onEnergyFeatureClose={onEnergyFeatureClose}
+          vesselDetail={vesselDetail}
         />
       </main>
         <StatusPanel
