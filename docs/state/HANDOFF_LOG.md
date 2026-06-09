@@ -1,3 +1,132 @@
+### 2026-06-09T17:12:00Z Fetching Worker — WO-MAR-R Maritime Source Research
+
+- Work order: WO-MAR-R
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: opencode/mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes-fetching
+- Branch: main
+- Start time UTC: 2026-06-09T17:05:00Z
+- End time UTC: 2026-06-09T17:12:00Z
+- Commit hash: (not committed — research only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Verify AISStream source details before live fetch proof (WO-MAR-S). Confirm WebSocket endpoint, subscription shape, required API key field name, message types, available fields, limitations, and discrepancies from planning docs.
+- Approach: Read all 8 planning documents from WO-MAR-P. Fetched AISStream official documentation from https://aisstream.io/documentation and https://aisstream.io/. Fetched BarentsWatch and AISHub websites for secondary source verification. Created 7 source research files in packages/source-catalog/layers/layer_06_maritime/.
+- Critical findings:
+  1. **BoundingBoxes is REQUIRED** in subscription (planning assumed optional). Global subscription uses [[-90,-180],[90,180]].
+  2. **Timestamp field is INTEGER** (seconds since minute start), NOT ISO string as planned.
+  3. **Dimensions use A/B/C/D format**, not length/width directly. Must compute: length = A+B, width = C+D.
+  4. **ETA is object** {Day, Hour, Minute, Month}, NOT ISO string. Year unknown — must reconstruct.
+  5. **Field names differ**: `Sog` (not Speed), `Cog` (not Course), `TrueHeading` (not Heading).
+  6. **Metadata envelope** provides quick access to MMSI, ShipName, lat/lon, time_utc.
+  7. **Subscription timeout is 3 seconds** — must send subscription within 3s of connection.
+  8. **Free tier throughput ~300 msg/s** global (not precisely documented).
+  9. **API is BETA** — no SLA, object models may change without notice.
+  10. **MMSI filter max 50 values**, string format.
+- Files created:
+  - packages/source-catalog/layers/layer_06_maritime/README.md (directory overview)
+  - packages/source-catalog/layers/layer_06_maritime/aisstream_source.json (source catalog entry)
+  - packages/source-catalog/layers/layer_06_maritime/maritime_source_research_summary.md (human-readable summary)
+  - packages/source-catalog/layers/layer_06_maritime/maritime_source_research_summary.json (machine-readable summary)
+  - packages/source-catalog/layers/layer_06_maritime/sample_subscriptions.md (example subscription payloads)
+  - packages/source-catalog/layers/layer_06_maritime/message_field_mapping.md (field mapping for all message types)
+  - packages/source-catalog/layers/layer_06_maritime/source_decisions.md (source decision rationale)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Source decisions:
+  - AISStream: **READY_FOR_FETCH_PROOF** — verified, discrepancies documented
+  - BarentsWatch: **FUTURE_SOURCE** — regional only
+  - AISHub: **FUTURE_SOURCE** — requires data contribution
+  - Danish Maritime Authority: **FUTURE_ANALYSIS_SOURCE** — historical only
+  - NOAA AccessAIS: **FUTURE_ANALYSIS_SOURCE** — historical only
+  - Global Fishing Watch: **FUTURE_ANALYSIS_SOURCE** — delayed, fishing focus
+  - MarineTraffic: **REJECT_FOR_MVP** — paid API required
+- Secrets touched: NO
+- Secret values printed/logged: NO
+- API touched: NO
+- Frontend touched: NO
+- Database migrations touched: NO
+- Raw data committed: NO
+- External live network used in research: YES (fetched aisstream.io documentation, barentswatch.no, aishub.net)
+- Known issues:
+  - BarentsWatch docs URL returned 404 — uncertain availability
+  - AISHub requires hardware/data contribution — not accessible without AIS receiver
+  - AISStream Timestamp field is integer (seconds), not ISO string — normalizer must handle
+  - AISStream ETA is object, not ISO string — must reconstruct
+  - AISStream Dimensions are A/B/C/D, not length/width — must compute
+- Next recommended task: WO-MAR-R Reviewer — review source research. If approved, proceed to WO-MAR-S (Fetch Proof) to prove real data delivery from AISStream.
+
+### 2026-06-09T17:15:00Z Planning Worker — Maritime Planning Correction Pass
+
+- Work order: WO-MAR-P (correction)
+- Agent: Planning Worker
+- Lane: Planning
+- Working directory: E:\god-eyes
+- Branch: main
+- Start time UTC: 2026-06-09T17:10:00Z
+- End time UTC: 2026-06-09T17:15:00Z
+- Commit hash: (not committed — planning only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Apply correction pass to Maritime planning docs. Remove model/tool/vendor names, fix work order dependency chain, clarify source-first rule wording, clarify WO-MAR-S scope.
+- Approach: Read all 10 planning docs. Applied 5 categories of corrections across README.md, SPEC_OVERVIEW.md, WORK_ORDERS.md, and HANDOFF_LOG.md. No implementation changes. No new documents created.
+- Corrections applied:
+  - Model/tool names removed: All lane assignments now use role names (Planning Worker, Fetching Worker, Database Worker, API Worker, Frontend Worker, Reviewer) instead of model/vendor names (Codex, Claude Code, Gemini, Kiro CLI, opencode)
+  - Work order dependencies corrected: WO-MAR-D now depends on WO-MAR-N (not WO-MAR-S). WO-MAR-A now depends on WO-MAR-D only (not WO-MAR-D + WO-MAR-N). WO-MAR-V depends on WO-MAR-U.
+  - Source-first wording clarified: "No full fetcher/database/API/frontend implementation starts before fetch proof succeeds. WO-MAR-S may create the smallest possible proof script needed to connect to AISStream, capture real messages, and save raw proof files."
+  - WO-MAR-S scope clarified: Explicit allow/deny list. May: connect, read env key, capture messages, save raw files, produce report. Must not: normalize, write to database, create API, create frontend, print or store API key.
+- Files modified:
+  - specs/005-layer-06-maritime-mvp/README.md (agent lane table, source-first wording, created-by line)
+  - specs/005-layer-06-maritime-mvp/SPEC_OVERVIEW.md (source-first rule section)
+  - specs/005-layer-06-maritime-mvp/WORK_ORDERS.md (dependency table, WO lane names, WO-MAR-S scope, WO-MAR-D inputs)
+  - docs/state/HANDOFF_LOG.md (removed model/tool names from WO-MAR-P entry, added this correction entry)
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Known issues: None
+- Next recommended task: Maritime Planning Reviewer — review corrected spec kit
+
+### 2026-06-09T16:48:00Z Planning Worker — WO-MAR-P Maritime Live Ships Spec Kit Planning
+
+- Work order: WO-MAR-P
+- Agent: Planning Worker
+- Lane: Planning
+- Working directory: E:\god-eyes
+- Branch: main
+- Start time UTC: 2026-06-09T16:30:00Z
+- End time UTC: 2026-06-09T16:48:00Z
+- Commit hash: (not committed — planning only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Create complete Spec Kit planning package for Layer 06 Maritime / Live Ships. Define all planning documents, source evaluation, architecture, work orders, and open questions.
+- Approach: Read all project control documents (AGENTS.md, MVP_LAYER_REGISTRY, LAYER_ID_CONVENTIONS, SOURCE_TO_FRONTEND_CONTRACT, PIPELINE_HANDOFF_RULES, DATA_LOCATION_RULES, CURRENT_PROJECT_STATE, HANDOFF_LOG, existing specs). Created 10 planning documents in specs/005-layer-06-maritime-mvp/. Confirmed layer_06_maritime is already registered. Identified AISStream as PRIMARY_MVP_SOURCE. Defined 9 work orders in sequence (WO-MAR-P through WO-MAR-V). Documented 10 open questions for resolution in later WOs.
+- Files created:
+  - specs/005-layer-06-maritime-mvp/README.md (spec index)
+  - specs/005-layer-06-maritime-mvp/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
+  - specs/005-layer-06-maritime-mvp/SOURCE_EVALUATION_MATRIX.md (AISStream + 6 alternative sources evaluated)
+  - specs/005-layer-06-maritime-mvp/FETCHING_DESIGN.md (WebSocket connection, raw storage, run modes)
+  - specs/005-layer-06-maritime-mvp/NORMALIZATION_DESIGN.md (AIS message parsing, vessel/position schema, MMSI join)
+  - specs/005-layer-06-maritime-mvp/DATABASE_PLANNING.md (PostGIS schema, 7 tables, indexes, upsert)
+  - specs/005-layer-06-maritime-mvp/API_PLANNING.md (REST endpoints, query patterns, response schemas)
+  - specs/005-layer-06-maritime-mvp/FRONTEND_PLANNING.md (Cesium markers, heading, click card, refresh)
+  - specs/005-layer-06-maritime-mvp/WORK_ORDERS.md (9 work orders with lane/goal/acceptance criteria)
+  - specs/005-layer-06-maritime-mvp/OPEN_QUESTIONS.md (10 unresolved decisions + confirmed decisions)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Known issues:
+  - All planning documents are based on expected AISStream fields from documentation. Actual fields must be confirmed during WO-MAR-S (fetch proof).
+  - Open questions about global subscription, retention strategy, and frontend density are deferred to appropriate WOs.
+  - No code was written. No implementation started. No secrets touched.
+- Next recommended task: Kiro review WO-MAR-P spec kit. If approved, proceed to WO-MAR-R (Source Research) to verify AISStream documentation, then WO-MAR-S (Fetch Proof) to prove real data delivery.
+
 ### 2026-06-01T17:55:00Z MiniMax — WO-082C4 SGP4 Adapter, Simplified Fallback, and Incremental Sync Plan
 
 - Work order: WO-082C4

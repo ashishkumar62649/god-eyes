@@ -1,0 +1,258 @@
+{
+  "layer_id": "layer_06_maritime",
+  "source_id": "aisstream",
+  "source_family": "ais",
+  "source_type": "websocket",
+  "official_website": "https://aisstream.io/",
+  "official_docs_url": "https://aisstream.io/documentation",
+  "endpoint": "wss://stream.aisstream.io/v0/stream",
+  "protocol": "wss",
+  "auth_required": true,
+  "api_key_required": true,
+  "env_var_name": "AISSTREAM_API_KEY",
+  "free_or_paid": "free_tier_with_paid_upgrades",
+  "coverage": "global",
+  "realtime_or_delayed": "realtime",
+  "subscription_shape": {
+    "description": "JSON subscription message sent after WebSocket connection",
+    "required_fields": ["APIKey", "BoundingBoxes"],
+    "optional_fields": ["FiltersShipMMSI", "FilterMessageTypes"],
+    "example": {
+      "APIKey": "<api_key>",
+      "BoundingBoxes": [[[25.835302, -80.207729], [25.602700, -79.879297]]],
+      "FiltersShipMMSI": ["368207620", "367719770"],
+      "FilterMessageTypes": ["PositionReport"]
+    }
+  },
+  "bbox_required": true,
+  "bbox_format": {
+    "description": "Array of bounding boxes, each containing two corner points [lat, lon]",
+    "example_global": [[[-90, -180], [90, 180]]],
+    "coordinate_order": "[lat, lon]",
+    "note": "BoundingBoxes is marked Required in docs. Global subscription uses [[-90, -180], [90, 180]]."
+  },
+  "message_types": {
+    "primary_for_mvp": [
+      "PositionReport",
+      "ShipStaticData"
+    ],
+    "secondary_for_mvp": [
+      "StandardClassBPositionReport",
+      "ExtendedClassBPositionReport",
+      "LongRangeAisBroadcastMessage"
+    ],
+    "all_available": [
+      "PositionReport",
+      "ShipStaticData",
+      "StandardClassBPositionReport",
+      "ExtendedClassBPositionReport",
+      "LongRangeAisBroadcastMessage",
+      "BaseStationReport",
+      "SafetyBroadcastMessage",
+      "AidsToNavigationReport",
+      "StaticDataReport",
+      "StandardSearchAndRescueAircraftReport",
+      "GnssBroadcastBinaryMessage",
+      "DataLinkManagementMessage",
+      "AddressedSafetyMessage",
+      "AddressedBinaryMessage",
+      "BinaryAcknowledge",
+      "SingleSlotBinaryMessage",
+      "MultiSlotBinaryMessage",
+      "Interrogation",
+      "ChannelManagement",
+      "AssignedModeCommand",
+      "CoordinatedUTCInquiry"
+    ]
+  },
+  "expected_fields_by_message_type": {
+    "PositionReport": {
+      "description": "Standard class A position report (AIS message types 1, 2, 3)",
+      "fields": {
+        "MessageID": "integer - AIS message type (1, 2, or 3)",
+        "RepeatIndicator": "integer",
+        "UserID": "integer - MMSI (primary vessel identifier)",
+        "Valid": "boolean",
+        "NavigationalStatus": "integer - 0-15, see NAVIGATION_STATUS map",
+        "RateOfTurn": "integer",
+        "Sog": "double - speed over ground (knots)",
+        "PositionAccuracy": "boolean",
+        "Longitude": "double - degrees, E positive",
+        "Latitude": "double - degrees, N positive",
+        "Cog": "double - course over ground (degrees)",
+        "TrueHeading": "integer - degrees 0-359, 511 = not available",
+        "Timestamp": "integer - seconds since minute start (0-59, 60 = not available, 61 = manual, 62 = dead reckoning, 63 = inoperative)",
+        "SpecialManoeuvreIndicator": "integer",
+        "Spare": "integer",
+        "Raim": "boolean",
+        "CommunicationState": "integer"
+      }
+    },
+    "ShipStaticData": {
+      "description": "Static vessel information (AIS message type 5)",
+      "fields": {
+        "MessageID": "integer - 5",
+        "RepeatIndicator": "integer",
+        "UserID": "integer - MMSI",
+        "Valid": "boolean",
+        "AisVersion": "integer",
+        "ImoNumber": "integer - IMO number (may be 0)",
+        "CallSign": "string",
+        "Name": "string - vessel name",
+        "Type": "integer - AIS ship type code",
+        "Dimension": {
+          "A": "integer - bow to mast/antenna (meters)",
+          "B": "integer - stern to mast/antenna (meters)",
+          "C": "integer - port to centerline (meters)",
+          "D": "integer - starboard to centerline (meters)"
+        },
+        "FixType": "integer",
+        "Eta": {
+          "Day": "integer",
+          "Hour": "integer",
+          "Minute": "integer",
+          "Month": "integer"
+        },
+        "MaximumStaticDraught": "double - meters",
+        "Destination": "string",
+        "Dte": "boolean",
+        "Spare": "boolean"
+      }
+    },
+    "StandardClassBPositionReport": {
+      "description": "Class B transponder position (AIS message type 18)",
+      "fields": {
+        "MessageID": "integer - 18",
+        "RepeatIndicator": "integer",
+        "UserID": "integer - MMSI",
+        "Valid": "boolean",
+        "Sog": "double - speed over ground",
+        "PositionAccuracy": "boolean",
+        "Longitude": "double",
+        "Latitude": "double",
+        "Cog": "double - course over ground",
+        "TrueHeading": "integer",
+        "Timestamp": "integer",
+        "ClassBUnit": "boolean",
+        "ClassBDisplay": "boolean",
+        "ClassBDsc": "boolean",
+        "ClassBBand": "boolean",
+        "ClassBMsg22": "boolean",
+        "AssignedMode": "boolean",
+        "Raim": "boolean",
+        "CommunicationStateIsItdma": "boolean",
+        "CommunicationState": "integer"
+      }
+    },
+    "ExtendedClassBPositionReport": {
+      "description": "Extended class B position (AIS message type 19)",
+      "fields": {
+        "MessageID": "integer - 19",
+        "RepeatIndicator": "integer",
+        "UserID": "integer - MMSI",
+        "Valid": "boolean",
+        "Sog": "double",
+        "PositionAccuracy": "boolean",
+        "Longitude": "double",
+        "Latitude": "double",
+        "Cog": "double",
+        "TrueHeading": "integer",
+        "Timestamp": "integer",
+        "Name": "string",
+        "Type": "integer",
+        "Dimension": "object",
+        "FixType": "integer",
+        "Raim": "boolean",
+        "Dte": "boolean",
+        "AssignedMode": "boolean"
+      }
+    },
+    "LongRangeAisBroadcastMessage": {
+      "description": "Long-range position broadcast (AIS message type 27)",
+      "fields": {
+        "MessageID": "integer - 27",
+        "RepeatIndicator": "integer",
+        "UserID": "integer - MMSI",
+        "Valid": "boolean",
+        "PositionAccuracy": "boolean",
+        "Raim": "boolean",
+        "NavigationalStatus": "integer",
+        "Longitude": "double",
+        "Latitude": "double",
+        "Sog": "double",
+        "Cog": "double",
+        "PositionLatency": "boolean",
+        "Spare": "boolean"
+      }
+    }
+  },
+  "metadata_fields": {
+    "description": "Metadata object included in every AISStream message",
+    "fields": {
+      "MMSI": "integer - vessel MMSI",
+      "ShipName": "string - vessel name",
+      "latitude": "double - last known latitude",
+      "longitude": "double - last known longitude",
+      "time_utc": "string - UTC timestamp of message"
+    }
+  },
+  "required_fields_for_fetch_proof": [
+    "MessageType",
+    "Message.UserID",
+    "Message.Latitude",
+    "Message.Longitude",
+    "Message.Sog",
+    "Message.Cog",
+    "Message.TrueHeading",
+    "Message.NavigationalStatus",
+    "Message.Timestamp",
+    "Message.CallSign",
+    "Message.Name",
+    "Message.Type",
+    "Message.ImoNumber",
+    "Message.Destination",
+    "Message.Eta",
+    "Message.MaximumStaticDraught",
+    "Message.Dimension",
+    "Metadata.MMSI",
+    "Metadata.ShipName",
+    "Metadata.time_utc"
+  ],
+  "rate_limit_notes": {
+    "description": "AISStream is in BETA. No SLA. Rate throttled per API key and user.",
+    "free_tier_throughput": "~300 messages/second global (approximate)",
+    "subscription_timeout_ms": 3000,
+    "subscription_update_throttle": "max 1 update per second",
+    "mmsi_filter_max": 50,
+    "note": "If connection queue grows too large, AISStream may close connection. Ensure sufficient bandwidth and CPU to process incoming messages."
+  },
+  "reconnect_notes": {
+    "description": "AISStream does not document explicit reconnect behavior. Connection may drop silently.",
+    "recommended_strategy": "Exponential backoff: [1, 2, 5, 10, 30] seconds",
+    "heartbeat": "WebSocket library handles ping/pong frames",
+    "idle_timeout": "If no messages for 120s, consider connection dead"
+  },
+  "terms_notes": {
+    "description": "AISStream is in BETA. No guarantees or SLA for uptime.",
+    "api_key_security": "Must use wss (WebSocket Secure). Never expose API key in client-side code.",
+    "browser_cors": "Not supported. Must proxy through backend.",
+    "data_attribution": "Data aggregated from public AIS receivers worldwide"
+  },
+  "risks": [
+    "BETA service — no SLA, no uptime guarantee",
+    "API and object models are NOT stable (may change without notice)",
+    "Free tier rate limit not precisely documented (~300 msg/s global)",
+    "Bounding boxes are REQUIRED in subscription — global subscription uses [[-90,-180],[90,180]]",
+    "Subscription message must be sent within 3 seconds of connection",
+    "ShipStaticData may not arrive for every vessel (sent periodically, not on every position)",
+    "IMO field may be 0 if not available",
+    "Timestamp field in PositionReport is integer (seconds), not ISO string",
+    "Dimensions in ShipStaticData use A/B/C/D format, not length/width directly",
+    "Connection may drop if message queue grows too large",
+    "No explicit reconnect documentation"
+  ],
+  "mvp_decision": "READY_FOR_FETCH_PROOF",
+  "ready_for_fetch_proof": true,
+  "verified_at": "2026-06-09T17:12:00Z",
+  "verified_by": "Fetching Worker (WO-MAR-R)"
+}
