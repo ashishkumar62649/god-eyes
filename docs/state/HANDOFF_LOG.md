@@ -5118,3 +5118,62 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Remaining blockers: NONE
 - Recommended next task: Manual browser validation per WO-083G checklist
 
+### 2026-06-09T14:12:52Z Codex - WO-MAR-D Maritime Database Schema
+
+- Work order: WO-MAR-D
+- Agent: Codex
+- Lane: Database Worker
+- LLM model: GPT-5
+- Tool/CLI used: Codex desktop on Windows PowerShell
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-maritime-database
+- Start time UTC: 2026-06-09T13:50:00Z
+- End time UTC: 2026-06-09T14:12:52Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (Kiro owns remote push after review)
+- Goal: Create the Layer 06 Maritime database schema from confirmed normalized AISStream objects: PositionRecord, StaticRecord, and VesselLatest.
+- Files created:
+  - database/migrations/layers/layer_06_maritime/001_maritime_tables.sql - Additive PostgreSQL/PostGIS migration for maritime source metadata, fetch run tracking, vessel identity/static state, latest positions, position history, and raw evidence references.
+  - tests/data/layer_06_maritime/test_maritime_migration.py - Schema contract, fixture compatibility, upsert semantics, bbox, constraint, scope, and no-raw/no-env tests.
+- Files modified:
+  - docs/state/HANDOFF_LOG.md - This handoff entry.
+- Migration summary:
+  - Extensions: pgcrypto, postgis.
+  - Tables: maritime_sources, maritime_fetch_runs, maritime_vessels, maritime_positions_latest, maritime_position_history, maritime_raw_message_refs.
+  - Identity: source_id + mmsi unique constraints for maritime_vessels and maritime_positions_latest; source_object_id stored as MMSI text; dedupe_key constrained to source_id || ':' || mmsi.
+  - Geometry: maritime_positions_latest.geom and maritime_position_history.geom use GEOMETRY(Point, 4326), populated by maritime_set_position_geom trigger from longitude/latitude.
+  - Auditability: raw_evidence_uri stored on vessel, latest position, history, and raw message ref rows; provider_metadata stored as JSONB.
+  - Partial ETA: eta_month, eta_day, eta_hour, eta_minute, eta_display only. No fake ETA timestamp column.
+  - Raw evidence storage: maritime_raw_message_refs stores minimal references and metadata, not raw AIS blobs.
+- Constraints/indexes:
+  - layer_id checks for layer_06_maritime on all tables.
+  - latitude/longitude range checks on latest/history.
+  - speed_over_ground >= 0, course_over_ground 0..360, true_heading 0..359, navigation_status 0..15.
+  - MMSI > 0; IMO > 0 when present.
+  - partial ETA range checks and non-negative vessel dimensions.
+  - GiST spatial indexes on latest/history geom plus btree longitude/latitude bbox fallback.
+  - Indexes for layer_id + source_id, source_object_id, mmsi, vessel_type, received_at/last_received_at, fetch run status, raw ref message_type.
+- Sample compatibility:
+  - normalized_positions.jsonl maps to maritime_positions_latest and maritime_position_history.
+  - normalized_static.jsonl maps to maritime_vessels.
+  - normalized_vessels_latest.jsonl supports both static-only and position-only rows.
+  - Latest position upsert semantics verified on source_id + mmsi.
+- Validation commands run:
+  - python -m pytest tests/data/layer_06_maritime -q - PASS, 44 passed.
+  - docker exec god-eyes-postgis createdb -U god_eyes god_eyes_maritime_schema_test - PASS.
+  - Get-Content database/migrations/layers/layer_06_maritime/001_maritime_tables.sql | docker exec -i god-eyes-postgis psql -U god_eyes -d god_eyes_maritime_schema_test -v ON_ERROR_STOP=1 - PASS.
+  - psql sample validation in temporary DB - PASS: inserted source/static/latest/history/raw-ref rows, upsert updated latest position, bbox query returned true, invalid latitude rejected.
+  - docker exec god-eyes-postgis dropdb -U god_eyes god_eyes_maritime_schema_test - PASS.
+  - git status --short --branch - PASS; only WO-MAR-D allowed files changed.
+  - git diff --check - PASS.
+- Implementation boundary:
+  - Fetching code touched: NO.
+  - API touched: NO.
+  - Frontend touched: NO.
+  - Live network used: NO.
+  - Secrets touched: NO.
+  - .env touched: NO.
+  - Raw data committed: NO.
+- Known issues: None.
+- Review status: Ready for Kiro review.
+- Recommended next task: WO-MAR-D Reviewer, then WO-MAR-A API Implementation if review passes.
