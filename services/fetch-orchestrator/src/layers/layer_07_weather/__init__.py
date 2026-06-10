@@ -1,1 +1,1 @@
-"""Layer 07 Weather - Open-Meteo Fetch Proof Package"""
+"""Layer 07 Weather — Open-Meteo fetcher package."""

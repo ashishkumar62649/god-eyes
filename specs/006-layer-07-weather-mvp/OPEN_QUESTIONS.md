@@ -53,7 +53,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** 5° grid (~2,664 cells) for MVP. ~216 API calls/day estimate (4 fetches × 54 calls) well within 10K limit. **Note:** This is a planning estimate. Actual Open-Meteo API-call accounting must be verified during WO-WEATHER-R and WO-WEATHER-S. Requests with many variables, `forecast_days`, or multiple coordinates may count differently.
 
-**Status:** OPEN — decision needed before WO-WEATHER-F
+**Status:** RESOLVED — 5° grid used in WO-WEATHER-F. Actual coordinate count is 2701 (37 lat × 73 lon including both endpoints). 55 batches at 50 coords/batch.
 
 ---
 
@@ -210,10 +210,12 @@ This document captures questions that should be resolved before or during implem
 - **NEW:** `location_id` field present in response — not in planning docs, add to field mapping
 
 ### WO-WEATHER-F (Fetcher)
-- Optimal batch size (50 vs 100 per request)
-- Concurrent request limit
-- Retry backoff timing
-- Raw storage format finalization
+- ~~Optimal batch size~~ — RESOLVED: **50 coordinates per batch** (confirmed safe in full fetcher)
+- ~~Concurrent request limit~~ — RESOLVED: sequential with retry/backoff; max 3 consecutive failures before abort
+- ~~Retry backoff timing~~ — RESOLVED: exponential backoff, BACKOFF_BASE=30s × 2^attempt
+- ~~Raw storage format finalization~~ — RESOLVED: metadata.json + batches/batch_NNN.json + preview.json + observed_fields.json + fetch_report.md
+- **API-call accounting** — CONFIRMED NOT EXPOSED: Open-Meteo returns no rate-limit/quota headers. All tracking is client-side. Assume 1 HTTP request = 1 API call. Monitor for HTTP 429.
+- **location_id** — CONFIRMED PRESENT in response. Preserved in raw storage. Must be stored in `provider_metadata.location_id` during WO-WEATHER-N normalization.
 
 ### WO-WEATHER-N (Normalization)
 - Handle null fields gracefully

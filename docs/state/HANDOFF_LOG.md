@@ -1,3 +1,52 @@
+### 2026-06-10T16:08:00Z Kiro CLI — WO-WEATHER-F Fetcher Implementation
+
+- Work order: WO-WEATHER-F
+- Agent: Kiro CLI
+- Lane: Fetching
+- LLM model: claude-sonnet-4.6
+- Tool/CLI used: Kiro CLI (kiro-cli chat)
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-07-weather-fetcher
+- Start time UTC: 2026-06-10T10:27:00Z
+- End time UTC: 2026-06-10T10:38:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Implement full Open-Meteo fetcher module for layer_07_weather.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_client.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_grid.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_raw_storage.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_fetcher.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_cli.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/README.md
+  - tests/data/layer_07_weather/test_fetcher.py
+- Files updated:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/__init__.py
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (WO-WEATHER-F questions resolved)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Proof artifacts preserved:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_proof.py (unchanged)
+  - services/fetch-orchestrator/src/layers/layer_07_weather/proof_report.md (unchanged)
+- Commands run:
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS (clean)
+  - python -m pytest tests/data/layer_07_weather -q → 66/66 PASSED
+  - python -m layers.layer_07_weather.weather_cli dry-run --grid-spacing 5 --batch-size 50 → 2701 coords, 55 batches, 0 API calls
+  - python -m layers.layer_07_weather.weather_cli fetch --proof --forecast-days 1 → 7 coords, 1 batch, SUCCESS
+  - python -m layers.layer_07_weather.weather_cli fetch --grid-spacing 5 --batch-size 50 --forecast-days 3 --max-batches 1 → 50 coords, 1 batch, SUCCESS
+- Grid: 5° global, 2701 total coordinates (37 lat × 73 lon), 55 batches at 50 coords/batch
+- forecast_days: 3 for full fetch, 1 for proof mode
+- Retry/backoff: exponential BACKOFF_BASE=30s × 2^attempt, max 3 retries; 4xx no-retry
+- Client-side API-call tracking: YES (Open-Meteo exposes no rate-limit headers)
+- location_id preserved in raw storage; normalization to use provider_metadata.location_id
+- Raw output path: raw/layer_07_weather/open-meteo/{yyyy}/{mm}/{dd}/{run_id}/
+- Raw files committed: NO
+- Full global grid fetched: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Secrets touched: NO
+- Recommended next step: WO-WEATHER-F integration review by Kiro CLI, then WO-WEATHER-N normalization
+
 ### 2026-06-10T15:40:00Z Fetching Worker — WO-WEATHER-S Fetch Proof
 
 - Work order: WO-WEATHER-S
