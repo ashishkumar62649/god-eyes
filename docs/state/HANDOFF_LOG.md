@@ -5734,3 +5734,68 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Database migrations touched: NO (used existing tables)
 - Known issues: None
 - Next recommended task: WO-MAR-I Reviewer — review ingestion implementation. If approved, test frontend with live ingested database rows.
+
+### 2026-06-10T11:22:07Z Database Worker - WO-WEATHER-D Database Schema
+
+- Work order: WO-WEATHER-D
+- Agent: Database Worker
+- Lane: Database
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-07-weather-database
+- Start time UTC: unknown
+- End time UTC: 2026-06-10T11:22:07Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (review owner controls remote push)
+- Goal: Create the Layer 07 Weather database schema for normalized Open-Meteo current and hourly observations.
+- Files created:
+  - database/migrations/layers/layer_07_weather/001_weather_tables.sql - Additive PostgreSQL/PostGIS migration for sources, fetch runs, requested/resolved locations, latest observations, append-only history, and raw evidence references.
+  - tests/data/layer_07_weather/test_weather_migration.py - Static schema, index, constraint, seed, scope, and safety tests.
+- Files updated:
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md - Corrected observation type, latest uniqueness, history identity, spatial geometry/index, and provider metadata decisions.
+  - docs/state/HANDOFF_LOG.md - This handoff entry.
+- Migration summary:
+  - Tables: weather_sources, weather_fetch_runs, weather_locations, weather_observations_latest, weather_observation_history, weather_raw_message_refs.
+  - Source seed: Open-Meteo inserted idempotently with CC-BY 4.0 licence and attribution.
+  - Geometry: weather_locations.geom uses GEOMETRY(Point, 4326), populated from resolved coordinates by weather_set_location_geom trigger and indexed with GiST.
+  - Latest identity: unique index on location_id, source_id, observation_type, forecast_for.
+  - History identity: history_id primary key; observation_id retained as indexed logical identity so repeated fetches do not collide.
+  - Observation metadata: provider_metadata stored as JSONB; raw_evidence_uri stored on latest, history, and raw reference rows.
+  - Raw references: metadata and file references only; no raw response bodies stored.
+- Constraints and indexes:
+  - layer_id checks for layer_07_weather on all tables.
+  - Source and location foreign keys.
+  - current/hourly observation type checks.
+  - Latitude, longitude, percentage, wind direction, run count, response status, and fetch status checks.
+  - GiST location geometry index; GIN metadata indexes; latest/history time, source, location, temperature, and weather-code indexes.
+- Commands run:
+  - python -m pytest tests/data/layer_07_weather -q
+  - Applied database/migrations/layers/layer_07_weather/001_weather_tables.sql twice to temporary local PostGIS database god_eyes_weather_schema_test.
+  - Inserted source-linked fetch run, location, current/hourly latest rows, repeated history rows, and raw reference in the temporary database.
+  - Verified trigger-generated geometry, latest upsert, append-only history, source seed, and invalid humidity rejection.
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+  - git status --short raw/
+  - git ls-files raw/
+- Validation results:
+  - Weather data tests: PASS, 136 passed.
+  - Migration first apply: PASS.
+  - Migration idempotent second apply: PASS.
+  - PostGIS insert/query/constraint validation: PASS.
+  - git diff --check: PASS.
+- Implementation boundary:
+  - Database schema only: YES.
+  - Database ingestion implemented: NO.
+  - Fetcher touched: NO.
+  - Normalizer touched: NO.
+  - API routes touched: NO.
+  - Frontend touched: NO.
+  - Live API called: NO.
+  - Full global grid fetched: NO.
+  - Raw files committed: NO.
+  - Secrets touched: NO.
+- Known issues: None.
+- Review status: Ready for WO-WEATHER-D review.
+- Recommended next step: Review WO-WEATHER-D, then begin WO-WEATHER-A only after database review passes.
