@@ -231,10 +231,10 @@ This document captures questions that should be resolved before or during implem
 - Stale threshold finalization
 
 ### WO-WEATHER-A (API)
-- Response schema finalization
-- Filter combination behavior
-- Pagination strategy
-- Error message wording
+- Response schema finalization — RESOLVED: nested coordinates + weather structure with `data`/`meta` envelope matching project conventions
+- Filter combination behavior — RESOLVED: filters combine with AND; all optional; parameters use parameterized SQL
+- Pagination strategy — RESOLVED: offset-based pagination, default limit 200, max limit 5000, max offset 10000
+- Error message wording — RESOLVED: follows existing error pattern (code + message + details object)
 
 ### WO-WEATHER-U (Frontend)
 - Marker size optimization

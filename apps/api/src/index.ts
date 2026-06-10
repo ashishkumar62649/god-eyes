@@ -15,6 +15,7 @@ import { attachLiveAircraftWebSocket } from './routes/live-aircraft.js';
 import { spaceSatellitesRoutes, attachSpaceSatellitesWebSocket } from './routes/space/satellites.js';
 import { energyInfrastructureRoutes } from './routes/energy/infrastructure.js';
 import { maritimeRoutes } from './routes/maritime.js';
+import { weatherRoutes } from './routes/weather.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',
@@ -42,6 +43,7 @@ async function start() {
     await fastify.register(spaceSatellitesRoutes);
     await fastify.register(energyInfrastructureRoutes);
     await fastify.register(maritimeRoutes);
+    await fastify.register(weatherRoutes);
 
     // Health check at root
     fastify.get('/', async (_request, _reply) => {

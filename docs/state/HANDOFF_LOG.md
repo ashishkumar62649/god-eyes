@@ -1,3 +1,114 @@
+### 2026-06-10T18:37:00Z API Worker — WO-WEATHER-A API Implementation
+
+- Work order: WO-WEATHER-A
+- Agent: API Worker
+- Lane: API
+- Branch: agent/layer-07-weather-api
+- Start time UTC: 2026-06-10T18:15:00Z
+- End time UTC: 2026-06-10T18:37:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Implement read-only REST API endpoints for Layer 07 Weather using approved database schema.
+- Files created:
+  - apps/api/src/routes/weather.ts (weather API route module — 6 endpoints with validation, SQL queries, error handling)
+  - apps/api/tests/weather.test.ts (51 API tests covering all endpoints, filters, validation, empty-state, error cases)
+- Files modified:
+  - packages/contracts/src/index.ts (added WeatherObservationItemSchema, WeatherListResponseSchema, WeatherNearbyResponseSchema, WeatherSourcesResponseSchema, WeatherFetchRunsResponseSchema, and related schemas)
+  - apps/api/src/index.ts (imported and registered weatherRoutes)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Endpoints implemented:
+  1. GET /api/layers/layer_07_weather/weather/latest — latest observations with bbox, observation_type, source_id, forecast_from/forecast_to, limit, offset filters
+  2. GET /api/layers/layer_07_weather/weather/current — convenience endpoint filtered to observation_type=current
+  3. GET /api/layers/layer_07_weather/weather/hourly — convenience endpoint filtered to observation_type=hourly with forecast time range
+  4. GET /api/layers/layer_07_weather/weather/nearby — spatial nearest-neighbor query with lat/lon, radius_km, observation_type, source_id, limit
+  5. GET /api/layers/layer_07_weather/weather/sources — returns active weather_sources rows with attribution
+  6. GET /api/layers/layer_07_weather/weather/fetch-runs — returns recent fetch runs for admin/debug visibility
+- Query support:
+  - bbox: validated, uses geom && ST_MakeEnvelope for PostGIS spatial query
+  - observation_type: exact match on o.observation_type (current/hourly)
+  - source_id: exact match on o.source_id
+  - forecast_from/forecast_to: ISO 8601 datetime range on o.forecast_for
+  - lat/lon (nearby): ST_DWithin with geography cast for spatial radius search
+  - radius_km: positive number up to 1000 km, default 200 km
+  - distance_km: computed via ST_DistanceSphere in nearby endpoint
+  - limit/offset: pagination with 5000 max limit, 10000 max offset
+  - status (fetch-runs): validated against running/completed/failed/partial
+- Response shape:
+  - Latest/current/hourly: { data: WeatherObservationItem[], meta: { layer_id, count, limit, offset, source_id, attribution } }
+  - Nearby: { data: WeatherNearbyItem[], meta: { ..., lat, lon, radius_km } }
+  - Sources: { data: WeatherSourceItem[], meta: { count, layer_id } }
+  - Fetch-runs: { data: WeatherFetchRunItem[], meta: { count, limit, offset, layer_id } }
+  - Each item: nested coordinates { requested, resolved, elevation_m } and weather { temperature_c, ..., weather_label }
+  - Safe provider_metadata: surface_pressure_hpa + generation_time_ms extracted from JSONB
+- Database access:
+  - Tables queried: weather_observations_latest (o), weather_locations (l), weather_sources (s), weather_fetch_runs (f)
+  - JOINs: LEFT JOIN weather_locations ON location_id, JOIN weather_sources ON source_id
+  - Parameterized: All SQL uses $N parameterized queries (no string interpolation)
+  - Bbox: l.geom && ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326)
+  - Nearby: ST_DWithin(l.geom::geography, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography, radius_meters)
+  - Distance: ST_DistanceSphere(l.geom, ST_SetSRID(ST_MakePoint(lon, lat), 4326)) / 1000.0
+  - Empty-state: Returns empty data arrays, zero counts gracefully
+- Tests:
+  - File: tests/weather.test.ts
+  - 51 tests total, all passing
+  - Key behaviors covered:
+    - Route registration (all 6 endpoints respond)
+    - Latest returns observations with full item shape (coordinates, weather, metadata)
+    - Provider metadata safe subset exposure (surface_pressure_hpa, generation_time_ms)
+    - Null provider_metadata when no metadata available
+    - Bbox filter (validates SQL contains ST_MakeEnvelope)
+    - Bbox validation (invalid format, out of range values)
+    - Current endpoint filters observation_type=current
+    - Hourly endpoint filters observation_type=hourly
+    - Hourly with forecast_from/forecast_to time range
+    - Nearby validates lat/lon (out of range, invalid)
+    - Nearby returns observations with distance_km
+    - Nearby uses ST_DWithin spatial query
+    - Nearby radius_km validation
+    - Source_id filtering on multiple endpoints
+    - Invalid observation_type rejection (400 INVALID_QUERY)
+    - Invalid timestamp rejection (400 INVALID_QUERY)
+    - forecast_from before forecast_to validation
+    - Limit/offset pagination
+    - Empty result returns 200 with empty data array
+    - SQL parameterized (contains $1)
+    - Weather sources endpoint returns attribution and licence
+    - Fetch runs endpoint returns run metadata with status
+    - Fetch runs source_id and status filters
+    - Fetch runs invalid status rejection
+    - No external network calls (fetch spy)
+    - No frontend imports in route source
+    - No secrets exposed
+    - Internal error on DB failure (500 INTERNAL_ERROR, no SQL leak)
+    - Limit capped at MAX_LIMIT
+    - Invalid limit/offset rejection (400 INVALID_LIMIT/INVALID_QUERY)
+    - Fetch runs ordering by fetch_started_at DESC
+    - Sources endpoint empty handling
+    - Numeric coercion from DB strings to numbers
+    - Null fields preserved as null
+- Validation:
+  - pnpm --filter @god-eyes/contracts build: PASS
+  - pnpm --filter api build (tsc): PASS
+  - pnpm --filter api test: 443/443 PASS (16 test files, 51 weather tests)
+  - git status --short --branch: clean branch, files modified as expected
+  - git diff --check: no whitespace errors
+- Implementation boundary:
+  - fetching code touched: NO
+  - normalizer touched: NO
+  - database migrations touched: NO
+  - database ingestion touched: NO
+  - frontend touched: NO
+  - live API called: NO
+  - full global grid fetched: NO
+  - raw files committed: NO
+  - secrets touched: NO
+- Issues found: None
+- Blockers: None
+- Commit: (pending — local only, per WO policy)
+- Push status: local only
+- Ready for WO-WEATHER-A review: YES
+- Recommended next step: WO-WEATHER-A Reviewer, then WO-WEATHER-U Frontend Integration
+
 ### 2026-06-10T16:23:00Z Fetching Worker — WO-WEATHER-N Normalization Implementation
 
 - Work order: WO-WEATHER-N
