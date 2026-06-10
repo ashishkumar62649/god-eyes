@@ -17,6 +17,11 @@ This document captures questions that should be resolved before or during implem
 | No fake data? | Confirmed | Empty state if source unavailable |
 | Source-first rule? | Confirmed | Fetch proof before implementation |
 | Raw-data-first? | Confirmed | Raw responses saved before normalization |
+| Fetch proof succeeded? | Confirmed | 7 coordinates, HTTP 200, all fields present |
+| Rate-limit headers observed? | **No** | No rate-limit headers in response |
+| Multiple-coordinate response shape? | Confirmed | JSON array of objects (one per coordinate) |
+| Current + hourly in single call? | Confirmed | Both blocks returned in single response |
+| Safe batch size? | **50 coords** | 7 coords worked; 50 recommended for full fetch |
 
 ---
 
@@ -33,7 +38,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** Start with 5 test coordinates for the proof, then scale to 5° grid for full fetch implementation.
 
-**Status:** OPEN — decision needed before WO-WEATHER-S
+**Status:** RESOLVED — 7 test coordinates used in WO-WEATHER-S proof. Proof succeeded.
 
 ---
 
@@ -63,7 +68,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** Current + hourly (3 days). The API returns both in a single call. Hourly data enables future timeline features.
 
-**Status:** OPEN — decision needed before WO-WEATHER-S
+**Status:** RESOLVED — WO-WEATHER-S proof confirmed both current and hourly returned in single API call.
 
 ---
 
@@ -153,7 +158,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** `land` for MVP. Most users are on land. Future: allow user to toggle or use `nearest` for coastal areas.
 
-**Status:** OPEN — decision needed before WO-WEATHER-F
+**Status:** RESOLVED — `land` confirmed working in WO-WEATHER-S proof. Coordinate resolution differences observed (3–21 km from requested, expected behavior).
 
 ---
 
@@ -169,7 +174,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** 3 days. Balances useful forecast range with API efficiency. 7-day forecast uses more API calls but may be worthwhile.
 
-**Status:** OPEN — decision needed before WO-WEATHER-S
+**Status:** RESOLVED — Proof used `forecast_days=1` successfully. 3 days recommended for full fetcher (72 hourly timestamps per coordinate).
 
 ---
 
@@ -198,10 +203,11 @@ This document captures questions that should be resolved before or during implem
 - Confirm CC-BY 4.0 attribution requirements
 
 ### WO-WEATHER-S (Fetch Proof)
-- Test with real coordinates
-- Validate response structure
-- Confirm grid cell resolution
-- Test rate limits in practice
+- ~~Test with real coordinates~~ — DONE (7 coordinates, HTTP 200)
+- ~~Validate response structure~~ — DONE (array of objects, all fields present)
+- ~~Confirm grid cell resolution~~ — DONE (coordinate differences 3–21 km observed)
+- ~~Test rate limits in practice~~ — DONE (no rate-limit headers observed; client-side tracking needed)
+- **NEW:** `location_id` field present in response — not in planning docs, add to field mapping
 
 ### WO-WEATHER-F (Fetcher)
 - Optimal batch size (50 vs 100 per request)
@@ -237,4 +243,4 @@ This document captures questions that should be resolved before or during implem
 ---
 
 **Last Updated:** 2026-06-10
-**Status:** 10 open questions, 7 confirmed decisions
+**Status:** 5 open questions, 12 confirmed decisions (5 resolved during WO-WEATHER-S proof)
