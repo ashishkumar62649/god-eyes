@@ -17,7 +17,7 @@ GOD EYES is built as a stack of visual layers on a 3D globe. Each layer represen
 | 4 | `layer_04_public_military_security` | Public Military & Security | Public defense installations, open-source military data | coming_soon | static (MVP) |
 | 5 | `layer_05_space_satellites` | Space & Satellites | Satellite objects, orbits, tracks, debris | coming_soon | live |
 | 6 | `layer_06_maritime` | Maritime | Vessel positions, ports, vessel details | coming_soon | live |
-| 7 | `layer_07_infrastructure` | Infrastructure | Power grids, fiber optics, water systems, transport networks | coming_soon | static |
+| 7 | `layer_07_weather` | Weather / Live Weather | Point/grid weather forecast data, temperature, wind, precipitation | coming_soon | live |
 | 8 | `layer_08_news_osint` | News & OSINT | Geotagged news, open-source intelligence feeds | coming_soon | live |
 | 9 | `layer_09_user_shapes` | User Shapes | User-created polygons, lines, markers | coming_soon | static |
 | 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | Power plants, substations, transmission lines, oil/gas pipelines, LNG terminals | coming_soon | static |

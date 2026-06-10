@@ -137,7 +137,7 @@ CREATE TABLE weather_observations_latest (
 );
 
 -- Unique constraint: one latest observation per location per source
-CREATE UNIQUE UNIQUE idx_weather_latest_location_source
+CREATE UNIQUE INDEX idx_weather_latest_location_source
     ON weather_observations_latest(location_id, source_id);
 
 -- Indexes for common queries
@@ -408,6 +408,10 @@ WHERE source_id = 'open-meteo';
 - Add full-text search on weather labels
 
 ---
+
+## Model/Grid Resolution Metadata
+
+The `weather_locations` table stores `cell_note` for grid-cell caveats. The `provider_metadata` JSONB column in observation tables stores API response metadata including model name, generation time, timezone, and elevation. If Open-Meteo provides model/grid resolution (e.g., "9 km ECMWF"), it should be captured in `provider_metadata`. A dedicated `model_resolution_km` column can be added later if this becomes consistently available and useful.
 
 ## Connection to Other Layers
 

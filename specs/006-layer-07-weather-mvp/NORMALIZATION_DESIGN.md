@@ -293,11 +293,24 @@ raw/layer_07_weather/open-meteo/2026/06/10/run_20260610T120000Z/batch_001.json
 }
 ```
 
+### Model/Grid Resolution Storage
+
+If Open-Meteo provides model name, model/grid resolution, elevation, timezone, generation time, utc_offset_seconds, or similar metadata, GOD EYES must preserve it in `provider_metadata`. Key metadata to capture:
+- `elevation_m` — from response (90m DEM-based)
+- `generation_time_ms` — API generation time
+- `timezone` / `timezone_abbreviation` — resolved timezone
+- `utc_offset_seconds` — timezone offset
+- `model_name` — selected weather model (e.g., "best_match")
+- `cell_selection` — land/sea/nearest preference
+
+If model/grid resolution becomes consistently available and useful for display or debugging, a dedicated field such as `model_resolution_km` can be added to the database schema later.
+
 ### Purpose
 - Store additional Open-Meteo response metadata
 - Not displayed in UI (or displayed as expandable "Advanced" section)
 - Useful for debugging and data quality assessment
 - Stored as JSONB in PostgreSQL
+- Preserves model/grid metadata when available from API response
 
 ---
 

@@ -196,7 +196,7 @@ After MVP proves the pipeline:
 ### Protection Strategy
 1. **Fetch interval**: Full global refresh every 6 hours (4 fetches/day)
 2. **Batch size**: 50 coordinates per request (54 calls per full fetch)
-3. **Daily API usage**: ~216 calls (54 calls × 4 fetches/day) — well within 10K limit
+3. **Daily API usage (estimate)**: ~216 calls (54 calls × 4 fetches/day) — well within 10K limit. **Note:** This is a planning estimate. Actual Open-Meteo API-call accounting must be verified during WO-WEATHER-R Source Research and WO-WEATHER-S Fetch Proof. Requests with many variables, `forecast_days`, or multiple coordinates may count differently depending on Open-Meteo's rate-limit accounting. The fetch proof must record observed headers/response behavior if available and document safe batch size.
 4. **Concurrent requests**: Max 5 concurrent to avoid burst limits
 5. **Backoff on 429/503**: Exponential backoff starting at 30 seconds
 6. **Caching**: Store responses, re-fetch only stale data

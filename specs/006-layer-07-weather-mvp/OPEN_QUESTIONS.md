@@ -46,7 +46,7 @@ This document captures questions that should be resolved before or during implem
 - 2.5° grid: ~10,368 cells (104 API calls)
 - 1° grid: ~64,800 cells (648 API calls) — too many for free tier
 
-**Recommendation:** 5° grid (~2,664 cells) for MVP. ~216 API calls/day (4 fetches × 54 calls) well within 10K limit.
+**Recommendation:** 5° grid (~2,664 cells) for MVP. ~216 API calls/day estimate (4 fetches × 54 calls) well within 10K limit. **Note:** This is a planning estimate. Actual Open-Meteo API-call accounting must be verified during WO-WEATHER-R and WO-WEATHER-S. Requests with many variables, `forecast_days`, or multiple coordinates may count differently.
 
 **Status:** OPEN — decision needed before WO-WEATHER-F
 
@@ -237,4 +237,4 @@ This document captures questions that should be resolved before or during implem
 ---
 
 **Last Updated:** 2026-06-10
-**Status:** 8 open questions, 7 confirmed decisions
+**Status:** 10 open questions, 7 confirmed decisions

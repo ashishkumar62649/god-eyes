@@ -1,3 +1,51 @@
+### 2026-06-10T12:30:00Z Planning Worker — WO-WEATHER-P Correction Pass
+
+- Work order: WO-WEATHER-P (correction)
+- Agent: Planning Worker
+- Lane: Planning
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: planning/layer-07-weather-mvp
+- Start time UTC: 2026-06-10T12:15:00Z
+- End time UTC: 2026-06-10T12:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Apply correction pass to Weather planning docs based on reviewer notes.
+- Corrections applied:
+  1. Fixed SQL syntax typo: `CREATE UNIQUE UNIQUE` → `CREATE UNIQUE INDEX` in DATABASE_PLANNING.md
+  2. Qualified Open-Meteo API-call estimate: Added "estimate" qualifier and verification note to FETCHING_DESIGN.md and OPEN_QUESTIONS.md
+  3. Fixed open questions count: Corrected summary from "8 open questions" to "10 open questions" in OPEN_QUESTIONS.md
+  4. Added model resolution metadata storage note: Added explicit section to NORMALIZATION_DESIGN.md and DATABASE_PLANNING.md about preserving model/grid metadata in provider_metadata
+  5. Resolved Layer Registry conflict: Moved `layer_07_infrastructure` (placeholder only, no implementation) to future unassigned slot; assigned `layer_07_weather` to Weather / Live Weather in MVP_LAYER_REGISTRY.md, LAYER_ID_CONVENTIONS.md, LAYER_ARCHITECTURE.md, AGENTS.md
+- Files modified:
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md (SQL typo fix, model resolution note)
+  - specs/006-layer-07-weather-mvp/FETCHING_DESIGN.md (API estimate qualification)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (count fix, API estimate qualification)
+  - specs/006-layer-07-weather-mvp/NORMALIZATION_DESIGN.md (model resolution note)
+  - docs/control/MVP_LAYER_REGISTRY.md (layer_07 → Weather, Infrastructure removed from slot 7)
+  - docs/control/LAYER_ID_CONVENTIONS.md (layer_07 → Weather, folder example updated)
+  - docs/control/LAYER_ARCHITECTURE.md (layer_07 → Weather)
+  - AGENTS.md (layer_07 → Weather)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Layer registry decision: Infrastructure was only a placeholder (no implementation files, no specs, no migrations). Weather assigned to layer_07_weather. Infrastructure moved to future unassigned slot (not in active registry).
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Validation:
+  - SQL typo: VERIFIED FIXED (no double UNIQUE remaining)
+  - API estimate: VERIFIED QUALIFIED (estimate wording added)
+  - Open questions count: VERIFIED FIXED (says 10 now)
+  - Model resolution note: VERIFIED ADDED (in NORMALIZATION_DESIGN.md and DATABASE_PLANNING.md)
+  - Layer registry: VERIFIED UPDATED (4 files updated)
+- Implementation not started
+- Live data not fetched
+- Secrets not touched
+- Raw data not committed
+- Known issues: None
+- Next recommended task: Correction review. If approved, proceed to WO-WEATHER-R (Source Research).
+
 ### 2026-06-10T12:00:00Z Planning Worker — WO-WEATHER-P Layer 07 Weather MVP Planning
 
 - Work order: WO-WEATHER-P
