@@ -1,3 +1,57 @@
+### 2026-06-10T12:00:00Z Planning Worker — WO-WEATHER-P Layer 07 Weather MVP Planning
+
+- Work order: WO-WEATHER-P
+- Agent: Planning Worker
+- Lane: Planning
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: planning/layer-07-weather-mvp
+- Start time UTC: 2026-06-10T11:30:00Z
+- End time UTC: 2026-06-10T12:00:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Create complete Spec Kit planning package for Layer 07 Weather / Live Weather. Define all planning documents, source evaluation, architecture, work orders, and open questions.
+- Approach: Evaluated 6 weather data sources (Open-Meteo, MET Norway, RainViewer, NOAA/NWS, OpenWeather, WeatherAPI). Selected Open-Meteo as PRIMARY_MVP_SOURCE (no API key, global, CC-BY 4.0). Designed 5° global grid strategy (~2,664 cells). Created 10 planning documents in specs/006-layer-07-weather-mvp/. Defined 9 work orders (WO-WEATHER-P through WO-WEATHER-V). Documented 8 open questions and 7 confirmed decisions.
+- Files created:
+  - specs/006-layer-07-weather-mvp/README.md (spec index)
+  - specs/006-layer-07-weather-mvp/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
+  - specs/006-layer-07-weather-mvp/SOURCE_EVALUATION_MATRIX.md (6 weather sources evaluated)
+  - specs/006-layer-07-weather-mvp/FETCHING_DESIGN.md (Open-Meteo fetch strategy, grid design, raw storage)
+  - specs/006-layer-07-weather-mvp/NORMALIZATION_DESIGN.md (field mapping, weather code labels, unit normalization)
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md (PostGIS schema, 6 tables, indexes, upsert)
+  - specs/006-layer-07-weather-mvp/API_PLANNING.md (3 REST endpoints, query patterns, response schemas)
+  - specs/006-layer-07-weather-mvp/FRONTEND_PLANNING.md (Cesium markers, temperature colors, click card)
+  - specs/006-layer-07-weather-mvp/WORK_ORDERS.md (9 work orders with lane/acceptance criteria)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (8 open questions, 7 confirmed decisions)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git checkout -b planning/layer-07-weather-mvp (created branch from main)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Source decisions:
+  - Open-Meteo: **PRIMARY_MVP_SOURCE** — no API key, global, CC-BY 4.0, batch support
+  - MET Norway: **FUTURE_SOURCE** / **BACKUP_SOURCE** — Nordic focus, User-Agent requirement
+  - RainViewer: **FUTURE_OVERLAY_SOURCE** — radar tiles only, not point weather data
+  - NOAA/NWS: **FUTURE_ALERT_SOURCE** — US-only, alerts focus
+  - OpenWeather: **REJECT_FOR_MVP** — API key required, limited free tier
+  - WeatherAPI: **REJECT_FOR_MVP** — API key required, limited free tier
+- Grid strategy: 5° global grid (~2,664 cells, ~216 API calls/day, well within free tier)
+- Layer decision: layer_07_weather (Weather / Live Weather) — approved by user
+- Database planning: 6 tables (sources, fetch_runs, locations, observations_latest, observation_history, raw_message_refs)
+- API planning: 3 endpoints (objects list, object detail, stats)
+- Frontend planning: Temperature-colored markers, click detail card, stale data handling
+- Implementation not started
+- Live data not fetched
+- Secrets not touched
+- Raw data not committed
+- Known issues:
+  - Layer registry (MVP_LAYER_REGISTRY.md) currently has layer_07 as Infrastructure — needs update to Weather or renumbering
+  - 8 open questions remain for implementation phases
+- Next recommended task: WO-WEATHER-P Reviewer — review spec kit. If approved, proceed to WO-WEATHER-R (Source Research) to verify Open-Meteo documentation, then WO-WEATHER-S (Fetch Proof) to prove real data delivery.
+
 ### 2026-06-09T15:52:00Z Frontend Worker — WO-MAR-U Maritime Frontend Integration
 
 - Work order: WO-MAR-U
