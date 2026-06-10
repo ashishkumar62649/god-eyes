@@ -248,6 +248,7 @@ def test_weather_work_order_changes_stay_in_allowed_paths():
 
     allowed_prefixes = (
         "database/migrations/layers/layer_07_weather/",
+        "database/ingestion/",
         "tests/data/layer_07_weather/",
         "docs/state/HANDOFF_LOG.md",
         "specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md",

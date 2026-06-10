@@ -224,9 +224,10 @@ This document captures questions that should be resolved before or during implem
 - Provider metadata schema
 
 ### WO-WEATHER-D (Database)
-- Spatial index performance
-- Upsert strategy finalization
-- History table partitioning
+- Spatial index performance — RESOLVED: stored location geometry with GiST index
+- Upsert strategy finalization — RESOLVED: location primary-key upsert; latest conflict target is location/source/type/forecast time; history is idempotent append-only
+- Current/hourly observation identity collision — RESOLVED: ingestion uses a type-aware database observation ID and preserves the normalizer ID in provider metadata
+- History table partitioning — DEFERRED: not required for MVP volume
 - Stale threshold finalization
 
 ### WO-WEATHER-A (API)

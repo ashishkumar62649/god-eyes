@@ -5825,3 +5825,76 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Secrets touched: NO.
 - Review status: Ready for documentation sync review.
 - Ready for WO-WEATHER-I Database Ingestion: YES.
+
+### 2026-06-10T12:52:57Z Database Worker - WO-WEATHER-I Database Ingestion
+
+- Work order: WO-WEATHER-I
+- Agent: Database Worker
+- Lane: Database ingestion
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-07-weather-ingestion
+- Start time UTC: unknown
+- End time UTC: 2026-06-10T12:52:57Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (review owner controls remote push)
+- Goal: Ingest normalized Layer 07 Weather observations into the approved PostgreSQL/PostGIS schema without fetching or normalization work.
+- Files created:
+  - database/ingestion/__init__.py
+  - database/ingestion/layers/__init__.py
+  - database/ingestion/layers/layer_07_weather/__init__.py
+  - database/ingestion/layers/layer_07_weather/weather_ingestion.py
+  - tests/data/layer_07_weather/test_weather_ingestion.py
+- Files updated:
+  - tests/data/layer_07_weather/test_weather_migration.py - Added the approved database ingestion path to the scope guard.
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md - Documented type-aware database observation identity and location upsert behavior.
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md - Marked ingestion identity and upsert decisions resolved; deferred history partitioning for MVP.
+  - docs/state/HANDOFF_LOG.md - This handoff entry.
+- Ingestion functions implemented:
+  - build_database_observation_id, build_history_id, build_raw_ref_id.
+  - validate_weather_observation and location/latest/history record extraction.
+  - weather location and latest observation upserts.
+  - idempotent history and raw reference inserts.
+  - fetch run create and completion helpers.
+  - atomic single-observation and batch ingestion functions.
+- Identity decision:
+  - The approved normalizer produces the same observation_id when current and hourly observations share location, source, and forecast time.
+  - Ingestion generates the stored observation_id from location_id, source_id, observation_type, and forecast_for.
+  - The original normalizer ID is preserved in provider_metadata.logical_observation_id.
+  - history_id is generated from the type-aware database observation_id and fetched_at.
+  - raw_ref_id is generated from fetch_run_id, raw_evidence_uri, and batch_index.
+- Transaction behavior:
+  - Individual observation ingestion commits location/latest/history writes together.
+  - Batch ingestion commits optional fetch run, observations, and raw refs once; any failure rolls back the complete batch.
+- Commands run:
+  - python -m compileall database/ingestion
+  - python -m pytest tests/data/layer_07_weather/test_weather_ingestion.py -q
+  - python -m pytest tests/data/layer_07_weather -q
+  - Applied the approved Weather migration to temporary local PostGIS database god_eyes_weather_ingestion_test.
+  - Ingested one current observation, two hourly forecast slots, one later repeat fetch, one fetch run, and one raw message reference.
+  - Verified three latest rows, four history rows, latest update behavior, type-safe same-time identities, provider metadata preservation, and generated SRID 4326 geometry.
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+  - git status --short raw/
+  - git ls-files raw/
+- Validation results:
+  - Weather test suite: PASS, 175 passed.
+  - Python compilation: PASS.
+  - Temporary PostGIS integration: PASS.
+  - No live network requests performed.
+- Implementation boundary:
+  - Database ingestion only: YES.
+  - Database migration changed: NO.
+  - Fetcher touched: NO.
+  - Normalizer touched: NO.
+  - API routes touched: NO.
+  - Frontend touched: NO.
+  - Live API called: NO.
+  - Full global grid fetched: NO.
+  - Raw files committed: NO.
+  - Secrets touched: NO.
+- Known issues: None.
+- Review status: Ready for WO-WEATHER-I review.
+- Recommended next step: Review WO-WEATHER-I, then begin the Weather API work only after ingestion review passes.
