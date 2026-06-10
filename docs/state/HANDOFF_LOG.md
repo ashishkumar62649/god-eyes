@@ -1,3 +1,58 @@
+### 2026-06-10T15:21:00Z Frontend Worker — WO-WEATHER-U Frontend Implementation
+
+- Work order: WO-WEATHER-U
+- Agent: Frontend Worker (Gemini lane)
+- LLM model: claude-opus-4.8
+- Tool/CLI used: Kiro CLI
+- Lane: Frontend
+- Branch: agent/layer-07-weather-frontend
+- Base branch: agent/layer-07-weather-api (approved API commit 8a50349)
+- Start time UTC: 2026-06-10T15:00:00Z
+- End time UTC: 2026-06-10T15:21:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — Kiro owns pushes per WO policy)
+- Goal: Implement the frontend globe/UI layer for Layer 07 Weather / Live Weather using the approved GOD EYES API.
+- Endpoint consumed: GET /api/layers/layer_07_weather/weather/current
+- Files created:
+  - apps/web/src/layers/layer_07_weather/weatherTypes.ts (render model + mapping, attribution constant)
+  - apps/web/src/layers/layer_07_weather/weatherApi.ts (GOD EYES current endpoint client)
+  - apps/web/src/layers/layer_07_weather/weatherMarker.ts (temperature buckets/colors, legend, canvas marker)
+  - apps/web/src/layers/layer_07_weather/useWeather.ts (REST hook: loading/empty/error/count/attribution, conservative 10-min polling)
+  - apps/web/src/layers/layer_07_weather/WeatherLayer.tsx (Cesium BillboardCollection)
+  - apps/web/src/layers/layer_07_weather/weatherDetail.ts (detail formatting helpers incl. degreesToCardinal)
+  - apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts (23 unit tests)
+- Files modified:
+  - apps/web/src/lib/useLayerRegistry.ts (replaced stale layer_07_infrastructure placeholder with layer_07_weather: status active, dataStatus live, isEnabled false (default OFF), isImplemented true)
+  - apps/web/src/App.tsx (weatherLayerActive + selectedWeather state, useWeather hook, props to CesiumGlobe + Shell)
+  - apps/web/src/CesiumGlobe.tsx (weather props, WeatherLayer mount, _weatherData click-pick branch)
+  - apps/web/src/components/Shell.tsx (weather prop pass-through to LayerPanel + DetailPanel)
+  - apps/web/src/components/LayerPanel.tsx (weather toggle, status, refresh, temperature legend, attribution)
+  - apps/web/src/components/DetailPanel.tsx (weather detail card with attribution)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Frontend components added: WeatherLayer (Cesium billboards), useWeather hook, weather API client, weather render model + marker/detail helpers, LayerPanel weather controls/legend, DetailPanel weather card.
+- Render model fields: observationId, locationId, sourceId, resolved latitude/longitude (used for placement), requested lat/lon, elevationM, temperatureC, apparentTemperatureC, humidityPercent, pressureHpa, windSpeedKph, windDirectionDeg, windGustKph, precipitationMm, precipitationProbabilityPercent, cloudCoverPercent, weatherCode, weatherLabel, forecastFor, fetchedAt, isStale, attribution, surfacePressureHpa (safe provider_metadata).
+- Marker placement strategy: resolved (grid) coordinates only. Items with missing/invalid resolved coords or missing temperature_c are skipped.
+- Temperature color strategy: 6 buckets (cold ≤0, cool 1–10, mild 11–20, warm 21–30, hot 31–40, extreme >40 °C); stale markers rendered grey.
+- LayerPanel: toggle on/off, loading/empty/error states, loaded observation count, temperature legend (°C), refresh button, visible Open-Meteo CC-BY 4.0 attribution.
+- DetailPanel: compact weather card (condition, temperature, feels like, humidity, wind speed/direction+cardinal/gusts, precipitation + probability, cloud cover, pressure, forecast_for, last updated, stale flag) with repeated attribution.
+- Tests added: 23 weather unit tests (registry entry, API path = GOD EYES /weather/current and NOT Open-Meteo, safe query params, response→render model mapping, resolved-coordinate use, invalid-coordinate skip, missing-temperature skip, temperature buckets/colors/legend, detail formatters, attribution constant).
+- Validation:
+  - pnpm --filter @god-eyes/contracts build: PASS (required so contracts type declarations resolve)
+  - pnpm --filter web test: PASS (34 tests — 23 weather + 11 maritime)
+  - pnpm --filter web build (tsc --noEmit + vite build): PASS (90 modules)
+  - No frontend lint/typecheck script exists separately; tsc (build) serves as typecheck.
+- Safety:
+  - Live Open-Meteo call: NO (frontend calls only the GOD EYES API)
+  - Full global grid fetched: NO (single current-observations request, limit 2000, conservative 10-min polling)
+  - Raw files committed: NO (git ls-files raw/ empty)
+  - Secrets touched: NO (no .env / API key usage)
+  - Fetcher touched: NO | Normalizer touched: NO | Database touched: NO | API routes touched: NO
+- Recommended next step: Kiro integration review (WO-WEATHER-U). Future enhancements (not MVP): bbox/viewport-driven loading, stale-opacity tiers, RainViewer radar overlay.
+- Review status: pending Kiro review.
+
+---
+
+
 ### 2026-06-10T18:37:00Z API Worker — WO-WEATHER-A API Implementation
 
 - Work order: WO-WEATHER-A

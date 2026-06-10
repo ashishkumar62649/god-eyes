@@ -15,6 +15,7 @@ import type { SpaceSatellitesStatus } from '../layers/space/satellites/satellite
 import type { SatelliteFilters } from '../layers/space/satellites/satelliteFilters';
 import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
 
 interface AviationStats {
   loaded: number;
@@ -63,6 +64,16 @@ interface ShellProps {
   onMaritimeFiltersChange: (filters: { search: string; vesselType: string | null }) => void;
   onMaritimeRefresh: () => void;
   vesselDetail: MaritimeVesselDetail | null;
+  weatherLayerActive: boolean;
+  setWeatherLayerActive: (active: boolean) => void;
+  weatherLoading: boolean;
+  weatherError: string | null;
+  weatherEmpty: boolean;
+  weatherCount: number;
+  weatherAttribution: string;
+  onWeatherRefresh: () => void;
+  selectedWeather: WeatherRenderItem | null;
+  onWeatherClose: () => void;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -78,6 +89,8 @@ const Shell: React.FC<ShellProps> = ({
   energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
   selectedEnergyFeature, onEnergyFeatureClose,
   maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh, vesselDetail,
+  weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
+  selectedWeather, onWeatherClose,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -119,6 +132,14 @@ const Shell: React.FC<ShellProps> = ({
           maritimeFilters={maritimeFilters}
           onMaritimeFiltersChange={onMaritimeFiltersChange}
           onMaritimeRefresh={onMaritimeRefresh}
+          weatherLayerActive={weatherLayerActive}
+          setWeatherLayerActive={setWeatherLayerActive}
+          weatherLoading={weatherLoading}
+          weatherError={weatherError}
+          weatherEmpty={weatherEmpty}
+          weatherCount={weatherCount}
+          weatherAttribution={weatherAttribution}
+          onWeatherRefresh={onWeatherRefresh}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -131,6 +152,8 @@ const Shell: React.FC<ShellProps> = ({
           selectedEnergyFeature={selectedEnergyFeature}
           onEnergyFeatureClose={onEnergyFeatureClose}
           vesselDetail={vesselDetail}
+          selectedWeatherItem={selectedWeather}
+          onWeatherClose={onWeatherClose}
         />
       </main>
         <StatusPanel

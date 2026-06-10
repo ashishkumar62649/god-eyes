@@ -13,6 +13,13 @@ import type { AirportIntelImages } from '../layers/aviation/airports/airportInte
 import AirportLayoutOverlayToggle from './intel/AirportLayoutOverlayToggle';
 import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
 import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
+import {
+  formatMeasurement,
+  formatWindDirection,
+  formatTimestamp,
+  formatCondition,
+} from '../layers/layer_07_weather/weatherDetail';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | MaritimeVesselObject | null;
@@ -25,6 +32,8 @@ interface DetailPanelProps {
   selectedEnergyFeature: EnergyFeature | null;
   onEnergyFeatureClose: () => void;
   vesselDetail: MaritimeVesselDetail | null;
+  selectedWeatherItem: WeatherRenderItem | null;
+  onWeatherClose: () => void;
 }
 
 // ── error boundary ────────────────────────────────────────────────────────────
@@ -429,6 +438,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   selectedEnergyFeature,
   onEnergyFeatureClose: _onEnergyFeatureClose,
   vesselDetail,
+  selectedWeatherItem,
+  onWeatherClose: _onWeatherClose,
 }) => {
   const isVessel = selectedObject && 'layerId' in selectedObject && selectedObject.layerId === 'layer_06_maritime';
   const { state: profileState, retry } = useAirportPublicProfile(!isVessel && selectedObject ? selectedObject.id : null);
@@ -590,12 +601,115 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     </div>
   ) : null;
 
+  // Weather observation detail card
+  const weatherContent = selectedWeatherItem ? (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--shell-accent)', lineHeight: 1.2, marginBottom: '2px' }}>
+        {formatCondition(selectedWeatherItem)}
+      </div>
+      <div style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '10px', fontFamily: 'var(--shell-font-mono)', letterSpacing: '1px' }}>
+        WEATHER OBSERVATION
+      </div>
+
+      <div className="detail-row">
+        <div className="detail-label">Temperature</div>
+        <div className="detail-value">{formatMeasurement(selectedWeatherItem.temperatureC, '°C')}</div>
+      </div>
+      {selectedWeatherItem.apparentTemperatureC !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Feels Like</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.apparentTemperatureC, '°C')}</div>
+        </div>
+      )}
+      {selectedWeatherItem.humidityPercent !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Humidity</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.humidityPercent, '%', 0)}</div>
+        </div>
+      )}
+      {selectedWeatherItem.windSpeedKph !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Wind Speed</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.windSpeedKph, 'km/h')}</div>
+        </div>
+      )}
+      {selectedWeatherItem.windDirectionDeg !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Wind Direction</div>
+          <div className="detail-value">{formatWindDirection(selectedWeatherItem.windDirectionDeg)}</div>
+        </div>
+      )}
+      {selectedWeatherItem.windGustKph !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Wind Gusts</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.windGustKph, 'km/h')}</div>
+        </div>
+      )}
+      {selectedWeatherItem.precipitationMm !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Precipitation</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.precipitationMm, 'mm')}</div>
+        </div>
+      )}
+      {selectedWeatherItem.precipitationProbabilityPercent !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Precip. Probability</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.precipitationProbabilityPercent, '%', 0)}</div>
+        </div>
+      )}
+      {selectedWeatherItem.cloudCoverPercent !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Cloud Cover</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.cloudCoverPercent, '%', 0)}</div>
+        </div>
+      )}
+      {selectedWeatherItem.pressureHpa !== null && (
+        <div className="detail-row">
+          <div className="detail-label">Pressure</div>
+          <div className="detail-value">{formatMeasurement(selectedWeatherItem.pressureHpa, 'hPa')}</div>
+        </div>
+      )}
+
+      {/* Timing */}
+      <div className="detail-row">
+        <div className="detail-label">Forecast For</div>
+        <div className="detail-value">{formatTimestamp(selectedWeatherItem.forecastFor)}</div>
+      </div>
+      <div className="detail-row">
+        <div className="detail-label">Last Updated</div>
+        <div className="detail-value">{formatTimestamp(selectedWeatherItem.fetchedAt)}</div>
+      </div>
+      {selectedWeatherItem.isStale && (
+        <div className="detail-row">
+          <div className="detail-label">Data Status</div>
+          <div className="detail-value" style={{ color: '#ffab00' }}>Stale</div>
+        </div>
+      )}
+
+      {/* Attribution */}
+      <div style={{
+        marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: '12px', fontSize: '0.6rem', lineHeight: 1.5, color: 'var(--shell-text-dim)',
+      }}>
+        {selectedWeatherItem.attribution}
+      </div>
+
+      <div style={{
+        marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: '20px', opacity: 0.3, fontSize: '0.6rem',
+        fontFamily: 'var(--shell-font-mono)',
+      }}>
+        OBSERVATION ID: {selectedWeatherItem.observationId}
+      </div>
+    </div>
+  ) : null;
+
   const headerContent = detailLoading ? (
     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <span style={{ ...spinner, width: '10px', height: '10px' }} />
       Object Intel
     </span>
-  ) : selectedEnergyFeature ? 'Energy Infrastructure' : 'Object Intel';
+  ) : selectedEnergyFeature ? 'Energy Infrastructure' : selectedWeatherItem ? 'Weather' : 'Object Intel';
 
   return (
     <aside className={`shell-panel shell-panel-right shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -613,9 +727,12 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         <div className="panel-content">
           {/* Energy Infrastructure Feature Detail */}
           {selectedEnergyFeature && energyFeatureContent}
-          
+
+          {/* Weather Observation Detail */}
+          {!selectedEnergyFeature && selectedWeatherItem && weatherContent}
+
           {/* Airport Object Detail */}
-          {!selectedEnergyFeature && !selectedObject && (
+          {!selectedEnergyFeature && !selectedWeatherItem && !selectedObject && (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               height: '100%', color: 'var(--shell-text-dim)', fontSize: '0.75rem',
@@ -630,7 +747,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           )}
           
           {/* Vessel Detail Card rendering */}
-          {!selectedEnergyFeature && selectedObject && isVessel && (
+          {!selectedEnergyFeature && !selectedWeatherItem && selectedObject && isVessel && (
             <IntelSection title="Vessel Details">
               <VesselOverviewSection
                 vessel={selectedObject as MaritimeVesselObject}
@@ -642,7 +759,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           )}
 
           {/* Airport Object Detail */}
-          {!selectedEnergyFeature && selectedObject && !isVessel && (
+          {!selectedEnergyFeature && !selectedWeatherItem && selectedObject && !isVessel && (
             <IntelBoundary key={selectedObject.id}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
 

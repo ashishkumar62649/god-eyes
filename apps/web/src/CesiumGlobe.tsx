@@ -30,6 +30,8 @@ import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/a
 import type { EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
 import EnergyInfrastructureLayer from './layers/energy/infrastructure/EnergyInfrastructureLayer';
 import MaritimeLayer from './layers/maritime/MaritimeLayer';
+import WeatherLayer from './layers/layer_07_weather/WeatherLayer';
+import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
 import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
 import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
@@ -122,6 +124,10 @@ interface CesiumGlobeProps {
   maritimeLayerActive?: boolean;
   maritimeVessels?: MaritimeVesselObject[];
   onMaritimeBboxChange?: (bbox: string | null) => void;
+  /** Layer 07: Weather */
+  weatherLayerActive?: boolean;
+  weatherItems?: WeatherRenderItem[];
+  onWeatherSelect?: (item: WeatherRenderItem | null) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -151,6 +157,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   maritimeLayerActive,
   maritimeVessels,
   onMaritimeBboxChange,
+  weatherLayerActive,
+  weatherItems,
+  onWeatherSelect,
 }) => {
 
   /**
@@ -233,6 +242,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const satelliteDotCollectionRef = useRef<PointPrimitiveCollection | null>(null);
   const satelliteEntityDataSourceRef = useRef<CustomDataSource | null>(null);
   const onEnergyFeatureSelectRef = useRef(onEnergyFeatureSelect);
+  const onWeatherSelectRef = useRef(onWeatherSelect);
 
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
@@ -251,6 +261,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onAircraftRenderedRef.current = onAircraftRendered;
     onGetBboxRef2.current = onGetBbox;
     onEnergyFeatureSelectRef.current = onEnergyFeatureSelect;
+    onWeatherSelectRef.current = onWeatherSelect;
     // Populate the external bbox ref so App.tsx can forward bbox to WS.
     if (onGetBboxRef) onGetBboxRef.current = onGetBbox;
   });
@@ -563,6 +574,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const pos = Cartesian3.fromDegrees(vessel.longitude, vessel.latitude, 0);
             if (isPositionVisible(viewer!, pos)) {
               onObjectSelectRef.current(vessel);
+            }
+          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._weatherData) {
+            const weatherItem = (pickedObject.id as any)._weatherData as WeatherRenderItem;
+            const pos = Cartesian3.fromDegrees(weatherItem.longitude, weatherItem.latitude, 0);
+            if (isPositionVisible(viewer!, pos)) {
+              onWeatherSelectRef.current?.(weatherItem);
             }
           } else {
             onObjectSelectRef.current(null);
@@ -1403,6 +1420,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer={viewerRef.current}
         vessels={maritimeVessels ?? []}
         active={maritimeLayerActive ?? false}
+      />
+      <WeatherLayer
+        viewer={viewerRef.current}
+        items={weatherItems ?? []}
+        active={weatherLayerActive ?? false}
       />
     </div>
   );
