@@ -1,3 +1,51 @@
+### 2026-06-10T14:30:00Z Fetching Worker — WO-WEATHER-R Source Research
+
+- Work order: WO-WEATHER-R
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: planning/layer-07-weather-mvp
+- Start time UTC: 2026-06-10T14:00:00Z
+- End time UTC: 2026-06-10T14:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Verify Open-Meteo API documentation, confirm fields, document source research for WO-WEATHER-S Fetch Proof.
+- Sources researched: Open-Meteo (official docs, terms, licence)
+- Files created:
+  - packages/source-catalog/layers/layer_07_weather/README.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_source.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_field_mapping.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_request_plan.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_research_summary.md
+  - packages/source-catalog/layers/layer_07_weather/source_decisions.md
+- Files updated:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Planning docs changed: NO (all assumptions confirmed, no corrections needed)
+- Key findings:
+  - Endpoint: GET https://api.open-meteo.com/v1/forecast (confirmed)
+  - API key: Not required for free non-commercial use (confirmed)
+  - Licence: CC-BY 4.0 (confirmed, attribution required)
+  - Free limits: 10,000/day, 5,000/hour, 600/minute (confirmed)
+  - All 12 MVP weather variables confirmed available
+  - Batch support: Multiple coordinates per request (confirmed)
+  - WMO weather codes: Numeric codes only, labels must be mapped client-side
+  - Response shape: Matches planning docs (single object for 1 coord, array for multiple)
+  - Coordinate resolution: Returned lat/lon may differ from requested (grid cell center)
+  - API-call accounting: NOT documented — must be measured in WO-WEATHER-S
+  - No rate-limit headers documented — must be observed in WO-WEATHER-S
+- Planning doc corrections: NONE (all assumptions confirmed)
+- Implementation not started
+- Live data not fetched
+- Secrets not touched
+- Raw data not committed
+- Known issues: None
+- Validation results:
+  - git status: 6 new files in packages/source-catalog/layers/layer_07_weather/
+  - All source research requirements covered
+- Ready for WO-WEATHER-S Fetch Proof: YES
+
 ### 2026-06-10T12:30:00Z Planning Worker — WO-WEATHER-P Correction Pass
 
 - Work order: WO-WEATHER-P (correction)
