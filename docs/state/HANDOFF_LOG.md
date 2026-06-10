@@ -1,3 +1,40 @@
+### 2026-06-10T16:12:00Z Fetching Worker — WO-WEATHER-F Correction Pass
+
+- Work order: WO-WEATHER-F (correction)
+- Agent: Fetching Worker
+- Lane: Fetching
+- Branch: agent/layer-07-weather-fetcher
+- Start time UTC: 2026-06-10T10:42:00Z
+- End time UTC: 2026-06-10T10:48:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Align fetcher variables and grid planning before review.
+- Corrections applied:
+  - surface_pressure added to CURRENT_VARIABLES in open_meteo_client.py (was missing; confirmed in WO-WEATHER-S proof)
+  - CURRENT_VARIABLES count: 11
+  - Longitude range corrected: -180 inclusive to +175 (lon < 180); +180 excluded as duplicate of -180 meridian
+  - grid_summary() updated to match corrected longitude range
+  - 5° grid: 37 lat × 72 lon = 2664 total coordinates (previously 2701 in error)
+  - Batch count at 50/batch: 54 (previously 55 in error)
+- Files changed:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_client.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_grid.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/README.md
+  - tests/data/layer_07_weather/test_fetcher.py
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (grid count corrected to 2664)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS
+  - python -m pytest tests/data/layer_07_weather -q → 73/73 PASSED
+  - python -m layers.layer_07_weather.weather_cli dry-run --grid-spacing 5 --batch-size 50 → 2664 coords, 54 batches, 0 API calls
+- Raw files committed: NO
+- Full global grid fetched: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Secrets touched: NO
+- Recommended next step: WO-WEATHER-F integration review by Kiro CLI
+
 ### 2026-06-10T16:08:00Z Kiro CLI — WO-WEATHER-F Fetcher Implementation
 
 - Work order: WO-WEATHER-F

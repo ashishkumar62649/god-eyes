@@ -38,9 +38,7 @@ class TestWeatherGrid:
 
     def test_5deg_grid_coordinate_count(self):
         coords = self.generate_grid(spacing=5)
-        # lat: -90..90 step 5 = 37; lon: -180..180 step 5 = 73; total = 37*73 = 2701
-        # (range includes both endpoints)
-        assert len(coords) > 2500
+        assert len(coords) == 2664
 
     def test_grid_is_deterministic(self):
         a = self.generate_grid(spacing=5)
@@ -99,6 +97,26 @@ class TestWeatherGrid:
             assert "latitude" in c
             assert "longitude" in c
 
+    def test_5deg_grid_exact_count(self):
+        """5° grid: 37 lat × 72 lon = 2664 (lon excludes +180 duplicate)."""
+        coords = self.generate_grid(spacing=5)
+        assert len(coords) == 2664
+
+    def test_grid_excludes_positive_180_longitude(self):
+        coords = self.generate_grid(spacing=5)
+        lons = [c["longitude"] for c in coords]
+        assert 180.0 not in lons
+
+    def test_grid_includes_negative_180_longitude(self):
+        coords = self.generate_grid(spacing=5)
+        lons = [c["longitude"] for c in coords]
+        assert -180.0 in lons
+
+    def test_grid_summary_2664_coords(self):
+        s = self.grid_summary(spacing=5, batch_size=50)
+        assert s["total_coordinates"] == 2664
+        assert s["batch_count"] == 54
+
 
 # ---------------------------------------------------------------------------
 # open_meteo_client — parameter construction (no network)
@@ -154,6 +172,16 @@ class TestClientParams:
         source = client_file.read_text()
         assert "os.environ" not in source
         assert "dotenv" not in source
+
+    def test_current_variables_count(self):
+        assert len(self.CURRENT_VARIABLES) == 11
+
+    def test_current_variables_includes_surface_pressure(self):
+        assert "surface_pressure" in self.CURRENT_VARIABLES
+
+    def test_url_includes_surface_pressure_in_current(self):
+        url = self._build_url([10.0], [20.0], self.CURRENT_VARIABLES, self.HOURLY_VARIABLES, 3)
+        assert "surface_pressure" in url
 
 
 # ---------------------------------------------------------------------------

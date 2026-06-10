@@ -108,6 +108,18 @@ Supported values: 25, 50, 100.
 
 ---
 
+## Grid Summary (5° default)
+
+| Parameter | Value |
+|-----------|-------|
+| Latitude range | −90 to +90 inclusive (37 values) |
+| Longitude range | −180 inclusive to +175 (72 values; +180 excluded — same meridian as −180) |
+| Total coordinates | **37 × 72 = 2664** |
+| Batch count (50/batch) | **54 batches** |
+| Planned API calls | 54 per full global fetch |
+
+---
+
 ## forecast_days
 
 - Full fetcher default: **3** (72 hourly timestamps per coordinate)

@@ -53,7 +53,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** 5° grid (~2,664 cells) for MVP. ~216 API calls/day estimate (4 fetches × 54 calls) well within 10K limit. **Note:** This is a planning estimate. Actual Open-Meteo API-call accounting must be verified during WO-WEATHER-R and WO-WEATHER-S. Requests with many variables, `forecast_days`, or multiple coordinates may count differently.
 
-**Status:** RESOLVED — 5° grid used in WO-WEATHER-F. Actual coordinate count is 2701 (37 lat × 73 lon including both endpoints). 55 batches at 50 coords/batch.
+**Status:** RESOLVED — 5° grid used in WO-WEATHER-F. Actual coordinate count is **2664** (37 lat × 72 lon; longitude −180 inclusive to +175, +180 excluded as duplicate meridian). 54 batches at 50 coords/batch.
 
 ---
 

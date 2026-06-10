@@ -25,12 +25,18 @@ PROOF_COORDINATES = [
 
 
 def generate_grid(spacing: int = DEFAULT_SPACING) -> list[dict[str, float]]:
-    """Return deterministic list of {latitude, longitude} dicts for a global grid."""
+    """Return deterministic list of {latitude, longitude} dicts for a global grid.
+
+    Latitude: -90 to +90 inclusive (37 values at 5° spacing).
+    Longitude: -180 inclusive to +175 (72 values at 5° spacing).
+      +180 is excluded because it is the same meridian as -180.
+    Total at 5°: 37 × 72 = 2664 coordinates.
+    """
     coords = []
     lat = -90
     while lat <= 90:
         lon = -180
-        while lon <= 180:
+        while lon < 180:  # exclude +180 (duplicate of -180)
             coords.append({"latitude": float(lat), "longitude": float(lon)})
             lon += spacing
         lat += spacing
@@ -46,9 +52,12 @@ def batch_coordinates(
 
 
 def grid_summary(spacing: int = DEFAULT_SPACING, batch_size: int = DEFAULT_BATCH_SIZE) -> dict[str, int]:
-    """Return estimated grid stats without generating full list."""
+    """Return estimated grid stats without generating full list.
+
+    Matches generate_grid: lon range is -180 inclusive to +180 exclusive (72 values at 5°).
+    """
     lat_count = len(range(-90, 91, spacing))
-    lon_count = len(range(-180, 181, spacing))
+    lon_count = len(range(-180, 180, spacing))  # excludes +180
     total = lat_count * lon_count
     batches = math.ceil(total / batch_size)
     return {
