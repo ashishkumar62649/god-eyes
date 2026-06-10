@@ -34,6 +34,9 @@ VALUES (
 );
 ```
 
+The longer attribution above is the desired product/API attribution. The migration
+seed stores the concise source record value: `Weather data provided by Open-Meteo under CC-BY 4.0 licence.`
+
 ---
 
 ### 2. weather_fetch_runs
@@ -210,19 +213,33 @@ References to raw API response files (NOT raw data blobs).
 
 ```sql
 CREATE TABLE weather_raw_message_refs (
-    raw_ref_id      TEXT PRIMARY KEY,
-    fetch_run_id    TEXT NOT NULL REFERENCES weather_fetch_runs(fetch_run_id),
-    source_id       TEXT NOT NULL REFERENCES weather_sources(source_id),
-    batch_number    INT NOT NULL,
-    file_path       TEXT NOT NULL,             -- Relative path to raw file
-    file_size_bytes BIGINT,
-    cell_count      INT,                       -- Number of cells in this batch
-    checksum        TEXT,                      -- SHA-256 of file
-    created_at      TIMESTAMPTZ DEFAULT now()
+    raw_ref_id       TEXT PRIMARY KEY,
+    fetch_run_id     TEXT REFERENCES weather_fetch_runs(fetch_run_id),
+    source_id        TEXT NOT NULL REFERENCES weather_sources(source_id),
+    layer_id         TEXT NOT NULL DEFAULT 'layer_07_weather',
+    raw_evidence_uri TEXT NOT NULL,
+    batch_index      INT,
+    coordinate_count INT,
+    response_status  INT,
+    response_headers JSONB NOT NULL DEFAULT '{}'::JSONB,
+    request_metadata JSONB NOT NULL DEFAULT '{}'::JSONB,
+    observed_fields  JSONB NOT NULL DEFAULT '[]'::JSONB,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_weather_raw_refs_run ON weather_raw_message_refs(fetch_run_id);
+CREATE INDEX idx_weather_raw_refs_source ON weather_raw_message_refs(source_id);
+CREATE INDEX idx_weather_raw_refs_batch ON weather_raw_message_refs(batch_index);
+CREATE INDEX idx_weather_raw_refs_uri ON weather_raw_message_refs(raw_evidence_uri);
+CREATE INDEX idx_weather_raw_refs_request_metadata ON weather_raw_message_refs USING GIN(request_metadata);
+CREATE INDEX idx_weather_raw_refs_observed_fields ON weather_raw_message_refs USING GIN(observed_fields);
 ```
+
+This structure intentionally favors weather fetch debugging and auditability:
+`request_metadata` records request/grid context, `response_status` and
+`response_headers` record response metadata, and `observed_fields` records the
+fields present in the referenced batch. The table stores references and metadata,
+not raw response bodies.
 
 ---
 
@@ -373,7 +390,7 @@ WHERE source_id = 'open-meteo';
 
 ### Rule
 - Raw API response files stored on filesystem (`raw/` directory)
-- Database stores ONLY references (file path, checksum, size)
+- Database stores only the raw evidence URI plus fetch/request/response metadata
 - Never store raw JSON blobs in PostgreSQL
 
 ### Benefits
@@ -384,8 +401,11 @@ WHERE source_id = 'open-meteo';
 
 ### Reference Fields
 - `raw_evidence_uri` in observation tables → relative file path
-- `file_path` in raw_message_refs → relative file path
-- `checksum` → SHA-256 for integrity verification
+- `raw_evidence_uri` in `weather_raw_message_refs` → referenced raw batch path
+- `batch_index` and `coordinate_count` → batch position and request size
+- `response_status` and `response_headers` → response debugging metadata
+- `request_metadata` → request and grid context
+- `observed_fields` → fields detected in the referenced response
 
 ---
 
