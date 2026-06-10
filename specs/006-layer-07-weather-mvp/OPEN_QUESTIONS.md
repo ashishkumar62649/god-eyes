@@ -83,7 +83,7 @@ This document captures questions that should be resolved before or during implem
 
 **Recommendation:** Use WMO standard codes as documented by Open-Meteo. They are the international standard and well-documented.
 
-**Status:** OPEN — decision needed before WO-WEATHER-N
+**Status:** RESOLVED — WMO standard codes used, implemented in `weather_codes.py`. All 28 codes mapped (0–99). Unknown codes return "Unknown".
 
 ---
 

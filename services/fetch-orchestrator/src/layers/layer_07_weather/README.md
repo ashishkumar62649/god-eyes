@@ -6,13 +6,15 @@ Fetches real weather data from Open-Meteo for the GOD EYES Weather layer.
 
 ## Module Purpose
 
-Implements the full fetch pipeline for `layer_07_weather`:
+Implements the full fetch and normalization pipeline for `layer_07_weather`:
 
 - **open_meteo_client.py** — HTTP client with retry/backoff
 - **weather_grid.py** — 5° global grid generation and batching
 - **weather_raw_storage.py** — saves raw responses to disk before any normalization
 - **weather_fetcher.py** — orchestration (proof, dry-run, fetch modes)
-- **weather_cli.py** — CLI entry point
+- **weather_cli.py** — fetch CLI entry point
+- **weather_codes.py** — WMO weather code → human-readable label mapping
+- **weather_normalizer.py** — normalizes raw Open-Meteo responses to GOD EYES schema
 - **open_meteo_proof.py** — WO-WEATHER-S proof script (preserved)
 
 ---
@@ -146,3 +148,62 @@ This is preserved in raw storage. During normalization (WO-WEATHER-N),
 ## Source Attribution
 
 Weather data provided by [Open-Meteo](https://open-meteo.com/) under CC-BY 4.0 licence.
+
+
+---
+
+## Normalizer
+
+### Purpose
+
+`weather_normalizer.py` converts raw Open-Meteo batch JSON files into structured GOD EYES weather observation dicts. No database writes occur here.
+
+### Normalized Object Shape (summary)
+
+```python
+{
+    "observation_id": str,          # sha256[:24] of location_id|source|forecast_for
+    "layer_id": "layer_07_weather",
+    "source_id": "open-meteo",
+    "location_id": str,             # sha256[:16] of layer|source|grid|lat|lon
+    "requested_latitude": float,    # original requested coordinate
+    "requested_longitude": float,
+    "resolved_latitude": float,     # Open-Meteo grid cell center
+    "resolved_longitude": float,
+    "elevation_m": float | None,
+    "observation_type": "current" | "hourly",
+    "forecast_for": str,            # ISO 8601 — time data is valid for
+    "fetched_at": str,              # ISO 8601 — when GOD EYES fetched
+    "temperature_c": float,
+    "apparent_temperature_c": float | None,
+    "wind_speed_kph": float | None,
+    "wind_direction_deg": float | None,
+    "wind_gust_kph": float | None,
+    "humidity_percent": int | None,
+    "pressure_hpa": float | None,
+    "precipitation_mm": float | None,
+    "precipitation_probability_percent": int | None,  # None for current
+    "cloud_cover_percent": int | None,
+    "weather_code": int | None,
+    "weather_label": str | None,
+    "raw_evidence_uri": str | None,
+    "provider_metadata": { ... },
+}
+```
+
+### Current vs Hourly Behavior
+
+- **current**: one observation per response item; `precipitation_probability_percent` is always `None` (not available in current block).
+- **hourly**: one observation per hourly timestamp per response item; `precipitation_probability_percent` is available.
+
+### Requested vs Resolved Coordinates
+
+`requested_latitude/longitude` are the coordinates passed to the normalizer (from the fetcher batch). `resolved_latitude/longitude` are the grid-cell-center coordinates returned by Open-Meteo. These may differ by 3–21 km due to model grid resolution.
+
+### provider_metadata.location_id
+
+Open-Meteo returns a `location_id` integer per coordinate. It is preserved in `provider_metadata.location_id` for reference. The GOD EYES `location_id` is a separate deterministic hash of the requested coordinates.
+
+### No Database Writes
+
+The normalizer produces Python dicts only. Database ingestion is handled in a later work order (WO-WEATHER-D).

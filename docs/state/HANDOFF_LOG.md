@@ -1,3 +1,45 @@
+### 2026-06-10T16:23:00Z Fetching Worker — WO-WEATHER-N Normalization Implementation
+
+- Work order: WO-WEATHER-N
+- Agent: Fetching Worker
+- Lane: Normalization
+- Branch: agent/layer-07-weather-normalizer
+- Start time UTC: 2026-06-10T10:53:00Z
+- End time UTC: 2026-06-10T11:05:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Normalize raw Open-Meteo batch responses to GOD EYES weather observation schema.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_codes.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_normalizer.py
+  - tests/data/layer_07_weather/test_normalizer.py
+- Files updated:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/README.md (normalizer section added)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (WMO code labeling resolved)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS
+  - python -m pytest tests/data/layer_07_weather -q → 123/123 PASSED
+- Normalizer features:
+  - WMO codes 0–99 mapped (28 codes); unknown → "Unknown"; None → None
+  - current weather → single observation; precipitation_probability_percent = None
+  - hourly weather → one observation per timestamp; precipitation_probability_percent mapped
+  - surface_pressure in provider_metadata.surface_pressure_hpa for both current and hourly
+  - provider_metadata.location_id preserves Open-Meteo location_id integer
+  - requested vs resolved coordinates kept separate
+  - location_id: sha256[:16] of layer|source|grid|lat|lon (deterministic)
+  - observation_id: sha256[:24] of location_id|source|forecast_for (deterministic)
+  - raw_evidence_uri propagated to all observations
+  - No database writes, no network calls, no API key
+- Live API called: NO
+- Full global grid fetched: NO
+- Raw files committed: NO
+- Secrets touched: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Recommended next step: WO-WEATHER-N integration review by Kiro CLI, then WO-WEATHER-D database schema
+
 ### 2026-06-10T16:12:00Z Fetching Worker — WO-WEATHER-F Correction Pass
 
 - Work order: WO-WEATHER-F (correction)
