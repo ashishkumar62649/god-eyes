@@ -402,3 +402,208 @@ class TestCLI:
         from layers.layer_07_weather.weather_cli import build_parser
         args = build_parser().parse_args(["fetch", "--allow-full-grid"])
         assert args.allow_full_grid is True
+
+
+# ---------------------------------------------------------------------------
+# open_meteo_client — curl fallback
+# ---------------------------------------------------------------------------
+
+class TestCurlFallback:
+    def test_find_curl_executable_returns_string_or_none(self):
+        from layers.layer_07_weather.open_meteo_client import _find_curl_executable
+        result = _find_curl_executable()
+        # On Windows, should find curl.exe; on other platforms, may return None
+        if sys.platform == "win32":
+            assert result is None or isinstance(result, str)
+        else:
+            # Non-Windows: function is primarily for Windows, may return None
+            assert result is None or isinstance(result, str)
+
+    def test_curl_builds_correct_flags(self):
+        """Verify curl command includes required flags."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+        import subprocess
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = '{"current": {"temperature_2m": 20.0}}\n200'
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                fetch_weather_batch_via_curl([10.0], [20.0], forecast_days=1)
+
+            cmd = mock_run.call_args[0][0]
+            assert "-4" in cmd
+            assert "--http1.1" in cmd
+            assert "--tlsv1.2" in cmd
+            assert "-L" in cmd
+            assert "--connect-timeout" in cmd
+            assert "--max-time" in cmd
+
+    def test_curl_parses_valid_json_stdout(self):
+        """Verify curl parses JSON from stdout."""
+        import json as json_mod
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        fixture = json_mod.loads((FIXTURES_DIR / "sample_multi_response.json").read_text())
+        stdout_body = json_mod.dumps(fixture)
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = f"{stdout_body}\n200"
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                result = fetch_weather_batch_via_curl([12.9, 51.5], [77.5, -0.1])
+
+        assert "data" in result
+        assert len(result["data"]) == 2
+        assert result["request_meta"]["fetch_client"] == "curl"
+
+    def test_curl_fails_clearly_on_nonzero_exit(self):
+        """Verify curl raises RuntimeError on non-zero exit code."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 6  # CURLE_COULDNT_RESOLVE_HOST
+            mock_result.stdout = ""
+            mock_result.stderr = "Could not resolve host: api.open-meteo.com"
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                with pytest.raises(RuntimeError, match="curl failed with exit code 6"):
+                    fetch_weather_batch_via_curl([10.0], [20.0])
+
+    def test_curl_fails_on_non_numeric_status(self):
+        """Verify curl raises RuntimeError on non-numeric HTTP status."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = '{"data": "ok"}\nNOT_A_NUMBER'
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                with pytest.raises(RuntimeError, match="non-numeric HTTP status"):
+                    fetch_weather_batch_via_curl([10.0], [20.0])
+
+    def test_curl_fails_on_http_error_status(self):
+        """Verify curl raises RuntimeError on HTTP 4xx/5xx status."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = '{"error": "not found"}\n404'
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                with pytest.raises(RuntimeError, match="HTTP 404"):
+                    fetch_weather_batch_via_curl([10.0], [20.0])
+
+    def test_curl_fails_on_invalid_json(self):
+        """Verify curl raises RuntimeError on invalid JSON."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "NOT JSON\n200"
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                with pytest.raises(RuntimeError, match="Invalid JSON"):
+                    fetch_weather_batch_via_curl([10.0], [20.0])
+
+    def test_curl_fails_when_not_found(self):
+        """Verify curl raises RuntimeError when curl executable not found."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch(
+            "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+            return_value=None,
+        ):
+            with pytest.raises(RuntimeError, match="curl.exe not found"):
+                fetch_weather_batch_via_curl([10.0], [20.0])
+
+    def test_curl_fails_on_timeout(self):
+        """Verify curl raises RuntimeError on subprocess timeout."""
+        import subprocess as sp
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run", side_effect=sp.TimeoutExpired(cmd="curl", timeout=30)):
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                with pytest.raises(RuntimeError, match="timed out"):
+                    fetch_weather_batch_via_curl([10.0], [20.0])
+
+    def test_curl_no_api_key_in_url(self):
+        """Verify curl does not embed API keys in the URL."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = '{"current": {}}\n200'
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                fetch_weather_batch_via_curl([10.0], [20.0])
+
+            cmd = mock_run.call_args[0][0]
+            url_arg = [a for a in cmd if a.startswith("http")][0]
+            assert "apikey" not in url_arg.lower()
+            assert "api_key" not in url_arg.lower()
+
+    def test_curl_single_coord_returns_list(self):
+        """Verify curl normalizes single coordinate response to list."""
+        from layers.layer_07_weather.open_meteo_client import fetch_weather_batch_via_curl
+
+        with patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = '{"current": {"temperature_2m": 25.0}}\n200'
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            with patch(
+                "layers.layer_07_weather.open_meteo_client._find_curl_executable",
+                return_value="curl.exe",
+            ):
+                result = fetch_weather_batch_via_curl([10.0], [20.0])
+
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 1

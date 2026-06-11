@@ -166,6 +166,29 @@ class TestFetchProofData:
             assert result["coords"] is not None
             assert len(result["coords"]) == 7
 
+    def test_fetches_proof_coordinates_via_curl(self):
+        from layers.layer_07_weather.weather_local_seed import fetch_proof_data
+
+        fixture = _load_fixture("sample_multi_response.json")
+        mock_resp = {
+            "data": fixture,
+            "request_meta": {
+                "url": "https://mock", "status_code": 200, "elapsed_ms": 100,
+                "response_headers": {}, "coordinate_count": 2,
+                "batch_index": 0, "current_vars": [], "hourly_vars": [],
+                "forecast_days": 1, "fetched_at": "2026-06-10T10:00:00+00:00",
+                "attempts": 1, "fetch_client": "curl",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "layers.layer_07_weather.weather_local_seed.fetch_weather_batch_via_curl",
+                return_value=mock_resp,
+            ):
+                result = fetch_proof_data(1, raw_base=tmpdir, fetch_client="curl")
+            assert len(result["batch_data"]) == 2
+            assert result["request_meta"]["fetch_client"] == "curl"
+
     def test_proof_mode_uses_7_coordinates(self):
         from layers.layer_07_weather.weather_grid import get_proof_coordinates
         coords = get_proof_coordinates()
@@ -315,6 +338,41 @@ class TestFullPipeline:
                         ])
             assert result == 0
 
+    def test_full_pipeline_with_curl_client(self):
+        from layers.layer_07_weather.weather_local_seed import main
+
+        fixture = _load_fixture("sample_multi_response.json")
+        mock_resp = {
+            "data": fixture,
+            "request_meta": {
+                "url": "https://mock", "status_code": 200, "elapsed_ms": 100,
+                "response_headers": {}, "coordinate_count": 2,
+                "batch_index": 0, "current_vars": [], "hourly_vars": [],
+                "forecast_days": 1, "fetched_at": "2026-06-10T10:00:00+00:00",
+                "attempts": 1, "fetch_client": "curl",
+            },
+        }
+
+        conn = RecordingConnection(fetchall_result=[
+            ("weather_sources",),
+            ("weather_locations",),
+            ("weather_observations_latest",),
+            ("weather_observation_history",),
+        ], fetchone_result=(1,))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict("os.environ", {"DATABASE_URL": "postgresql://test:test@localhost/db"}):
+                with patch("psycopg2.connect", return_value=conn):
+                    with patch(
+                        "layers.layer_07_weather.weather_local_seed.fetch_weather_batch_via_curl",
+                        return_value=mock_resp,
+                    ):
+                        result = main([
+                            "--proof", "--forecast-days", "1", "--dry-run",
+                            "--fetch-client", "curl", "--raw-root", tmpdir,
+                        ])
+            assert result == 0
+
 
 # ---------------------------------------------------------------------------
 # proof mode safety
@@ -373,6 +431,21 @@ class TestBuildParser:
         from layers.layer_07_weather.weather_local_seed import build_parser
         args = build_parser().parse_args([])
         assert args.raw_root == "raw"
+
+    def test_fetch_client_default(self):
+        from layers.layer_07_weather.weather_local_seed import build_parser
+        args = build_parser().parse_args([])
+        assert args.fetch_client == "urllib"
+
+    def test_fetch_client_curl(self):
+        from layers.layer_07_weather.weather_local_seed import build_parser
+        args = build_parser().parse_args(["--fetch-client", "curl"])
+        assert args.fetch_client == "curl"
+
+    def test_fetch_client_invalid(self):
+        from layers.layer_07_weather.weather_local_seed import build_parser
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(["--fetch-client", "invalid"])
 
 
 # ---------------------------------------------------------------------------

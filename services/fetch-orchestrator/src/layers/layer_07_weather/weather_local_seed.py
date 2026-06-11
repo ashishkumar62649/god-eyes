@@ -7,6 +7,7 @@ Usage:
     python -m layers.layer_07_weather.weather_local_seed --proof --forecast-days 1
     python -m layers.layer_07_weather.weather_local_seed --proof --dry-run
     python -m layers.layer_07_weather.weather_local_seed --proof --skip-fetch
+    python -m layers.layer_07_weather.weather_local_seed --proof --fetch-client curl
 
 Environment:
     DATABASE_URL  -- required, postgres://... (password never printed)
@@ -25,7 +26,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from layers.layer_07_weather.open_meteo_client import fetch_weather_batch
+from layers.layer_07_weather.open_meteo_client import (
+    fetch_weather_batch,
+    fetch_weather_batch_via_curl,
+)
 from layers.layer_07_weather.weather_grid import get_proof_coordinates
 from layers.layer_07_weather import weather_raw_storage as storage
 from layers.layer_07_weather.weather_normalizer import normalize_open_meteo_batch
@@ -102,7 +106,11 @@ def connect_to_db(database_url: str) -> Any:
 # Fetch phase
 # ---------------------------------------------------------------------------
 
-def fetch_proof_data(forecast_days: int, raw_base: str | Path = "raw") -> dict[str, Any]:
+def fetch_proof_data(
+    forecast_days: int,
+    raw_base: str | Path = "raw",
+    fetch_client: str = "urllib",
+) -> dict[str, Any]:
     """Fetch proof coordinates from Open-Meteo. Returns batch data + metadata."""
     coords = get_proof_coordinates()
     lats = [c["latitude"] for c in coords]
@@ -113,7 +121,11 @@ def fetch_proof_data(forecast_days: int, raw_base: str | Path = "raw") -> dict[s
     run_dir = storage.run_directory(run_id, base=raw_base, dt=now)
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    result = fetch_weather_batch(lats, lons, forecast_days=forecast_days, batch_index=0)
+    if fetch_client == "curl":
+        print("  Using curl.exe (IPv4/TLS1.2/HTTP1.1) fallback...")
+        result = fetch_weather_batch_via_curl(lats, lons, forecast_days=forecast_days, batch_index=0)
+    else:
+        result = fetch_weather_batch(lats, lons, forecast_days=forecast_days, batch_index=0)
     data = result["data"]
     request_meta = result["request_meta"]
     raw_path = storage.save_batch(run_dir, 0, data)
@@ -287,6 +299,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit-current-only", action="store_true",
         help="Ingest only current observations (skip hourly).",
     )
+    p.add_argument(
+        "--fetch-client", type=str, default="urllib",
+        choices=["urllib", "curl"],
+        help="HTTP client for fetching (default: urllib). Use 'curl' for Windows TLS/IPv6 issues.",
+    )
     return p
 
 
@@ -309,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
             run_dir = raw["run_dir"]
         else:
             print("[1/4] Fetching proof data from Open-Meteo...")
-            raw = fetch_proof_data(args.forecast_days, args.raw_root)
+            raw = fetch_proof_data(args.forecast_days, args.raw_root, args.fetch_client)
             batch_data = raw["batch_data"]
             coords = raw["coords"]
             raw_uri = raw["raw_path"]

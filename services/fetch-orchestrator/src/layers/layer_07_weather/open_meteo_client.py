@@ -1,11 +1,17 @@
 """Open-Meteo HTTP client for Layer 07 Weather.
 
 No API key required. No .env dependency.
+
+Provides two fetch backends:
+  - Python urllib (default, may fail on Windows due to TLS/IPv6 issues)
+  - curl.exe fallback (uses -4 --http1.1 --tlsv1.2 for Windows compatibility)
 """
 
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -64,6 +70,140 @@ def _build_url(
 
 def _sanitize_url(url: str) -> str:
     return url[:300] + "..." if len(url) > 300 else url
+
+
+def _find_curl_executable() -> str | None:
+    """Locate curl.exe on the system (Windows ships curl.exe, not curl)."""
+    if sys.platform == "win32":
+        try:
+            result = subprocess.run(
+                ["where", "curl.exe"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip().splitlines()[0]
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+    return None
+
+
+def fetch_weather_batch_via_curl(
+    latitudes: list[float],
+    longitudes: list[float],
+    *,
+    current_vars: list[str] | None = None,
+    hourly_vars: list[str] | None = None,
+    forecast_days: int = 3,
+    batch_index: int = 0,
+    timeout: int = DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    """Fetch weather data via curl.exe with IPv4/TLS1.2/HTTP1.1.
+
+    Uses curl as a fallback for environments where Python urllib has
+    TLS/IPv6 issues (e.g. Windows with certain network configurations).
+
+    Returns dict with keys:
+        data          – list of coordinate response objects
+        request_meta  – sanitized request metadata
+    """
+    if len(latitudes) != len(longitudes):
+        raise ValueError("latitudes and longitudes must have equal length")
+    if not latitudes:
+        raise ValueError("At least one coordinate required")
+
+    curl_path = _find_curl_executable()
+    if curl_path is None:
+        raise RuntimeError(
+            "curl.exe not found. Install curl or use --fetch-client urllib."
+        )
+
+    cv = current_vars or CURRENT_VARIABLES
+    hv = hourly_vars or HOURLY_VARIABLES
+    url = _build_url(latitudes, longitudes, cv, hv, forecast_days)
+    fetched_at = datetime.now(timezone.utc).isoformat()
+
+    cmd = [
+        curl_path,
+        "-4",                  # Force IPv4
+        "--http1.1",           # Force HTTP/1.1
+        "--tlsv1.2",           # Force TLS 1.2
+        "-L",                  # Follow redirects
+        "--connect-timeout", "10",
+        "--max-time", str(timeout),
+        "-s",                  # Silent mode
+        "-w", "\n%{http_code}",  # Append HTTP status code to output
+        "-H", f"User-Agent: {USER_AGENT}",
+        url,
+    ]
+
+    t0 = time.monotonic()
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 10,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"curl timed out after {timeout + 10}s"
+        ) from exc
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"curl executable not found at {curl_path}"
+        ) from exc
+
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+    if result.returncode != 0:
+        stderr_msg = result.stderr.strip()[:200] if result.stderr else "no stderr"
+        raise RuntimeError(
+            f"curl failed with exit code {result.returncode}: {stderr_msg}"
+        )
+
+    output = result.stdout
+    lines = output.rsplit("\n", 1)
+    if len(lines) < 2:
+        raise RuntimeError("curl produced unexpected output (no HTTP status line)")
+
+    body_text = lines[0]
+    try:
+        status_code = int(lines[1].strip())
+    except ValueError:
+        raise RuntimeError(
+            f"curl returned non-numeric HTTP status: {lines[1].strip()!r}"
+        )
+
+    if status_code < 200 or status_code >= 300:
+        raise RuntimeError(
+            f"HTTP {status_code} from Open-Meteo via curl: {body_text[:200]}"
+        )
+
+    try:
+        data = json.loads(body_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Invalid JSON in Open-Meteo curl response") from exc
+
+    if isinstance(data, dict):
+        data = [data]
+
+    return {
+        "data": data,
+        "request_meta": {
+            "url": _sanitize_url(url),
+            "status_code": status_code,
+            "elapsed_ms": elapsed_ms,
+            "response_headers": {},
+            "coordinate_count": len(latitudes),
+            "batch_index": batch_index,
+            "current_vars": cv,
+            "hourly_vars": hv,
+            "forecast_days": forecast_days,
+            "fetched_at": fetched_at,
+            "attempts": 1,
+            "fetch_client": "curl",
+        },
+    }
 
 
 def fetch_weather_batch(
