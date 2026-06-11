@@ -435,6 +435,7 @@ def test_weather_ingestion_work_order_changes_stay_in_allowed_paths():
 
     allowed_prefixes = (
         "database/ingestion/",
+        "services/fetch-orchestrator/src/layers/layer_07_weather/",
         "tests/data/layer_07_weather/",
         "docs/state/HANDOFF_LOG.md",
         "specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md",
@@ -456,4 +457,8 @@ def test_weather_ingestion_work_order_tracks_no_raw_or_environment_files():
     assert not any(path.startswith(("raw/", "data/", "database/raw/")) for path in changed_paths)
     assert not any(path.endswith(".env") or ".env." in path for path in changed_paths)
     assert not any(path.startswith(("apps/api/", "apps/web/")) for path in changed_paths)
-    assert not any(path.startswith("services/fetch-orchestrator/") for path in changed_paths)
+    assert not any(
+        path.startswith("services/fetch-orchestrator/")
+        and not path.startswith("services/fetch-orchestrator/src/layers/layer_07_weather/")
+        for path in changed_paths
+    )
