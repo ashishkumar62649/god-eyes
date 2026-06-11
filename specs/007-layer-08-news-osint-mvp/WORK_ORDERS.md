@@ -144,32 +144,37 @@
 
 ---
 
-## WO-NEWS-D: Database Schema
-**Status**: PENDING
+## WO-NEWS-D1: GDACS Database Schema
+**Status**: COMPLETE
 
 **Objective**: Create database tables for news data storage
 
 **Prerequisites**:
-- WO-NEWS-N complete
+- WO-NEWS-N1 complete
 - Database planning finalized
 - Table schemas defined
 
 **Tasks**:
-- [ ] Create news_sources table migration
-- [ ] Create news_fetch_runs table migration
-- [ ] Create news_items_latest table migration
-- [ ] Create news_item_history table migration
-- [ ] Create news_raw_message_refs table migration
-- [ ] Add indexes for common queries
-- [ ] Add spatial indexes for coordinates
-- [ ] Seed initial source configurations
-- [ ] Write migration tests
+- [x] Create news_sources table migration
+- [x] Create news_fetch_runs table migration
+- [x] Create news_items_latest table migration
+- [x] Create news_item_history table migration
+- [x] Create news_raw_message_refs table migration
+- [x] Add indexes for common queries
+- [x] Add partial spatial index for marker-ready Point geometry
+- [x] Seed GDACS source configuration and attribution
+- [x] Write migration and local PostGIS integration tests
 
 **Deliverables**:
-- `database/migrations/layer_08/` folder
-- SQL migration files
-- Seed data for source configurations
-- Migration tests
+- `database/migrations/layers/layer_08_news_osint/001_news_tables.sql`
+- GDACS source seed
+- `tests/data/layer_08_news_osint/test_news_database_schema.py`
+
+**Storage decision**:
+- Store all normalized items, not only marker-ready items.
+- Create Point geometry only for marker-ready rows.
+- Preserve LineString and Polygon geometry types without fake coordinates.
+- Keep source IDs and source families open for future GDELT, ReliefWeb, and RSS work.
 
 **Estimated Effort**: 2-3 days
 
@@ -183,7 +188,7 @@
 **Prerequisites**:
 - WO-NEWS-F complete
 - WO-NEWS-N complete
-- WO-NEWS-D complete
+- WO-NEWS-D1 complete
 
 **Tasks**:
 - [ ] Design ingestion workflow
@@ -211,7 +216,7 @@
 **Objective**: Create RESTful API endpoints for news data
 
 **Prerequisites**:
-- WO-NEWS-D complete
+- WO-NEWS-D1 complete
 - WO-NEWS-I complete
 - API planning finalized
 
@@ -305,7 +310,7 @@
 ```
 WO-NEWS-R (Complete)
     ↓
-WO-NEWS-F → WO-NEWS-N → WO-NEWS-D → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U → WO-NEWS-QA
+WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U → WO-NEWS-QA
 ```
 
 ## Timeline Estimate
@@ -313,7 +318,7 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U 
 - **WO-NEWS-R**: ✅ Complete
 - **WO-NEWS-F**: 3-5 days
 - **WO-NEWS-N**: 3-5 days (can overlap with WO-NEWS-F)
-- **WO-NEWS-D**: 2-3 days (can overlap with WO-NEWS-N)
+- **WO-NEWS-D1**: Complete
 - **WO-NEWS-I**: 3-4 days
 - **WO-NEWS-A**: 3-4 days
 - **WO-NEWS-U**: 5-7 days

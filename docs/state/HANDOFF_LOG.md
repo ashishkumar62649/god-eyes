@@ -6064,3 +6064,74 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Known issues: None.
 - Review status: Ready for WO-WEATHER-I review.
 - Recommended next step: Review WO-WEATHER-I, then begin the Weather API work only after ingestion review passes.
+
+### 2026-06-11T16:52:59Z Database Worker - WO-NEWS-D1 Database Schema
+
+- Work order: WO-NEWS-D1
+- Agent: Database Worker
+- Lane: Database
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-08-news-gdacs-database
+- Start time UTC: 2026-06-11T16:45:12Z
+- End time UTC: 2026-06-11T16:52:59Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (review owner controls remote push)
+- Goal: Add a source-flexible Layer 08 schema for normalized GDACS items without ingestion, API, or frontend changes.
+- Files created:
+  - database/migrations/layers/layer_08_news_osint/001_news_tables.sql
+  - tests/data/layer_08_news_osint/test_news_database_schema.py
+- Files updated:
+  - specs/007-layer-08-news-osint-mvp/DATABASE_PLANNING.md
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+  - specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md
+  - docs/state/HANDOFF_LOG.md
+- Tables created:
+  - news_sources
+  - news_fetch_runs
+  - news_items_latest
+  - news_item_history
+  - news_raw_message_refs
+- Schema decisions:
+  - Text primary keys follow the Layer 07 database convention.
+  - All normalized items can be stored, including non-marker LineString and Polygon records.
+  - Only marker-ready Point rows receive generated SRID 4326 geometry.
+  - Latitude and longitude are nullable but paired, range checked, and tied to has_coordinates.
+  - Marker-ready rows require coordinates and Point geometry; non-marker rows require null geometry.
+  - Dedupe keys are globally unique and source families remain open for future sources.
+  - History snapshots use JSONB and raw references store evidence locations rather than raw bodies.
+- Source seed:
+  - GDACS inserted idempotently with disaster_alert family, official endpoint, CC BY 4.0 license, and attribution.
+- Commands run:
+  - python -m pytest tests/data/layer_08_news_osint -q
+  - GOD_EYES_RUN_DB_TESTS=1 python -m pytest tests/data/layer_08_news_osint/test_news_database_schema.py -q
+  - python -m pytest tests/data/layer_07_weather -q
+  - git diff --check
+  - git diff --stat
+  - git status --short --branch
+- Validation results:
+  - Layer 08 suite: PASS, 90 passed and 5 optional database tests skipped.
+  - Layer 08 local PostGIS integration: PASS, 15 passed.
+  - Migration apply and idempotent second apply: PASS.
+  - Marker, non-marker, invalid coordinate, dedupe, fetch run, history, raw reference, and future-source database checks: PASS.
+  - Layer 07 functional regression: PASS, 239 passed; two unrelated Layer 07 dirty-worktree scope guards rejected the expected Layer 08 paths before commit.
+  - git diff --check: PASS.
+- Proof compatibility:
+  - All 171 normalized GDACS items can be represented.
+  - 47 Point items can be marker-ready.
+  - 48 LineString and 76 Polygon items are preserved without fake coordinates.
+- Implementation boundary:
+  - Database schema only: YES.
+  - Production ingestion added: NO.
+  - Fetcher changed: NO.
+  - Normalizer changed: NO.
+  - API routes added: NO.
+  - Frontend changed: NO.
+  - Other news sources implemented: NO.
+  - Fake data added: NO.
+  - Raw or temporary data committed: NO.
+  - Secrets added: NO.
+- Known issues: None.
+- Review status: Ready for WO-NEWS-D1 integration review.
+- Recommended next work order: WO-NEWS-I database ingestion after schema review passes.
