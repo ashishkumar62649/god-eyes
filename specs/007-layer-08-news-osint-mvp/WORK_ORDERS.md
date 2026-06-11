@@ -180,28 +180,78 @@
 
 ---
 
-## WO-NEWS-I: Ingestion Pipeline
-**Status**: PENDING
+## WO-NEWS-I1: GDACS Database Ingestion Proof
+**Status**: ✅ COMPLETE
 
-**Objective**: Orchestrate fetch → normalize → store pipeline
+**Objective**: Implement local proof ingestion workflow that takes real GDACS data through fetch → normalize → database
+
+**Branch**: `agent/layer-08-news-gdacs-ingestion`
+
+**Prerequisites**:
+- WO-NEWS-F1 complete
+- WO-NEWS-N1 complete
+- WO-NEWS-D1 complete
+
+**Tasks**:
+- [x] Create `database/ingestion/layers/layer_08_news_osint/gdacs_db_ingestion.py`
+- [x] Implement `create_fetch_run()` — insert running fetch run row
+- [x] Implement `complete_fetch_run()` — update run to success/partial/failed
+- [x] Implement `upsert_latest_item()` — deduplicated upsert into `news_items_latest`
+- [x] Implement `append_history()` — version-tracked history with change detection
+- [x] Implement `insert_raw_ref()` — raw evidence reference per item per run
+- [x] Implement `ingest_gdacs_items()` — atomic batch ingestion with rollback
+- [x] Implement validation: marker_ready requires Point + coordinates, no fake coords
+- [x] Implement idempotency: dedupe_key upsert preserves item_id and first_seen_at
+- [x] Update `__main__.py` with `--ingest-db` flag
+- [x] Create `tests/data/layer_08_news_osint/test_gdacs_db_ingestion.py`
+- [x] Unit tests cover fetch runs, upserts, history, raw refs, validation, idempotency
+
+**Deliverables**:
+- `database/ingestion/layers/layer_08_news_osint/__init__.py`
+- `database/ingestion/layers/layer_08_news_osint/gdacs_db_ingestion.py`
+- `tests/data/layer_08_news_osint/test_gdacs_db_ingestion.py`
+- Updated `services/fetch-orchestrator/src/layers/layer_08_news_osint/__main__.py`
+
+**Database tables written**:
+- `news_fetch_runs` (one row per run)
+- `news_items_latest` (upserted by dedupe_key)
+- `news_item_history` (version snapshots, only on change)
+- `news_raw_message_refs` (one ref per item per run)
+
+**Idempotency**:
+- `news_items_latest` deduplicated by `dedupe_key` (unique index)
+- `item_id` and `first_seen_at` preserved on re-ingestion
+- `last_seen_at` updated on every run
+- History versions only created when tracked fields change
+- Raw refs accumulate per-run evidence references
+- Fetch runs always add a new row
+
+**Estimated Effort**: 2-3 days
+
+---
+
+## WO-NEWS-I: Ingestion Pipeline
+**Status**: IN PROGRESS (WO-NEWS-I1 GDACS proof complete; full pipeline pending)
+
+**Objective**: Orchestrate fetch → normalize → store pipeline for all sources
 
 **Prerequisites**:
 - WO-NEWS-F complete
 - WO-NEWS-N complete
 - WO-NEWS-D1 complete
+- WO-NEWS-I1 complete ✅
 
 **Tasks**:
-- [ ] Design ingestion workflow
-- [ ] Implement fetch orchestrator integration
-- [ ] Implement normalizer integration
-- [ ] Implement database writer
+- [x] Design ingestion workflow (done in WO-NEWS-I1)
+- [x] Implement GDACS database ingestion (done in WO-NEWS-I1)
+- [ ] Implement fetch orchestrator integration for scheduled runs
 - [ ] Add monitoring and metrics
 - [ ] Add alerting for failures
 - [ ] Add manual trigger capability
-- [ ] Write integration tests
+- [ ] Write integration tests for full pipeline
 
 **Deliverables**:
-- `services/ingestion/layer_08/` folder
+- `database/ingestion/layers/layer_08_news_osint/` folder
 - Ingestion pipeline implementation
 - Monitoring dashboard
 - Integration tests

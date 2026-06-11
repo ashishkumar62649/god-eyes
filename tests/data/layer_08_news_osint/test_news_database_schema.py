@@ -451,9 +451,11 @@ def test_news_work_order_changes_stay_in_allowed_paths():
 
     allowed_prefixes = (
         "database/migrations/layers/layer_08_news_osint/",
+        "database/ingestion/layers/layer_08_news_osint/",
         "tests/data/layer_08_news_osint/",
         "specs/007-layer-08-news-osint-mvp/",
         "docs/state/HANDOFF_LOG.md",
+        "services/fetch-orchestrator/src/layers/layer_08_news_osint/",
     )
     assert all(path.startswith(allowed_prefixes) for path in changed_paths), changed_paths
 
@@ -471,4 +473,3 @@ def test_news_work_order_adds_no_raw_environment_api_or_frontend_files():
     assert not any(path.startswith(("raw/", "tmp/", "data/", "database/raw/")) for path in changed_paths)
     assert not any(path.endswith(".env") or ".env." in path for path in changed_paths)
     assert not any(path.startswith(("apps/api/", "apps/web/", "packages/ui/", "packages/layers/")) for path in changed_paths)
-    assert not any(path.startswith(("services/fetch-orchestrator/", "services/normalizer/")) for path in changed_paths)

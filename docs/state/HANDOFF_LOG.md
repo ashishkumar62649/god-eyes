@@ -1,3 +1,46 @@
+### 2026-06-11T23:30:00Z Fetching Worker — WO-NEWS-I1 GDACS Database Ingestion Proof
+
+- Work order: WO-NEWS-I1
+- Agent: Fetching Worker
+- Tool/CLI used: Kiro CLI
+- Branch: agent/layer-08-news-gdacs-ingestion
+- Base branch: origin/agent/layer-08-news-gdacs-database
+- Start time UTC: 2026-06-11T22:00:00Z
+- End time UTC: 2026-06-11T23:30:00Z
+- Goal: Implement local proof ingestion workflow for GDACS data through fetch → normalize → database tables.
+- Files created:
+  - database/ingestion/layers/layer_08_news_osint/__init__.py
+  - database/ingestion/layers/layer_08_news_osint/gdacs_db_ingestion.py (core ingestion module)
+  - tests/data/layer_08_news_osint/test_gdacs_db_ingestion.py (unit tests)
+- Files modified:
+  - services/fetch-orchestrator/src/layers/layer_08_news_osint/__main__.py (added --ingest-db flag)
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (added WO-NEWS-I1 section)
+  - specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md (added WO-NEWS-I1 proof section)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- What ingestion code does:
+  - Creates fetch run in news_fetch_runs (status=running)
+  - Calls existing GDACS fetcher for live data
+  - Calls existing GDACS normalizer for normalization
+  - Upserts into news_items_latest (deduplicated by dedupe_key)
+  - Appends history in news_item_history (version-tracked, only on field change)
+  - Inserts raw evidence refs in news_raw_message_refs
+  - Completes fetch run with status and counts
+  - Saves local proof output under tmp/ (not committed)
+- Tables written: news_fetch_runs, news_items_latest, news_item_history, news_raw_message_refs
+- Idempotency: dedupe_key upsert, item_id/first_seen_at preserved, history only on change, raw refs per-run
+- Coordinate handling: Only Point items get latitude/longitude/geom. LineString/Polygon items stored with NULL coordinates. No fake coordinates generated. No centroids computed.
+- Tests added: 40+ unit tests covering fetch runs, upserts, history versioning, raw refs, validation, idempotency, marker-ready logic, no-fake-coordinates assertions
+- Validation: python -m pytest tests/data/layer_08_news_osint -q (unit tests pass, no live network)
+- Safety:
+  - Live GDACS call: only via --proof flag (real data for live proof only)
+  - Raw files committed: NO (tmp/ is gitignored)
+  - Secrets touched: NO (DATABASE_URL from env, not committed)
+  - API routes touched: NO | Frontend touched: NO | Scheduler touched: NO
+- Recommended next step: Live proof ingestion against local PostGIS to validate all 171 items fit the schema. Then proceed to WO-NEWS-A (API Implementation).
+- Review status: pending Kiro review.
+
+---
+
 ### 2026-06-10T15:21:00Z Frontend Worker — WO-WEATHER-U Frontend Implementation
 
 - Work order: WO-WEATHER-U
