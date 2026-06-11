@@ -212,3 +212,27 @@ Based on proof results:
 The proof script validated that GDACS and curated RSS feeds provide usable data for Layer 08. GDACS is particularly strong for globe markers with exact coordinates. GDELT shows promise but requires rate limit handling. ReliefWeb needs appname approval but will provide valuable humanitarian content.
 
 The recommended MVP implementation should prioritize GDACS for immediate globe marker functionality, followed by RSS feeds for supplementary content, then GDELT with proper rate limiting, and finally ReliefWeb after appname approval.
+
+---
+
+## WO-NEWS-F1 Fetcher Proof Run (2026-06-11)
+
+The GDACS fetcher module was implemented and a live proof run was executed.
+
+**Module**: `services/fetch-orchestrator/src/layers/layer_08_news_osint/`
+
+**Command**:
+```
+python -m layers.layer_08_news_osint --source gdacs --proof --fetch-client auto
+```
+
+**Results**:
+- Items fetched: 171
+- Items with coordinates: 47
+- Alert level counts: Green: 167, Orange: 4
+- Event type counts: DR: 16, EQ: 34, FL: 9, TC: 108, WF: 4
+- Raw output: `tmp/layer_08_news_osint/gdacs/2026/06/11/run_20260611T162444Z/` (gitignored)
+
+**Test coverage**: 35/35 tests passing (no live network)
+
+**Status**: PASS ✓

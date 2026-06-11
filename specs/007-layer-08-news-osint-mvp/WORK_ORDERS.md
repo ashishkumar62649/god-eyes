@@ -30,34 +30,64 @@
 
 ---
 
-## WO-NEWS-F: Fetcher Implementation
-**Status**: PENDING
+## WO-NEWS-F1: GDACS Fetcher + Raw Proof
+**Status**: ✅ COMPLETE
 
-**Objective**: Implement per-source fetchers for raw data ingestion
+**Objective**: Implement GDACS fetcher module and run live raw proof
+
+**Branch**: `agent/layer-08-news-gdacs-fetcher`
+
+**Tasks**:
+- [x] Implement `layers/layer_08_news_osint/__init__.py`
+- [x] Implement `layers/layer_08_news_osint/news_source_types.py`
+- [x] Implement `layers/layer_08_news_osint/gdacs_client.py` (urllib + curl fallback)
+- [x] Implement `layers/layer_08_news_osint/gdacs_fetcher.py`
+- [x] Implement `layers/layer_08_news_osint/gdacs_raw_storage.py`
+- [x] Implement `layers/layer_08_news_osint/__main__.py` CLI proof command
+- [x] Add retry/backoff for transient network failures and 5xx responses
+- [x] Add curl fallback for Windows TLS/IPv6 issues
+- [x] Write unit tests (35/35 passing, no live network)
+- [x] Add `tmp/` to `.gitignore`
+- [x] Run live proof command — PASS
+
+**Live Proof Results** (2026-06-11):
+- Items fetched: 171
+- Items with coordinates: 47
+- Alert levels: Green: 167, Orange: 4
+- Event types: DR: 16, EQ: 34, FL: 9, TC: 108, WF: 4
+- Raw output: `tmp/layer_08_news_osint/gdacs/2026/06/11/run_*/` (gitignored)
+
+**Deliverables**:
+- `services/fetch-orchestrator/src/layers/layer_08_news_osint/` package
+- `tests/data/layer_08_news_osint/test_gdacs_fetcher.py` (35 tests)
+- `.gitignore` updated with `tmp/`
+
+**Acceptance Criteria**: All met
+- Tests pass (35/35)
+- Live proof fetch succeeds (171 events)
+- Raw proof output untracked (`tmp/` gitignored)
+
+---
+
+## WO-NEWS-F: Fetcher Implementation (remaining sources)
+**Status**: PENDING (WO-NEWS-F1 GDACS complete; GDELT/ReliefWeb/RSS pending)
+
+**Objective**: Implement remaining per-source fetchers for raw data ingestion
 
 **Prerequisites**:
-- WO-NEWS-R complete
+- WO-NEWS-F1 complete ✅
 - Source registry design finalized
 - Raw storage paths defined
 
 **Tasks**:
-- [ ] Design source registry schema
-- [ ] Implement GDACS fetcher
+- [x] Implement GDACS fetcher (done in WO-NEWS-F1)
 - [ ] Implement GDELT fetcher
 - [ ] Implement ReliefWeb fetcher (if appname available)
 - [ ] Implement RSS fetcher
-- [ ] Add retry/timeout logic
 - [ ] Add rate limiting
-- [ ] Add error handling
-- [ ] Write unit tests
+- [ ] Write unit tests for remaining sources
 
-**Deliverables**:
-- `services/fetch-orchestrator/sources/layer_08/` folder
-- Per-source fetcher implementations
-- Source registry configuration
-- Unit tests for each fetcher
-
-**Estimated Effort**: 3-5 days
+**Estimated Effort**: 2-4 days (remaining after WO-NEWS-F1)
 
 ---
 

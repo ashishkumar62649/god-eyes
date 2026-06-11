@@ -216,3 +216,17 @@ raw/layer_08/
 - Retry with exponential backoff
 - Alert on persistent storage failures
 - Fallback to in-memory queue if storage unavailable
+
+---
+
+## WO-NEWS-F1 Implementation Notes (2026-06-11)
+
+GDACS fetcher implemented and proven. Implementation location follows the Layer 07 pattern:
+
+- `services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_client.py`
+- `services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_fetcher.py`
+- `services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_raw_storage.py`
+- `services/fetch-orchestrator/src/layers/layer_08_news_osint/news_source_types.py`
+- `services/fetch-orchestrator/src/layers/layer_08_news_osint/__main__.py`
+
+Raw proof output path: `tmp/layer_08_news_osint/gdacs/YYYY/MM/DD/run_<timestamp>/` (gitignored via `tmp/` entry in `.gitignore`).

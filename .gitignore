@@ -31,6 +31,7 @@ __pycache__/
 
 # Local storage / data
 raw/
+tmp/
 minio-data/
 data/raw/
 data/minio/
