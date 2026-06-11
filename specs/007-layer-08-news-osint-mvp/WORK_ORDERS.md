@@ -104,7 +104,7 @@
 - [x] Alert level mapping: Red/Orange/Green → critical/high/medium
 - [x] Point-only coordinate extraction; no fake coords for LineString/Polygon
 - [x] Title fallback chain implemented
-- [x] Stable dedupe_key: `gdacs:{eventid}:{episodeid}:{eventtype}`
+- [x] Stable dedupe_key: `gdacs:{eventid}:{episodeid}:{eventtype}:{geometry_type}:{coord_hash}`
 - [x] Updated `gdacs_raw_storage.py` with `save_normalized_events` / `save_normalized_summary`
 - [x] Updated `__main__.py` with `--normalize` flag
 - [x] Write unit tests (45 normalizer tests; total 80/80 passing)

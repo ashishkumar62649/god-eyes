@@ -475,12 +475,24 @@ def upsert_latest_item(
     return record
 
 
+def _normalise_compare_value(val: Any) -> Any:
+    """Normalize a value for stable comparison across types.
+
+    Database drivers may return datetime objects while ingestion code produces
+    ISO strings.  Convert datetime/timestamp values to a canonical ISO string
+    so that semantically equal values compare as equal.
+    """
+    if isinstance(val, datetime):
+        return val.isoformat()
+    return val
+
+
 def _fields_differ(a: dict[str, Any], b: dict[str, Any]) -> list[str]:
     """Return the list of tracked fields that differ between two records."""
     changed: list[str] = []
     for field in _HISTORY_TRACKED_FIELDS:
-        val_a = a.get(field)
-        val_b = b.get(field)
+        val_a = _normalise_compare_value(a.get(field))
+        val_b = _normalise_compare_value(b.get(field))
         if val_a != val_b:
             changed.append(field)
     return changed
