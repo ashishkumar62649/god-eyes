@@ -6,38 +6,34 @@
 - Branch: agent/layer-08-news-gdacs-ingestion
 - Base branch: origin/agent/layer-08-news-gdacs-database
 - Start time UTC: 2026-06-11T22:00:00Z
-- End time UTC: 2026-06-11T23:30:00Z
-- Goal: Implement local proof ingestion workflow for GDACS data through fetch → normalize → database tables.
+- End time UTC: 2026-06-11T23:50:00Z
+- Goal: Implement and verify live GDACS database ingestion proof against real PostGIS.
 - Files created:
   - database/ingestion/layers/layer_08_news_osint/__init__.py
   - database/ingestion/layers/layer_08_news_osint/gdacs_db_ingestion.py (core ingestion module)
   - tests/data/layer_08_news_osint/test_gdacs_db_ingestion.py (unit tests)
 - Files modified:
-  - services/fetch-orchestrator/src/layers/layer_08_news_osint/__main__.py (added --ingest-db flag)
+  - services/fetch-orchestrator/src/layers/layer_08_news_osint/__main__.py (added --ingest-db flag, fixed dict_row count helper)
+  - services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_normalizer.py (fixed dedupe_key to include geometry_type + coord hash for per-feature uniqueness)
+  - tests/data/layer_08_news_osint/test_gdacs_normalizer.py (updated dedupe_key format test)
+  - tests/data/layer_08_news_osint/test_news_database_schema.py (updated scope guard for WO-NEWS-I1 paths)
   - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (added WO-NEWS-I1 section)
-  - specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md (added WO-NEWS-I1 proof section)
+  - specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md (updated with live DB evidence)
   - docs/state/HANDOFF_LOG.md (this entry)
-- What ingestion code does:
-  - Creates fetch run in news_fetch_runs (status=running)
-  - Calls existing GDACS fetcher for live data
-  - Calls existing GDACS normalizer for normalization
-  - Upserts into news_items_latest (deduplicated by dedupe_key)
-  - Appends history in news_item_history (version-tracked, only on field change)
-  - Inserts raw evidence refs in news_raw_message_refs
-  - Completes fetch run with status and counts
-  - Saves local proof output under tmp/ (not committed)
-- Tables written: news_fetch_runs, news_items_latest, news_item_history, news_raw_message_refs
-- Idempotency: dedupe_key upsert, item_id/first_seen_at preserved, history only on change, raw refs per-run
-- Coordinate handling: Only Point items get latitude/longitude/geom. LineString/Polygon items stored with NULL coordinates. No fake coordinates generated. No centroids computed.
-- Tests added: 40+ unit tests covering fetch runs, upserts, history versioning, raw refs, validation, idempotency, marker-ready logic, no-fake-coordinates assertions
-- Validation: python -m pytest tests/data/layer_08_news_osint -q (unit tests pass, no live network)
+- Live DB proof executed against god-eyes-postgis container (postgis/postgis:16-3.4, database: god_eyes_dev)
+- Migration applied: database/migrations/layers/layer_08_news_osint/001_news_tables.sql
+- Live first run: 171 fetched, 171 normalized, 171 inserted into news_items_latest, 171 history rows, 171 raw refs
+- Live second run (idempotency): 171 latest (no duplicates), 2 fetch runs, 342 raw refs, 342 history rows, 47 marker-ready (stable)
+- SQL verification: 0 fake coordinate risk (LineString/Polygon items have NULL lat/lon/geom), 47 items with geom, 47 marker-ready
+- Geometry breakdown: Point 47, LineString 48, Polygon 76
+- Severity: high 4, medium 167
+- Event types: TC 108, EQ 34, DR 16, FL 9, WF 4
+- Tests: 140 Layer 08 passed (5 skipped DB integration), 237 Layer 07 functional passed (4 scope guards detect Layer 08 changes)
 - Safety:
-  - Live GDACS call: only via --proof flag (real data for live proof only)
   - Raw files committed: NO (tmp/ is gitignored)
   - Secrets touched: NO (DATABASE_URL from env, not committed)
   - API routes touched: NO | Frontend touched: NO | Scheduler touched: NO
-- Recommended next step: Live proof ingestion against local PostGIS to validate all 171 items fit the schema. Then proceed to WO-NEWS-A (API Implementation).
-- Review status: pending Kiro review.
+- Review status: ready for integration review.
 
 ---
 

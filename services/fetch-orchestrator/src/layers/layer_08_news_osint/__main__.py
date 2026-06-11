@@ -319,8 +319,9 @@ def _count_db_tables(conn: Any) -> dict[str, int]:
     counts: dict[str, int] = {}
     for table in tables:
         with conn.cursor() as cursor:
-            cursor.execute(f"SELECT count(*) FROM {table}")
-            counts[table] = cursor.fetchone()[0]
+            cursor.execute(f"SELECT count(*) AS cnt FROM {table}")
+            row = cursor.fetchone()
+            counts[table] = row["cnt"] if isinstance(row, dict) else row[0]
     return counts
 
 

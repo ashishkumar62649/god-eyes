@@ -6,6 +6,7 @@ Does not write to database. Returns plain dicts suitable for JSON serialisation.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 SOURCE_ID = "gdacs"
@@ -71,11 +72,16 @@ def _extract_point_coords(geometry: dict[str, Any] | None) -> tuple[float | None
     return lat, lon
 
 
-def _dedupe_key(props: dict[str, Any]) -> str:
+def _dedupe_key(props: dict[str, Any], geometry: dict[str, Any] | None) -> str:
+    import hashlib
     event_id = props.get("eventid", "")
     episode_id = props.get("episodeid", "")
     event_type = props.get("eventtype", "")
-    return f"gdacs:{event_id}:{episode_id}:{event_type}"
+    geo_type = geometry.get("type", "") if isinstance(geometry, dict) else ""
+    coords = geometry.get("coordinates") if isinstance(geometry, dict) else None
+    coords_str = json.dumps(coords, sort_keys=True) if coords is not None else ""
+    coord_hash = hashlib.sha256(coords_str.encode()).hexdigest()[:8]
+    return f"gdacs:{event_id}:{episode_id}:{event_type}:{geo_type}:{coord_hash}"
 
 
 def normalize_gdacs_feature(
@@ -158,7 +164,7 @@ def normalize_gdacs_feature(
         "attribution": ATTRIBUTION,
         "has_coordinates": has_coordinates,
         "marker_ready": marker_ready,
-        "dedupe_key": _dedupe_key(props),
+        "dedupe_key": _dedupe_key(props, geometry),
         "provider_metadata": provider_metadata,
     }
 

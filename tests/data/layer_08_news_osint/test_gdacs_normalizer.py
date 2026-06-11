@@ -236,7 +236,9 @@ class TestNormalizeFeature:
 
     def test_dedupe_key_format(self):
         item = self.normalize(POINT_FEATURE, FETCHED_AT)
-        assert item["dedupe_key"] == "gdacs:1001:5:EQ"
+        assert item["dedupe_key"].startswith("gdacs:1001:5:EQ:Point:")
+        parts = item["dedupe_key"].split(":")
+        assert len(parts) == 6  # gdacs:eventid:episodeid:eventtype:geo_type:coord_hash
 
     def test_missing_eventid_handled(self):
         item = self.normalize(MISSING_EVENTID_FEATURE, FETCHED_AT)
