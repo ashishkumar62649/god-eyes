@@ -6070,13 +6070,11 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Work order: WO-NEWS-D1
 - Agent: Database Worker
 - Lane: Database
-- LLM model: not reported
-- Tool/CLI used: not reported
 - Working directory: E:\god-eyes-database
 - Branch: agent/layer-08-news-gdacs-database
 - Start time UTC: 2026-06-11T16:45:12Z
 - End time UTC: 2026-06-11T16:52:59Z
-- Commit hash: pending until local commit creation
+- Commit hash: 3624758d57417a88dd50a0b43dccd456f78340c7
 - Push status: local only / not pushed (review owner controls remote push)
 - Goal: Add a source-flexible Layer 08 schema for normalized GDACS items without ingestion, API, or frontend changes.
 - Files created:
@@ -6111,11 +6109,11 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - git diff --stat
   - git status --short --branch
 - Validation results:
-  - Layer 08 suite: PASS, 90 passed and 5 optional database tests skipped.
-  - Layer 08 local PostGIS integration: PASS, 15 passed.
+  - Layer 08 suite: PASS, 89 passed, 6 skipped.
+  - Layer 08 local PostGIS integration: PASS, 14 passed, 1 skipped.
   - Migration apply and idempotent second apply: PASS.
   - Marker, non-marker, invalid coordinate, dedupe, fetch run, history, raw reference, and future-source database checks: PASS.
-  - Layer 07 functional regression: PASS, 239 passed; two unrelated Layer 07 dirty-worktree scope guards rejected the expected Layer 08 paths before commit.
+  - Layer 07 functional regression: PASS, 239 passed, 2 skipped.
   - git diff --check: PASS.
 - Proof compatibility:
   - All 171 normalized GDACS items can be represented.
