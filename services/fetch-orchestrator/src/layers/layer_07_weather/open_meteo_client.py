@@ -48,6 +48,20 @@ DEFAULT_PARAMS = {
     "cell_selection": "land",
 }
 
+PROOF_CURRENT_PARAMS = {
+    "temperature_unit": "celsius",
+    "wind_speed_unit": "kmh",
+    "precipitation_unit": "mm",
+    "timeformat": "iso8601",
+    "timezone": "UTC",
+}
+
+PROOF_CURRENT_VARIABLES = [
+    "temperature_2m", "apparent_temperature", "relative_humidity_2m",
+    "surface_pressure", "precipitation", "cloud_cover",
+    "weather_code", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m",
+]
+
 
 def _build_url(
     latitudes: list[float],
@@ -64,6 +78,23 @@ def _build_url(
         ("forecast_days", str(forecast_days)),
     ]
     for k, v in DEFAULT_PARAMS.items():
+        params.append((k, v))
+    return BASE_URL + "?" + urllib.parse.urlencode(params)
+
+
+def _build_url_current_only(
+    latitudes: list[float],
+    longitudes: list[float],
+    current_vars: list[str] | None = None,
+) -> str:
+    """Build URL requesting only current variables — no hourly, no forecast_days."""
+    cv = current_vars or PROOF_CURRENT_VARIABLES
+    params: list[tuple[str, str]] = [
+        ("latitude", ",".join(str(x) for x in latitudes)),
+        ("longitude", ",".join(str(x) for x in longitudes)),
+        ("current", ",".join(cv)),
+    ]
+    for k, v in PROOF_CURRENT_PARAMS.items():
         params.append((k, v))
     return BASE_URL + "?" + urllib.parse.urlencode(params)
 
@@ -286,3 +317,182 @@ def fetch_weather_batch(
     raise RuntimeError(
         f"Open-Meteo fetch failed after {max_retries} attempts"
     ) from last_exc
+
+
+def fetch_weather_current_only(
+    latitudes: list[float],
+    longitudes: list[float],
+    *,
+    current_vars: list[str] | None = None,
+    batch_index: int = 0,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    timeout: int = DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    """Fetch current-only weather for a batch of coordinates via urllib.
+
+    No hourly variables. No forecast_days. Minimal payload for proof ingest.
+
+    Returns dict with keys:
+        data          – list of coordinate response objects
+        request_meta  – sanitized request metadata
+    """
+    if len(latitudes) != len(longitudes):
+        raise ValueError("latitudes and longitudes must have equal length")
+    if not latitudes:
+        raise ValueError("At least one coordinate required")
+
+    cv = current_vars or PROOF_CURRENT_VARIABLES
+    url = _build_url_current_only(latitudes, longitudes, cv)
+    fetched_at = datetime.now(timezone.utc).isoformat()
+
+    last_exc: Exception | None = None
+    for attempt in range(max_retries):
+        t0 = time.monotonic()
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                elapsed_ms = int((time.monotonic() - t0) * 1000)
+                status_code = resp.status
+                headers = dict(resp.headers)
+                body = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            elapsed_ms = int((time.monotonic() - t0) * 1000)
+            if 400 <= exc.code < 500:
+                body = exc.read().decode("utf-8", errors="replace")
+                raise RuntimeError(
+                    f"HTTP {exc.code} (client error, no retry): {body[:200]}"
+                ) from exc
+            last_exc = RuntimeError(f"HTTP {exc.code} on attempt {attempt + 1}")
+            time.sleep(BACKOFF_BASE * (2 ** attempt))
+            continue
+        except OSError as exc:
+            last_exc = exc
+            time.sleep(BACKOFF_BASE * (2 ** attempt))
+            continue
+
+        try:
+            data = json.loads(body)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("Invalid JSON in Open-Meteo response") from exc
+
+        if isinstance(data, dict):
+            data = [data]
+
+        return {
+            "data": data,
+            "request_meta": {
+                "url": _sanitize_url(url),
+                "status_code": status_code,
+                "elapsed_ms": elapsed_ms,
+                "response_headers": headers,
+                "coordinate_count": len(latitudes),
+                "batch_index": batch_index,
+                "current_vars": cv,
+                "hourly_vars": [],
+                "forecast_days": None,
+                "fetched_at": fetched_at,
+                "attempts": attempt + 1,
+                "current_only": True,
+            },
+        }
+
+    raise RuntimeError(
+        f"Open-Meteo fetch failed after {max_retries} attempts"
+    ) from last_exc
+
+
+def fetch_weather_current_only_via_curl(
+    latitudes: list[float],
+    longitudes: list[float],
+    *,
+    current_vars: list[str] | None = None,
+    batch_index: int = 0,
+    timeout: int = DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    """Fetch current-only weather via curl.exe with IPv4/TLS1.2/HTTP1.1.
+
+    No hourly variables. No forecast_days. Minimal payload for proof ingest.
+
+    Returns dict with keys:
+        data          – list of coordinate response objects
+        request_meta  – sanitized request metadata
+    """
+    if len(latitudes) != len(longitudes):
+        raise ValueError("latitudes and longitudes must have equal length")
+    if not latitudes:
+        raise ValueError("At least one coordinate required")
+
+    curl_path = _find_curl_executable()
+    if curl_path is None:
+        raise RuntimeError(
+            "curl.exe not found. Install curl or use --fetch-client urllib."
+        )
+
+    cv = current_vars or PROOF_CURRENT_VARIABLES
+    url = _build_url_current_only(latitudes, longitudes, cv)
+    fetched_at = datetime.now(timezone.utc).isoformat()
+
+    cmd = [
+        curl_path,
+        "-4", "--http1.1", "--tlsv1.2", "-L",
+        "--connect-timeout", "10",
+        "--max-time", str(timeout),
+        "-s",
+        "-w", "\n%{http_code}",
+        "-H", f"User-Agent: {USER_AGENT}",
+        url,
+    ]
+
+    t0 = time.monotonic()
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 10)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"curl timed out after {timeout + 10}s") from exc
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"curl executable not found at {curl_path}") from exc
+
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+    if result.returncode != 0:
+        stderr_msg = result.stderr.strip()[:200] if result.stderr else "no stderr"
+        raise RuntimeError(f"curl failed with exit code {result.returncode}: {stderr_msg}")
+
+    lines = result.stdout.rsplit("\n", 1)
+    if len(lines) < 2:
+        raise RuntimeError("curl produced unexpected output (no HTTP status line)")
+
+    body_text = lines[0]
+    try:
+        status_code = int(lines[1].strip())
+    except ValueError:
+        raise RuntimeError(f"curl returned non-numeric HTTP status: {lines[1].strip()!r}")
+
+    if status_code < 200 or status_code >= 300:
+        raise RuntimeError(f"HTTP {status_code} from Open-Meteo via curl: {body_text[:200]}")
+
+    try:
+        data = json.loads(body_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Invalid JSON in Open-Meteo curl response") from exc
+
+    if isinstance(data, dict):
+        data = [data]
+
+    return {
+        "data": data,
+        "request_meta": {
+            "url": _sanitize_url(url),
+            "status_code": status_code,
+            "elapsed_ms": elapsed_ms,
+            "response_headers": {},
+            "coordinate_count": len(latitudes),
+            "batch_index": batch_index,
+            "current_vars": cv,
+            "hourly_vars": [],
+            "forecast_days": None,
+            "fetched_at": fetched_at,
+            "attempts": 1,
+            "fetch_client": "curl",
+            "current_only": True,
+        },
+    }

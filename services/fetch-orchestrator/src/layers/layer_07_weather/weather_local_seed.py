@@ -4,10 +4,10 @@ Fetches a small proof dataset (7 cities) from Open-Meteo, normalizes it,
 and ingests it into the local PostGIS database for manual UI review.
 
 Usage:
-    python -m layers.layer_07_weather.weather_local_seed --proof --forecast-days 1
-    python -m layers.layer_07_weather.weather_local_seed --proof --dry-run
-    python -m layers.layer_07_weather.weather_local_seed --proof --skip-fetch
-    python -m layers.layer_07_weather.weather_local_seed --proof --fetch-client curl
+    python -m layers.layer_07_weather.weather_local_seed --proof --current-only
+    python -m layers.layer_07_weather.weather_local_seed --proof --current-only --dry-run
+    python -m layers.layer_07_weather.weather_local_seed --proof --current-only --skip-fetch
+    python -m layers.layer_07_weather.weather_local_seed --proof --current-only --fetch-client curl
 
 Environment:
     DATABASE_URL  -- required, postgres://... (password never printed)
@@ -29,6 +29,8 @@ from typing import Any
 from layers.layer_07_weather.open_meteo_client import (
     fetch_weather_batch,
     fetch_weather_batch_via_curl,
+    fetch_weather_current_only,
+    fetch_weather_current_only_via_curl,
 )
 from layers.layer_07_weather.weather_grid import get_proof_coordinates
 from layers.layer_07_weather import weather_raw_storage as storage
@@ -110,6 +112,7 @@ def fetch_proof_data(
     forecast_days: int,
     raw_base: str | Path = "raw",
     fetch_client: str = "urllib",
+    current_only: bool = False,
 ) -> dict[str, Any]:
     """Fetch proof coordinates from Open-Meteo. Returns batch data + metadata."""
     coords = get_proof_coordinates()
@@ -121,11 +124,19 @@ def fetch_proof_data(
     run_dir = storage.run_directory(run_id, base=raw_base, dt=now)
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    if fetch_client == "curl":
-        print("  Using curl.exe (IPv4/TLS1.2/HTTP1.1) fallback...")
-        result = fetch_weather_batch_via_curl(lats, lons, forecast_days=forecast_days, batch_index=0)
+    if current_only:
+        if fetch_client == "curl":
+            print("  Using curl.exe (IPv4/TLS1.2/HTTP1.1), current-only...")
+            result = fetch_weather_current_only_via_curl(lats, lons, batch_index=0)
+        else:
+            result = fetch_weather_current_only(lats, lons, batch_index=0)
     else:
-        result = fetch_weather_batch(lats, lons, forecast_days=forecast_days, batch_index=0)
+        if fetch_client == "curl":
+            print("  Using curl.exe (IPv4/TLS1.2/HTTP1.1) fallback...")
+            result = fetch_weather_batch_via_curl(lats, lons, forecast_days=forecast_days, batch_index=0)
+        else:
+            result = fetch_weather_batch(lats, lons, forecast_days=forecast_days, batch_index=0)
+
     data = result["data"]
     request_meta = result["request_meta"]
     raw_path = storage.save_batch(run_dir, 0, data)
@@ -204,6 +215,7 @@ def ingest_observations(
     normalized: list[dict[str, Any]],
     *,
     dry_run: bool = False,
+    current_only: bool = False,
     skip_fetch_run: bool = False,
 ) -> dict[str, Any]:
     """Ingest normalized observations into the database."""
@@ -214,7 +226,7 @@ def ingest_observations(
         current = group.get("current")
         if current is not None:
             all_observations.append(current)
-        if not dry_run:
+        if not current_only:
             for hourly in group.get("hourly", []):
                 all_observations.append(hourly)
 
@@ -227,7 +239,6 @@ def ingest_observations(
     fetch_run = None
     raw_refs: list[dict[str, Any]] = []
     if not skip_fetch_run:
-        import hashlib
         from datetime import datetime, timezone
 
         run_id = f"local_seed_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
@@ -276,8 +287,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use proof coordinates only (7 cities). Default and only safe mode.",
     )
     p.add_argument(
+        "--current-only", action="store_true", default=False,
+        help="Fetch and ingest current observations only (no hourly). Recommended for local proof.",
+    )
+    p.add_argument(
         "--forecast-days", type=int, default=1,
-        help="Number of forecast days (default: 1)",
+        help="Number of forecast days when not using --current-only (default: 1)",
     )
     p.add_argument(
         "--dry-run", action="store_true",
@@ -296,10 +311,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip fetching. Use most recent raw files from disk.",
     )
     p.add_argument(
-        "--limit-current-only", action="store_true",
-        help="Ingest only current observations (skip hourly).",
-    )
-    p.add_argument(
         "--fetch-client", type=str, default="urllib",
         choices=["urllib", "curl"],
         help="HTTP client for fetching (default: urllib). Use 'curl' for Windows TLS/IPv6 issues.",
@@ -314,23 +325,25 @@ def main(argv: list[str] | None = None) -> int:
     database_url = validate_env()
     conn = connect_to_db(database_url)
 
-    print("=== Layer 07 Weather — Local Proof Seed ===\n")
+    mode_label = "current-only proof" if args.current_only else "proof"
+    print(f"=== Layer 07 Weather — Local Proof Seed ({mode_label}) ===\n")
 
     try:
         if args.skip_fetch:
             print("[1/4] Loading raw data from disk...")
             raw = load_raw_data(args.raw_root)
-            batch_data = raw["batch_data"]
-            coords = raw["coords"]
-            raw_uri = raw["raw_path"]
-            run_dir = raw["run_dir"]
         else:
             print("[1/4] Fetching proof data from Open-Meteo...")
-            raw = fetch_proof_data(args.forecast_days, args.raw_root, args.fetch_client)
-            batch_data = raw["batch_data"]
-            coords = raw["coords"]
-            raw_uri = raw["raw_path"]
-            run_dir = raw["run_dir"]
+            raw = fetch_proof_data(
+                args.forecast_days,
+                args.raw_root,
+                args.fetch_client,
+                current_only=args.current_only,
+            )
+        batch_data = raw["batch_data"]
+        coords = raw["coords"]
+        raw_uri = raw["raw_path"]
+        run_dir = raw["run_dir"]
         print(f"  Fetched {len(batch_data)} coordinate responses.\n")
     except SystemExit:
         raise
@@ -343,20 +356,24 @@ def main(argv: list[str] | None = None) -> int:
         normalized = normalize_data(batch_data, coords, raw_uri)
         current_count = sum(1 for g in normalized if g.get("current") is not None)
         hourly_count = sum(len(g.get("hourly", [])) for g in normalized)
-        print(f"  Normalized: {current_count} current, {hourly_count} hourly.\n")
+        if args.current_only:
+            print(f"  Normalized: {current_count} current observations (hourly skipped).\n")
+        else:
+            print(f"  Normalized: {current_count} current, {hourly_count} hourly.\n")
     except Exception as exc:
         print(f"FAILED during normalization: {exc}", file=sys.stderr)
         return 1
 
     if args.dry_run:
+        ingest_count = current_count if args.current_only else current_count + hourly_count
         print("[3/4] Dry run — skipping database ingest.\n")
         print("[4/4] Summary:\n")
         _print_summary({
-            "mode": "dry_run",
-            "raw_batch_files": 1,
-            "normalized_observations": current_count + hourly_count,
-            "current_observations": current_count,
-            "hourly_observations": hourly_count,
+            "mode": f"dry_run ({'current-only' if args.current_only else 'full'})",
+            "locations_fetched": len(coords),
+            "current_observations_normalized": current_count,
+            **({"hourly_observations_normalized": hourly_count} if not args.current_only else {}),
+            "observations_would_ingest": ingest_count,
             "raw_dir": str(run_dir),
         })
         print("\nDry run complete. No database changes made.")
@@ -367,6 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         result = ingest_observations(
             conn, normalized,
             dry_run=False,
+            current_only=args.current_only,
             skip_fetch_run=False,
         )
         print(f"  Ingested: {result['observations_ingested']} observations.\n")
@@ -376,19 +394,19 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print("[4/4] Summary:\n")
-    _print_summary({
-        "mode": "proof",
-        "forecast_days": args.forecast_days,
-        "raw_batch_files": 1,
-        "normalized_observations": current_count + hourly_count,
-        "current_observations": current_count,
-        "hourly_observations": hourly_count,
-        "observations_ingested": result["observations_ingested"],
-        "latest_rows": result.get("latest_rows"),
-        "history_rows": result.get("history_rows"),
-        "location_rows": result.get("location_rows"),
+    summary: dict[str, Any] = {
+        "mode": "current-only proof" if args.current_only else "proof",
+        "locations_fetched": len(coords),
+        "current_observations_normalized": current_count,
+        "current_observations_ingested": result["observations_ingested"],
+        "latest_row_count": result.get("latest_rows"),
+        "history_row_count": result.get("history_rows"),
         "raw_dir": str(run_dir),
-    })
+    }
+    if not args.current_only:
+        summary["hourly_observations_normalized"] = hourly_count
+        summary["forecast_days"] = args.forecast_days
+    _print_summary(summary)
 
     if not args.keep_raw:
         print("\nRaw files are local-only and untracked.")
