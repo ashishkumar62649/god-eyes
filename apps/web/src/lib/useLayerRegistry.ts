@@ -104,18 +104,18 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
     isImplemented: true,
   },
   {
-    layerId: 'layer_07_infrastructure',
-    name: 'Infrastructure',
-    category: 'infrastructure',
-    status: 'no_data',
-    dataStatus: 'static',
-    description: 'Power, telecom, transport, water infrastructure',
-    sourceRule: 'OpenStreetMap, government open-data',
-    apiStatus: 'not_implemented',
-    frontendStatus: 'no_data',
-    safetyNotes: 'Do not expose precise critical infrastructure locations',
+    layerId: 'layer_07_weather',
+    name: 'Weather / Live Weather',
+    category: 'environment',
+    status: 'active',
+    dataStatus: 'live',
+    description: 'Live weather observations from Open-Meteo through the GOD EYES API.',
+    sourceRule: 'Open-Meteo',
+    apiStatus: 'active',
+    frontendStatus: 'active',
+    safetyNotes: 'Model/grid-based weather (not street-level exact). Open-Meteo CC-BY 4.0 attribution required.',
     isEnabled: false,
-    isImplemented: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_08_news_osint',
@@ -179,7 +179,7 @@ export function useLayerRegistry(): UseLayerRegistryResult {
         if (cancelled) return;
         if (res.layers && res.layers.length > 0) {
           // Merge API layers with local registry so frontend-only layers
-          // (e.g. layer_07_infrastructure) are never dropped when the API
+          // (e.g. layer_07_weather) are never dropped when the API
           // does not yet include them.
           const apiMap = new Map(res.layers.map((l) => [l.layerId, l]));
           const merged = LOCAL_LAYER_REGISTRY.map((local) => {

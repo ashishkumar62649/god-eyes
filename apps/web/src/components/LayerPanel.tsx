@@ -8,6 +8,8 @@ import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAirc
 import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';
 import { SatelliteFilters, SAFE_RENDER_CAP } from '../layers/space/satellites/satelliteFilters';
 import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
+import { TEMPERATURE_LEGEND } from '../layers/layer_07_weather/weatherMarker';
+import { WEATHER_ATTRIBUTION } from '../layers/layer_07_weather/weatherTypes';
 
 interface AviationStats {
   loaded: number;
@@ -48,6 +50,14 @@ interface LayerPanelProps {
   maritimeFilters: { search: string; vesselType: string | null };
   onMaritimeFiltersChange: (filters: { search: string; vesselType: string | null }) => void;
   onMaritimeRefresh: () => void;
+  weatherLayerActive: boolean;
+  setWeatherLayerActive: (active: boolean) => void;
+  weatherLoading: boolean;
+  weatherError: string | null;
+  weatherEmpty: boolean;
+  weatherCount: number;
+  weatherAttribution: string;
+  onWeatherRefresh: () => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -70,6 +80,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   spaceSatelliteFilters, onSpaceFiltersChange,
   energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
   maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh,
+  weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -315,6 +326,42 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   {maritimeLayerActive && (
                     <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
                       Live vessel data via AISStream. REST polling (30s).
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const isWeather = entry.layerId === 'layer_07_weather';
+
+            if (isWeather) {
+              const weatherStatusText = !weatherLayerActive
+                ? 'READY — CLICK TO ACTIVATE'
+                : weatherLoading
+                  ? 'LOADING...'
+                  : weatherError
+                    ? 'ERROR — LAYER OFFLINE'
+                    : weatherEmpty
+                      ? 'ACTIVE — NO DATA'
+                      : `ACTIVE — ${weatherCount} OBS`;
+              return (
+                <div key={entry.layerId} className={`layer-item ${weatherLayerActive ? 'active' : ''}`}
+                  onClick={() => setWeatherLayerActive(!weatherLayerActive)} style={{ cursor: 'pointer' }}>
+                  <div className="layer-name">{entry.name} [L7]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: weatherLayerActive
+                        ? (weatherError ? '#ff4d4d' : 'var(--shell-accent)')
+                        : undefined,
+                      fontWeight: weatherLayerActive ? 600 : undefined,
+                      opacity: weatherLayerActive ? 1 : 0.7,
+                    }}>
+                      {weatherStatusText}
+                    </span>
+                  </div>
+                  {weatherLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      Live weather via Open-Meteo (GOD EYES API). REST polling (10 min).
                     </div>
                   )}
                 </div>
@@ -727,6 +774,70 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                       <span className="legend-label">{label}</span>
                     </div>
                   ))}
+                </div>
+              </>
+            )}
+
+            {weatherLayerActive && (
+              <>
+                <div className="filter-section">
+                  <div className="filter-section-header">WEATHER CONTROLS</div>
+
+                  {/* Status line */}
+                  <div style={{ fontSize: '0.6rem', lineHeight: 1.5, color: 'var(--shell-text-dim)', marginTop: '4px' }}>
+                    {weatherLoading && <div>Loading observations…</div>}
+                    {!weatherLoading && weatherError && (
+                      <div style={{ color: '#f87171' }}>Error: {weatherError}</div>
+                    )}
+                    {!weatherLoading && !weatherError && weatherEmpty && (
+                      <div>No weather observations available.</div>
+                    )}
+                    {!weatherLoading && !weatherError && !weatherEmpty && (
+                      <div>Observations loaded: {weatherCount}</div>
+                    )}
+                  </div>
+
+                  {/* Refresh button */}
+                  <button
+                    onClick={onWeatherRefresh}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '3px',
+                      color: 'var(--shell-text-dim)',
+                      padding: '4px 8px',
+                      fontSize: '0.6rem',
+                      cursor: 'pointer',
+                      marginTop: '6px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Refresh Data
+                  </button>
+                </div>
+
+                {/* Temperature legend */}
+                <div className="legend-section">
+                  <div className="legend-section-header">TEMPERATURE (°C)</div>
+                  {TEMPERATURE_LEGEND.map(({ bucket, color, label }) => (
+                    <div key={bucket} className="legend-item">
+                      <span style={{
+                        display: 'inline-block', width: '10px', height: '10px',
+                        borderRadius: '50%', background: color,
+                        marginRight: '8px', verticalAlign: 'middle', opacity: 0.85,
+                      }} />
+                      <span className="legend-label">{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Attribution */}
+                <div style={{
+                  marginTop: '8px', fontSize: '0.5rem', color: '#888',
+                  opacity: 0.8, lineHeight: 1.4,
+                }}>
+                  {weatherAttribution || WEATHER_ATTRIBUTION}
                 </div>
               </>
             )}

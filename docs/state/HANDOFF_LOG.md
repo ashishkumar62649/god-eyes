@@ -1,3 +1,496 @@
+### 2026-06-10T15:21:00Z Frontend Worker — WO-WEATHER-U Frontend Implementation
+
+- Work order: WO-WEATHER-U
+- Agent: Frontend Worker (Gemini lane)
+- LLM model: claude-opus-4.8
+- Tool/CLI used: Kiro CLI
+- Lane: Frontend
+- Branch: agent/layer-07-weather-frontend
+- Base branch: agent/layer-07-weather-api (approved API commit 8a50349)
+- Start time UTC: 2026-06-10T15:00:00Z
+- End time UTC: 2026-06-10T15:21:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — Kiro owns pushes per WO policy)
+- Goal: Implement the frontend globe/UI layer for Layer 07 Weather / Live Weather using the approved GOD EYES API.
+- Endpoint consumed: GET /api/layers/layer_07_weather/weather/current
+- Files created:
+  - apps/web/src/layers/layer_07_weather/weatherTypes.ts (render model + mapping, attribution constant)
+  - apps/web/src/layers/layer_07_weather/weatherApi.ts (GOD EYES current endpoint client)
+  - apps/web/src/layers/layer_07_weather/weatherMarker.ts (temperature buckets/colors, legend, canvas marker)
+  - apps/web/src/layers/layer_07_weather/useWeather.ts (REST hook: loading/empty/error/count/attribution, conservative 10-min polling)
+  - apps/web/src/layers/layer_07_weather/WeatherLayer.tsx (Cesium BillboardCollection)
+  - apps/web/src/layers/layer_07_weather/weatherDetail.ts (detail formatting helpers incl. degreesToCardinal)
+  - apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts (23 unit tests)
+- Files modified:
+  - apps/web/src/lib/useLayerRegistry.ts (replaced stale layer_07_infrastructure placeholder with layer_07_weather: status active, dataStatus live, isEnabled false (default OFF), isImplemented true)
+  - apps/web/src/App.tsx (weatherLayerActive + selectedWeather state, useWeather hook, props to CesiumGlobe + Shell)
+  - apps/web/src/CesiumGlobe.tsx (weather props, WeatherLayer mount, _weatherData click-pick branch)
+  - apps/web/src/components/Shell.tsx (weather prop pass-through to LayerPanel + DetailPanel)
+  - apps/web/src/components/LayerPanel.tsx (weather toggle, status, refresh, temperature legend, attribution)
+  - apps/web/src/components/DetailPanel.tsx (weather detail card with attribution)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Frontend components added: WeatherLayer (Cesium billboards), useWeather hook, weather API client, weather render model + marker/detail helpers, LayerPanel weather controls/legend, DetailPanel weather card.
+- Render model fields: observationId, locationId, sourceId, resolved latitude/longitude (used for placement), requested lat/lon, elevationM, temperatureC, apparentTemperatureC, humidityPercent, pressureHpa, windSpeedKph, windDirectionDeg, windGustKph, precipitationMm, precipitationProbabilityPercent, cloudCoverPercent, weatherCode, weatherLabel, forecastFor, fetchedAt, isStale, attribution, surfacePressureHpa (safe provider_metadata).
+- Marker placement strategy: resolved (grid) coordinates only. Items with missing/invalid resolved coords or missing temperature_c are skipped.
+- Temperature color strategy: 6 buckets (cold ≤0, cool 1–10, mild 11–20, warm 21–30, hot 31–40, extreme >40 °C); stale markers rendered grey.
+- LayerPanel: toggle on/off, loading/empty/error states, loaded observation count, temperature legend (°C), refresh button, visible Open-Meteo CC-BY 4.0 attribution.
+- DetailPanel: compact weather card (condition, temperature, feels like, humidity, wind speed/direction+cardinal/gusts, precipitation + probability, cloud cover, pressure, forecast_for, last updated, stale flag) with repeated attribution.
+- Tests added: 23 weather unit tests (registry entry, API path = GOD EYES /weather/current and NOT Open-Meteo, safe query params, response→render model mapping, resolved-coordinate use, invalid-coordinate skip, missing-temperature skip, temperature buckets/colors/legend, detail formatters, attribution constant).
+- Validation:
+  - pnpm --filter @god-eyes/contracts build: PASS (required so contracts type declarations resolve)
+  - pnpm --filter web test: PASS (34 tests — 23 weather + 11 maritime)
+  - pnpm --filter web build (tsc --noEmit + vite build): PASS (90 modules)
+  - No frontend lint/typecheck script exists separately; tsc (build) serves as typecheck.
+- Safety:
+  - Live Open-Meteo call: NO (frontend calls only the GOD EYES API)
+  - Full global grid fetched: NO (single current-observations request, limit 2000, conservative 10-min polling)
+  - Raw files committed: NO (git ls-files raw/ empty)
+  - Secrets touched: NO (no .env / API key usage)
+  - Fetcher touched: NO | Normalizer touched: NO | Database touched: NO | API routes touched: NO
+- Recommended next step: Kiro integration review (WO-WEATHER-U). Future enhancements (not MVP): bbox/viewport-driven loading, stale-opacity tiers, RainViewer radar overlay.
+- Review status: pending Kiro review.
+
+---
+
+
+### 2026-06-10T18:37:00Z API Worker — WO-WEATHER-A API Implementation
+
+- Work order: WO-WEATHER-A
+- Agent: API Worker
+- Lane: API
+- Branch: agent/layer-07-weather-api
+- Start time UTC: 2026-06-10T18:15:00Z
+- End time UTC: 2026-06-10T18:37:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Implement read-only REST API endpoints for Layer 07 Weather using approved database schema.
+- Files created:
+  - apps/api/src/routes/weather.ts (weather API route module — 6 endpoints with validation, SQL queries, error handling)
+  - apps/api/tests/weather.test.ts (51 API tests covering all endpoints, filters, validation, empty-state, error cases)
+- Files modified:
+  - packages/contracts/src/index.ts (added WeatherObservationItemSchema, WeatherListResponseSchema, WeatherNearbyResponseSchema, WeatherSourcesResponseSchema, WeatherFetchRunsResponseSchema, and related schemas)
+  - apps/api/src/index.ts (imported and registered weatherRoutes)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Endpoints implemented:
+  1. GET /api/layers/layer_07_weather/weather/latest — latest observations with bbox, observation_type, source_id, forecast_from/forecast_to, limit, offset filters
+  2. GET /api/layers/layer_07_weather/weather/current — convenience endpoint filtered to observation_type=current
+  3. GET /api/layers/layer_07_weather/weather/hourly — convenience endpoint filtered to observation_type=hourly with forecast time range
+  4. GET /api/layers/layer_07_weather/weather/nearby — spatial nearest-neighbor query with lat/lon, radius_km, observation_type, source_id, limit
+  5. GET /api/layers/layer_07_weather/weather/sources — returns active weather_sources rows with attribution
+  6. GET /api/layers/layer_07_weather/weather/fetch-runs — returns recent fetch runs for admin/debug visibility
+- Query support:
+  - bbox: validated, uses geom && ST_MakeEnvelope for PostGIS spatial query
+  - observation_type: exact match on o.observation_type (current/hourly)
+  - source_id: exact match on o.source_id
+  - forecast_from/forecast_to: ISO 8601 datetime range on o.forecast_for
+  - lat/lon (nearby): ST_DWithin with geography cast for spatial radius search
+  - radius_km: positive number up to 1000 km, default 200 km
+  - distance_km: computed via ST_DistanceSphere in nearby endpoint
+  - limit/offset: pagination with 5000 max limit, 10000 max offset
+  - status (fetch-runs): validated against running/completed/failed/partial
+- Response shape:
+  - Latest/current/hourly: { data: WeatherObservationItem[], meta: { layer_id, count, limit, offset, source_id, attribution } }
+  - Nearby: { data: WeatherNearbyItem[], meta: { ..., lat, lon, radius_km } }
+  - Sources: { data: WeatherSourceItem[], meta: { count, layer_id } }
+  - Fetch-runs: { data: WeatherFetchRunItem[], meta: { count, limit, offset, layer_id } }
+  - Each item: nested coordinates { requested, resolved, elevation_m } and weather { temperature_c, ..., weather_label }
+  - Safe provider_metadata: surface_pressure_hpa + generation_time_ms extracted from JSONB
+- Database access:
+  - Tables queried: weather_observations_latest (o), weather_locations (l), weather_sources (s), weather_fetch_runs (f)
+  - JOINs: LEFT JOIN weather_locations ON location_id, JOIN weather_sources ON source_id
+  - Parameterized: All SQL uses $N parameterized queries (no string interpolation)
+  - Bbox: l.geom && ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326)
+  - Nearby: ST_DWithin(l.geom::geography, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography, radius_meters)
+  - Distance: ST_DistanceSphere(l.geom, ST_SetSRID(ST_MakePoint(lon, lat), 4326)) / 1000.0
+  - Empty-state: Returns empty data arrays, zero counts gracefully
+- Tests:
+  - File: tests/weather.test.ts
+  - 51 tests total, all passing
+  - Key behaviors covered:
+    - Route registration (all 6 endpoints respond)
+    - Latest returns observations with full item shape (coordinates, weather, metadata)
+    - Provider metadata safe subset exposure (surface_pressure_hpa, generation_time_ms)
+    - Null provider_metadata when no metadata available
+    - Bbox filter (validates SQL contains ST_MakeEnvelope)
+    - Bbox validation (invalid format, out of range values)
+    - Current endpoint filters observation_type=current
+    - Hourly endpoint filters observation_type=hourly
+    - Hourly with forecast_from/forecast_to time range
+    - Nearby validates lat/lon (out of range, invalid)
+    - Nearby returns observations with distance_km
+    - Nearby uses ST_DWithin spatial query
+    - Nearby radius_km validation
+    - Source_id filtering on multiple endpoints
+    - Invalid observation_type rejection (400 INVALID_QUERY)
+    - Invalid timestamp rejection (400 INVALID_QUERY)
+    - forecast_from before forecast_to validation
+    - Limit/offset pagination
+    - Empty result returns 200 with empty data array
+    - SQL parameterized (contains $1)
+    - Weather sources endpoint returns attribution and licence
+    - Fetch runs endpoint returns run metadata with status
+    - Fetch runs source_id and status filters
+    - Fetch runs invalid status rejection
+    - No external network calls (fetch spy)
+    - No frontend imports in route source
+    - No secrets exposed
+    - Internal error on DB failure (500 INTERNAL_ERROR, no SQL leak)
+    - Limit capped at MAX_LIMIT
+    - Invalid limit/offset rejection (400 INVALID_LIMIT/INVALID_QUERY)
+    - Fetch runs ordering by fetch_started_at DESC
+    - Sources endpoint empty handling
+    - Numeric coercion from DB strings to numbers
+    - Null fields preserved as null
+- Validation:
+  - pnpm --filter @god-eyes/contracts build: PASS
+  - pnpm --filter api build (tsc): PASS
+  - pnpm --filter api test: 443/443 PASS (16 test files, 51 weather tests)
+  - git status --short --branch: clean branch, files modified as expected
+  - git diff --check: no whitespace errors
+- Implementation boundary:
+  - fetching code touched: NO
+  - normalizer touched: NO
+  - database migrations touched: NO
+  - database ingestion touched: NO
+  - frontend touched: NO
+  - live API called: NO
+  - full global grid fetched: NO
+  - raw files committed: NO
+  - secrets touched: NO
+- Issues found: None
+- Blockers: None
+- Commit: (pending — local only, per WO policy)
+- Push status: local only
+- Ready for WO-WEATHER-A review: YES
+- Recommended next step: WO-WEATHER-A Reviewer, then WO-WEATHER-U Frontend Integration
+
+### 2026-06-10T16:23:00Z Fetching Worker — WO-WEATHER-N Normalization Implementation
+
+- Work order: WO-WEATHER-N
+- Agent: Fetching Worker
+- Lane: Normalization
+- Branch: agent/layer-07-weather-normalizer
+- Start time UTC: 2026-06-10T10:53:00Z
+- End time UTC: 2026-06-10T11:05:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Normalize raw Open-Meteo batch responses to GOD EYES weather observation schema.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_codes.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_normalizer.py
+  - tests/data/layer_07_weather/test_normalizer.py
+- Files updated:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/README.md (normalizer section added)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (WMO code labeling resolved)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS
+  - python -m pytest tests/data/layer_07_weather -q → 123/123 PASSED
+- Normalizer features:
+  - WMO codes 0–99 mapped (28 codes); unknown → "Unknown"; None → None
+  - current weather → single observation; precipitation_probability_percent = None
+  - hourly weather → one observation per timestamp; precipitation_probability_percent mapped
+  - surface_pressure in provider_metadata.surface_pressure_hpa for both current and hourly
+  - provider_metadata.location_id preserves Open-Meteo location_id integer
+  - requested vs resolved coordinates kept separate
+  - location_id: sha256[:16] of layer|source|grid|lat|lon (deterministic)
+  - observation_id: sha256[:24] of location_id|source|forecast_for (deterministic)
+  - raw_evidence_uri propagated to all observations
+  - No database writes, no network calls, no API key
+- Live API called: NO
+- Full global grid fetched: NO
+- Raw files committed: NO
+- Secrets touched: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Recommended next step: WO-WEATHER-N integration review by Kiro CLI, then WO-WEATHER-D database schema
+
+### 2026-06-10T16:12:00Z Fetching Worker — WO-WEATHER-F Correction Pass
+
+- Work order: WO-WEATHER-F (correction)
+- Agent: Fetching Worker
+- Lane: Fetching
+- Branch: agent/layer-07-weather-fetcher
+- Start time UTC: 2026-06-10T10:42:00Z
+- End time UTC: 2026-06-10T10:48:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Align fetcher variables and grid planning before review.
+- Corrections applied:
+  - surface_pressure added to CURRENT_VARIABLES in open_meteo_client.py (was missing; confirmed in WO-WEATHER-S proof)
+  - CURRENT_VARIABLES count: 11
+  - Longitude range corrected: -180 inclusive to +175 (lon < 180); +180 excluded as duplicate of -180 meridian
+  - grid_summary() updated to match corrected longitude range
+  - 5° grid: 37 lat × 72 lon = 2664 total coordinates (previously 2701 in error)
+  - Batch count at 50/batch: 54 (previously 55 in error)
+- Files changed:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_client.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_grid.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/README.md
+  - tests/data/layer_07_weather/test_fetcher.py
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (grid count corrected to 2664)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS
+  - python -m pytest tests/data/layer_07_weather -q → 73/73 PASSED
+  - python -m layers.layer_07_weather.weather_cli dry-run --grid-spacing 5 --batch-size 50 → 2664 coords, 54 batches, 0 API calls
+- Raw files committed: NO
+- Full global grid fetched: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Secrets touched: NO
+- Recommended next step: WO-WEATHER-F integration review by Kiro CLI
+
+### 2026-06-10T16:08:00Z Kiro CLI — WO-WEATHER-F Fetcher Implementation
+
+- Work order: WO-WEATHER-F
+- Agent: Kiro CLI
+- Lane: Fetching
+- LLM model: claude-sonnet-4.6
+- Tool/CLI used: Kiro CLI (kiro-cli chat)
+- Working directory: E:\god-eyes-fetching
+- Branch: agent/layer-07-weather-fetcher
+- Start time UTC: 2026-06-10T10:27:00Z
+- End time UTC: 2026-06-10T10:38:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Implement full Open-Meteo fetcher module for layer_07_weather.
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_client.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_grid.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_raw_storage.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_fetcher.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/weather_cli.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/README.md
+  - tests/data/layer_07_weather/test_fetcher.py
+- Files updated:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/__init__.py
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (WO-WEATHER-F questions resolved)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Proof artifacts preserved:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_proof.py (unchanged)
+  - services/fetch-orchestrator/src/layers/layer_07_weather/proof_report.md (unchanged)
+- Commands run:
+  - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS (clean)
+  - python -m pytest tests/data/layer_07_weather -q → 66/66 PASSED
+  - python -m layers.layer_07_weather.weather_cli dry-run --grid-spacing 5 --batch-size 50 → 2701 coords, 55 batches, 0 API calls
+  - python -m layers.layer_07_weather.weather_cli fetch --proof --forecast-days 1 → 7 coords, 1 batch, SUCCESS
+  - python -m layers.layer_07_weather.weather_cli fetch --grid-spacing 5 --batch-size 50 --forecast-days 3 --max-batches 1 → 50 coords, 1 batch, SUCCESS
+- Grid: 5° global, 2701 total coordinates (37 lat × 73 lon), 55 batches at 50 coords/batch
+- forecast_days: 3 for full fetch, 1 for proof mode
+- Retry/backoff: exponential BACKOFF_BASE=30s × 2^attempt, max 3 retries; 4xx no-retry
+- Client-side API-call tracking: YES (Open-Meteo exposes no rate-limit headers)
+- location_id preserved in raw storage; normalization to use provider_metadata.location_id
+- Raw output path: raw/layer_07_weather/open-meteo/{yyyy}/{mm}/{dd}/{run_id}/
+- Raw files committed: NO
+- Full global grid fetched: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Secrets touched: NO
+- Recommended next step: WO-WEATHER-F integration review by Kiro CLI, then WO-WEATHER-N normalization
+
+### 2026-06-10T15:40:00Z Fetching Worker — WO-WEATHER-S Fetch Proof
+
+- Work order: WO-WEATHER-S
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: agent/layer-07-weather-fetch-proof
+- Start time UTC: 2026-06-10T15:00:00Z
+- End time UTC: 2026-06-10T15:40:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Prove Open-Meteo returns real weather data for a small set of coordinates and that the response structure supports the planned Weather MVP pipeline.
+- Proof coordinates: Bengaluru (12.97, 77.59), Delhi (28.61, 77.21), London (51.51, -0.13), New York (40.71, -74.01), Sydney (-33.87, 151.21), Tokyo (35.68, 139.65), Cape Town (-33.92, 18.42)
+- Real Open-Meteo API called: YES
+- HTTP status: 200 OK
+- Response shape: JSON array (7 items)
+- All MVP current fields present: YES (11/11)
+- All MVP hourly fields present: YES (12/12)
+- Rate-limit headers observed: NO
+- API-call accounting observed: NO (client-side tracking needed)
+- New finding: `location_id` field present in response (not in planning docs)
+- Coordinate resolution: differences of 3–21 km from requested (grid cell center, expected)
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_07_weather/__init__.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_proof.py
+  - services/fetch-orchestrator/src/layers/layer_07_weather/proof_report.md
+  - tests/data/layer_07_weather/__init__.py
+  - tests/data/layer_07_weather/test_proof_helpers.py
+  - tests/data/layer_07_weather/fixtures/sample_single_response.json
+  - tests/data/layer_07_weather/fixtures/sample_multi_response.json
+- Files updated:
+  - docs/state/HANDOFF_LOG.md (this entry)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (5 questions resolved)
+- Raw output saved locally: YES (raw/layer_07_weather/open-meteo/2026/06/10/run_20260610T094047Z/)
+- Raw files committed: NO
+- Full grid fetched: NO
+- Implementation started beyond proof: NO
+- Database touched: NO
+- API routes touched: NO
+- Frontend touched: NO
+- Secrets touched: NO
+- API key used: NO
+- Tests: 25 passing
+- Validation: compileall OK, pytest OK, git checks OK
+- Ready for WO-WEATHER-S review: YES
+- Recommended next step: WO-WEATHER-F (Full Fetcher Implementation) with batch size 50, forecast_days=3
+
+### 2026-06-10T14:30:00Z Fetching Worker — WO-WEATHER-R Source Research
+
+- Work order: WO-WEATHER-R
+- Agent: Fetching Worker
+- Lane: Fetching
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: planning/layer-07-weather-mvp
+- Start time UTC: 2026-06-10T14:00:00Z
+- End time UTC: 2026-06-10T14:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Verify Open-Meteo API documentation, confirm fields, document source research for WO-WEATHER-S Fetch Proof.
+- Sources researched: Open-Meteo (official docs, terms, licence)
+- Files created:
+  - packages/source-catalog/layers/layer_07_weather/README.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_source.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_field_mapping.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_request_plan.md
+  - packages/source-catalog/layers/layer_07_weather/open_meteo_research_summary.md
+  - packages/source-catalog/layers/layer_07_weather/source_decisions.md
+- Files updated:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Planning docs changed: NO (all assumptions confirmed, no corrections needed)
+- Key findings:
+  - Endpoint: GET https://api.open-meteo.com/v1/forecast (confirmed)
+  - API key: Not required for free non-commercial use (confirmed)
+  - Licence: CC-BY 4.0 (confirmed, attribution required)
+  - Free limits: 10,000/day, 5,000/hour, 600/minute (confirmed)
+  - All 12 MVP weather variables confirmed available
+  - Batch support: Multiple coordinates per request (confirmed)
+  - WMO weather codes: Numeric codes only, labels must be mapped client-side
+  - Response shape: Matches planning docs (single object for 1 coord, array for multiple)
+  - Coordinate resolution: Returned lat/lon may differ from requested (grid cell center)
+  - API-call accounting: NOT documented — must be measured in WO-WEATHER-S
+  - No rate-limit headers documented — must be observed in WO-WEATHER-S
+- Planning doc corrections: NONE (all assumptions confirmed)
+- Implementation not started
+- Live data not fetched
+- Secrets not touched
+- Raw data not committed
+- Known issues: None
+- Validation results:
+  - git status: 6 new files in packages/source-catalog/layers/layer_07_weather/
+  - All source research requirements covered
+- Ready for WO-WEATHER-S Fetch Proof: YES
+
+### 2026-06-10T12:30:00Z Planning Worker — WO-WEATHER-P Correction Pass
+
+- Work order: WO-WEATHER-P (correction)
+- Agent: Planning Worker
+- Lane: Planning
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: planning/layer-07-weather-mvp
+- Start time UTC: 2026-06-10T12:15:00Z
+- End time UTC: 2026-06-10T12:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Apply correction pass to Weather planning docs based on reviewer notes.
+- Corrections applied:
+  1. Fixed SQL syntax typo: `CREATE UNIQUE UNIQUE` → `CREATE UNIQUE INDEX` in DATABASE_PLANNING.md
+  2. Qualified Open-Meteo API-call estimate: Added "estimate" qualifier and verification note to FETCHING_DESIGN.md and OPEN_QUESTIONS.md
+  3. Fixed open questions count: Corrected summary from "8 open questions" to "10 open questions" in OPEN_QUESTIONS.md
+  4. Added model resolution metadata storage note: Added explicit section to NORMALIZATION_DESIGN.md and DATABASE_PLANNING.md about preserving model/grid metadata in provider_metadata
+  5. Resolved Layer Registry conflict: Moved `layer_07_infrastructure` (placeholder only, no implementation) to future unassigned slot; assigned `layer_07_weather` to Weather / Live Weather in MVP_LAYER_REGISTRY.md, LAYER_ID_CONVENTIONS.md, LAYER_ARCHITECTURE.md, AGENTS.md
+- Files modified:
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md (SQL typo fix, model resolution note)
+  - specs/006-layer-07-weather-mvp/FETCHING_DESIGN.md (API estimate qualification)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (count fix, API estimate qualification)
+  - specs/006-layer-07-weather-mvp/NORMALIZATION_DESIGN.md (model resolution note)
+  - docs/control/MVP_LAYER_REGISTRY.md (layer_07 → Weather, Infrastructure removed from slot 7)
+  - docs/control/LAYER_ID_CONVENTIONS.md (layer_07 → Weather, folder example updated)
+  - docs/control/LAYER_ARCHITECTURE.md (layer_07 → Weather)
+  - AGENTS.md (layer_07 → Weather)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Layer registry decision: Infrastructure was only a placeholder (no implementation files, no specs, no migrations). Weather assigned to layer_07_weather. Infrastructure moved to future unassigned slot (not in active registry).
+- Commands run:
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Validation:
+  - SQL typo: VERIFIED FIXED (no double UNIQUE remaining)
+  - API estimate: VERIFIED QUALIFIED (estimate wording added)
+  - Open questions count: VERIFIED FIXED (says 10 now)
+  - Model resolution note: VERIFIED ADDED (in NORMALIZATION_DESIGN.md and DATABASE_PLANNING.md)
+  - Layer registry: VERIFIED UPDATED (4 files updated)
+- Implementation not started
+- Live data not fetched
+- Secrets not touched
+- Raw data not committed
+- Known issues: None
+- Next recommended task: Correction review. If approved, proceed to WO-WEATHER-R (Source Research).
+
+### 2026-06-10T12:00:00Z Planning Worker — WO-WEATHER-P Layer 07 Weather MVP Planning
+
+- Work order: WO-WEATHER-P
+- Agent: Planning Worker
+- Lane: Planning
+- LLM model: mimo-v2.5-free
+- Tool/CLI used: opencode CLI
+- Working directory: E:\god-eyes
+- Branch: planning/layer-07-weather-mvp
+- Start time UTC: 2026-06-10T11:30:00Z
+- End time UTC: 2026-06-10T12:00:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — per WO policy)
+- Goal: Create complete Spec Kit planning package for Layer 07 Weather / Live Weather. Define all planning documents, source evaluation, architecture, work orders, and open questions.
+- Approach: Evaluated 6 weather data sources (Open-Meteo, MET Norway, RainViewer, NOAA/NWS, OpenWeather, WeatherAPI). Selected Open-Meteo as PRIMARY_MVP_SOURCE (no API key, global, CC-BY 4.0). Designed 5° global grid strategy (~2,664 cells). Created 10 planning documents in specs/006-layer-07-weather-mvp/. Defined 9 work orders (WO-WEATHER-P through WO-WEATHER-V). Documented 8 open questions and 7 confirmed decisions.
+- Files created:
+  - specs/006-layer-07-weather-mvp/README.md (spec index)
+  - specs/006-layer-07-weather-mvp/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
+  - specs/006-layer-07-weather-mvp/SOURCE_EVALUATION_MATRIX.md (6 weather sources evaluated)
+  - specs/006-layer-07-weather-mvp/FETCHING_DESIGN.md (Open-Meteo fetch strategy, grid design, raw storage)
+  - specs/006-layer-07-weather-mvp/NORMALIZATION_DESIGN.md (field mapping, weather code labels, unit normalization)
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md (PostGIS schema, 6 tables, indexes, upsert)
+  - specs/006-layer-07-weather-mvp/API_PLANNING.md (3 REST endpoints, query patterns, response schemas)
+  - specs/006-layer-07-weather-mvp/FRONTEND_PLANNING.md (Cesium markers, temperature colors, click card)
+  - specs/006-layer-07-weather-mvp/WORK_ORDERS.md (9 work orders with lane/acceptance criteria)
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (8 open questions, 7 confirmed decisions)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git checkout -b planning/layer-07-weather-mvp (created branch from main)
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+- Source decisions:
+  - Open-Meteo: **PRIMARY_MVP_SOURCE** — no API key, global, CC-BY 4.0, batch support
+  - MET Norway: **FUTURE_SOURCE** / **BACKUP_SOURCE** — Nordic focus, User-Agent requirement
+  - RainViewer: **FUTURE_OVERLAY_SOURCE** — radar tiles only, not point weather data
+  - NOAA/NWS: **FUTURE_ALERT_SOURCE** — US-only, alerts focus
+  - OpenWeather: **REJECT_FOR_MVP** — API key required, limited free tier
+  - WeatherAPI: **REJECT_FOR_MVP** — API key required, limited free tier
+- Grid strategy: 5° global grid (~2,664 cells, ~216 API calls/day, well within free tier)
+- Layer decision: layer_07_weather (Weather / Live Weather) — approved by user
+- Database planning: 6 tables (sources, fetch_runs, locations, observations_latest, observation_history, raw_message_refs)
+- API planning: 3 endpoints (objects list, object detail, stats)
+- Frontend planning: Temperature-colored markers, click detail card, stale data handling
+- Implementation not started
+- Live data not fetched
+- Secrets not touched
+- Raw data not committed
+- Known issues:
+  - Layer registry (MVP_LAYER_REGISTRY.md) currently has layer_07 as Infrastructure — needs update to Weather or renumbering
+  - 8 open questions remain for implementation phases
+- Next recommended task: WO-WEATHER-P Reviewer — review spec kit. If approved, proceed to WO-WEATHER-R (Source Research) to verify Open-Meteo documentation, then WO-WEATHER-S (Fetch Proof) to prove real data delivery.
+
 ### 2026-06-09T15:52:00Z Frontend Worker — WO-MAR-U Maritime Frontend Integration
 
 - Work order: WO-MAR-U
@@ -5407,3 +5900,167 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Database migrations touched: NO (used existing tables)
 - Known issues: None
 - Next recommended task: WO-MAR-I Reviewer — review ingestion implementation. If approved, test frontend with live ingested database rows.
+
+### 2026-06-10T11:22:07Z Database Worker - WO-WEATHER-D Database Schema
+
+- Work order: WO-WEATHER-D
+- Agent: Database Worker
+- Lane: Database
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-07-weather-database
+- Start time UTC: unknown
+- End time UTC: 2026-06-10T11:22:07Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (review owner controls remote push)
+- Goal: Create the Layer 07 Weather database schema for normalized Open-Meteo current and hourly observations.
+- Files created:
+  - database/migrations/layers/layer_07_weather/001_weather_tables.sql - Additive PostgreSQL/PostGIS migration for sources, fetch runs, requested/resolved locations, latest observations, append-only history, and raw evidence references.
+  - tests/data/layer_07_weather/test_weather_migration.py - Static schema, index, constraint, seed, scope, and safety tests.
+- Files updated:
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md - Corrected observation type, latest uniqueness, history identity, spatial geometry/index, and provider metadata decisions.
+  - docs/state/HANDOFF_LOG.md - This handoff entry.
+- Migration summary:
+  - Tables: weather_sources, weather_fetch_runs, weather_locations, weather_observations_latest, weather_observation_history, weather_raw_message_refs.
+  - Source seed: Open-Meteo inserted idempotently with CC-BY 4.0 licence and attribution.
+  - Geometry: weather_locations.geom uses GEOMETRY(Point, 4326), populated from resolved coordinates by weather_set_location_geom trigger and indexed with GiST.
+  - Latest identity: unique index on location_id, source_id, observation_type, forecast_for.
+  - History identity: history_id primary key; observation_id retained as indexed logical identity so repeated fetches do not collide.
+  - Observation metadata: provider_metadata stored as JSONB; raw_evidence_uri stored on latest, history, and raw reference rows.
+  - Raw references: metadata and file references only; no raw response bodies stored.
+- Constraints and indexes:
+  - layer_id checks for layer_07_weather on all tables.
+  - Source and location foreign keys.
+  - current/hourly observation type checks.
+  - Latitude, longitude, percentage, wind direction, run count, response status, and fetch status checks.
+  - GiST location geometry index; GIN metadata indexes; latest/history time, source, location, temperature, and weather-code indexes.
+- Commands run:
+  - python -m pytest tests/data/layer_07_weather -q
+  - Applied database/migrations/layers/layer_07_weather/001_weather_tables.sql twice to temporary local PostGIS database god_eyes_weather_schema_test.
+  - Inserted source-linked fetch run, location, current/hourly latest rows, repeated history rows, and raw reference in the temporary database.
+  - Verified trigger-generated geometry, latest upsert, append-only history, source seed, and invalid humidity rejection.
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+  - git status --short raw/
+  - git ls-files raw/
+- Validation results:
+  - Weather data tests: PASS, 136 passed.
+  - Migration first apply: PASS.
+  - Migration idempotent second apply: PASS.
+  - PostGIS insert/query/constraint validation: PASS.
+  - git diff --check: PASS.
+- Implementation boundary:
+  - Database schema only: YES.
+  - Database ingestion implemented: NO.
+  - Fetcher touched: NO.
+  - Normalizer touched: NO.
+  - API routes touched: NO.
+  - Frontend touched: NO.
+  - Live API called: NO.
+  - Full global grid fetched: NO.
+  - Raw files committed: NO.
+  - Secrets touched: NO.
+- Known issues: None.
+- Review status: Ready for WO-WEATHER-D review.
+- Recommended next step: Review WO-WEATHER-D, then begin WO-WEATHER-A only after database review passes.
+
+### 2026-06-10T12:28:46Z Database Worker - WO-WEATHER-D Documentation Sync
+
+- Work order: WO-WEATHER-D documentation sync
+- Agent: Database Worker
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Branch: agent/layer-07-weather-database
+- Start time UTC: unknown
+- End time UTC: 2026-06-10T12:28:46Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed
+- Files updated:
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md
+  - docs/state/HANDOFF_LOG.md
+- Schema changed: NO.
+- Tests changed: NO.
+- Database ingestion touched: NO.
+- API routes touched: NO.
+- Frontend touched: NO.
+- Fetcher touched: NO.
+- Normalizer touched: NO.
+- Raw files committed: NO.
+- Secrets touched: NO.
+- Review status: Ready for documentation sync review.
+- Ready for WO-WEATHER-I Database Ingestion: YES.
+
+### 2026-06-10T12:52:57Z Database Worker - WO-WEATHER-I Database Ingestion
+
+- Work order: WO-WEATHER-I
+- Agent: Database Worker
+- Lane: Database ingestion
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: E:\god-eyes-database
+- Branch: agent/layer-07-weather-ingestion
+- Start time UTC: unknown
+- End time UTC: 2026-06-10T12:52:57Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed (review owner controls remote push)
+- Goal: Ingest normalized Layer 07 Weather observations into the approved PostgreSQL/PostGIS schema without fetching or normalization work.
+- Files created:
+  - database/ingestion/__init__.py
+  - database/ingestion/layers/__init__.py
+  - database/ingestion/layers/layer_07_weather/__init__.py
+  - database/ingestion/layers/layer_07_weather/weather_ingestion.py
+  - tests/data/layer_07_weather/test_weather_ingestion.py
+- Files updated:
+  - tests/data/layer_07_weather/test_weather_migration.py - Added the approved database ingestion path to the scope guard.
+  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md - Documented type-aware database observation identity and location upsert behavior.
+  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md - Marked ingestion identity and upsert decisions resolved; deferred history partitioning for MVP.
+  - docs/state/HANDOFF_LOG.md - This handoff entry.
+- Ingestion functions implemented:
+  - build_database_observation_id, build_history_id, build_raw_ref_id.
+  - validate_weather_observation and location/latest/history record extraction.
+  - weather location and latest observation upserts.
+  - idempotent history and raw reference inserts.
+  - fetch run create and completion helpers.
+  - atomic single-observation and batch ingestion functions.
+- Identity decision:
+  - The approved normalizer produces the same observation_id when current and hourly observations share location, source, and forecast time.
+  - Ingestion generates the stored observation_id from location_id, source_id, observation_type, and forecast_for.
+  - The original normalizer ID is preserved in provider_metadata.logical_observation_id.
+  - history_id is generated from the type-aware database observation_id and fetched_at.
+  - raw_ref_id is generated from fetch_run_id, raw_evidence_uri, and batch_index.
+- Transaction behavior:
+  - Individual observation ingestion commits location/latest/history writes together.
+  - Batch ingestion commits optional fetch run, observations, and raw refs once; any failure rolls back the complete batch.
+- Commands run:
+  - python -m compileall database/ingestion
+  - python -m pytest tests/data/layer_07_weather/test_weather_ingestion.py -q
+  - python -m pytest tests/data/layer_07_weather -q
+  - Applied the approved Weather migration to temporary local PostGIS database god_eyes_weather_ingestion_test.
+  - Ingested one current observation, two hourly forecast slots, one later repeat fetch, one fetch run, and one raw message reference.
+  - Verified three latest rows, four history rows, latest update behavior, type-safe same-time identities, provider metadata preservation, and generated SRID 4326 geometry.
+  - git status --short --branch
+  - git diff --stat
+  - git diff --check
+  - git status --short raw/
+  - git ls-files raw/
+- Validation results:
+  - Weather test suite: PASS, 175 passed.
+  - Python compilation: PASS.
+  - Temporary PostGIS integration: PASS.
+  - No live network requests performed.
+- Implementation boundary:
+  - Database ingestion only: YES.
+  - Database migration changed: NO.
+  - Fetcher touched: NO.
+  - Normalizer touched: NO.
+  - API routes touched: NO.
+  - Frontend touched: NO.
+  - Live API called: NO.
+  - Full global grid fetched: NO.
+  - Raw files committed: NO.
+  - Secrets touched: NO.
+- Known issues: None.
+- Review status: Ready for WO-WEATHER-I review.
+- Recommended next step: Review WO-WEATHER-I, then begin the Weather API work only after ingestion review passes.

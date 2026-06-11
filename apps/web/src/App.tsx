@@ -18,6 +18,8 @@ import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/e
 import { useEnergyInfrastructure } from './layers/energy/infrastructure/useEnergyInfrastructure';
 import { useMaritime } from './layers/maritime/useMaritime';
 import { fetchVesselDetail } from './layers/maritime/maritimeApi';
+import { useWeather } from './layers/layer_07_weather/useWeather';
+import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -54,6 +56,8 @@ const App: React.FC = () => {
   const [energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive] = useState(false);
   const [energyInfrastructureFilters, setEnergyInfrastructureFilters] = useState<EnergyFilters>(DEFAULT_ENERGY_FILTERS);
   const [selectedEnergyFeature, setSelectedEnergyFeature] = useState<EnergyFeature | null>(null);
+  const [weatherLayerActive, setWeatherLayerActive] = useState(false);
+  const [selectedWeather, setSelectedWeather] = useState<WeatherRenderItem | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
@@ -71,6 +75,7 @@ const App: React.FC = () => {
   const bordersPhase = useBordersBoundaries(bordersLayerActive);
   const energyInfrastructureData = useEnergyInfrastructure(energyInfrastructureLayerActive, energyInfrastructureFilters);
   const maritimeData = useMaritime(maritimeLayerActive, maritimeBbox, maritimeFilters);
+  const weatherData = useWeather(weatherLayerActive);
 
   // Stable wrappers that delegate to refs CesiumGlobe sets.
   const handleSnapshot = useCallback((aircraft: AircraftLatest[]) => {
@@ -177,6 +182,8 @@ const App: React.FC = () => {
   }, []);
   const handleFiltersChange = useCallback((filters: AviationFilters) => setAviationFilters(filters), []);
   const handleEnergyFeatureClose = useCallback(() => setSelectedEnergyFeature(null), []);
+  const handleWeatherSelect = useCallback((item: WeatherRenderItem | null) => setSelectedWeather(item), []);
+  const handleWeatherClose = useCallback(() => setSelectedWeather(null), []);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
@@ -214,6 +221,9 @@ const App: React.FC = () => {
         maritimeLayerActive={maritimeLayerActive}
         maritimeVessels={maritimeData.vessels}
         onMaritimeBboxChange={setMaritimeBbox}
+        weatherLayerActive={weatherLayerActive}
+        weatherItems={weatherData.items}
+        onWeatherSelect={handleWeatherSelect}
       />
 
       <div style={{ opacity: isBooting ? 0 : 1, transition: 'opacity 1s ease-in', pointerEvents: isBooting ? 'none' : 'auto' }}>
@@ -256,6 +266,16 @@ const App: React.FC = () => {
           onMaritimeFiltersChange={setMaritimeFilters}
           onMaritimeRefresh={maritimeData.refresh}
           vesselDetail={vesselDetail}
+          weatherLayerActive={weatherLayerActive}
+          setWeatherLayerActive={setWeatherLayerActive}
+          weatherLoading={weatherData.loading}
+          weatherError={weatherData.error}
+          weatherEmpty={weatherData.empty}
+          weatherCount={weatherData.count}
+          weatherAttribution={weatherData.attribution}
+          onWeatherRefresh={weatherData.refresh}
+          selectedWeather={selectedWeather}
+          onWeatherClose={handleWeatherClose}
         />
       </div>
     </div>

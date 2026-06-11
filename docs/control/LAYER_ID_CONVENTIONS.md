@@ -22,7 +22,7 @@ layer_{NN}_{short_name}
 | 4 | `layer_04_public_military_security` | Public Military & Security | coming_soon |
 | 5 | `layer_05_space_satellites` | Space & Satellites | coming_soon |
 | 6 | `layer_06_maritime` | Maritime | coming_soon |
-| 7 | `layer_07_infrastructure` | Infrastructure | coming_soon |
+| 7 | `layer_07_weather` | Weather / Live Weather | coming_soon |
 | 8 | `layer_08_news_osint` | News & OSINT | coming_soon |
 | 9 | `layer_09_user_shapes` | User Shapes | coming_soon |
 | 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | coming_soon |
@@ -43,7 +43,7 @@ Examples:
 - `apps/web/src/layers/layer_04_public_military_security/`
 - `apps/web/src/layers/layer_05_space_satellites/`
 - `apps/web/src/layers/layer_06_maritime/`
-- `apps/web/src/layers/layer_07_infrastructure/`
+- `apps/web/src/layers/layer_07_weather/`
 - `apps/web/src/layers/layer_08_news_osint/`
 - `apps/web/src/layers/layer_09_user_shapes/`
 
