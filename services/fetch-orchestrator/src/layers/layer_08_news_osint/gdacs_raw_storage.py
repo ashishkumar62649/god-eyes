@@ -49,3 +49,18 @@ def save_proof_summary(run_dir: Path, summary: dict[str, Any]) -> str:
     path = run_dir / "gdacs_summary.json"
     _write_json(path, summary)
     return str(path)
+
+
+def save_normalized_events(run_dir: Path, normalized_result: dict[str, Any]) -> str:
+    """Save normalized events list. Returns file path string."""
+    path = run_dir / "gdacs_normalized.json"
+    _write_json(path, normalized_result["items"])
+    return str(path)
+
+
+def save_normalized_summary(run_dir: Path, normalized_result: dict[str, Any]) -> str:
+    """Save normalized run summary (counts, breakdowns). Returns file path string."""
+    path = run_dir / "gdacs_normalized_summary.json"
+    summary = {k: v for k, v in normalized_result.items() if k != "items"}
+    _write_json(path, summary)
+    return str(path)

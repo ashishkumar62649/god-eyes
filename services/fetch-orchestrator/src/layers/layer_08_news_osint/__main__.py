@@ -2,8 +2,8 @@
 
 Usage:
     python -m layers.layer_08_news_osint --source gdacs --proof
-    python -m layers.layer_08_news_osint --source gdacs --proof --fetch-client auto
-    python -m layers.layer_08_news_osint --source gdacs --proof --eventtype ALL --alertlevel ALL --timeout 30
+    python -m layers.layer_08_news_osint --source gdacs --proof --normalize
+    python -m layers.layer_08_news_osint --source gdacs --proof --fetch-client auto --normalize
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
 
 def _run_gdacs_proof(args: argparse.Namespace) -> int:
@@ -62,9 +61,42 @@ def _run_gdacs_proof(args: argparse.Namespace) -> int:
     print(f"  raw output  : {raw_path}")
     print(f"  summary     : {summary_path}")
 
-    if not args.keep_raw:
+    if getattr(args, "normalize", False):
+        from layers.layer_08_news_osint.gdacs_normalizer import normalize_gdacs_payload
+
+        norm_result = normalize_gdacs_payload(
+            result.raw_payload,
+            fetched_at=result.fetched_at,
+            raw_evidence_uri=raw_path,
+        )
+
+        norm_path = storage.save_normalized_events(run_dir, norm_result)
+        norm_summary_path = storage.save_normalized_summary(run_dir, norm_result)
+
         print()
-        print("  (raw output saved locally under tmp/ — not committed)")
+        print("  --- Normalization ---")
+        print(f"  total features    : {norm_result['total_features']}")
+        print(f"  normalized items  : {norm_result['normalized_items']}")
+        print(f"  marker-ready      : {norm_result['marker_ready_items']}")
+        print(f"  skipped           : {norm_result['skipped_items']}")
+        print()
+        print("  Geometry type counts:")
+        for k, v in sorted(norm_result["geometry_type_counts"].items()):
+            print(f"    {k}: {v}")
+        print()
+        print("  Severity counts:")
+        for k, v in sorted(norm_result["alert_level_counts"].items()):
+            print(f"    {k}: {v}")
+        print()
+        print("  Event type counts:")
+        for k, v in sorted(norm_result["event_type_counts"].items()):
+            print(f"    {k}: {v}")
+        print()
+        print(f"  normalized output  : {norm_path}")
+        print(f"  normalized summary : {norm_summary_path}")
+
+    print()
+    print("  (output saved locally under tmp/ — not committed)")
 
     return 0 if summary["item_count"] > 0 else 1
 
@@ -76,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--source", required=True, choices=["gdacs"], help="Source to use")
     parser.add_argument("--proof", action="store_true", help="Run proof fetch")
+    parser.add_argument("--normalize", action="store_true", help="Also normalize fetched data")
     parser.add_argument("--eventtype", default="ALL", help="GDACS event type filter")
     parser.add_argument("--alertlevel", default="ALL", help="GDACS alert level filter")
     parser.add_argument("--timeout", type=int, default=30, help="Request timeout in seconds")

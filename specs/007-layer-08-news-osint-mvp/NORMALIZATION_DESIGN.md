@@ -265,3 +265,22 @@ function calculateConfidence(item: NormalizedNewsItem): number {
 - `potential_duplicate`: Similar to another item
 - `stale_data`: Published > 7 days ago
 - `unverified_source`: Source not in trusted list
+
+---
+
+## WO-NEWS-N1 Implementation Notes (2026-06-11)
+
+GDACS normalizer implemented and proven.
+
+**Module**: `services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_normalizer.py`
+
+**Functions**:
+- `normalize_gdacs_feature(feature, fetched_at, raw_evidence_uri=None)` → normalized dict or None
+- `normalize_gdacs_payload(payload, fetched_at, raw_evidence_uri=None)` → result dict with items + counts
+
+**Key decisions**:
+- Only Point geometry items get `marker_ready=True` and extracted lat/lon.
+- LineString and Polygon geometries: `marker_ready=False`, `location.latitude/longitude=None`, geometry_type preserved in `provider_metadata`.
+- Title fallback priority: `humanReadable`/`title` → `"{Type} alert in {country}"` → `"{Type} alert"` → `"GDACS disaster alert"`.
+- `dedupe_key` format: `gdacs:{eventid}:{episodeid}:{eventtype}`.
+- All 171 features normalized (0 skipped) in live proof run.

@@ -31,7 +31,7 @@ The Layer 08 News & OSINT source proof script was executed to validate the avail
   - Multiple event types: Earthquakes, Floods, Tropical Cyclones, Volcanoes, Wildfires
 
 **Data Quality**:
-- **Coordinates**: Exact coordinates available for all events
+- **Coordinates**: Point geometry coordinates available for 47 of 171 events (directly marker-ready). The remaining 124 events carry LineString (48) or Polygon (76) geometries — coordinates are not extracted for these in MVP; geometry type is preserved in provider_metadata for future centroid/shape handling.
 - **Severity Levels**: Green/Orange/Red alert levels available
 - **Event Types**: Structured event type codes (EQ, FL, TC, DR, VO, WF)
 - **Country Codes**: Available for most events
@@ -234,5 +234,36 @@ python -m layers.layer_08_news_osint --source gdacs --proof --fetch-client auto
 - Raw output: `tmp/layer_08_news_osint/gdacs/2026/06/11/run_20260611T162444Z/` (gitignored)
 
 **Test coverage**: 35/35 tests passing (no live network)
+
+**Status**: PASS ✓
+
+---
+
+## WO-NEWS-N1 Normalizer Proof Run (2026-06-11)
+
+The GDACS normalizer module was implemented and a live proof run was executed with `--normalize`.
+
+**Module**: `services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_normalizer.py`
+
+**Command**:
+```
+python -m layers.layer_08_news_osint --source gdacs --proof --fetch-client auto --normalize
+```
+
+**Results**:
+- Total features: 171
+- Normalized items: 171
+- Marker-ready (Point geometry): 47
+- Skipped: 0
+- Geometry type counts: Point: 47, LineString: 48, Polygon: 76
+- Severity counts: Green: 167, Orange: 4
+- Event type counts: DR: 16, EQ: 34, FL: 9, TC: 108, WF: 4
+
+**Coordinate handling**:
+- Point geometry items: latitude/longitude extracted, `marker_ready=true`, `location.confidence=exact_coordinate`
+- LineString/Polygon items: no coordinates extracted, `marker_ready=false`, geometry_type preserved in provider_metadata for future shape/centroid handling
+- No fake coordinates generated
+
+**Test coverage**: 80/80 tests passing (no live network)
 
 **Status**: PASS ✓

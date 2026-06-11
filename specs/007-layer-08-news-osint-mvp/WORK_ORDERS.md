@@ -91,35 +91,56 @@
 
 ---
 
-## WO-NEWS-N: Normalizer Implementation
-**Status**: PENDING
+## WO-NEWS-N1: GDACS Normalizer Proof
+**Status**: ✅ COMPLETE
+
+**Objective**: Implement GDACS normalizer and run live normalized proof
+
+**Branch**: `agent/layer-08-news-gdacs-normalizer`
+
+**Tasks**:
+- [x] Implement `gdacs_normalizer.py` with `normalize_gdacs_feature` and `normalize_gdacs_payload`
+- [x] Event type mapping: EQ/FL/TC/DR/VO/WF → subcategory
+- [x] Alert level mapping: Red/Orange/Green → critical/high/medium
+- [x] Point-only coordinate extraction; no fake coords for LineString/Polygon
+- [x] Title fallback chain implemented
+- [x] Stable dedupe_key: `gdacs:{eventid}:{episodeid}:{eventtype}`
+- [x] Updated `gdacs_raw_storage.py` with `save_normalized_events` / `save_normalized_summary`
+- [x] Updated `__main__.py` with `--normalize` flag
+- [x] Write unit tests (45 normalizer tests; total 80/80 passing)
+- [x] Fixed PROOF_REPORT.md overclaim (coordinates not available for all events)
+- [x] Run live proof with --normalize — PASS
+
+**Live Proof Results** (2026-06-11):
+- Total features: 171
+- Normalized items: 171 (0 skipped)
+- Marker-ready (Point): 47
+- Geometry: Point: 47, LineString: 48, Polygon: 76
+- Severity: Green: 167, Orange: 4
+- Event types: DR: 16, EQ: 34, FL: 9, TC: 108, WF: 4
+
+**Acceptance Criteria**: All met
+
+---
+
+## WO-NEWS-N: Normalizer Implementation (remaining sources)
+**Status**: PENDING (WO-NEWS-N1 GDACS complete; GDELT/ReliefWeb/RSS pending)
 
 **Objective**: Transform raw source data into normalized format
 
 **Prerequisites**:
 - WO-NEWS-F complete
+- WO-NEWS-N1 complete ✅
 - Normalization design finalized
-- Common event shape defined
 
 **Tasks**:
-- [ ] Implement common normalization interface
-- [ ] Implement GDACS normalizer
+- [x] Implement GDACS normalizer (done in WO-NEWS-N1)
 - [ ] Implement GDELT normalizer
 - [ ] Implement ReliefWeb normalizer
 - [ ] Implement RSS normalizer
-- [ ] Add location confidence scoring
-- [ ] Add severity normalization
-- [ ] Add category normalization
-- [ ] Add deduplication logic
-- [ ] Write unit tests
+- [ ] Write unit tests for remaining normalizers
 
-**Deliverables**:
-- `services/normalizer/sources/layer_08/` folder
-- Per-source normalizer implementations
-- Common normalization utilities
-- Unit tests for each normalizer
-
-**Estimated Effort**: 3-5 days
+**Estimated Effort**: 2-4 days (remaining after WO-NEWS-N1)
 
 ---
 
