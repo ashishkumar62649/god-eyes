@@ -10,6 +10,9 @@ import { SatelliteFilters, SAFE_RENDER_CAP } from '../layers/space/satellites/sa
 import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 import { TEMPERATURE_LEGEND } from '../layers/layer_07_weather/weatherMarker';
 import { WEATHER_ATTRIBUTION } from '../layers/layer_07_weather/weatherTypes';
+import type { NewsFilterState, NewsStatsResponse } from '../layers/layer_08_news_osint/newsTypes';
+import { NEWS_SEVERITY_COLORS } from '../layers/layer_08_news_osint/newsTypes';
+import type { NewsItem } from '@god-eyes/contracts';
 
 interface AviationStats {
   loaded: number;
@@ -58,6 +61,18 @@ interface LayerPanelProps {
   weatherCount: number;
   weatherAttribution: string;
   onWeatherRefresh: () => void;
+  newsLayerActive: boolean;
+  setNewsLayerActive: (active: boolean) => void;
+  newsLoading: boolean;
+  newsError: string | null;
+  newsEmpty: boolean;
+  newsMarkerCount: number;
+  newsTotal: number;
+  newsStats: NewsStatsResponse | null;
+  newsFilters: NewsFilterState;
+  newsItems: NewsItem[];
+  onNewsFiltersChange: (f: NewsFilterState) => void;
+  onNewsRefresh: () => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -81,6 +96,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
   maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh,
   weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
+  newsLayerActive, setNewsLayerActive, newsLoading, newsError, newsEmpty, newsMarkerCount, newsTotal,
+  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -362,6 +379,68 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   {weatherLayerActive && (
                     <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
                       Live weather via Open-Meteo (GOD EYES API). REST polling (10 min).
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const isNews = entry.layerId === 'layer_08_news_osint';
+
+            if (isNews) {
+              const newsStatusText = !newsLayerActive
+                ? 'READY — CLICK TO ACTIVATE'
+                : newsLoading
+                  ? 'LOADING...'
+                  : newsError
+                    ? 'ERROR — LAYER OFFLINE'
+                    : newsEmpty
+                      ? 'ACTIVE — NO DATA'
+                      : `ACTIVE — ${newsMarkerCount} MARKERS / ${newsTotal} ITEMS`;
+              return (
+                <div key={entry.layerId} className={`layer-item ${newsLayerActive ? 'active' : ''}`}
+                  onClick={() => setNewsLayerActive(!newsLayerActive)} style={{ cursor: 'pointer' }}>
+                  <div className="layer-name">{entry.name} [L8]</div>
+                  <div className="layer-status">
+                    <span style={{
+                      color: newsLayerActive
+                        ? (newsError ? '#ff4d4d' : 'var(--shell-accent)')
+                        : undefined,
+                      fontWeight: newsLayerActive ? 600 : undefined,
+                      opacity: newsLayerActive ? 1 : 0.7,
+                    }}>
+                      {newsStatusText}
+                    </span>
+                  </div>
+                  {newsLayerActive && newsStats && (
+                    <div style={{ marginTop: '6px', fontSize: '0.6rem', lineHeight: 1.5, opacity: 0.85 }}>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <span>Total: {newsStats.total_items}</span>
+                        <span>Markers: {newsStats.marker_ready_items}</span>
+                      </div>
+                      {newsStats.fake_coordinate_risk_count > 0 && (
+                        <div style={{ color: '#f97316', marginTop: '2px' }}>
+                          ⚠ {newsStats.fake_coordinate_risk_count} fake-coordinate risk items
+                        </div>
+                      )}
+                      {newsStats.by_severity.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                          {newsStats.by_severity.map(({ severity, count }) => (
+                            <span key={severity} style={{
+                              background: NEWS_SEVERITY_COLORS[severity.toLowerCase()] ?? '#6b7280',
+                              color: '#fff', fontSize: '0.55rem', padding: '1px 5px',
+                              borderRadius: '3px', opacity: 0.9,
+                            }}>
+                              {severity.toUpperCase()} {count}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {newsLayerActive && (
+                    <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>
+                      GDACS disaster data via GOD EYES API. Point markers only on globe.
                     </div>
                   )}
                 </div>
@@ -838,6 +917,112 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                   opacity: 0.8, lineHeight: 1.4,
                 }}>
                   {weatherAttribution || WEATHER_ATTRIBUTION}
+                </div>
+              </>
+            )}
+
+            {/* ── Layer 08: News & OSINT ─────────────────── */}
+            {newsLayerActive && (
+              <>
+                {/* Filters */}
+                <div className="filter-section">
+                  <div className="filter-section-header">NEWS FILTERS</div>
+
+                  {/* Severity filter */}
+                  <div style={{ marginBottom: '6px' }}>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.7, marginBottom: '3px' }}>SEVERITY</div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {['', 'red', 'orange', 'green'].map((sev) => {
+                        const active = (newsFilters.severity ?? '') === sev;
+                        return (
+                          <button
+                            key={sev || 'all'}
+                            onClick={() => onNewsFiltersChange({ ...newsFilters, severity: sev || null })}
+                            style={{
+                              background: active ? (NEWS_SEVERITY_COLORS[sev] ?? 'var(--shell-accent)') : 'none',
+                              border: `1px solid ${NEWS_SEVERITY_COLORS[sev] ?? 'rgba(255,255,255,0.2)'}`,
+                              borderRadius: '3px', cursor: 'pointer', padding: '2px 7px',
+                              color: active ? '#fff' : 'var(--shell-text-dim)', fontSize: '0.6rem',
+                            }}
+                          >
+                            {sev ? sev.toUpperCase() : 'ALL'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Marker-ready only toggle */}
+                  <div
+                    className={`filter-toggle ${newsFilters.markerReadyOnly ? 'active' : ''}`}
+                    onClick={() => onNewsFiltersChange({ ...newsFilters, markerReadyOnly: !newsFilters.markerReadyOnly })}
+                  >
+                    <span className="filter-toggle-dot" style={{
+                      background: newsFilters.markerReadyOnly ? 'var(--shell-accent)' : 'rgba(255,255,255,0.2)',
+                      opacity: newsFilters.markerReadyOnly ? 1 : 0.4,
+                    }} />
+                    <span className="filter-toggle-label">Marker-ready only</span>
+                  </div>
+                </div>
+
+                {/* Items list */}
+                {newsItems.length > 0 && (
+                  <div className="filter-section">
+                    <div className="filter-section-header">RECENT ITEMS ({newsItems.length})</div>
+                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {newsItems.map((item) => (
+                        <div key={item.item_id} style={{
+                          padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          fontSize: '0.6rem', lineHeight: 1.45,
+                        }}>
+                          <div style={{ color: 'var(--shell-text)', fontWeight: 500, marginBottom: '1px' }}>
+                            {item.title}
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', opacity: 0.65, flexWrap: 'wrap' }}>
+                            <span style={{
+                              background: NEWS_SEVERITY_COLORS[item.severity?.toLowerCase()] ?? '#6b7280',
+                              color: '#fff', padding: '0 4px', borderRadius: '2px', fontSize: '0.5rem',
+                            }}>
+                              {item.severity?.toUpperCase() ?? '—'}
+                            </span>
+                            {item.subcategory && <span>{item.subcategory}</span>}
+                            {item.location.country_name && <span>{item.location.country_name}</span>}
+                            {!item.location.marker_ready && (
+                              <span style={{ color: '#6b7280' }}>no globe marker</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Refresh button */}
+                <button
+                  onClick={onNewsRefresh}
+                  style={{
+                    background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '3px', cursor: 'pointer', padding: '4px 10px',
+                    color: 'var(--shell-text-dim)', fontSize: '0.6rem',
+                    marginTop: '6px', textAlign: 'center',
+                  }}
+                >
+                  Refresh Data
+                </button>
+
+                {/* Severity legend */}
+                <div className="legend-section">
+                  <div className="legend-section-header">SEVERITY LEGEND</div>
+                  {Object.entries(NEWS_SEVERITY_COLORS).map(([sev, color]) => (
+                    <div key={sev} className="legend-item">
+                      <span style={{
+                        display: 'inline-block', width: '10px', height: '10px',
+                        background: color, marginRight: '8px', verticalAlign: 'middle',
+                        opacity: 0.85, transform: 'rotate(45deg)',
+                      }} />
+                      <span className="legend-label">{sev.charAt(0).toUpperCase() + sev.slice(1)}</span>
+                    </div>
+                  ))}
                 </div>
               </>
             )}

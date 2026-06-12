@@ -1,5 +1,56 @@
 ### 2026-06-12T21:20:00Z — WO-NEWS-A1 GDACS API Endpoints
 
+- Work order: WO-NEWS-U1
+- Agent: Frontend Worker
+- Tool/CLI used: Kiro CLI
+- Branch: agent/layer-08-news-gdacs-frontend
+- Base branch: origin/agent/layer-08-news-gdacs-api
+- Start time UTC: 2026-06-12T17:02:00Z
+- End time UTC: 2026-06-12T17:15:00Z
+- Goal: Implement Layer 08 GDACS frontend — globe markers, sidebar, detail card, stats, filters
+- Files created:
+  - apps/web/src/layers/layer_08_news_osint/newsTypes.ts
+  - apps/web/src/layers/layer_08_news_osint/newsApi.ts
+  - apps/web/src/layers/layer_08_news_osint/newsMarker.ts
+  - apps/web/src/layers/layer_08_news_osint/newsDetail.ts
+  - apps/web/src/layers/layer_08_news_osint/useNews.ts
+  - apps/web/src/layers/layer_08_news_osint/NewsLayer.tsx
+  - apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts
+- Files modified:
+  - apps/web/src/App.tsx
+  - apps/web/src/CesiumGlobe.tsx
+  - apps/web/src/components/Shell.tsx
+  - apps/web/src/components/LayerPanel.tsx
+  - apps/web/src/components/DetailPanel.tsx
+  - apps/web/src/lib/useLayerRegistry.ts
+  - specs/007-layer-08-news-osint-mvp/FRONTEND_PLANNING.md
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+  - docs/state/HANDOFF_LOG.md
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build → clean
+  - pnpm --filter web build → ✓ 913ms
+  - pnpm --filter web test → 59 passed (3 files, 25 new Layer 08 tests)
+  - pnpm --filter api test → 486 passed (17 files, unchanged)
+- Architecture:
+  - Globe markers: NewsLayer.tsx BillboardCollection, diamond shape, severity colours, _newsData id for picking
+  - List/sidebar: LayerPanel.tsx, /news/items endpoint, includes LineString/Polygon rows (labeled "no globe marker")
+  - Detail card: DetailPanel.tsx, title/category/severity/country/coords/source attribution/URL
+  - Stats: LayerPanel.tsx, total_items/marker_ready_items/by_severity/fake_coordinate_risk_count
+  - Filters: severity dropdown + marker-ready toggle → API query params
+  - Hook: useNews.ts polls every 5 min, parallel fetch of markers + items + stats
+- Safety:
+  - No raw provider_metadata or raw JSON exposed in UI
+  - No direct frontend calls to GDACS — all through GOD EYES API
+  - Globe markers use /news/markers only (Point + marker_ready=true)
+  - List uses /news/items (all geometry types)
+  - LineString/Polygon items never rendered as globe markers
+  - No new sources, scheduler, API behavior, DB schema, fetcher, normalizer, or ingestion changes
+  - No fake data or hardcoded records
+  - No secrets or API keys committed
+- Push status: NOT PUSHED (pending Kiro review)
+
+---
+
 - Work order: WO-NEWS-A1
 - Branch: agent/layer-08-news-gdacs-api
 - Base branch: origin/agent/layer-08-news-gdacs-ingestion

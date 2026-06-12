@@ -16,6 +16,8 @@ import type { SatelliteFilters } from '../layers/space/satellites/satelliteFilte
 import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
+import type { NewsRenderMarker, NewsFilterState, NewsStatsResponse } from '../layers/layer_08_news_osint/newsTypes';
+import type { NewsItem } from '@god-eyes/contracts';
 
 interface AviationStats {
   loaded: number;
@@ -74,6 +76,20 @@ interface ShellProps {
   onWeatherRefresh: () => void;
   selectedWeather: WeatherRenderItem | null;
   onWeatherClose: () => void;
+  newsLayerActive: boolean;
+  setNewsLayerActive: (active: boolean) => void;
+  newsLoading: boolean;
+  newsError: string | null;
+  newsEmpty: boolean;
+  newsMarkerCount: number;
+  newsTotal: number;
+  newsStats: NewsStatsResponse | null;
+  newsFilters: NewsFilterState;
+  newsItems: NewsItem[];
+  onNewsFiltersChange: (f: NewsFilterState) => void;
+  onNewsRefresh: () => void;
+  selectedNews: NewsRenderMarker | null;
+  onNewsClose: () => void;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -91,6 +107,8 @@ const Shell: React.FC<ShellProps> = ({
   maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh, vesselDetail,
   weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
   selectedWeather, onWeatherClose,
+  newsLayerActive, setNewsLayerActive, newsLoading, newsError, newsEmpty, newsMarkerCount, newsTotal,
+  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh, selectedNews, onNewsClose,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -140,6 +158,18 @@ const Shell: React.FC<ShellProps> = ({
           weatherCount={weatherCount}
           weatherAttribution={weatherAttribution}
           onWeatherRefresh={onWeatherRefresh}
+          newsLayerActive={newsLayerActive}
+          setNewsLayerActive={setNewsLayerActive}
+          newsLoading={newsLoading}
+          newsError={newsError}
+          newsEmpty={newsEmpty}
+          newsMarkerCount={newsMarkerCount}
+          newsTotal={newsTotal}
+          newsStats={newsStats}
+          newsFilters={newsFilters}
+          newsItems={newsItems}
+          onNewsFiltersChange={onNewsFiltersChange}
+          onNewsRefresh={onNewsRefresh}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -154,6 +184,8 @@ const Shell: React.FC<ShellProps> = ({
           vesselDetail={vesselDetail}
           selectedWeatherItem={selectedWeather}
           onWeatherClose={onWeatherClose}
+          selectedNewsItem={selectedNews}
+          onNewsClose={onNewsClose}
         />
       </main>
         <StatusPanel

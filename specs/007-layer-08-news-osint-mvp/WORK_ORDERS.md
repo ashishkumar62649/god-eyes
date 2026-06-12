@@ -414,3 +414,24 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U
 6. API endpoints perform within acceptable limits
 7. Frontend displays data correctly on all devices
 8. No production incidents during rollout
+
+---
+
+## WO-NEWS-U1 — Frontend GDACS Globe Markers + Sidebar
+
+**Status**: COMPLETE
+**Branch**: `agent/layer-08-news-gdacs-frontend`
+**Base**: `origin/agent/layer-08-news-gdacs-api`
+
+**Deliverables completed**:
+- Globe markers for marker-ready Point records via `/news/markers`
+- Sidebar/list panel with all items (including LineString/Polygon) via `/news/items`
+- Detail card with source attribution, severity, country, coordinates
+- Stats display (total, marker-ready, by_severity, fake_coordinate_risk_count)
+- Severity + marker-ready-only filters backed by API query params
+- Loading/error/empty states distinguishing layer failure from API failure
+- 25 new frontend tests covering all key behaviors
+- No raw provider_metadata or raw JSON exposed
+- No direct frontend calls to GDACS
+
+**Validation**: 59/59 web tests, 486/486 API tests, build clean

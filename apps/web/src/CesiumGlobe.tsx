@@ -32,6 +32,8 @@ import EnergyInfrastructureLayer from './layers/energy/infrastructure/EnergyInfr
 import MaritimeLayer from './layers/maritime/MaritimeLayer';
 import WeatherLayer from './layers/layer_07_weather/WeatherLayer';
 import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
+import NewsLayer from './layers/layer_08_news_osint/NewsLayer';
+import type { NewsRenderMarker } from './layers/layer_08_news_osint/newsTypes';
 import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
 import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
@@ -128,6 +130,10 @@ interface CesiumGlobeProps {
   weatherLayerActive?: boolean;
   weatherItems?: WeatherRenderItem[];
   onWeatherSelect?: (item: WeatherRenderItem | null) => void;
+  /** Layer 08: News & OSINT */
+  newsLayerActive?: boolean;
+  newsMarkers?: NewsRenderMarker[];
+  onNewsSelect?: (item: NewsRenderMarker | null) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -160,6 +166,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   weatherLayerActive,
   weatherItems,
   onWeatherSelect,
+  newsLayerActive,
+  newsMarkers,
+  onNewsSelect,
 }) => {
 
   /**
@@ -243,6 +252,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   const satelliteEntityDataSourceRef = useRef<CustomDataSource | null>(null);
   const onEnergyFeatureSelectRef = useRef(onEnergyFeatureSelect);
   const onWeatherSelectRef = useRef(onWeatherSelect);
+  const onNewsSelectRef = useRef(onNewsSelect);
 
   // Resident cache mode
   const residentCacheActiveRef = useRef(false);
@@ -262,6 +272,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onGetBboxRef2.current = onGetBbox;
     onEnergyFeatureSelectRef.current = onEnergyFeatureSelect;
     onWeatherSelectRef.current = onWeatherSelect;
+    onNewsSelectRef.current = onNewsSelect;
     // Populate the external bbox ref so App.tsx can forward bbox to WS.
     if (onGetBboxRef) onGetBboxRef.current = onGetBbox;
   });
@@ -580,6 +591,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const pos = Cartesian3.fromDegrees(weatherItem.longitude, weatherItem.latitude, 0);
             if (isPositionVisible(viewer!, pos)) {
               onWeatherSelectRef.current?.(weatherItem);
+            }
+          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._newsData) {
+            const newsItem = (pickedObject.id as any)._newsData as NewsRenderMarker;
+            const pos = Cartesian3.fromDegrees(newsItem.longitude, newsItem.latitude, 0);
+            if (isPositionVisible(viewer!, pos)) {
+              onNewsSelectRef.current?.(newsItem);
             }
           } else {
             onObjectSelectRef.current(null);
@@ -1425,6 +1442,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer={viewerRef.current}
         items={weatherItems ?? []}
         active={weatherLayerActive ?? false}
+      />
+      <NewsLayer
+        viewer={viewerRef.current}
+        markers={newsMarkers ?? []}
+        active={newsLayerActive ?? false}
       />
     </div>
   );

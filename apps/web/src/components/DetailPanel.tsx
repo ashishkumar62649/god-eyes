@@ -20,6 +20,13 @@ import {
   formatTimestamp,
   formatCondition,
 } from '../layers/layer_07_weather/weatherDetail';
+import type { NewsRenderMarker } from '../layers/layer_08_news_osint/newsTypes';
+import {
+  formatNewsTimestamp,
+  formatNewsSeverity,
+  formatNewsCountry,
+  orDash,
+} from '../layers/layer_08_news_osint/newsDetail';
 
 interface DetailPanelProps {
   selectedObject: AirportObject | MaritimeVesselObject | null;
@@ -34,6 +41,8 @@ interface DetailPanelProps {
   vesselDetail: MaritimeVesselDetail | null;
   selectedWeatherItem: WeatherRenderItem | null;
   onWeatherClose: () => void;
+  selectedNewsItem: NewsRenderMarker | null;
+  onNewsClose: () => void;
 }
 
 // ── error boundary ────────────────────────────────────────────────────────────
@@ -440,6 +449,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   vesselDetail,
   selectedWeatherItem,
   onWeatherClose: _onWeatherClose,
+  selectedNewsItem,
+  onNewsClose: _onNewsClose,
 }) => {
   const isVessel = selectedObject && 'layerId' in selectedObject && selectedObject.layerId === 'layer_06_maritime';
   const { state: profileState, retry } = useAirportPublicProfile(!isVessel && selectedObject ? selectedObject.id : null);
@@ -709,7 +720,94 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       <span style={{ ...spinner, width: '10px', height: '10px' }} />
       Object Intel
     </span>
-  ) : selectedEnergyFeature ? 'Energy Infrastructure' : selectedWeatherItem ? 'Weather' : 'Object Intel';
+  ) : selectedEnergyFeature ? 'Energy Infrastructure'
+    : selectedWeatherItem ? 'Weather'
+    : selectedNewsItem ? 'News & OSINT'
+    : 'Object Intel';
+
+  // News / OSINT detail card
+  const newsContent = selectedNewsItem ? (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--shell-accent)', lineHeight: 1.2, marginBottom: '2px' }}>
+        {selectedNewsItem.title}
+      </div>
+      <div style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '10px', fontFamily: 'var(--shell-font-mono)', letterSpacing: '1px' }}>
+        {selectedNewsItem.category.toUpperCase()}
+        {selectedNewsItem.subcategory ? ` · ${selectedNewsItem.subcategory.toUpperCase()}` : ''}
+      </div>
+
+      <div className="detail-row">
+        <div className="detail-label">Severity</div>
+        <div className="detail-value" style={{ color: selectedNewsItem.severity === 'red' ? '#ef4444' : selectedNewsItem.severity === 'orange' ? '#f97316' : selectedNewsItem.severity === 'green' ? '#22c55e' : undefined }}>
+          {formatNewsSeverity(selectedNewsItem.severity)}
+        </div>
+      </div>
+
+      <div className="detail-row">
+        <div className="detail-label">Country</div>
+        <div className="detail-value">{formatNewsCountry(selectedNewsItem.countryName, selectedNewsItem.countryCode)}</div>
+      </div>
+
+      <div className="detail-row">
+        <div className="detail-label">Published</div>
+        <div className="detail-value">{formatNewsTimestamp(selectedNewsItem.publishedAt)}</div>
+      </div>
+
+      {selectedNewsItem.sourceUpdatedAt && (
+        <div className="detail-row">
+          <div className="detail-label">Source Updated</div>
+          <div className="detail-value">{formatNewsTimestamp(selectedNewsItem.sourceUpdatedAt)}</div>
+        </div>
+      )}
+
+      <div className="detail-row">
+        <div className="detail-label">Coordinates</div>
+        <div className="detail-value">
+          {selectedNewsItem.latitude.toFixed(4)}, {selectedNewsItem.longitude.toFixed(4)}
+        </div>
+      </div>
+
+      {/* Source & Attribution */}
+      <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 600, marginBottom: '6px', color: 'var(--shell-accent)' }}>
+          SOURCE & ATTRIBUTION
+        </div>
+        <div className="detail-row">
+          <div className="detail-label">Source</div>
+          <div className="detail-value">{orDash(selectedNewsItem.sourceId)}</div>
+        </div>
+        {selectedNewsItem.sourceUrl && (
+          <div className="detail-row">
+            <div className="detail-label">URL</div>
+            <div className="detail-value">
+              <a
+                href={selectedNewsItem.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--shell-accent)', textDecoration: 'none', wordBreak: 'break-all' }}
+              >
+                {selectedNewsItem.sourceUrl}
+              </a>
+            </div>
+          </div>
+        )}
+        <div style={{
+          marginTop: '8px', fontSize: '0.5rem', color: '#888',
+          opacity: 0.8, lineHeight: 1.4,
+        }}>
+          {selectedNewsItem.attribution}
+        </div>
+      </div>
+
+      <div style={{
+        marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: '20px', opacity: 0.3, fontSize: '0.6rem',
+        fontFamily: 'var(--shell-font-mono)',
+      }}>
+        ITEM ID: {selectedNewsItem.itemId}
+      </div>
+    </div>
+  ) : null;
 
   return (
     <aside className={`shell-panel shell-panel-right shell-interactive ${isCollapsed ? 'collapsed' : ''}`}>
@@ -731,8 +829,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           {/* Weather Observation Detail */}
           {!selectedEnergyFeature && selectedWeatherItem && weatherContent}
 
+          {/* News & OSINT Detail */}
+          {!selectedEnergyFeature && !selectedWeatherItem && selectedNewsItem && newsContent}
+
           {/* Airport Object Detail */}
-          {!selectedEnergyFeature && !selectedWeatherItem && !selectedObject && (
+          {!selectedEnergyFeature && !selectedWeatherItem && !selectedNewsItem && !selectedObject && (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               height: '100%', color: 'var(--shell-text-dim)', fontSize: '0.75rem',
@@ -747,7 +848,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           )}
           
           {/* Vessel Detail Card rendering */}
-          {!selectedEnergyFeature && !selectedWeatherItem && selectedObject && isVessel && (
+          {!selectedEnergyFeature && !selectedWeatherItem && !selectedNewsItem && selectedObject && isVessel && (
             <IntelSection title="Vessel Details">
               <VesselOverviewSection
                 vessel={selectedObject as MaritimeVesselObject}
@@ -759,7 +860,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           )}
 
           {/* Airport Object Detail */}
-          {!selectedEnergyFeature && !selectedWeatherItem && selectedObject && !isVessel && (
+          {!selectedEnergyFeature && !selectedWeatherItem && !selectedNewsItem && selectedObject && !isVessel && (
             <IntelBoundary key={selectedObject.id}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
 

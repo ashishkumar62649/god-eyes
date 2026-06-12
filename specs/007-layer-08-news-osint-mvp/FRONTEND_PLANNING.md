@@ -343,3 +343,54 @@ interface NewsState {
 - Items viewed per session
 - Filter usage patterns
 - Source popularity
+
+---
+
+## Implementation Status — WO-NEWS-U1
+
+**Status**: COMPLETE
+
+### What was implemented
+
+- **Globe markers**: `NewsLayer.tsx` renders diamond-shaped billboards for all marker-ready Point records returned by `GET /api/layers/layer_08_news_osint/news/markers`. Severity-coloured (red/orange/green). No LineString/Polygon records placed on globe.
+- **Sidebar/list**: `LayerPanel.tsx` shows a scrollable list of items from `GET /api/layers/layer_08_news_osint/news/items`, including non-marker records (LineString/Polygon visible in list with `no globe marker` label).
+- **Detail card**: `DetailPanel.tsx` shows title, category/subcategory, severity, country, coordinates, source attribution, source URL when a marker or list item is clicked.
+- **Stats**: `LayerPanel.tsx` shows total_items, marker_ready_items, by_severity breakdown, and a `fake_coordinate_risk_count > 0` warning (expected value: 0).
+- **Filters**: Severity filter (all/red/orange/green), marker-ready-only toggle, subcategory/country passed as API query params.
+- **Loading/error**: Loading spinner, error state (layer offline vs API offline), empty state.
+
+### Source rules enforced
+
+- Markers use `/news/markers` only — never items endpoint for globe rendering.
+- List uses `/news/items`.
+- LineString/Polygon records show in list, never on globe.
+- `provider_metadata` and `raw_evidence_uri` are not exposed in the UI.
+- No direct frontend calls to GDACS or any external source.
+- No fake data, no hardcoded records.
+- Attribution displayed in detail card from `item.attribution` field.
+
+### Files created
+
+- `apps/web/src/layers/layer_08_news_osint/newsTypes.ts`
+- `apps/web/src/layers/layer_08_news_osint/newsApi.ts`
+- `apps/web/src/layers/layer_08_news_osint/newsMarker.ts`
+- `apps/web/src/layers/layer_08_news_osint/newsDetail.ts`
+- `apps/web/src/layers/layer_08_news_osint/useNews.ts`
+- `apps/web/src/layers/layer_08_news_osint/NewsLayer.tsx`
+- `apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts`
+
+### Files updated
+
+- `apps/web/src/App.tsx`
+- `apps/web/src/CesiumGlobe.tsx`
+- `apps/web/src/components/Shell.tsx`
+- `apps/web/src/components/LayerPanel.tsx`
+- `apps/web/src/components/DetailPanel.tsx`
+- `apps/web/src/lib/useLayerRegistry.ts`
+
+### Validation
+
+- `pnpm --filter web test` → 59 passed (25 new Layer 08 tests)
+- `pnpm --filter web build` → ✓ built in 913ms
+- `pnpm --filter api test` → 486 passed (17 files)
+- `pnpm --filter @god-eyes/contracts build` → clean compile

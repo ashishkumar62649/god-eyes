@@ -20,6 +20,8 @@ import { useMaritime } from './layers/maritime/useMaritime';
 import { fetchVesselDetail } from './layers/maritime/maritimeApi';
 import { useWeather } from './layers/layer_07_weather/useWeather';
 import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
+import { useNews } from './layers/layer_08_news_osint/useNews';
+import type { NewsRenderMarker } from './layers/layer_08_news_osint/newsTypes';
 
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
@@ -58,6 +60,8 @@ const App: React.FC = () => {
   const [selectedEnergyFeature, setSelectedEnergyFeature] = useState<EnergyFeature | null>(null);
   const [weatherLayerActive, setWeatherLayerActive] = useState(false);
   const [selectedWeather, setSelectedWeather] = useState<WeatherRenderItem | null>(null);
+  const [newsLayerActive, setNewsLayerActive] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<NewsRenderMarker | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const detailCacheRef = useRef<Map<string, DetailCache>>(new Map());
@@ -76,6 +80,7 @@ const App: React.FC = () => {
   const energyInfrastructureData = useEnergyInfrastructure(energyInfrastructureLayerActive, energyInfrastructureFilters);
   const maritimeData = useMaritime(maritimeLayerActive, maritimeBbox, maritimeFilters);
   const weatherData = useWeather(weatherLayerActive);
+  const newsData = useNews(newsLayerActive);
 
   // Stable wrappers that delegate to refs CesiumGlobe sets.
   const handleSnapshot = useCallback((aircraft: AircraftLatest[]) => {
@@ -184,6 +189,8 @@ const App: React.FC = () => {
   const handleEnergyFeatureClose = useCallback(() => setSelectedEnergyFeature(null), []);
   const handleWeatherSelect = useCallback((item: WeatherRenderItem | null) => setSelectedWeather(item), []);
   const handleWeatherClose = useCallback(() => setSelectedWeather(null), []);
+  const handleNewsSelect = useCallback((item: NewsRenderMarker | null) => setSelectedNews(item), []);
+  const handleNewsClose = useCallback(() => setSelectedNews(null), []);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
@@ -224,6 +231,9 @@ const App: React.FC = () => {
         weatherLayerActive={weatherLayerActive}
         weatherItems={weatherData.items}
         onWeatherSelect={handleWeatherSelect}
+        newsLayerActive={newsLayerActive}
+        newsMarkers={newsData.markers}
+        onNewsSelect={handleNewsSelect}
       />
 
       <div style={{ opacity: isBooting ? 0 : 1, transition: 'opacity 1s ease-in', pointerEvents: isBooting ? 'none' : 'auto' }}>
@@ -276,6 +286,20 @@ const App: React.FC = () => {
           onWeatherRefresh={weatherData.refresh}
           selectedWeather={selectedWeather}
           onWeatherClose={handleWeatherClose}
+          newsLayerActive={newsLayerActive}
+          setNewsLayerActive={setNewsLayerActive}
+          newsLoading={newsData.loading}
+          newsError={newsData.error}
+          newsEmpty={newsData.empty}
+          newsMarkerCount={newsData.markerCount}
+          newsTotal={newsData.total}
+          newsStats={newsData.stats}
+          newsFilters={newsData.filters}
+          newsItems={newsData.items}
+          onNewsFiltersChange={newsData.setFilters}
+          onNewsRefresh={newsData.refresh}
+          selectedNews={selectedNews}
+          onNewsClose={handleNewsClose}
         />
       </div>
     </div>
