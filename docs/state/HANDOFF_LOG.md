@@ -1,3 +1,30 @@
+### 2026-06-12T21:20:00Z — WO-NEWS-A1 GDACS API Endpoints
+
+- Work order: WO-NEWS-A1
+- Branch: agent/layer-08-news-gdacs-api
+- Base branch: origin/agent/layer-08-news-gdacs-ingestion
+- Start time UTC: 2026-06-12T20:30:00Z
+- End time UTC: 2026-06-12T21:20:00Z
+- Goal: Implement Layer 08 GDACS API endpoints (items, markers, sources, fetch-runs, stats)
+- Files created:
+  - apps/api/src/routes/news.ts (5 endpoint handlers)
+  - apps/api/tests/layer_08_news_osint.test.ts (43 tests)
+- Files modified:
+  - packages/contracts/src/index.ts (added 17 News/OSINT Zod schemas)
+  - apps/api/src/index.ts (registered newsRoutes)
+  - specs/007-layer-08-news-osint-mvp/API_PLANNING.md (implementation notes)
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (WO-NEWS-A1 marked complete)
+- Tests: 43/43 new tests passing, full API suite 486/486 passing (17 test files)
+- Safety:
+  - No raw provider metadata or raw evidence content exposed
+  - No auth/env secrets exposed
+  - No fake coordinates exposed
+  - LineString/Polygon rows excluded from markers
+  - Frontend touched: NO | Scheduler touched: NO | Additional sources: NO
+  - No raw/DB dump committed
+
+---
+
 ### 2026-06-11T23:30:00Z Fetching Worker — WO-NEWS-I1 GDACS Database Ingestion Proof
 
 - Work order: WO-NEWS-I1

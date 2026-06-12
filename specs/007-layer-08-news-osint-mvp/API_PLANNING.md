@@ -356,3 +356,59 @@ X-RateLimit-Reset: 1623345600
 - Auto-generated from code annotations
 - Updated with each deployment
 - Published to API documentation portal
+
+---
+
+## Implementation Notes (WO-NEWS-A1)
+
+### API routes implemented in `apps/api/src/routes/news.ts`
+
+All routes use the project's existing Fastify pattern with parameterized SQL, Zod response validation, and the `{ data, meta }` response shape.
+
+### Actual implemented endpoints (following existing `apps/api` conventions):
+
+| Endpoint | File | Purpose |
+|---|---|---|
+| `GET /api/layers/layer_08_news_osint/news/items` | `apps/api/src/routes/news.ts` | List news items with filters |
+| `GET /api/layers/layer_08_news_osint/news/markers` | `apps/api/src/routes/news.ts` | Globe marker-ready Point items |
+| `GET /api/layers/layer_08_news_osint/news/sources` | `apps/api/src/routes/news.ts` | Layer 08 news sources |
+| `GET /api/layers/layer_08_news_osint/news/fetch-runs` | `apps/api/src/routes/news.ts` | Fetch/ingestion run history |
+| `GET /api/layers/layer_08_news_osint/news/stats` | `apps/api/src/routes/news.ts` | Aggregate statistics |
+
+### Items endpoint query params
+
+`source_id`, `category`, `subcategory`, `severity`, `country_code`, `marker_ready`, `has_coordinates`, `geometry_type`, `published_after`, `published_before`, `search` (ILIKE title/summary), `limit` (default 50, max 100), `offset` (max 10000), `order` (desc/asc)
+
+### Markers endpoint query params
+
+`source_id`, `category`, `subcategory`, `severity`, `country_code`, `published_after`, `published_before`, `limit` (default 500, max 500)
+
+Always enforces `marker_ready = TRUE` and `geom IS NOT NULL`.
+
+### Sources endpoint
+
+Returns `source_id`, `layer_id`, `source_family`, `display_name`, `endpoint_url`, `auth_type`, `attribution`, `license`, `enabled`, `last_fetched_at`, `last_error`, `update_frequency_minutes`.
+Does NOT expose `auth_env_var`.
+
+### Fetch-runs endpoint query params
+
+`source_id`, `status`, `limit`, `offset`. Does NOT expose `raw_output_uri` or `normalized_output_uri`.
+
+### Stats endpoint
+
+Returns `total_items`, `marker_ready_items`, `items_with_geom`, `by_source`, `by_category`, `by_subcategory`, `by_severity`, `by_geometry_type`, `latest_fetch_run`, `fake_coordinate_risk_count`.
+
+### Data sources
+
+- Items: `news_items_latest` table
+- Sources: `news_sources` table
+- Fetch runs: `news_fetch_runs` table
+- Stats: all tables with aggregate queries
+
+### Safety
+
+- No raw provider metadata or raw evidence content exposed
+- No auth/env secrets exposed
+- No fake coordinates exposed
+- LineString/Polygon rows excluded from markers endpoint
+- Frontend, scheduler, and additional source work not implemented

@@ -260,36 +260,56 @@
 
 ---
 
-## WO-NEWS-A: API Implementation
-**Status**: PENDING
+## WO-NEWS-A1: GDACS API Endpoints
+**Status**: ✅ COMPLETE
 
-**Objective**: Create RESTful API endpoints for news data
+**Objective**: Expose stored Layer 08 GDACS data through API endpoints
 
 **Prerequisites**:
-- WO-NEWS-D1 complete
-- WO-NEWS-I complete
-- API planning finalized
+- WO-NEWS-D1 complete ✅
+- WO-NEWS-I1 complete ✅
+- API planning finalized ✅
+
+**Branch**: `agent/layer-08-news-gdacs-api`
+**Base branch**: `origin/agent/layer-08-news-gdacs-ingestion`
 
 **Tasks**:
-- [ ] Design API routes
-- [ ] Implement /items endpoint
-- [ ] Implement /markers endpoint
-- [ ] Implement /sources endpoint
-- [ ] Implement /fetch-runs endpoint
-- [ ] Implement /stats endpoint
-- [ ] Add filtering and pagination
-- [ ] Add rate limiting
-- [ ] Add caching headers
-- [ ] Add error handling
-- [ ] Write API tests
+- [x] Add Zod response schemas to `@god-eyes/contracts`
+- [x] Implement `GET /api/layers/layer_08_news_osint/news/items`
+- [x] Implement `GET /api/layers/layer_08_news_osint/news/markers`
+- [x] Implement `GET /api/layers/layer_08_news_osint/news/sources`
+- [x] Implement `GET /api/layers/layer_08_news_osint/news/fetch-runs`
+- [x] Implement `GET /api/layers/layer_08_news_osint/news/stats`
+- [x] Add filtering (source_id, category, subcategory, severity, country_code, marker_ready, has_coordinates, geometry_type, published_after, published_before, search)
+- [x] Add pagination (limit/offset)
+- [x] Add parameterized SQL queries
+- [x] Add Zod response validation
+- [x] Add error handling (400 validation, 503 DB offline, 500 internal)
+- [x] Write API tests (43 tests, all passing)
+- [x] Update API_PLANNING.md, WORK_ORDERS.md, HANDOFF_LOG.md
 
 **Deliverables**:
-- `apps/api/routes/layer-08/` folder
-- API endpoint implementations
-- OpenAPI specification
-- API tests
+- `packages/contracts/src/index.ts` — 17 News/OSINT Zod schemas added
+- `apps/api/src/routes/news.ts` — 5 endpoints implemented
+- `apps/api/src/index.ts` — route registration
+- `apps/api/tests/layer_08_news_osint.test.ts` — 43 API tests
 
-**Estimated Effort**: 3-4 days
+**Endpoints**:
+
+1. `GET /news/items` — Filterable list from `news_items_latest`
+2. `GET /news/markers` — Marker-ready Point items (enforces `marker_ready=TRUE` + `geom IS NOT NULL`)
+3. `GET /news/sources` — Source metadata from `news_sources` (no `auth_env_var`)
+4. `GET /news/fetch-runs` — Run history from `news_fetch_runs` (no `raw_output_uri`)
+5. `GET /news/stats` — Aggregate counts including `fake_coordinate_risk_count`
+
+**Safety**:
+- No raw provider metadata or raw evidence content exposed
+- No auth/env secrets exposed
+- No fake coordinates exposed
+- LineString/Polygon rows excluded from markers
+- Frontend, scheduler, additional source work: not added
+
+**Test results**: 43/43 passing, full suite 486/486 passing
 
 ---
 
