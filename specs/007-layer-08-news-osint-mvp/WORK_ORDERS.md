@@ -435,3 +435,68 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U
 - No direct frontend calls to GDACS
 
 **Validation**: 59/59 web tests, 486/486 API tests, build clean
+
+---
+
+## WO-NEWS-G1 — GDELT Source Proof
+
+**Status**: ✅ COMPLETE
+**Branch**: `agent/layer-08-news-gdelt-source-proof`
+**Base**: `origin/agent/layer-08-news-gdacs-frontend`
+
+**Goal**: Prove whether GDELT can be used as next Layer 08 source for broader global news/events beyond natural disasters.
+
+**Deliverables completed**:
+- Proof script: `services/fetch-orchestrator/src/layers/layer_08_news_osint/gdelt_source_probe.py`
+- Proof report: `specs/007-layer-08-news-osint-mvp/GDELT_SOURCE_PROOF.md`
+- Updated SOURCE_EVALUATION_MATRIX.md with GDELT findings
+
+**Source evaluation**:
+- **GDELT DOC API**: Tested with queries (Iran, Ukraine, Gaza). Returns HTML article lists with title, URL, source, country. BLOCKED by severe rate limiting (429 errors).
+- **GDELT GEO API**: Tested - returns 404 (not available).
+- **GDELT Event Export**: Verified. CSV files with ActionGeo_Lat/Long coordinates, Actor names, EventCode, SourceURL. Stable HTTP 200.
+
+**Recommendation**: Use GDELT Event Export path (Option 2). DOC API is not usable due to rate limits.
+
+**Source proof rules followed**:
+- No production fetcher/normalizer/API/frontend changes
+- No fake data or coordinates
+- No secrets committed
+- No large raw outputs committed
+
+**Validation**: Live proof script executed successfully.
+
+---
+
+## WO-NEWS-G2 — GDELT Event Export Fetcher (Recommended Next)
+
+**Status**: PENDING
+
+**Objective**: Implement fetcher to download and parse GDELT Event Export CSV files for marker-capable event records.
+
+**Prerequisites**:
+- WO-NEWS-G1 complete ✅
+
+**Implementation approach**:
+1. Fetch latest export list from `http://data.gdeltproject.org/gdeltv2/lastupdate.txt`
+2. Download latest export CSV (~10-50MB compressed)
+3. Stream-parse TSV with Python csv module
+4. Filter rows where ActionGeo_Lat/Long are non-empty for marker-ready data
+5. Store all rows for list view
+6. Raw storage path: `tmp/layer_08_news_osint/gdelt/`
+
+**Data fields to capture**:
+- GLOBALEVENTID (stable event ID)
+- Actor1Name, Actor2Name (conflict actors)
+- EventCode (CAMEO code)
+- QuadClass (1-4: cooperation/conflict classification)
+- ActionGeo_Lat, ActionGeo_Long (exact coordinates)
+- ActionGeo_CountryCode
+- SourceURL (attribution)
+- DATEADDED
+
+**MVP filtering**:
+- Only rows with ActionGeo_Lat/Long populated → marker_ready=true
+- Rows without coordinates → marker_ready=false (list only)
+
+**Estimated Effort**: 2-3 days

@@ -1,3 +1,29 @@
+### 2026-06-12T17:55:00Z — WO-NEWS-G1 GDELT Source Proof
+
+- Work order: WO-NEWS-G1
+- Agent: Claude Code CLI
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/layer-08-news-gdelt-source-proof
+- Base branch: origin/agent/layer-08-news-gdacs-frontend
+- Start time UTC: 2026-06-12T17:30:00Z
+- End time UTC: 2026-06-12T17:55:00Z
+- Goal: Prove whether GDELT can be used as next Layer 08 source for broader global news/events
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_08_news_osint/gdelt_source_probe.py
+  - specs/007-layer-08-news-osint-mvp/GDELT_SOURCE_PROOF.md
+- Files modified:
+  - specs/007-layer-08-news-osint-mvp/SOURCE_EVALUATION_MATRIX.md
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+- Commands run:
+  - python -m layers.layer_08_news_osint.gdelt_source_probe → proof executed
+  - python -m pytest tests/data/layer_08_news_osint -q → 140 passed, 5 skipped
+- Findings:
+  - GDELT DOC API: Rate limited (429 errors), not usable for MVP
+  - GDELT GEO API: Returns 404, not available
+  - GDELT Event Export: CSV files with ActionGeo_Lat/Long coordinates, Actor names, SourceURL - STABLE
+- Recommendation: Use GDELT Event Export path (Option 2). DOC API is not usable due to rate limits.
+- Next recommended work order: WO-NEWS-G2 (GDELT Event Export Fetcher)
+
 ### 2026-06-12T21:20:00Z — WO-NEWS-A1 GDACS API Endpoints
 
 - Work order: WO-NEWS-U1
