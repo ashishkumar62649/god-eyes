@@ -4,6 +4,7 @@ import { newsRoutes } from '../src/routes/news.js';
 import { query } from '../src/lib/db.js';
 
 const LAYER_ID = 'layer_08_news_osint';
+let app: ReturnType<typeof Fastify>;
 
 const MOCK_POINT_ITEM = {
   item_id: 'gdacs_point_001',
@@ -149,8 +150,6 @@ const MOCK_FETCH_RUN = {
 };
 
 describe('Layer 08 News & OSINT API', () => {
-  let app: ReturnType<typeof Fastify>;
-
   beforeAll(async () => {
     app = Fastify({ logger: false });
     await app.register(newsRoutes);
@@ -944,5 +943,496 @@ describe('Layer 08 News & OSINT API', () => {
     expect(response.statusCode).toBe(400);
     const body = JSON.parse(response.body);
     expect(body.error.code).toBe('INVALID_QUERY');
+  });
+
+  // ==================== GDELT Event Export Tests ====================
+
+  const GDELT_SOURCE_ID = 'gdelt_event_export';
+  const GDELT_SOURCE_FAMILY = 'global_event';
+
+const MOCK_GDELT_MARKER = {
+  item_id: 'gdelt_marker_001',
+  layer_id: LAYER_ID,
+  source_id: GDELT_SOURCE_ID,
+  source_family: GDELT_SOURCE_FAMILY,
+  source_object_id: '100000001',
+  source_url: 'https://example.com/article1',
+  title: 'Diplomatic Meeting Between US and China',
+  summary: 'High-level diplomatic negotiations between United States and China.',
+  content_type: 'event',
+  published_at: new Date('2026-06-13T10:00:00Z'),
+  source_updated_at: new Date('2026-06-13T10:30:00Z'),
+  fetched_at: new Date('2026-06-13T10:15:00Z'),
+  first_seen_at: new Date('2026-06-13T10:15:00Z'),
+  last_seen_at: new Date('2026-06-13T10:15:00Z'),
+  location_confidence: 'high',
+  country_code: 'US',
+  country_name: 'United States',
+  region: null,
+  city: null,
+  latitude: 38.9072,
+  longitude: -77.0369,
+  geometry_type: 'Point',
+  geo_source: 'provided',
+  has_coordinates: true,
+  marker_ready: true,
+  category: 'diplomacy',
+  subcategory: 'Make Statement',
+  severity: 'medium',
+  source_domain: 'example.com',
+  source_language: null,
+  source_country: null,
+  confidence_score: null,
+  attribution: 'GDELT - Global Database of Events, Language, and Tone',
+  is_active: true,
+};
+
+const MOCK_GDELT_LIST_ONLY = {
+  item_id: 'gdelt_list_001',
+  layer_id: LAYER_ID,
+  source_id: GDELT_SOURCE_ID,
+  source_family: GDELT_SOURCE_FAMILY,
+  source_object_id: '100000002',
+  source_url: 'https://example.com/article2',
+  title: 'Economic Cooperation Agreement Signed',
+  summary: 'Countries agree to new trade partnership terms.',
+  content_type: 'event',
+  published_at: new Date('2026-06-12T08:00:00Z'),
+  source_updated_at: new Date('2026-06-12T09:00:00Z'),
+  fetched_at: new Date('2026-06-12T08:30:00Z'),
+  first_seen_at: new Date('2026-06-12T08:30:00Z'),
+  last_seen_at: new Date('2026-06-12T08:30:00Z'),
+  location_confidence: 'unknown',
+  country_code: null,
+  country_name: null,
+  region: null,
+  city: null,
+  latitude: null,
+  longitude: null,
+  geometry_type: null,
+  geo_source: 'none',
+  has_coordinates: false,
+  marker_ready: false,
+  category: 'cooperation',
+  subcategory: 'Engage in Diplomatic Cooperation',
+  severity: 'low',
+  source_domain: 'example.com',
+  source_language: null,
+  source_country: null,
+  confidence_score: null,
+  attribution: 'GDELT - Global Database of Events, Language, and Tone',
+  is_active: true,
+};
+
+const MOCK_GDELT_CONFLICT = {
+  item_id: 'gdelt_conflict_001',
+  layer_id: LAYER_ID,
+  source_id: GDELT_SOURCE_ID,
+  source_family: GDELT_SOURCE_FAMILY,
+  source_object_id: '100000003',
+  source_url: 'https://example.com/article3',
+  title: 'Armed Conflict Reported in Border Region',
+  summary: 'Military engagement between opposing forces near disputed territory.',
+  content_type: 'event',
+  published_at: new Date('2026-06-11T06:00:00Z'),
+  source_updated_at: new Date('2026-06-11T07:00:00Z'),
+  fetched_at: new Date('2026-06-11T06:30:00Z'),
+  first_seen_at: new Date('2026-06-11T06:30:00Z'),
+  last_seen_at: new Date('2026-06-11T06:30:00Z'),
+  location_confidence: 'medium',
+  country_code: 'UA',
+  country_name: 'Ukraine',
+  region: null,
+  city: null,
+  latitude: 48.3794,
+  longitude: 31.1656,
+  geometry_type: 'Point',
+  geo_source: 'provided',
+  has_coordinates: true,
+  marker_ready: true,
+  category: 'conflict',
+  subcategory: 'Use Conventional Military Force',
+  severity: 'high',
+  source_domain: 'example.com',
+  source_language: null,
+  source_country: null,
+  confidence_score: null,
+  attribution: 'GDELT - Global Database of Events, Language, and Tone',
+  is_active: true,
+};
+
+const MOCK_GDELT_SOURCE = {
+  source_id: GDELT_SOURCE_ID,
+  layer_id: LAYER_ID,
+  source_family: GDELT_SOURCE_FAMILY,
+  display_name: 'GDELT Event Export',
+  endpoint_url: 'http://data.gdeltproject.org/gdeltv2/lastupdate.txt',
+  auth_type: 'none',
+  attribution: 'GDELT - Global Database of Events, Language, and Tone (https://www.gdeltproject.org/)',
+  license: 'Public dataset terms; source attribution required',
+  enabled: true,
+  last_fetched_at: new Date('2026-06-13T10:00:00Z'),
+  last_error: null,
+  update_frequency_minutes: 15,
+};
+
+const MOCK_GDELT_FETCH_RUN = {
+  fetch_run_id: 'run_gdelt_20260613T100000Z',
+  layer_id: LAYER_ID,
+  source_id: GDELT_SOURCE_ID,
+  source_family: GDELT_SOURCE_FAMILY,
+  run_type: 'ingestion',
+  status: 'success',
+  started_at: new Date('2026-06-13T10:00:00Z'),
+  completed_at: new Date('2026-06-13T10:05:00Z'),
+  fetched_item_count: 504,
+  normalized_item_count: 504,
+  marker_ready_count: 350,
+  skipped_item_count: 0,
+  error_message: null,
+  created_at: new Date('2026-06-13T10:05:00Z'),
+};
+
+  // 1. Items endpoint returns GDELT records
+  it('44. Items endpoint returns GDELT event records', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_MARKER, MOCK_GDELT_LIST_ONLY, MOCK_GDELT_CONFLICT]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 3 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.count).toBe(3);
+    expect(body.meta.layer_id).toBe(LAYER_ID);
+  });
+
+  // 2. Items endpoint source_id=gdelt_event_export filter
+  it('45. Items filters by source_id=gdelt_event_export', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_MARKER, MOCK_GDELT_LIST_ONLY]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 2 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const sql = callArgs[0] as string;
+    expect(sql).toContain('source_id');
+    const params = callArgs[1] as unknown[];
+    expect(params).toContain(GDELT_SOURCE_ID);
+  });
+
+  // 3. Items endpoint marker_ready=false returns list-only GDELT rows
+  it('46. Items with marker_ready=false returns list-only GDELT rows', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_LIST_ONLY]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}&marker_ready=false`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].source_id).toBe(GDELT_SOURCE_ID);
+    expect(body.data[0].location.marker_ready).toBe(false);
+    expect(body.data[0].location.latitude).toBeNull();
+    expect(body.data[0].location.longitude).toBeNull();
+    expect(body.data[0].location.has_coordinates).toBe(false);
+  });
+
+  // 4. Items endpoint returns GDELT diplomacy/cooperation/conflict categories
+  it('47. Items endpoint returns GDELT with correct category values', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_MARKER]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const item = body.data[0];
+    expect(item.category).toBe('diplomacy');
+    expect(item.subcategory).toBe('Make Statement');
+    expect(item.severity).toBe('medium');
+    expect(item.location.confidence).toBe('high');
+  });
+
+  // 5. Items endpoint does not expose raw CSV rows
+  it('48. Items endpoint does not expose raw CSV fields', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_MARKER, MOCK_GDELT_LIST_ONLY, MOCK_GDELT_CONFLICT]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 3 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    const bodyStr = JSON.stringify(response.body);
+    expect(bodyStr).not.toContain('global_event_id');
+    expect(bodyStr).not.toContain('ActionGeo_Lat');
+    expect(bodyStr).not.toContain('ActionGeo_Long');
+    expect(bodyStr).not.toContain('CAMEO');
+    expect(bodyStr).not.toContain('QuadClass');
+    expect(bodyStr).not.toContain('Actor1Name');
+    expect(bodyStr).not.toContain('Actor2Name');
+    expect(bodyStr).not.toContain('provider_metadata');
+  });
+
+  // 6. Items endpoint supports GDELT severity values
+  it('49. Items endpoint honors severity filter for GDELT', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_CONFLICT]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}&severity=high`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const sql = callArgs[0] as string;
+    expect(sql).toContain('severity');
+  });
+
+  // 7. Markers endpoint includes marker-ready GDELT rows
+  it('50. Markers endpoint returns marker-ready GDELT rows', async () => {
+    vi.mocked(query).mockResolvedValueOnce([{
+      item_id: 'gdelt_marker_001',
+      title: 'Diplomatic Meeting Between US and China',
+      source_id: GDELT_SOURCE_ID,
+      source_url: 'https://example.com/article1',
+      latitude: 38.9072,
+      longitude: -77.0369,
+      country_code: 'US',
+      country_name: 'United States',
+      category: 'diplomacy',
+      subcategory: 'Make Statement',
+      severity: 'medium',
+      published_at: new Date('2026-06-13T10:00:00Z'),
+      source_updated_at: new Date('2026-06-13T10:30:00Z'),
+      marker_ready: true,
+      attribution: 'GDELT - Global Database of Events, Language, and Tone',
+    }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/markers?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].marker_ready).toBe(true);
+    expect(body.data[0].latitude).toBe(38.9072);
+    expect(body.data[0].longitude).toBe(-77.0369);
+    expect(body.data[0].source_id).toBe(GDELT_SOURCE_ID);
+  });
+
+  // 8. Markers endpoint excludes list-only rows
+  it('51. Markers endpoint excludes GDELT list-only rows', async () => {
+    vi.mocked(query).mockResolvedValueOnce([]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/markers?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const sql = callArgs[0] as string;
+    expect(sql).toContain('marker_ready = TRUE');
+    expect(sql).toContain('geom IS NOT NULL');
+  });
+
+  // 9. Markers SQL enforces marker_ready AND geom for GDELT
+  it('52. Markers SQL enforces marker_ready + geom constraints for GDELT', async () => {
+    vi.mocked(query).mockResolvedValueOnce([]);
+
+    await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/markers?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    const callArgs = vi.mocked(query).mock.calls[0];
+    const sql = callArgs[0] as string;
+    expect(sql).toContain('source_id');
+    expect(sql).toContain('marker_ready = TRUE');
+    expect(sql).toContain('geom IS NOT NULL');
+  });
+
+  // 10. Sources endpoint includes gdelt_event_export
+  it('53. Sources endpoint includes gdelt_event_export', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_SOURCE]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/sources`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const sourceIds = body.data.map((s: { source_id: string }) => s.source_id);
+    expect(sourceIds).toContain(GDELT_SOURCE_ID);
+
+    const gdeltSource = body.data.find((s: { source_id: string }) => s.source_id === GDELT_SOURCE_ID);
+    expect(gdeltSource.source_family).toBe(GDELT_SOURCE_FAMILY);
+    expect(gdeltSource.display_name).toBe('GDELT Event Export');
+    expect(gdeltSource.auth_type).toBe('none');
+    expect(gdeltSource.attribution).toContain('GDELT');
+    expect(gdeltSource.license).toContain('Public dataset terms');
+    expect(gdeltSource.enabled).toBe(true);
+  });
+
+  // 11. Sources endpoint does not expose auth_env_var for GDELT
+  it('54. Sources endpoint does not expose auth_env_var for gdelt_event_export', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_SOURCE]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/sources`,
+    });
+
+    const bodyStr = JSON.stringify(response.body);
+    expect(bodyStr).not.toContain('auth_env_var');
+    expect(bodyStr).not.toContain('password');
+    expect(bodyStr).not.toContain('secret');
+    expect(bodyStr).not.toContain('api_key');
+  });
+
+  // 12. Fetch-runs endpoint supports GDELT source
+  it('55. Fetch-runs endpoint returns GDELT fetch runs', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_FETCH_RUN]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/fetch-runs?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data[0].source_id).toBe(GDELT_SOURCE_ID);
+    expect(body.data[0].source_family).toBe(GDELT_SOURCE_FAMILY);
+    expect(body.data[0].fetch_run_id).toBe('run_gdelt_20260613T100000Z');
+    expect(body.data[0].fetched_item_count).toBe(504);
+    expect(body.data[0].normalized_item_count).toBe(504);
+    expect(body.data[0].marker_ready_count).toBe(350);
+    expect(body.data[0].status).toBe('success');
+  });
+
+  // 13. Fetch-runs does not expose raw_output_uri for GDELT
+  it('56. Fetch-runs does not expose raw_output_uri for GDELT', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_FETCH_RUN]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/fetch-runs?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    const bodyStr = JSON.stringify(response.body);
+    expect(bodyStr).not.toContain('raw_output_uri');
+    expect(bodyStr).not.toContain('normalized_output_uri');
+  });
+
+  // 14. Stats endpoint includes GDELT counts
+  it('57. Stats endpoint includes GDELT source counts', async () => {
+    vi.mocked(query).mockResolvedValueOnce([{ count: 504 }]);  // total_items
+    vi.mocked(query).mockResolvedValueOnce([{ count: 350 }]);  // marker_ready_items
+    vi.mocked(query).mockResolvedValueOnce([{ count: 350 }]);  // items_with_geom
+    vi.mocked(query).mockResolvedValueOnce([{ source_id: GDELT_SOURCE_ID, count: 504 }, { source_id: 'gdacs', count: 171 }]);  // by_source
+    vi.mocked(query).mockResolvedValueOnce([{ category: 'diplomacy', count: 200 }, { category: 'cooperation', count: 150 }, { category: 'conflict', count: 154 }]);  // by_category
+    vi.mocked(query).mockResolvedValueOnce([{ subcategory: 'Make Statement', count: 100 }, { subcategory: 'Use Conventional Military Force', count: 80 }]);  // by_subcategory
+    vi.mocked(query).mockResolvedValueOnce([{ severity: 'low', count: 150 }, { severity: 'medium', count: 200 }, { severity: 'high', count: 100 }, { severity: 'unknown', count: 54 }]);  // by_severity
+    vi.mocked(query).mockResolvedValueOnce([{ geometry_type: 'Point', count: 350 }, { geometry_type: 'none', count: 154 }]);  // by_geometry_type
+    vi.mocked(query).mockResolvedValueOnce([{ fetch_run_id: 'run_gdelt_20260613T100000Z' }]);  // latest_fetch_run
+    vi.mocked(query).mockResolvedValueOnce([{ count: 0 }]);  // fake_coordinate_risk_count
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/stats`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.layer_id).toBe(LAYER_ID);
+    expect(body.total_items).toBe(504);
+    expect(body.marker_ready_items).toBe(350);
+    expect(body.items_with_geom).toBe(350);
+
+    const gdeltSource = body.by_source.find((s: { source_id: string }) => s.source_id === GDELT_SOURCE_ID);
+    expect(gdeltSource).toBeDefined();
+    expect(gdeltSource.count).toBe(504);
+
+    const diplomacyCat = body.by_category.find((c: { category: string }) => c.category === 'diplomacy');
+    expect(diplomacyCat).toBeDefined();
+    expect(diplomacyCat.count).toBe(200);
+
+    expect(body.fake_coordinate_risk_count).toBe(0);
+  });
+
+  // 15. Stats endpoint fake_coordinate_risk_count = 0 for clean GDELT data
+  it('58. Stats fake_coordinate_risk_count is 0 for GDELT data', async () => {
+    vi.mocked(query).mockResolvedValueOnce([{ count: 504 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ count: 350 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ count: 350 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ source_id: GDELT_SOURCE_ID, count: 504 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ category: 'diplomacy', count: 200 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ subcategory: 'Make Statement', count: 100 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ severity: 'medium', count: 504 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ geometry_type: 'Point', count: 350 }]);
+    vi.mocked(query).mockResolvedValueOnce([{ fetch_run_id: 'run_gdelt_test' }]);
+    vi.mocked(query).mockResolvedValueOnce([{ count: 0 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/stats`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.fake_coordinate_risk_count).toBe(0);
+  });
+
+  // 16. No raw source JSON or provider_metadata exposed for GDELT
+  it('59. No provider_metadata or raw evidence exposed for GDELT', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_MARKER]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}`,
+    });
+
+    const bodyStr = JSON.stringify(response.body);
+    expect(bodyStr).not.toContain('provider_metadata');
+    expect(bodyStr).not.toContain('raw_evidence');
+  });
+
+  // 17. No fake coordinates for GDELT list-only items
+  it('60. GDELT list-only items have null coordinates (no fake coords)', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_GDELT_LIST_ONLY]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items?source_id=${GDELT_SOURCE_ID}&marker_ready=false`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const item = body.data[0];
+    expect(item.location.latitude).toBeNull();
+    expect(item.location.longitude).toBeNull();
+    expect(item.location.has_coordinates).toBe(false);
+    expect(item.location.marker_ready).toBe(false);
   });
 });

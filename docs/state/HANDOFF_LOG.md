@@ -1,3 +1,44 @@
+### 2026-06-13T19:30:00Z — WO-NEWS-A2 GDELT Event Export API Verification
+
+- Work order: WO-NEWS-A2
+- Branch: agent/layer-08-news-gdelt-api
+- Base branch: origin/agent/layer-08-news-gdelt-ingestion
+- Start time UTC: 2026-06-13T19:00:00Z
+- End time UTC: 2026-06-13T19:30:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — Kiro owns pushes)
+- Goal: Verify and extend Layer 08 API so GDELT Event Export records are correctly exposed through API contracts and endpoints.
+- Key finding: Existing endpoints were already source-flexible via `source_id` query parameter. No new routes or contract changes were needed. The source-agnostic design from WO-NEWS-A1 naturally supports GDELT.
+- Files modified:
+  - apps/api/tests/layer_08_news_osint.test.ts (added 17 GDELT-specific tests, 60 total)
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (added WO-NEWS-A2 section)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Files inspected but not changed:
+  - apps/api/src/routes/news.ts (verified — already source-flexible)
+  - packages/contracts/src/index.ts (verified — schemas support all GDELT fields)
+  - apps/api/src/index.ts (verified — newsRoutes registered)
+  - database/migrations/layers/layer_08_news_osint/001_news_tables.sql (verified — GDELT source seeded)
+  - database/ingestion/layers/layer_08_news_osint/gdelt_db_ingestion.py (verified — fields match API)
+- Commands run:
+  - pnpm --filter @god-eyes/contracts build (PASS)
+  - pnpm --filter api build (PASS)
+  - pnpm --filter api test (503/503 PASS, 17 files, 60 Layer 08 tests)
+  - Live API: GET /news/items?source_id=gdelt_event_export (200, 504 rows)
+  - Live API: GET /news/markers?source_id=gdelt_event_export (200, marker-ready rows)
+  - Live API: GET /news/sources (200, includes gdelt_event_export)
+  - Live API: GET /news/fetch-runs?source_id=gdelt_event_export (200, 2 runs)
+  - Live API: GET /news/stats (200, 504 GDELT items, 0 fake coordinate risk)
+- Test coverage: items endpoint GDELT records, source_id filter, marker_ready=false list-only, category/severity values, no raw CSV exposed, markers exclude list-only, markers include marker-ready, sources include gdelt_event_export safely, fetch-runs support GDELT, stats include GDELT counts, fake_coordinate_risk=0, no provider_metadata/raw_evidence exposed
+- Safety:
+  - No raw CSV rows exposed (no global_event_id, ActionGeo_Lat, CAMEO codes)
+  - No auth/env secrets exposed
+  - No fake coordinate behavior
+  - No provider_metadata or raw_evidence_uri in responses
+  - Frontend: NOT touched | Scheduler: NOT touched | Fetcher/normalizer/ingestion: NOT touched
+- Next recommended work order: GDELT frontend implementation or Kiro integration review
+
+---
+
 ### 2026-06-13T10:20:00Z — WO-NEWS-G1.5 GDELT Event Export Row Parse Proof
 
 - Work order: WO-NEWS-G1.5

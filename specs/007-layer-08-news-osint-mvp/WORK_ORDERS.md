@@ -468,9 +468,12 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U
 
 ---
 
-## WO-NEWS-G2 — GDELT Event Export Fetcher (Recommended Next)
+## WO-NEWS-G2 — GDELT Event Export Fetcher
 
-**Status**: PENDING
+**Status**: ✅ COMPLETE (fetcher, normalizer, ingestion all complete)
+**Note**: API work completed in WO-NEWS-A2 below.
+
+---
 
 **Objective**: Implement fetcher to download and parse GDELT Event Export CSV files for marker-capable event records.
 
@@ -518,3 +521,47 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U
 - Rows without coordinates → marker_ready=false (list only)
 
 **Estimated Effort**: 2-3 days
+
+---
+
+## WO-NEWS-A2 — GDELT API Contract and Endpoint Verification
+
+**Status**: ✅ COMPLETE
+
+**Branch**: `agent/layer-08-news-gdelt-api`
+**Base branch**: `origin/agent/layer-08-news-gdelt-ingestion`
+
+**Goal**: Verify and extend Layer 08 API so GDELT Event Export records are correctly exposed.
+
+**Finding**: Existing API endpoints were already source-flexible via `source_id` query parameter. No new routes or contract changes were needed — the source-agnostic design from WO-NEWS-A1 naturally supports GDELT.
+
+**Deliverables completed**:
+- Verified existing endpoints work for GDELT without code changes
+- Added 17 GDELT-specific API tests (60 total Layer 08 tests, +17)
+- Tests cover: items with source_id filter, marker_ready filter, list-only rows, markers exclusion, sources inclusion, fetch-runs, stats, no CSV/raw exposure, no fake coordinates, no secrets
+- Live API proof executed against dev database (504 GDELT rows)
+- Updated WORK_ORDERS.md and HANDOFF_LOG.md
+
+**Live proof results**:
+| Check | Result |
+|---|---|
+| Items `?source_id=gdelt_event_export` | 200, 504 rows |
+| Markers `?source_id=gdelt_event_export` | 200, marker-ready only (350 rows) |
+| Sources | 200, includes `gdelt_event_export` |
+| Fetch-runs `?source_id=gdelt_event_export` | 200, 2 runs |
+| Stats | 200, 504 GDELT items, 0 fake coordinate risk |
+
+**Test results**: 503/503 passing (17 files), 60 Layer 08 tests
+
+**Safety verified**:
+- No raw CSV rows exposed (no global_event_id, ActionGeo_Lat, CAMEO codes)
+- No auth/env secrets exposed
+- No fake coordinate behavior
+- No provider_metadata or raw_evidence_uri in responses
+
+**What was not implemented**:
+- No frontend changes (out of scope)
+- No fetcher/normalizer/ingestion changes
+- No scheduler/cron
+- No Category B news/RSS/live work
+- No new routes — existing source-flexible design reused
