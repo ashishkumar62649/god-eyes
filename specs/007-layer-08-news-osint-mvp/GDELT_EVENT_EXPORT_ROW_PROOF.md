@@ -72,20 +72,36 @@ python gdelt_event_export_row_probe.py
 
 ---
 
-## Column Mapping (Verified)
+## Column Mapping (Verified - CORRECTED)
 
-The GDELT 2.0 export has 61 columns with this verified mapping:
+The GDELT 2.0 export has 61 columns. **IMPORTANT: Mapping was corrected after initial proof.**
 
-| Index | Field Name |
-|-------|------------|
-| 0 | GLOBALEVENTID |
-| 1 | SQLDATE |
-| 25 | EventCode |
-| 29 | QuadClass |
-| 40 | ActionGeo_Lat |
-| 41 | ActionGeo_Long |
-| 45 | ActionGeo_CountryCode |
-| 60 | SourceURL |
+The file has three geo blocks:
+- Indices 34-38: Actor1Geo
+- Indices 39-43: Actor2Geo
+- Indices 44-48: ActionGeo
+
+| Index | Field Name | Notes |
+|-------|------------|-------|
+| 0 | GLOBALEVENTID | |
+| 1 | SQLDATE | |
+| 25 | IsRootEvent | 0 or 1 flag |
+| 26 | EventCode | **Full CAMEO code (e.g., "020", "043")** - Was WRONG at index 25 |
+| 27 | EventBaseCode | |
+| 28 | EventRootCode | |
+| 29 | QuadClass | 1-4 |
+| 30 | GoldsteinScale | |
+| 31 | NumMentions | |
+| 32 | NumSources | |
+| 33 | NumArticles | |
+| 34 | AvgTone | |
+| 44-48 | ActionGeo | **ActionGeo_Lat at 48, ActionGeo_Long at 49** - Was WRONG at 40-41 |
+| 45 | ActionGeo_CountryCode | |
+| 47 | ActionGeo_FullName | |
+| 48 | ActionGeo_Lat | **Correct index** |
+| 49 | ActionGeo_Long | **Correct index** |
+| 59 | DATEADDED | |
+| 60 | SourceURL | |
 
 ---
 

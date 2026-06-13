@@ -22,13 +22,20 @@ from pathlib import Path
 from typing import Any, Optional
 
 # Column indices (0-based) - verified from actual file
+# IMPORTANT: After extensive analysis, ActionGeo is at 48-49, NOT 40-41!
+# The file has these geo blocks:
+#   34-38: Actor1Geo
+#   39-43: Actor2Geo  
+#   44-48: ActionGeo
+
 IDX_GLOBALEVENTID = 0
 IDX_SQLDATE = 1
-IDX_EVENTCODE = 25
+IDX_EVENTCODE = 26       # CAMEO event code (e.g., "020") - NOT index 25 which is just 0/1 flag
 IDX_QUADCLASS = 29
 IDX_GOLDSTEIN = 30
-IDX_ACTIONGEO_LAT = 40
-IDX_ACTIONGEO_LONG = 41
+# CORRECTED: ActionGeo is at 48-49, not 40-41!
+IDX_ACTIONGEO_LAT = 48   # Correct index for ActionGeo_Lat
+IDX_ACTIONGEO_LONG = 49  # Correct index for ActionGeo_Long
 IDX_ACTIONGEO_COUNTRY = 45
 IDX_DATEADDED = 59
 IDX_SOURCEURL = 60
@@ -45,8 +52,8 @@ IDX_NUMSOURCES = 32
 IDX_NUMARTICLES = 33
 IDX_AVGTONE = 34
 
-# Geo type
-IDX_ACTIONGEO_TYPE = 48
+# Geo type - corrected
+IDX_ACTIONGEO_TYPE = 44
 IDX_ACTIONGEO_FULLNAME = 47
 
 USER_AGENT = "GOD-EYES-news-probe/0.1"
