@@ -371,3 +371,39 @@ ON CONFLICT (source_id) DO UPDATE SET
   license = EXCLUDED.license,
   enabled = EXCLUDED.enabled,
   updated_at = NOW();
+
+INSERT INTO news_sources (
+  source_id,
+  layer_id,
+  source_family,
+  display_name,
+  endpoint_url,
+  auth_type,
+  attribution,
+  license,
+  enabled,
+  provider_metadata
+)
+VALUES (
+  'gdelt_event_export',
+  'layer_08_news_osint',
+  'global_event',
+  'GDELT Event Export',
+  'http://data.gdeltproject.org/gdeltv2/lastupdate.txt',
+  'none',
+  'GDELT - Global Database of Events, Language, and Tone (https://www.gdeltproject.org/)',
+  'Public dataset terms; source attribution required',
+  TRUE,
+  '{"source_type":"event_export","data_category":"structured_global_event_data","status":"active"}'::JSONB
+)
+ON CONFLICT (source_id) DO UPDATE SET
+  layer_id = EXCLUDED.layer_id,
+  source_family = EXCLUDED.source_family,
+  display_name = EXCLUDED.display_name,
+  endpoint_url = EXCLUDED.endpoint_url,
+  auth_type = EXCLUDED.auth_type,
+  attribution = EXCLUDED.attribution,
+  license = EXCLUDED.license,
+  enabled = EXCLUDED.enabled,
+  provider_metadata = EXCLUDED.provider_metadata,
+  updated_at = NOW();

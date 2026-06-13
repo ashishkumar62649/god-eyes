@@ -95,3 +95,27 @@ Static migration tests verify table, column, constraint, seed, index, scope,
 and safety contracts. Optional local PostGIS integration tests apply the
 migration twice and exercise marker, non-marker, rejection, dedupe, fetch-run,
 history, raw-reference, and future-source inserts.
+
+## GDELT Event Export Ingestion
+
+The existing source-flexible tables support GDELT Event Export records without
+destructive schema changes. The migration now also seeds the active
+`gdelt_event_export` source with `source_family=global_event`, no authentication,
+source attribution, public dataset terms, and structured event-export metadata.
+The existing GDACS seed remains unchanged.
+
+`database/ingestion/layers/layer_08_news_osint/gdelt_db_ingestion.py` adapts the
+flat GDELT normalizer output to the shared News tables:
+
+- `source_event_id` is stored as `source_object_id`.
+- `gdelt_event_export:<global_event_id>` remains the unique dedupe identity.
+- Compact GDELT timestamps are parsed into UTC `source_updated_at` values.
+- Valid coordinates are stored as provided; no coordinates are synthesized.
+- The existing trigger creates Point geometry only when `marker_ready=true`.
+- List-only rows retain null geometry.
+- Raw references store the export object URI and compact identity metadata, not CSV rows.
+- Fetch run, latest, history, raw-reference, and run-completion writes commit once per batch.
+- `first_seen_at` is preserved, while `last_seen_at` advances on every successful repeat.
+
+The ingestion rejects source identity drift, malformed timestamps, invalid coordinate
+pairs, invalid marker-ready records, and duplicate dedupe keys within one batch.

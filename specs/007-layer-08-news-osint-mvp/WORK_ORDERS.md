@@ -495,6 +495,24 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U
 - SourceURL (attribution)
 - DATEADDED
 
+**Database ingestion completion**:
+
+- Work order: WO-NEWS-G4
+- Status: COMPLETE - pending integration review
+- Branch: `agent/layer-08-news-gdelt-ingestion`
+- Base branch: `origin/agent/layer-08-news-gdelt-normalizer`
+- Existing News tables reused without destructive schema changes.
+- Active `gdelt_event_export` / `global_event` source seed added without changing GDACS.
+- Atomic fetch-run, latest, change-only history, and raw-reference ingestion added.
+- Dedupe identity: `gdelt_event_export:<global_event_id>`.
+- Repeat ingestion preserves `first_seen_at`, advances `last_seen_at`, and does not
+  duplicate latest or unchanged history rows.
+- Marker-ready rows use the existing Point trigger; list-only geometry remains null.
+- Current export proof: 504 fetched/normalized/stored, 350 marker-ready, 154 list-only.
+- Identical second run: 0 latest inserts, 0 history inserts, 504 additional raw refs.
+- Final latest/distinct dedupe: 504 / 504; geometry safety violations: 0.
+- Next work order: GDELT API contract and endpoint review/implementation.
+
 **MVP filtering**:
 - Only rows with ActionGeo_Lat/Long populated → marker_ready=true
 - Rows without coordinates → marker_ready=false (list only)

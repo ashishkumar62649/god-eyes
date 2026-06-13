@@ -410,7 +410,51 @@ hash of the geometry coordinates. This ensures all 171 features are stored as
 separate items (GDACS returns multiple features per event with different
 geometry types and coordinate sets for the same tropical cyclone forecast track).
 
-### Test Coverage
+## GDELT Event Export Database Ingestion Proof (2026-06-13)
+
+The current GDELT export at proof time was
+`20260613133000.export.CSV.zip`. It contained 504 parsed rows, all of which
+normalized and stored successfully in the local development PostGIS database.
+
+| Metric | First run | Identical second run |
+|---|---:|---:|
+| Fetched rows | 504 | 504 |
+| Normalized rows | 504 | 504 |
+| Latest inserts | 504 | 0 |
+| Changed latest rows | 0 | 0 |
+| Unchanged latest rows | 0 | 504 |
+| History rows inserted | 504 | 0 |
+| Raw references inserted | 504 | 504 |
+| Marker-ready rows | 350 | 350 |
+| List-only rows | 154 | 154 |
+
+Fetch run IDs were `gdelt-proof-20260613133000-first` and
+`gdelt-proof-20260613133000-second`.
+
+SQL evidence after both runs:
+
+- Latest rows and distinct dedupe keys: 504 / 504
+- Marker-ready, list-only, and geometry rows: 350 / 154 / 350
+- List-only rows with geometry: 0
+- Marker-ready rows without geometry: 0
+- Missing-coordinate rows with stored latitude/longitude: 0
+- Fetch runs, history rows, and raw references: 2 / 504 / 1008
+- Active GDELT source seed rows: 1
+- Cross-source GDELT/GDACS dedupe-prefix conflicts: 0
+
+All latest rows retained their first-run `first_seen_at` value and advanced to
+the second-run `last_seen_at` value. Proof files remain under ignored `tmp/`
+paths; no raw ZIP, CSV, normalized output, or database dump is tracked by Git.
+
+### GDELT ingestion test coverage
+
+- Layer 08 suite with local PostGIS checks enabled: 209 passed
+- GDACS ingestion regression suite: 50 passed
+- Tests cover source seed, marker/list-only storage, geometry safety, timestamp
+  preservation, repeat dedupe, new/changed history, raw references, rollback,
+  duplicate batch identity, and GDACS source coexistence.
+
+### Prior GDACS Test Coverage
 
 - 140 Layer 08 tests passing (5 skipped DB integration tests)
 - 237 Layer 07 functional tests passing (4 scope guard tests detect Layer 08 changes — expected for cross-layer work)

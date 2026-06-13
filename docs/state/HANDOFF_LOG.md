@@ -6304,3 +6304,65 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Known issues: None.
 - Review status: Ready for WO-NEWS-D1 integration review.
 - Recommended next work order: WO-NEWS-I database ingestion after schema review passes.
+### 2026-06-13T13:37:00Z - Layer 08 GDELT Database Ingestion
+
+- Work order: Layer 08 News & OSINT - GDELT Database/Ingestion
+- Agent: Layer 08 GDELT Database/Ingestion Agent
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: `E:\god-eyes-database`
+- Branch: `agent/layer-08-news-gdelt-ingestion`
+- Base branch: `origin/agent/layer-08-news-gdelt-normalizer`
+- Base commit: `9a67034`
+- Start time UTC: 2026-06-13T13:27:31Z
+- End time UTC: 2026-06-13T13:37:00Z
+- Commit hash: pending until local commit creation
+- Push status: local only / not pushed
+- Goal: Ingest normalized GDELT Event Export records into the existing Layer 08 News tables without API, frontend, scheduler, or Category B feed changes.
+- Files created:
+  - `database/ingestion/layers/layer_08_news_osint/gdelt_db_ingestion.py`
+  - `tests/data/layer_08_news_osint/test_gdelt_db_ingestion.py`
+- Files modified:
+  - `database/migrations/layers/layer_08_news_osint/001_news_tables.sql`
+  - `tests/data/layer_08_news_osint/test_news_database_schema.py`
+  - `specs/007-layer-08-news-osint-mvp/DATABASE_PLANNING.md`
+  - `specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md`
+  - `specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md`
+  - `docs/state/HANDOFF_LOG.md`
+- Schema result: Existing tables support GDELT; no destructive schema change was required. Added only an idempotent active source seed for `gdelt_event_export` / `global_event`.
+- Ingestion result: Added one-transaction fetch-run creation, latest upserts, change-only history, raw references, and successful run completion.
+- Identity: `gdelt_event_export:<global_event_id>`; duplicate dedupe keys within one batch are rejected.
+- Timestamp behavior: Compact GDELT timestamps are parsed to UTC. `first_seen_at` is preserved and `last_seen_at` advances on repeat ingestion.
+- Geometry behavior: Existing trigger creates Point geometry for marker-ready valid coordinates. List-only rows retain null geometry. No coordinates are generated.
+- Raw evidence behavior: Stores object references and compact identity metadata only; raw CSV rows are not stored in normalized database payloads.
+- Live export: `20260613133000.export.CSV.zip`
+- Live proof first run: fetch run `gdelt-proof-20260613133000-first`; 504 fetched, 504 normalized, 504 latest inserts, 504 history rows, 504 raw references, 350 marker-ready, 154 list-only.
+- Live proof second run: fetch run `gdelt-proof-20260613133000-second`; 0 latest inserts, 0 changed latest, 504 unchanged latest, 0 history inserts, 504 additional raw references.
+- Live SQL proof: 504 latest rows, 504 distinct dedupe keys, 350 geometry rows, 0 list-only geometry rows, 0 marker rows missing geometry, 0 fake-coordinate risk rows, 2 fetch runs, 504 history rows, 1008 raw references, 0 cross-source dedupe-prefix conflicts.
+- Commands run:
+  - `python -m py_compile database/ingestion/layers/layer_08_news_osint/gdelt_db_ingestion.py`
+  - `python -m pytest tests/data/layer_08_news_osint/test_gdelt_db_ingestion.py tests/data/layer_08_news_osint/test_news_database_schema.py -q` -> 23 passed, 6 skipped
+  - `GOD_EYES_RUN_DB_TESTS=1 python -m pytest tests/data/layer_08_news_osint/test_gdelt_db_ingestion.py tests/data/layer_08_news_osint/test_news_database_schema.py -q` -> 29 passed
+  - `python -m pytest tests/data/layer_08_news_osint/test_gdacs_db_ingestion.py -q` -> 50 passed
+  - `GOD_EYES_RUN_DB_TESTS=1 python -m pytest tests/data/layer_08_news_osint -q` -> 209 passed
+  - `python -m pytest tests/data/layer_08_news_osint -q` -> 203 passed, 6 skipped
+  - Applied `database/migrations/layers/layer_08_news_osint/001_news_tables.sql` to local `god_eyes_dev`.
+  - Fetched and parsed the current GDELT Event Export, normalized 504 rows, and ingested the same batch twice.
+  - Ran SQL counts for latest, marker-ready, list-only, geometry, fake-coordinate risk, dedupe, fetch runs, history, raw references, timestamps, source seed, and cross-source prefix conflicts.
+  - `git diff --check` -> passed
+  - `git status --short raw/ tmp/` -> no tracked or untracked output
+  - `git ls-files raw/ tmp/` -> no tracked output
+- Bugs found and fixed:
+  - The GDELT normalizer contract is flat rather than the nested GDACS shape; added a source-specific database adapter.
+  - GDELT `date_added` values are compact timestamps rather than ISO strings; added explicit UTC parsing before database writes.
+- Known limitation: The existing fetcher writes its initial local download under the `gdelt` path alias. The live proof copied the ignored artifact into a `gdelt_event_export` source path before ingestion so stored raw references follow the source-id path rule. Fetcher path naming was not changed because this work order is database/ingestion only.
+- API routes touched: NO
+- Frontend touched: NO
+- Scheduler touched: NO
+- Category B feeds touched: NO
+- GDACS ingestion changed: NO
+- Raw files committed: NO
+- Secrets added: NO
+- Forbidden folders touched: NO
+- Review status: Ready for integration review.
+- Recommended next work order: Review/implement GDELT API contracts and endpoints; separately align the fetcher's ignored local path alias with `gdelt_event_export`.

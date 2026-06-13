@@ -85,6 +85,19 @@ def test_gdacs_source_seed_is_idempotent_and_attributed():
     assert "on conflict (source_id) do update set" in sql
 
 
+def test_gdelt_event_export_source_seed_is_idempotent_and_active():
+    sql = compact_sql()
+
+    assert "'gdelt_event_export'" in sql
+    assert "'global_event'" in sql
+    assert "'gdelt event export'" in sql
+    assert "'http://data.gdeltproject.org/gdeltv2/lastupdate.txt'" in sql
+    assert "'public dataset terms; source attribution required'" in sql
+    assert '"source_type":"event_export"' in sql
+    assert '"data_category":"structured_global_event_data"' in sql
+    assert '"status":"active"' in sql
+
+
 def test_latest_table_matches_normalized_item_contract():
     required_columns = {
         "item_id",
