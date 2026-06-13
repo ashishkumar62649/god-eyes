@@ -15,6 +15,9 @@ import type { SpaceSatellitesStatus } from '../layers/space/satellites/satellite
 import type { SatelliteFilters } from '../layers/space/satellites/satelliteFilters';
 import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
+import type { NewsRenderMarker, NewsFilterState, NewsStatsResponse } from '../layers/layer_08_news_osint/newsTypes';
+import type { NewsItem } from '@god-eyes/contracts';
 
 interface AviationStats {
   loaded: number;
@@ -63,6 +66,31 @@ interface ShellProps {
   onMaritimeFiltersChange: (filters: { search: string; vesselType: string | null }) => void;
   onMaritimeRefresh: () => void;
   vesselDetail: MaritimeVesselDetail | null;
+  weatherLayerActive: boolean;
+  setWeatherLayerActive: (active: boolean) => void;
+  weatherLoading: boolean;
+  weatherError: string | null;
+  weatherEmpty: boolean;
+  weatherCount: number;
+  weatherAttribution: string;
+  onWeatherRefresh: () => void;
+  selectedWeather: WeatherRenderItem | null;
+  onWeatherClose: () => void;
+  newsLayerActive: boolean;
+  setNewsLayerActive: (active: boolean) => void;
+  newsLoading: boolean;
+  newsError: string | null;
+  newsEmpty: boolean;
+  newsMarkerCount: number;
+  newsTotal: number;
+  newsStats: NewsStatsResponse | null;
+  newsFilters: NewsFilterState;
+  newsItems: NewsItem[];
+  onNewsFiltersChange: (f: NewsFilterState) => void;
+  onNewsRefresh: () => void;
+  selectedNews: NewsRenderMarker | null;
+  onNewsSelect: (item: NewsRenderMarker | null) => void;
+  onNewsClose: () => void;
 }
 
 const Shell: React.FC<ShellProps> = ({
@@ -78,6 +106,10 @@ const Shell: React.FC<ShellProps> = ({
   energyInfrastructureLayerActive, setEnergyInfrastructureLayerActive, energyInfrastructureFilters, onEnergyFiltersChange,
   selectedEnergyFeature, onEnergyFeatureClose,
   maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh, vesselDetail,
+  weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
+  selectedWeather, onWeatherClose,
+  newsLayerActive, setNewsLayerActive, newsLoading, newsError, newsEmpty, newsMarkerCount, newsTotal,
+  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh, selectedNews, onNewsSelect, onNewsClose,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -119,6 +151,27 @@ const Shell: React.FC<ShellProps> = ({
           maritimeFilters={maritimeFilters}
           onMaritimeFiltersChange={onMaritimeFiltersChange}
           onMaritimeRefresh={onMaritimeRefresh}
+          weatherLayerActive={weatherLayerActive}
+          setWeatherLayerActive={setWeatherLayerActive}
+          weatherLoading={weatherLoading}
+          weatherError={weatherError}
+          weatherEmpty={weatherEmpty}
+          weatherCount={weatherCount}
+          weatherAttribution={weatherAttribution}
+          onWeatherRefresh={onWeatherRefresh}
+          newsLayerActive={newsLayerActive}
+          setNewsLayerActive={setNewsLayerActive}
+          newsLoading={newsLoading}
+          newsError={newsError}
+          newsEmpty={newsEmpty}
+          newsMarkerCount={newsMarkerCount}
+          newsTotal={newsTotal}
+          newsStats={newsStats}
+          newsFilters={newsFilters}
+          newsItems={newsItems}
+          onNewsFiltersChange={onNewsFiltersChange}
+          onNewsRefresh={onNewsRefresh}
+          onNewsSelect={onNewsSelect}
         />
         <DetailPanel
           selectedObject={selectedObject}
@@ -131,6 +184,10 @@ const Shell: React.FC<ShellProps> = ({
           selectedEnergyFeature={selectedEnergyFeature}
           onEnergyFeatureClose={onEnergyFeatureClose}
           vesselDetail={vesselDetail}
+          selectedWeatherItem={selectedWeather}
+          onWeatherClose={onWeatherClose}
+          selectedNewsItem={selectedNews}
+          onNewsClose={onNewsClose}
         />
       </main>
         <StatusPanel
