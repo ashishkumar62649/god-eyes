@@ -325,12 +325,37 @@ def _count_db_tables(conn: Any) -> dict[str, int]:
     return counts
 
 
+def _run_gdelt_proof(args: argparse.Namespace) -> int:
+    from layers.layer_08_news_osint.gdelt_event_export_fetcher import run_fetcher
+
+    print("=== Layer 08 News & OSINT — GDELT Event Export Proof ===")
+    print()
+
+    try:
+        result = run_fetcher(live_proof=True)
+    except Exception as exc:
+        print(f"FAILED: {exc}", file=sys.stderr)
+        return 1
+
+    if not result.get("success"):
+        print(f"FAILED: {result.get('error')}", file=sys.stderr)
+        return 1
+
+    print()
+    print(f"  export URL  : {result['export_url']}")
+    print(f"  timestamp   : {result['export_timestamp']}")
+    print(f"  size        : {result['compressed_size']:,} bytes")
+    print(f"  output dir  : {result['output_dir']}")
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="layer_08_news_osint",
         description="Layer 08 News & OSINT CLI",
     )
-    parser.add_argument("--source", required=True, choices=["gdacs"], help="Source to use")
+    parser.add_argument("--source", required=True, choices=["gdacs", "gdelt"], help="Source to use")
     parser.add_argument("--proof", action="store_true", help="Run proof fetch")
     parser.add_argument("--normalize", action="store_true", help="Also normalize fetched data")
     parser.add_argument("--ingest-db", dest="ingest_db", action="store_true",
@@ -351,6 +376,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.source == "gdacs" and args.proof:
         return _run_gdacs_proof(args)
+    
+    if args.source == "gdelt" and args.proof:
+        return _run_gdelt_proof(args)
 
     parser.print_help()
     return 1
