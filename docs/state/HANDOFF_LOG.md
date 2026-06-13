@@ -6549,7 +6549,8 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   `python -m pytest tests/data -q`.
 - **Results:** Contracts/API/web builds PASS. API tests 503 passed. Web tests 64 passed.
   Python data tests 1152 passed, 7 skipped; 15 single-lane work-order scope guardrail tests
-  flag the intentionally cross-cutting dirty worktree and skip/pass on a clean committed tree.
+  flag the intentionally cross-cutting dirty worktree and skip/pass on a clean committed tree
+  (verified after commit: 1159 passed, 15 skipped, 0 failed).
 - **Known issues:** Per-lane guardrail tests assume single-lane work orders; live-layer
   workers are still run manually (unified runner deferred); some documentation-only audit
   observations remain out of scope for this pass.

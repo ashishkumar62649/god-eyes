@@ -111,7 +111,7 @@ alignment scope and were not changed in this pass (see Known Remaining Issues).
 | `pnpm --filter web test` | PASS — 64 passed / 3 files |
 | `pnpm --filter web build` | PASS (tsc + vite production build) |
 | `python -m pip install -r requirements-data.txt` | OK |
-| `python -m pytest tests/data -q` | 1152 passed, 7 skipped, 15 failed* |
+| `python -m pytest tests/data -q` | Dirty worktree: 1152 passed, 7 skipped, 15 failed*. **After commit (clean tree): 1159 passed, 15 skipped, 0 failed** (verified). |
 
 \* The 15 failures are all single-lane **work-order scope guardrail** tests
 (`test_*_work_order_changes_stay_in_allowed_paths` and
