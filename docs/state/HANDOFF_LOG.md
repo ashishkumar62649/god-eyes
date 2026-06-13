@@ -6439,3 +6439,46 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Forbidden folders touched: NO
 - Review status: Ready for integration review.
 - Recommended next work order: Review/implement GDELT API contracts and endpoints; separately align the fetcher's ignored local path alias with `gdelt_event_export`.
+
+### 2026-06-13T16:47:58Z - PR #39 CI stabilization
+
+- Work order: GitHub Integration Safety / CI Stabilization (PR #39)
+- Agent: GitHub Integration Safety Agent
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Working directory: `E:\god-eyes`
+- Branch: `integration/layer-08-news-osint-complete`
+- Start time UTC: 2026-06-13T16:43:17Z
+- End time UTC: 2026-06-13T16:47:58Z
+- Commit hash: final amended local commit reported in the handoff response
+- Push status: local only / not pushed; repository policy reserves remote pushes for the integration reviewer
+- Files changed:
+  - `pytest.ini`
+  - `tests/conftest.py`
+  - `docs/state/HANDOFF_LOG.md`
+- Fix: Added BOM-free pytest path configuration and established the fetch-orchestrator `layers` namespace before test collection to prevent collision with `packages/schemas/layers`.
+- Commands run:
+  - `git fetch origin --prune`
+  - `gh pr view 39 --json number,title,headRefName,baseRefName,state,mergeable,statusCheckRollup`
+  - `gh pr checks 39`
+  - `gh run list --branch integration/layer-08-news-osint-complete --limit 10`
+  - `gh run view 27472594835 --log-failed`
+  - `python -m pytest tests/data -q`
+  - `python -m pytest tests/data/layer_08_news_osint -q`
+  - `pnpm --filter @god-eyes/contracts build`
+  - `pnpm --filter api test`
+  - `pnpm --filter web test`
+  - `pnpm --filter web build`
+  - `git diff --check`
+- Validation results:
+  - Full data suite: PASS, 1159 passed, 15 skipped.
+  - Full data suite with only the required handoff log dirty: PASS, 1167 passed, 7 skipped.
+  - Layer 08 data suite: PASS, 202 passed, 7 skipped.
+  - Contracts build: PASS.
+  - API tests: PASS, 503 passed.
+  - Web tests: PASS, 64 passed.
+  - Web production build: PASS.
+  - BOM check: PASS, first bytes are 91, 112, 121.
+- Security result: No environment files, tokens, raw data, caches, database dumps, lockfiles, product logic, workflow files, API routes, frontend code, migrations, ingestion code, fetchers, normalizers, contracts, or behavioral tests were modified.
+- Known issues: Remote CI has not rerun because worker agents are not permitted to push.
+- Review status: Ready for integration review and reviewer-owned push.
