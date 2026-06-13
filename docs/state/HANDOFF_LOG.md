@@ -1,3 +1,31 @@
+### 2026-06-13T10:20:00Z — WO-NEWS-G1.5 GDELT Event Export Row Parse Proof
+
+- Work order: WO-NEWS-G1.5
+- Agent: Claude Code CLI
+- Tool/CLI used: Claude Code CLI
+- Branch: agent/layer-08-news-gdelt-row-parse-proof
+- Base branch: origin/agent/layer-08-news-gdelt-source-proof
+- Start time UTC: 2026-06-13T10:00:00Z
+- End time UTC: 2026-06-13T10:20:00Z
+- Commit: 4a292f0
+- Goal: Prove GDELT Event Export row parsing with real data
+- Files created:
+  - services/fetch-orchestrator/src/layers/layer_08_news_osint/gdelt_event_export_row_probe.py
+  - specs/007-layer-08-news-osint-mvp/GDELT_EVENT_EXPORT_ROW_PROOF.md
+- Commands run:
+  - python gdelt_event_export_row_probe.py → executed successfully
+  - python -m pytest tests/data/layer_08_news_osint -q → 140 passed, 5 skipped
+- Findings:
+  - Latest export: http://data.gdeltproject.org/gdeltv2/20260613101500.export.CSV.zip
+  - Parsed 651 rows successfully
+  - 580 rows have valid coordinates (marker-ready: 89%)
+  - 71 rows list-only (no valid lat/lon)
+  - QuadClass distribution: 1=431, 2=52, 3=87, 4=81
+  - Top countries: US=67, UK=43, NI=37, CH=32
+  - Event codes: 1=348, 0=303
+- Verdict: PASS - Row parsing verified with exact metrics
+- Next recommended work order: WO-NEWS-G2 (GDELT Event Export Fetcher)
+
 ### 2026-06-12T17:55:00Z — WO-NEWS-G1 GDELT Source Proof
 
 - Work order: WO-NEWS-G1
