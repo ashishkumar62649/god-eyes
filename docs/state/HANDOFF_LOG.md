@@ -1,3 +1,35 @@
+### 2026-06-13T15:25:00Z — WO-NEWS-U2 GDELT Frontend Implementation
+
+- Work order: WO-NEWS-U2
+- Branch: agent/layer-08-news-gdelt-frontend
+- Base branch: origin/agent/layer-08-news-gdelt-api
+- Start time UTC: 2026-06-13T15:13:00Z
+- End time UTC: 2026-06-13T15:25:00Z
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — Kiro owns pushes)
+- Goal: Extend the Layer 08 News & OSINT frontend so that GDELT Event Export records are visible, selectable, filterable, and understandable in the UI through the local API.
+- Files modified:
+  - apps/web/src/layers/layer_08_news_osint/newsTypes.ts
+  - apps/web/src/layers/layer_08_news_osint/newsApi.ts
+  - apps/web/src/layers/layer_08_news_osint/useNews.ts
+  - apps/web/src/components/LayerPanel.tsx
+  - apps/web/src/components/Shell.tsx
+  - apps/web/src/App.tsx
+  - apps/web/src/components/DetailPanel.tsx
+  - apps/web/src/CesiumGlobe.tsx
+  - apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts
+  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - pnpm --filter web test (PASS - 64/64 tests)
+  - pnpm --filter web build (PASS - built successfully in 912ms)
+- What was not implemented:
+  - No database ingestion changes
+  - No API endpoint changes
+  - No push to remote (local commit only)
+
+---
+
 ### 2026-06-13T19:30:00Z — WO-NEWS-A2 GDELT Event Export API Verification
 
 - Work order: WO-NEWS-A2

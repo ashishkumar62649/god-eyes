@@ -594,9 +594,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             }
           } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._newsData) {
             const newsItem = (pickedObject.id as any)._newsData as NewsRenderMarker;
-            const pos = Cartesian3.fromDegrees(newsItem.longitude, newsItem.latitude, 0);
-            if (isPositionVisible(viewer!, pos)) {
-              onNewsSelectRef.current?.(newsItem);
+            if (typeof newsItem.latitude === 'number' && typeof newsItem.longitude === 'number') {
+              const pos = Cartesian3.fromDegrees(newsItem.longitude, newsItem.latitude, 0);
+              if (isPositionVisible(viewer!, pos)) {
+                onNewsSelectRef.current?.(newsItem);
+              }
             }
           } else {
             onObjectSelectRef.current(null);

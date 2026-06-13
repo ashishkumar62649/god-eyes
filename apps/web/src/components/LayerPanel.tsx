@@ -10,8 +10,8 @@ import { SatelliteFilters, SAFE_RENDER_CAP } from '../layers/space/satellites/sa
 import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
 import { TEMPERATURE_LEGEND } from '../layers/layer_07_weather/weatherMarker';
 import { WEATHER_ATTRIBUTION } from '../layers/layer_07_weather/weatherTypes';
-import type { NewsFilterState, NewsStatsResponse } from '../layers/layer_08_news_osint/newsTypes';
-import { NEWS_SEVERITY_COLORS } from '../layers/layer_08_news_osint/newsTypes';
+import type { NewsFilterState, NewsStatsResponse, NewsRenderMarker } from '../layers/layer_08_news_osint/newsTypes';
+import { NEWS_SEVERITY_COLORS, mapNewsItemToRenderItem } from '../layers/layer_08_news_osint/newsTypes';
 import type { NewsItem } from '@god-eyes/contracts';
 
 interface AviationStats {
@@ -73,6 +73,7 @@ interface LayerPanelProps {
   newsItems: NewsItem[];
   onNewsFiltersChange: (f: NewsFilterState) => void;
   onNewsRefresh: () => void;
+  onNewsSelect: (item: NewsRenderMarker | null) => void;
 }
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
@@ -97,7 +98,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   maritimeLayerActive, setMaritimeLayerActive, maritimeStats, maritimeFilters, onMaritimeFiltersChange, onMaritimeRefresh,
   weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
   newsLayerActive, setNewsLayerActive, newsLoading, newsError, newsEmpty, newsMarkerCount, newsTotal,
-  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh,
+  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh, onNewsSelect,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { layers, apiAvailable, loading } = useLayerRegistry();
@@ -928,11 +929,41 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                 <div className="filter-section">
                   <div className="filter-section-header">NEWS FILTERS</div>
 
+                  {/* Source filter */}
+                  <div style={{ marginBottom: '6px' }}>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.7, marginBottom: '3px' }}>SOURCE</div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {['', 'gdacs', 'gdelt_event_export'].map((src) => {
+                        const active = (newsFilters.sourceId ?? '') === src;
+                        const label = src === 'gdelt_event_export' ? 'GDELT' : src === 'gdacs' ? 'GDACS' : 'ALL';
+                        return (
+                          <button
+                            key={src || 'all'}
+                            onClick={() => onNewsFiltersChange({ ...newsFilters, sourceId: src || null, severity: null })}
+                            style={{
+                              background: active ? 'var(--shell-accent)' : 'none',
+                              border: `1px solid ${active ? 'var(--shell-accent)' : 'rgba(255,255,255,0.2)'}`,
+                              borderRadius: '3px', cursor: 'pointer', padding: '2px 7px',
+                              color: active ? '#fff' : 'var(--shell-text-dim)', fontSize: '0.6rem',
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Severity filter */}
                   <div style={{ marginBottom: '6px' }}>
                     <div style={{ fontSize: '0.6rem', opacity: 0.7, marginBottom: '3px' }}>SEVERITY</div>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {['', 'red', 'orange', 'green'].map((sev) => {
+                      {(newsFilters.sourceId === 'gdelt_event_export'
+                        ? ['', 'low', 'medium', 'high', 'critical']
+                        : newsFilters.sourceId === 'gdacs'
+                          ? ['', 'red', 'orange', 'green']
+                          : ['', 'red', 'orange', 'green', 'low', 'medium', 'high', 'critical']
+                      ).map((sev) => {
                         const active = (newsFilters.severity ?? '') === sev;
                         return (
                           <button
@@ -971,14 +1002,27 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                     <div className="filter-section-header">RECENT ITEMS ({newsItems.length})</div>
                     <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
                       {newsItems.map((item) => (
-                        <div key={item.item_id} style={{
-                          padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                          fontSize: '0.6rem', lineHeight: 1.45,
-                        }}>
-                          <div style={{ color: 'var(--shell-text)', fontWeight: 500, marginBottom: '1px' }}>
+                        <div
+                          key={item.item_id}
+                          onClick={() => onNewsSelect(mapNewsItemToRenderItem(item))}
+                          style={{
+                            padding: '5px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            fontSize: '0.6rem', lineHeight: 1.45, cursor: 'pointer',
+                            transition: 'background 0.2s',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                        >
+                          <div style={{ color: 'var(--shell-text)', fontWeight: 500, marginBottom: '1.5px' }}>
                             {item.title}
                           </div>
-                          <div style={{ display: 'flex', gap: '8px', opacity: 0.65, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '6px', opacity: 0.8, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{
+                              background: item.source_id === 'gdelt_event_export' ? '#7c3aed' : '#2563eb',
+                              color: '#fff', padding: '0 4px', borderRadius: '2px', fontSize: '0.5rem', fontWeight: 600,
+                            }}>
+                              {item.source_id === 'gdelt_event_export' ? 'GDELT' : 'GDACS'}
+                            </span>
                             <span style={{
                               background: NEWS_SEVERITY_COLORS[item.severity?.toLowerCase()] ?? '#6b7280',
                               color: '#fff', padding: '0 4px', borderRadius: '2px', fontSize: '0.5rem',
@@ -988,7 +1032,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                             {item.subcategory && <span>{item.subcategory}</span>}
                             {item.location.country_name && <span>{item.location.country_name}</span>}
                             {!item.location.marker_ready && (
-                              <span style={{ color: '#6b7280' }}>no globe marker</span>
+                              <span style={{ color: '#f97316', fontWeight: 600 }}>list-only</span>
                             )}
                           </div>
                         </div>

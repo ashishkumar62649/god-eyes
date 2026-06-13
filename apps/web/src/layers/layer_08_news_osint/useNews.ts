@@ -72,9 +72,10 @@ export function useNews(active: boolean): UseNewsResult {
 
       try {
         const [markersRes, itemsRes, statsRes] = await Promise.all([
-          fetchNewsMarkers({ limit: 500 }, ctrl.signal),
+          fetchNewsMarkers({ limit: 500, sourceId: filters.sourceId }, ctrl.signal),
           fetchNewsItems({
             limit: ITEMS_LIMIT,
+            sourceId: filters.sourceId,
             severity: filters.severity,
             subcategory: filters.subcategory,
             country: filters.country,
@@ -116,7 +117,7 @@ export function useNews(active: boolean): UseNewsResult {
       clearInterval(intervalId);
       abortRef.current?.abort();
     };
-  }, [active, refreshKey, filters.severity, filters.subcategory, filters.country, filters.markerReadyOnly]);
+  }, [active, refreshKey, filters.sourceId, filters.severity, filters.subcategory, filters.country, filters.markerReadyOnly]);
 
   return {
     markers,

@@ -24,8 +24,8 @@ export interface NewsRenderMarker {
   title: string;
   sourceId: string;
   sourceUrl: string | null;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   countryCode: string | null;
   countryName: string | null;
   category: string;
@@ -34,10 +34,14 @@ export interface NewsRenderMarker {
   publishedAt: string | null;
   sourceUpdatedAt: string | null;
   attribution: string;
+  markerReady?: boolean;
+  locationConfidence?: string | null;
+  summary?: string | null;
 }
 
 /** Filter state for the Layer 08 list + API calls. */
 export interface NewsFilterState {
+  sourceId: string | null;
   severity: string | null;
   subcategory: string | null;
   country: string | null;
@@ -45,6 +49,7 @@ export interface NewsFilterState {
 }
 
 export const DEFAULT_NEWS_FILTERS: NewsFilterState = {
+  sourceId: null,
   severity: null,
   subcategory: null,
   country: null,
@@ -59,6 +64,10 @@ export const NEWS_SEVERITY_COLORS: Record<string, string> = {
   red: '#ef4444',
   orange: '#f97316',
   green: '#22c55e',
+  low: '#22c55e',
+  medium: '#f97316',
+  high: '#ef4444',
+  critical: '#b91c1c',
   unknown: '#6b7280',
 };
 
@@ -100,6 +109,7 @@ export function mapMarkerToRenderItem(
       typeof item.attribution === 'string' && item.attribution.length > 0
         ? item.attribution
         : NEWS_ATTRIBUTION,
+    markerReady: item.marker_ready ?? true,
   };
 }
 
@@ -114,4 +124,34 @@ export function mapMarkersToRenderItems(
     if (m) out.push(m);
   }
   return out;
+}
+
+/**
+ * Maps a full NewsItem (from list) into a NewsRenderMarker,
+ * preserving nullable coordinates for list-only items.
+ */
+export function mapNewsItemToRenderItem(item: NewsItem): NewsRenderMarker {
+  return {
+    kind: 'news',
+    itemId: String(item.item_id),
+    title: String(item.title),
+    sourceId: String(item.source_id),
+    sourceUrl: item.source_url ?? null,
+    latitude: isFiniteNumber(item.location.latitude) ? item.location.latitude : null,
+    longitude: isFiniteNumber(item.location.longitude) ? item.location.longitude : null,
+    countryCode: item.location.country_code ?? null,
+    countryName: item.location.country_name ?? null,
+    category: String(item.category),
+    subcategory: item.subcategory ?? null,
+    severity: String(item.severity),
+    publishedAt: item.published_at ?? null,
+    sourceUpdatedAt: item.source_updated_at ?? null,
+    attribution:
+      typeof item.attribution === 'string' && item.attribution.length > 0
+        ? item.attribution
+        : NEWS_ATTRIBUTION,
+    markerReady: item.location.marker_ready,
+    locationConfidence: item.location.confidence ?? null,
+    summary: item.summary ?? null,
+  };
 }

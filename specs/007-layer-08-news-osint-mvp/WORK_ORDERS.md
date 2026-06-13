@@ -565,3 +565,33 @@ WO-NEWS-F → WO-NEWS-N → WO-NEWS-D1 → WO-NEWS-I → WO-NEWS-A → WO-NEWS-U
 - No scheduler/cron
 - No Category B news/RSS/live work
 - No new routes — existing source-flexible design reused
+
+---
+
+## WO-NEWS-U2 — GDELT Frontend Implementation
+
+**Status**: ✅ COMPLETE
+
+**Branch**: `agent/layer-08-news-gdelt-frontend`
+**Base branch**: `origin/agent/layer-08-news-gdelt-api`
+
+**Goal**: Extend the existing Layer 08 News & OSINT frontend so GDELT Event Export records are visible, selectable, filterable, and understandable in the UI through the existing local API endpoints.
+
+**Deliverables completed**:
+- Extended frontend core types (`NewsRenderMarker`, `NewsFilterState`) to support GDELT severity levels (`low`, `medium`, `high`, `critical`) and list-only items.
+- Updated API query methods (`fetchNewsItems`, `fetchNewsMarkers`) to accept and forward the `sourceId` filter parameter.
+- Connected the `sourceId` state to the operations operations panel with source filters: `ALL`, `GDACS`, `GDELT`.
+- Configured dynamic severity buttons that adapt based on the active source, clearing the severity filter when the source toggles to prevent invalid empty lists.
+- Integrated sidebar news list item clicks so that users can select and inspect list-only items in the detail panel (since they have no coordinates on the Cesium globe).
+- Updated detail panel card to safely check coordinate presence before rendering, display a clear warning ("No marker / list only") for list-only items, show GDELT names, summaries, and location confidence levels.
+- Added GDELT-specific frontend tests covering colors, parameter forwarding, mapping without dummy coords, and list-only mapping.
+
+**Verification results**:
+- vitest: 64/64 passing (+5 new GDELT frontend tests, 30 total in `news.test.ts`)
+- build: `tsc && vite build` succeeded in producing production bundle output without compile/type errors.
+
+**Safety verified**:
+- No raw CSV rows or fields exposed.
+- No dummy/fake coordinates synthesized for list-only items.
+- Only local backend API called; no direct calls to external GDELT endpoints.
+- GDACS tests continue to pass.

@@ -20,6 +20,7 @@ import {
   formatTimestamp,
   formatCondition,
 } from '../layers/layer_07_weather/weatherDetail';
+import { NEWS_SEVERITY_COLORS } from '../layers/layer_08_news_osint/newsTypes';
 import type { NewsRenderMarker } from '../layers/layer_08_news_osint/newsTypes';
 import {
   formatNewsTimestamp,
@@ -736,9 +737,15 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         {selectedNewsItem.subcategory ? ` · ${selectedNewsItem.subcategory.toUpperCase()}` : ''}
       </div>
 
+      {selectedNewsItem.summary && (
+        <div style={{ fontSize: '0.7rem', lineHeight: 1.5, marginBottom: '10px', color: 'var(--shell-text-dim)' }}>
+          {selectedNewsItem.summary}
+        </div>
+      )}
+
       <div className="detail-row">
         <div className="detail-label">Severity</div>
-        <div className="detail-value" style={{ color: selectedNewsItem.severity === 'red' ? '#ef4444' : selectedNewsItem.severity === 'orange' ? '#f97316' : selectedNewsItem.severity === 'green' ? '#22c55e' : undefined }}>
+        <div className="detail-value" style={{ color: NEWS_SEVERITY_COLORS[selectedNewsItem.severity.toLowerCase()] || '#6b7280', fontWeight: 600 }}>
           {formatNewsSeverity(selectedNewsItem.severity)}
         </div>
       </div>
@@ -747,6 +754,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         <div className="detail-label">Country</div>
         <div className="detail-value">{formatNewsCountry(selectedNewsItem.countryName, selectedNewsItem.countryCode)}</div>
       </div>
+
+      {selectedNewsItem.locationConfidence && (
+        <div className="detail-row">
+          <div className="detail-label">Location Confidence</div>
+          <div className="detail-value">{orDash(selectedNewsItem.locationConfidence)}</div>
+        </div>
+      )}
 
       <div className="detail-row">
         <div className="detail-label">Published</div>
@@ -760,12 +774,24 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         </div>
       )}
 
-      <div className="detail-row">
-        <div className="detail-label">Coordinates</div>
-        <div className="detail-value">
-          {selectedNewsItem.latitude.toFixed(4)}, {selectedNewsItem.longitude.toFixed(4)}
+      {/* Coordinates: render only if present */}
+      {selectedNewsItem.latitude !== null && selectedNewsItem.latitude !== undefined &&
+       selectedNewsItem.longitude !== null && selectedNewsItem.longitude !== undefined ? (
+        <div className="detail-row">
+          <div className="detail-label">Coordinates</div>
+          <div className="detail-value">
+            {selectedNewsItem.latitude.toFixed(4)}, {selectedNewsItem.longitude.toFixed(4)}
+          </div>
         </div>
-      </div>
+      ) : null}
+
+      {/* No marker warning */}
+      {selectedNewsItem.markerReady === false && (
+        <div className="detail-row" style={{ color: '#f97316' }}>
+          <div className="detail-label">Marker Status</div>
+          <div className="detail-value" style={{ fontWeight: 600 }}>No marker / list only</div>
+        </div>
+      )}
 
       {/* Source & Attribution */}
       <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
@@ -774,7 +800,9 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         </div>
         <div className="detail-row">
           <div className="detail-label">Source</div>
-          <div className="detail-value">{orDash(selectedNewsItem.sourceId)}</div>
+          <div className="detail-value">
+            {selectedNewsItem.sourceId === 'gdelt_event_export' ? 'GDELT Event Export' : orDash(selectedNewsItem.sourceId)}
+          </div>
         </div>
         {selectedNewsItem.sourceUrl && (
           <div className="detail-row">

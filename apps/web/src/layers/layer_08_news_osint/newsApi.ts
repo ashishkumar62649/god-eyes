@@ -21,6 +21,7 @@ export const NEWS_FETCH_RUNS_PATH = `${BASE}/fetch-runs`;
 export interface NewsItemsParams {
   limit?: number;
   offset?: number;
+  sourceId?: string | null;
   severity?: string | null;
   subcategory?: string | null;
   country?: string | null;
@@ -30,6 +31,7 @@ export interface NewsItemsParams {
 export interface NewsMarkersParams {
   limit?: number;
   offset?: number;
+  sourceId?: string | null;
 }
 
 function appendIfPresent(url: URL, key: string, value: string | number | null | undefined): void {
@@ -46,6 +48,7 @@ export async function fetchNewsItems(
   const url = new URL(`${API_BASE_URL}${NEWS_ITEMS_PATH}`);
   appendIfPresent(url, 'limit', params.limit);
   appendIfPresent(url, 'offset', params.offset);
+  appendIfPresent(url, 'source_id', params.sourceId);
   appendIfPresent(url, 'severity', params.severity);
   appendIfPresent(url, 'subcategory', params.subcategory);
   appendIfPresent(url, 'country', params.country);
@@ -67,6 +70,7 @@ export async function fetchNewsMarkers(
   const url = new URL(`${API_BASE_URL}${NEWS_MARKERS_PATH}`);
   appendIfPresent(url, 'limit', params.limit);
   appendIfPresent(url, 'offset', params.offset);
+  appendIfPresent(url, 'source_id', params.sourceId);
 
   const res = await fetch(url.toString(), { signal });
   if (!res.ok) {

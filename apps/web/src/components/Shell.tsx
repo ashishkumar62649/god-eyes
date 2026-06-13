@@ -89,6 +89,7 @@ interface ShellProps {
   onNewsFiltersChange: (f: NewsFilterState) => void;
   onNewsRefresh: () => void;
   selectedNews: NewsRenderMarker | null;
+  onNewsSelect: (item: NewsRenderMarker | null) => void;
   onNewsClose: () => void;
 }
 
@@ -108,7 +109,7 @@ const Shell: React.FC<ShellProps> = ({
   weatherLayerActive, setWeatherLayerActive, weatherLoading, weatherError, weatherEmpty, weatherCount, weatherAttribution, onWeatherRefresh,
   selectedWeather, onWeatherClose,
   newsLayerActive, setNewsLayerActive, newsLoading, newsError, newsEmpty, newsMarkerCount, newsTotal,
-  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh, selectedNews, onNewsClose,
+  newsStats, newsFilters, newsItems, onNewsFiltersChange, onNewsRefresh, selectedNews, onNewsSelect, onNewsClose,
 }) => {
   const [detailPanelCollapsed, setDetailPanelCollapsed] = React.useState(false);
 
@@ -170,6 +171,7 @@ const Shell: React.FC<ShellProps> = ({
           newsItems={newsItems}
           onNewsFiltersChange={onNewsFiltersChange}
           onNewsRefresh={onNewsRefresh}
+          onNewsSelect={onNewsSelect}
         />
         <DetailPanel
           selectedObject={selectedObject}

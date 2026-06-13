@@ -299,6 +299,7 @@ const App: React.FC = () => {
           onNewsFiltersChange={newsData.setFilters}
           onNewsRefresh={newsData.refresh}
           selectedNews={selectedNews}
+          onNewsSelect={handleNewsSelect}
           onNewsClose={handleNewsClose}
         />
       </div>

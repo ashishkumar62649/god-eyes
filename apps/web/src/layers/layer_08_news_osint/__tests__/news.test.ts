@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { NewsMarkerItem } from '@god-eyes/contracts';
+import type { NewsMarkerItem, NewsItem } from '@god-eyes/contracts';
 import { LOCAL_LAYER_REGISTRY } from '../../../lib/useLayerRegistry';
 import {
   fetchNewsItems,
@@ -16,6 +16,7 @@ import {
 import {
   mapMarkerToRenderItem,
   mapMarkersToRenderItems,
+  mapNewsItemToRenderItem,
   NEWS_LAYER_ID,
   NEWS_ATTRIBUTION,
   NEWS_SEVERITY_COLORS,
@@ -298,6 +299,135 @@ describe('News & OSINT Layer (Layer 08) Tests', () => {
       globalThis.fetch = mockFetch;
       const stats = await fetchNewsStats();
       expect(stats.fake_coordinate_risk_count).toBe(0);
+    });
+  });
+
+  describe('GDELT Frontend Support', () => {
+    it('returns correct severity colors for GDELT levels', () => {
+      expect(getNewsMarkerColor('low')).toBe(NEWS_SEVERITY_COLORS.low);
+      expect(getNewsMarkerColor('medium')).toBe(NEWS_SEVERITY_COLORS.medium);
+      expect(getNewsMarkerColor('high')).toBe(NEWS_SEVERITY_COLORS.high);
+      expect(getNewsMarkerColor('critical')).toBe(NEWS_SEVERITY_COLORS.critical);
+    });
+
+    it('forwards source_id in API items call', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [], meta: { layer_id: NEWS_LAYER_ID, count: 0, limit: 100, offset: 0 } }),
+      });
+      globalThis.fetch = mockFetch;
+      await fetchNewsItems({ sourceId: 'gdelt_event_export' });
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('source_id=gdelt_event_export');
+    });
+
+    it('forwards source_id in API markers call', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [], meta: { layer_id: NEWS_LAYER_ID, count: 0, limit: 500 } }),
+      });
+      globalThis.fetch = mockFetch;
+      await fetchNewsMarkers({ sourceId: 'gdelt_event_export' });
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('source_id=gdelt_event_export');
+    });
+
+    it('maps list-only NewsItem to NewsRenderMarker without synthesizing coordinates', () => {
+      const mockItem: NewsItem = {
+        item_id: 'gdelt_list_001',
+        layer_id: NEWS_LAYER_ID,
+        source_id: 'gdelt_event_export',
+        source_family: 'global_event',
+        source_object_id: '12345',
+        source_url: 'https://example.com/article',
+        title: 'List Only Event',
+        summary: 'A summary here',
+        content_type: 'event',
+        published_at: '2026-06-13T10:00:00Z',
+        source_updated_at: '2026-06-13T10:00:00Z',
+        fetched_at: '2026-06-13T10:00:00Z',
+        first_seen_at: '2026-06-13T10:00:00Z',
+        last_seen_at: '2026-06-13T10:00:00Z',
+        location: {
+          confidence: 'low',
+          country_code: null,
+          country_name: null,
+          region: null,
+          city: null,
+          latitude: null,
+          longitude: null,
+          geometry_type: null,
+          geo_source: 'none',
+          has_coordinates: false,
+          marker_ready: false,
+        },
+        category: 'conflict',
+        subcategory: 'Protest',
+        severity: 'medium',
+        source_domain: 'example.com',
+        source_language: null,
+        source_country: null,
+        confidence_score: null,
+        attribution: 'GDELT',
+        is_active: true,
+      };
+
+      const mapped = mapNewsItemToRenderItem(mockItem);
+      expect(mapped).not.toBeNull();
+      expect(mapped.itemId).toBe('gdelt_list_001');
+      expect(mapped.latitude).toBeNull();
+      expect(mapped.longitude).toBeNull();
+      expect(mapped.markerReady).toBe(false);
+      expect(mapped.locationConfidence).toBe('low');
+      expect(mapped.summary).toBe('A summary here');
+    });
+
+    it('maps marker-ready NewsItem with coordinates correctly', () => {
+      const mockItem: NewsItem = {
+        item_id: 'gdelt_marker_001',
+        layer_id: NEWS_LAYER_ID,
+        source_id: 'gdelt_event_export',
+        source_family: 'global_event',
+        source_object_id: '12346',
+        source_url: 'https://example.com/article2',
+        title: 'Marker Event',
+        summary: null,
+        content_type: 'event',
+        published_at: '2026-06-13T10:00:00Z',
+        source_updated_at: '2026-06-13T10:00:00Z',
+        fetched_at: '2026-06-13T10:00:00Z',
+        first_seen_at: '2026-06-13T10:00:00Z',
+        last_seen_at: '2026-06-13T10:00:00Z',
+        location: {
+          confidence: 'high',
+          country_code: 'US',
+          country_name: 'United States',
+          region: null,
+          city: null,
+          latitude: 38.8951,
+          longitude: -77.0364,
+          geometry_type: 'Point',
+          geo_source: 'provided',
+          has_coordinates: true,
+          marker_ready: true,
+        },
+        category: 'diplomacy',
+        subcategory: 'Talk',
+        severity: 'high',
+        source_domain: 'example.com',
+        source_language: null,
+        source_country: null,
+        confidence_score: null,
+        attribution: 'GDELT',
+        is_active: true,
+      };
+
+      const mapped = mapNewsItemToRenderItem(mockItem);
+      expect(mapped).not.toBeNull();
+      expect(mapped.itemId).toBe('gdelt_marker_001');
+      expect(mapped.latitude).toBe(38.8951);
+      expect(mapped.longitude).toBe(-77.0364);
+      expect(mapped.markerReady).toBe(true);
     });
   });
 
