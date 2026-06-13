@@ -46,7 +46,7 @@
 | `layer_04_public_military_security` | Public Military & Security |
 | `layer_05_space_satellites` | Space & Satellites |
 | `layer_06_maritime` | Maritime |
-| `layer_07_infrastructure` | Infrastructure |
+| `layer_07_weather` | Weather / Live Weather |
 | `layer_08_news_osint` | News & OSINT |
 | `layer_09_user_shapes` | User Shapes / Custom Overlays |
 

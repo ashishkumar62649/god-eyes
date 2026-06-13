@@ -1,0 +1,417 @@
+# Open-Meteo Source Documentation
+
+## Source Identity
+
+| Attribute | Value |
+|-----------|-------|
+| Source ID | `open-meteo` |
+| Source Name | Open-Meteo |
+| Provider | OpenMeteo GmbH (Switzerland) |
+| Purpose | Primary MVP weather data source |
+| Data Type | Weather forecast (current, hourly, daily) |
+| Coverage | Global (all WGS84 coordinates) |
+| Weather Models | ECMWF, GFS, DWD ICON, Météo-France, JMA, MET Norway, and 15+ more |
+| Model Selection | Automatic "Best Match" per location (default) |
+
+---
+
+## Official Documentation Links
+
+| Resource | URL |
+|----------|-----|
+| API Docs | https://open-meteo.com/en/docs |
+| Terms of Use | https://open-meteo.com/en/terms |
+| Licence | https://open-meteo.com/en/licence |
+| Pricing | https://open-meteo.com/en/pricing |
+| GitHub | https://github.com/open-meteo/open-meteo |
+| Model Updates | https://open-meteo.com/en/docs/model-updates |
+| Service Status | https://status.open-meteo.com |
+
+---
+
+## API Endpoint
+
+| Attribute | Value |
+|-----------|-------|
+| Base URL | `https://api.open-meteo.com` |
+| Forecast Endpoint | `/v1/forecast` |
+| Full URL | `GET https://api.open-meteo.com/v1/forecast` |
+| HTTP Method | GET |
+| Protocol | HTTPS |
+| Response Format | JSON (also supports CSV, XLSX) |
+
+---
+
+## Authentication
+
+| Attribute | Value |
+|-----------|-------|
+| API Key Required (Free) | **No** |
+| API Key Required (Commercial) | **Yes** — paid subscription required |
+| Commercial URL Prefix | `customer-` prefix on server URL |
+| User-Agent Required | No (not enforced) |
+| Rate Limit Headers | Not documented (must be observed in fetch proof) |
+
+### Free vs Commercial
+
+| Feature | Free (Non-Commercial) | Commercial (Paid) |
+|---------|----------------------|-------------------|
+| Daily Limit | 10,000 calls | Unlimited |
+| Hourly Limit | 5,000 calls | Unlimited |
+| Minutely Limit | 600 calls | Unlimited |
+| Monthly Limit | 300,000 calls | 1M-50M+ calls |
+| Commercial Use | Prohibited | Allowed |
+| API Key | Not required | Required |
+
+---
+
+## Licence & Attribution
+
+### Data Licence
+
+**CC-BY 4.0** (Attribution 4.0 International)
+
+You are free to:
+- **Share:** copy and redistribute the material in any medium or format
+- **Adapt:** remix, transform, and build upon the material
+
+### Attribution Requirement
+
+You must include a link next to any location Open-Meteo data are displayed:
+
+```html
+<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>
+```
+
+### Required Attribution Text
+
+```
+Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 licence.
+Based on weather model data from ECMWF, NOAA, DWD, and other national weather services.
+```
+
+### Source Code Licence
+
+Open-Meteo source code is available on GitHub under **GNU AGPLv3** or any later version.
+
+---
+
+## Usage Limits
+
+### Free Tier Limits
+
+| Limit | Value |
+|-------|-------|
+| Calls per day | 10,000 |
+| Calls per hour | 5,000 |
+| Calls per minute | 600 |
+| Calls per month | 300,000 |
+
+### Fair-Use Notes
+
+- Non-commercial use only on free tier
+- Non-commercial defined per Creative Commons interpretation
+- Examples of non-commercial: private/non-profit websites, personal home automation, public research, educational content
+- Examples of commercial: websites with subscriptions/ads, commercial product integration, undisclosed commercial research
+- Applications and IP addresses may be blocked without prior notice for misuse
+
+### Caching Recommendations
+
+Not explicitly documented in official docs. Standard HTTP caching headers may apply. The GOD EYES planning recommends caching responses and re-fetching only stale data.
+
+---
+
+## Coordinate & Batch Behavior
+
+### Coordinate Format
+
+- **Format:** WGS84 latitude/longitude (floating point)
+- **Multiple coordinates:** Comma-separated values
+- **Example:** `latitude=52.52,48.85&longitude=13.41,2.35`
+- **Negative longitudes:** Required for North/South America (west of Greenwich)
+
+### Batch Behavior
+
+| Attribute | Value |
+|-----------|-------|
+| Multiple coordinates per request | **Yes** |
+| Batch size limit | Not explicitly documented |
+| Response format (single) | JSON object |
+| Response format (multiple) | JSON array of objects |
+| CSV/XLSX format | Adds `location_id` column |
+
+### Coordinate Resolution
+
+| Attribute | Value |
+|-----------|-------|
+| Returned latitude/longitude | **Grid cell center** (may differ from requested) |
+| Resolution method | Automatic grid-cell selection |
+| Cell selection options | `land` (default), `sea`, `nearest` |
+| Elevation model | 90-meter digital elevation model |
+| Elevation downscaling | Statistical downscaling based on elevation |
+| Manual elevation override | Supported via `elevation` parameter |
+| Disable downscaling | `elevation=nan` |
+
+### Important Note
+
+> The returned latitude/longitude indicates the center of the weather grid-cell used to generate the forecast. This coordinate might be a few kilometres away from the requested coordinate.
+
+---
+
+## Request Parameters
+
+### Required Parameters
+
+| Parameter | Format | Description |
+|-----------|--------|-------------|
+| `latitude` | Float | WGS84 latitude (comma-separated for multiple) |
+| `longitude` | Float | WGS84 longitude (comma-separated for multiple) |
+
+### Optional Parameters
+
+| Parameter | Format | Default | Description |
+|-----------|--------|---------|-------------|
+| `current` | String array | — | Current weather variables to return |
+| `hourly` | String array | — | Hourly weather variables to return |
+| `daily` | String array | — | Daily weather variables to return |
+| `temperature_unit` | String | `celsius` | `celsius` or `fahrenheit` |
+| `wind_speed_unit` | String | `kmh` | `kmh`, `ms`, `mph`, `kn` |
+| `precipitation_unit` | String | `mm` | `mm` or `inch` |
+| `timeformat` | String | `iso8601` | `iso8601` or `unixtime` |
+| `timezone` | String | `GMT` | Timezone name or `auto` |
+| `forecast_days` | Integer | `7` | 0-16 days |
+| `past_days` | Integer | `0` | 0-92 days |
+| `forecast_hours` | Integer | — | Limit hourly timesteps |
+| `past_hours` | Integer | — | Include past hours |
+| `start_date` | String | — | ISO 8601 date |
+| `end_date` | String | — | ISO 8601 date |
+| `cell_selection` | String | `land` | `land`, `sea`, `nearest` |
+| `models` | String array | `auto` | Weather model selection |
+| `elevation` | Float | — | Manual elevation override |
+| `apikey` | String | — | Commercial API key |
+
+---
+
+## MVP Weather Variables
+
+### Current Weather Variables
+
+| Variable | Available | Unit | Description |
+|----------|-----------|------|-------------|
+| `temperature_2m` | Yes | °C | Air temperature at 2m |
+| `apparent_temperature` | Yes | °C | Feels-like temperature |
+| `relative_humidity_2m` | Yes | % | Relative humidity at 2m |
+| `precipitation` | Yes | mm | Precipitation (preceding hour sum) |
+| `weather_code` | Yes | WMO code | Weather condition code |
+| `cloud_cover` | Yes | % | Total cloud cover |
+| `pressure_msl` | Yes | hPa | Mean sea level pressure |
+| `surface_pressure` | Yes | hPa | Surface pressure |
+| `wind_speed_10m` | Yes | km/h | Wind speed at 10m |
+| `wind_direction_10m` | Yes | ° | Wind direction at 10m |
+| `wind_gusts_10m` | Yes | km/h | Wind gusts at 10m (preceding hour max) |
+
+**Note:** Current conditions are based on 15-minutely weather model data. Every weather variable available in hourly data is available as current condition.
+
+### Hourly Weather Variables
+
+| Variable | Available | Unit | Valid Time | Description |
+|----------|-----------|------|------------|-------------|
+| `temperature_2m` | Yes | °C | Instant | Air temperature at 2m |
+| `apparent_temperature` | Yes | °C | Instant | Feels-like temperature |
+| `relative_humidity_2m` | Yes | % | Instant | Relative humidity at 2m |
+| `precipitation` | Yes | mm | Preceding hour sum | Total precipitation |
+| `precipitation_probability` | Yes | % | Preceding hour probability | Precip probability |
+| `weather_code` | Yes | WMO code | Instant | Weather condition code |
+| `cloud_cover` | Yes | % | Instant | Total cloud cover |
+| `pressure_msl` | Yes | hPa | Instant | Mean sea level pressure |
+| `surface_pressure` | Yes | hPa | Instant | Surface pressure |
+| `wind_speed_10m` | Yes | km/h | Instant | Wind speed at 10m |
+| `wind_direction_10m` | Yes | ° | Instant | Wind direction at 10m |
+| `wind_gusts_10m` | Yes | km/h | Preceding hour max | Wind gusts at 10m |
+
+---
+
+## Response Structure
+
+### Single Coordinate Response
+
+```json
+{
+    "latitude": 52.52,
+    "longitude": 13.419,
+    "elevation": 44.812,
+    "generationtime_ms": 2.2119,
+    "utc_offset_seconds": 0,
+    "timezone": "Europe/Berlin",
+    "timezone_abbreviation": "CEST",
+    "current": {
+        "time": "2026-06-10T12:00",
+        "interval": 900,
+        "temperature_2m": 18.5,
+        "apparent_temperature": 17.2,
+        "relative_humidity_2m": 65,
+        "precipitation": 0.0,
+        "weather_code": 2,
+        "cloud_cover": 45,
+        "pressure_msl": 1013.2,
+        "wind_speed_10m": 12.3,
+        "wind_direction_10m": 225,
+        "wind_gusts_10m": 18.7
+    },
+    "current_units": {
+        "time": "iso8601",
+        "interval": "s",
+        "temperature_2m": "°C",
+        "apparent_temperature": "°C",
+        "relative_humidity_2m": "%",
+        "precipitation": "mm",
+        "weather_code": "wmo code",
+        "cloud_cover": "%",
+        "pressure_msl": "hPa",
+        "wind_speed_10m": "km/h",
+        "wind_direction_10m": "°",
+        "wind_gusts_10m": "km/h"
+    },
+    "hourly": {
+        "time": ["2026-06-10T00:00", "2026-06-10T01:00", "..."],
+        "temperature_2m": [14.2, 13.8, "..."],
+        "apparent_temperature": [13.1, 12.7, "..."],
+        "relative_humidity_2m": [78, 80, "..."],
+        "precipitation": [0.0, 0.0, "..."],
+        "precipitation_probability": [10, 15, "..."],
+        "weather_code": [3, 3, "..."],
+        "cloud_cover": [65, 70, "..."],
+        "pressure_msl": [1012.8, 1012.5, "..."],
+        "surface_pressure": [1008.1, 1007.8, "..."],
+        "wind_speed_10m": [8.2, 7.9, "..."],
+        "wind_direction_10m": [210, 205, "..."],
+        "wind_gusts_10m": [14.5, 13.8, "..."]
+    },
+    "hourly_units": {
+        "time": "iso8601",
+        "temperature_2m": "°C",
+        "...": "..."
+    }
+}
+```
+
+### Multiple Coordinates Response
+
+When multiple coordinates are requested, the response is a JSON array of objects (one per coordinate), maintaining the same structure as the single-coordinate response.
+
+### Error Response
+
+```json
+{
+    "error": true,
+    "reason": "Cannot initialize WeatherVariable from invalid String value tempeture_2m for key hourly"
+}
+```
+
+- HTTP status: 400
+- Error object contains `error: true` and `reason` string
+
+### Response Metadata Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `latitude` | Float | Grid cell center latitude (may differ from requested) |
+| `longitude` | Float | Grid cell center longitude (may differ from requested) |
+| `elevation` | Float | Elevation from 90m DEM (meters above sea level) |
+| `generationtime_ms` | Float | API generation time in milliseconds |
+| `utc_offset_seconds` | Integer | Timezone offset from `timezone` parameter |
+| `timezone` | String | Timezone identifier (e.g., "Europe/Berlin") |
+| `timezone_abbreviation` | String | Timezone abbreviation (e.g., "CEST") |
+
+---
+
+## Weather Code Labels (WMO)
+
+Open-Meteo uses WMO standard weather interpretation codes. The API returns numeric codes only — no built-in label text. Labels must be mapped client-side.
+
+| Code | Description |
+|------|-------------|
+| 0 | Clear sky |
+| 1 | Mainly clear |
+| 2 | Partly cloudy |
+| 3 | Overcast |
+| 45 | Fog |
+| 48 | Depositing rime fog |
+| 51 | Light drizzle |
+| 53 | Moderate drizzle |
+| 55 | Dense drizzle |
+| 56 | Light freezing drizzle |
+| 57 | Dense freezing drizzle |
+| 61 | Slight rain |
+| 63 | Moderate rain |
+| 65 | Heavy rain |
+| 66 | Light freezing rain |
+| 67 | Heavy freezing rain |
+| 71 | Slight snow fall |
+| 73 | Moderate snow fall |
+| 75 | Heavy snow fall |
+| 77 | Snow grains |
+| 80 | Slight rain showers |
+| 81 | Moderate rain showers |
+| 82 | Violent rain showers |
+| 85 | Slight snow showers |
+| 86 | Heavy snow showers |
+| 95 | Thunderstorm: Slight or moderate |
+| 96 | Thunderstorm with slight hail |
+| 99 | Thunderstorm with heavy hail |
+
+**Note:** Thunderstorm with hail is only available in Central Europe.
+
+---
+
+## API-Call Accounting Risk
+
+### Official Documentation
+
+- Rate limits documented: 10,000/day, 5,000/hour, 600/minute
+- No documentation on how individual requests are counted
+- No documentation on whether variable count, forecast_days, or batch size affects counting
+- No rate-limit headers documented
+
+### Unknown / Must Be Measured
+
+- Whether 1 request with multiple coordinates counts as 1 call or N calls
+- Whether requesting both `current` and `hourly` counts as 1 or 2 calls
+- Whether `forecast_days` affects call counting
+- Whether rate-limit response headers are returned (e.g., `X-RateLimit-Remaining`)
+- Actual behavior under burst load
+
+### WO-WEATHER-S Must Measure
+
+1. HTTP response headers (look for rate-limit headers)
+2. Whether batch requests with N coordinates count as 1 or N calls
+3. Whether requesting current + hourly in one request counts as 1 call
+4. Actual rate-limit error behavior (HTTP 429?)
+
+---
+
+## Known Risks
+
+1. **Free tier is non-commercial only** — GOD EYES must qualify as non-commercial
+2. **API-call accounting unclear** — actual usage may differ from planning estimate
+3. **Grid cell resolution varies** — 9-25 km depending on model
+4. **No rate-limit headers documented** — must observe actual behavior
+5. **Returned coordinates may differ** from requested (grid cell center)
+6. **Model changes may affect data** — "Best Match" auto-selects model per location
+
+---
+
+## Source Decision
+
+**APPROVED as PRIMARY_MVP_SOURCE for Layer 07 Weather.**
+
+Rationale:
+- No API key required for free non-commercial use
+- Global coverage with WGS84 coordinate support
+- All MVP weather variables confirmed available
+- Batch request support confirmed (multiple coordinates per call)
+- CC-BY 4.0 licence (permissive)
+- Well-documented API with clear response format
+- Multiple weather model support with automatic selection
+- Elevation-based downscaling included
+- Cell selection options (land/sea/nearest)

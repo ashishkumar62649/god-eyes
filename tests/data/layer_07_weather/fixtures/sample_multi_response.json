@@ -1,0 +1,66 @@
+[
+  {
+    "latitude": 12.970123,
+    "longitude": 77.56364,
+    "elevation": 910.0,
+    "generationtime_ms": 0.25,
+    "utc_offset_seconds": 19800,
+    "timezone": "Asia/Kolkata",
+    "timezone_abbreviation": "GMT+5:30",
+    "current": {
+      "time": "2026-06-10T15:00",
+      "interval": 900,
+      "temperature_2m": 31.4,
+      "apparent_temperature": 31.8,
+      "relative_humidity_2m": 42,
+      "precipitation": 0.0,
+      "weather_code": 2,
+      "cloud_cover": 73,
+      "pressure_msl": 1006.9,
+      "surface_pressure": 910.1,
+      "wind_speed_10m": 17.3,
+      "wind_direction_10m": 284,
+      "wind_gusts_10m": 47.9
+    },
+    "current_units": { "temperature_2m": "°C" },
+    "hourly": {
+      "time": ["2026-06-10T00:00", "2026-06-10T01:00"],
+      "temperature_2m": [22.1, 21.8],
+      "weather_code": [3, 3]
+    },
+    "hourly_units": { "temperature_2m": "°C" },
+    "location_id": 12345
+  },
+  {
+    "latitude": 51.5,
+    "longitude": -0.25,
+    "elevation": 25.0,
+    "generationtime_ms": 0.30,
+    "utc_offset_seconds": 3600,
+    "timezone": "Europe/London",
+    "timezone_abbreviation": "BST",
+    "current": {
+      "time": "2026-06-10T10:00",
+      "interval": 900,
+      "temperature_2m": 18.5,
+      "apparent_temperature": 17.2,
+      "relative_humidity_2m": 65,
+      "precipitation": 0.0,
+      "weather_code": 2,
+      "cloud_cover": 45,
+      "pressure_msl": 1013.2,
+      "surface_pressure": 1012.8,
+      "wind_speed_10m": 12.3,
+      "wind_direction_10m": 225,
+      "wind_gusts_10m": 18.7
+    },
+    "current_units": { "temperature_2m": "°C" },
+    "hourly": {
+      "time": ["2026-06-10T00:00", "2026-06-10T01:00"],
+      "temperature_2m": [14.2, 13.8],
+      "weather_code": [3, 3]
+    },
+    "hourly_units": { "temperature_2m": "°C" },
+    "location_id": 67890
+  }
+]
