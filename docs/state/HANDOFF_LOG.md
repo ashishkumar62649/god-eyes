@@ -6482,3 +6482,40 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Security result: No environment files, tokens, raw data, caches, database dumps, lockfiles, product logic, workflow files, API routes, frontend code, migrations, ingestion code, fetchers, normalizers, contracts, or behavioral tests were modified.
 - Known issues: Remote CI has not rerun because worker agents are not permitted to push.
 - Review status: Ready for integration review and reviewer-owned push.
+
+### 2026-06-13T17:01:25Z - PR #39 PostgreSQL test-driver follow-up
+
+- Work order: GitHub CI Safety Follow-up - PostgreSQL Python driver
+- Agent: GitHub Integration Safety Agent
+- LLM model: not reported
+- Tool/CLI used: not reported
+- Branch: `integration/layer-08-news-osint-complete`
+- Start time UTC: 2026-06-13T16:57:50Z
+- End time UTC: 2026-06-13T17:01:25Z
+- Commit hash: final amended local commit reported in the handoff response
+- Push status: local only / not pushed; repository policy reserves remote pushes for the integration reviewer
+- Files changed:
+  - `.github/workflows/ci.yml`
+  - `docs/state/HANDOFF_LOG.md`
+- Root cause: The CI environment installed the version 3 PostgreSQL driver, while seven Layer 07 tests patch the version 2 compatibility module and require that module to be importable.
+- Fix: Added `psycopg2-binary>=2.9,<3` to the existing CI Python dependency installation command without changing any other dependency.
+- Commands run:
+  - Branch, history, PR check, and failed-run inspection
+  - Python driver installation and import verification
+  - Full data tests and Layer 08 data tests
+  - Layer 07 weather local-seed tests
+  - Contracts build, API tests, web tests, and web production build
+  - Diff, scope, whitespace, local-path, and sensitive-value checks
+- Validation results:
+  - PostgreSQL compatibility driver import: PASS, version 2.9.12 locally.
+  - Layer 07 weather local-seed tests: PASS, 44 passed.
+  - Full data suite from clean committed state: PASS, 1159 passed, 15 skipped.
+  - Full data suite with only the required handoff log dirty: PASS, 1167 passed, 7 skipped.
+  - Layer 08 data suite from clean committed state: PASS, 202 passed, 7 skipped.
+  - Contracts build: PASS.
+  - API tests: PASS, 503 passed.
+  - Web tests: PASS, 64 passed.
+  - Web production build: PASS.
+- Security result: No environment files, credentials, sensitive values, local machine paths, raw data, product code, tests, migrations, ingestion code, fetchers, normalizers, contracts, or lockfiles were modified.
+- Known issues: Remote CI has not rerun because worker agents are not permitted to push.
+- Review status: Ready for integration review and reviewer-owned push.
