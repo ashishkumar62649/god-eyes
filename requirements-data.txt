@@ -1,3 +1,20 @@
-boto3==1.40.70
-psycopg[binary]==3.2.13
+# Python dependencies for GOD EYES data tests and data/fetch workers.
+# Keep this file in sync with .github/workflows/ci.yml (CI installs from here).
+
+# Test runner
 pytest==9.0.3
+
+# PostgreSQL drivers
+#   psycopg (v3) is used by API/ingestion/worker DB modules.
+#   psycopg2-binary is used by the weather local-seed path.
+psycopg[binary]==3.2.13
+psycopg2-binary>=2.9,<3
+
+# Maritime AIS source family uses websockets.
+websockets>=12,<16
+
+# Space & Satellites orbit propagation uses sgp4.
+sgp4>=2.20,<3
+
+# Aviation raw-object storage (object store upload) uses boto3.
+boto3==1.40.70

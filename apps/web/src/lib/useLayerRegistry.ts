@@ -3,7 +3,7 @@ import type { LayerRegistryEntry } from '@god-eyes/contracts';
 import { fetchLayerRegistry } from './api';
 
 // Local fallback — mirrors MVP_LAYER_REGISTRY.md exactly.
-// Used when API is offline so the UI always renders all 10 layers.
+// Used when API is offline so the UI always renders all 11 layers (00-10).
 export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_00_globe_core',
@@ -79,15 +79,15 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
     layerId: 'layer_05_space_satellites',
     name: 'Space & Satellites',
     category: 'space',
-    status: 'coming_soon',
+    status: 'active',
     dataStatus: 'live',
     description: 'Satellite positions, orbital paths',
     sourceRule: 'CelesTrak TLE, Space-Track.org',
-    apiStatus: 'not_implemented',
-    frontendStatus: 'coming_soon',
+    apiStatus: 'active',
+    frontendStatus: 'active',
     safetyNotes: 'Public catalog satellites only',
     isEnabled: false,
-    isImplemented: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_06_maritime',
@@ -135,12 +135,12 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
     layerId: 'layer_09_user_shapes',
     name: 'User Shapes',
     category: 'user',
-    status: 'no_data',
+    status: 'coming_soon',
     dataStatus: 'static',
     description: 'User-drawn polygons, lines, points',
     sourceRule: 'User-generated only',
     apiStatus: 'not_implemented',
-    frontendStatus: 'no_data',
+    frontendStatus: 'coming_soon',
     safetyNotes: 'User-private by default',
     isEnabled: false,
     isImplemented: false,

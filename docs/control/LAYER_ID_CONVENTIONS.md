@@ -17,19 +17,19 @@ layer_{NN}_{short_name}
 |---|----|------|------------|
 | 0 | `layer_00_globe_core` | Globe Core | active |
 | 1 | `layer_01_aviation` | Aviation | active |
-| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | coming_soon |
-| 3 | `layer_03_earth_events` | Earth Events | coming_soon |
+| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | active |
+| 3 | `layer_03_earth_events` | Earth Events | active |
 | 4 | `layer_04_public_military_security` | Public Military & Security | coming_soon |
-| 5 | `layer_05_space_satellites` | Space & Satellites | coming_soon |
-| 6 | `layer_06_maritime` | Maritime | coming_soon |
-| 7 | `layer_07_weather` | Weather / Live Weather | coming_soon |
-| 8 | `layer_08_news_osint` | News & OSINT | coming_soon |
+| 5 | `layer_05_space_satellites` | Space & Satellites | active |
+| 6 | `layer_06_maritime` | Maritime | active |
+| 7 | `layer_07_weather` | Weather / Live Weather | active |
+| 8 | `layer_08_news_osint` | News & OSINT | active |
 | 9 | `layer_09_user_shapes` | User Shapes | coming_soon |
-| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | coming_soon |
+| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | active |
 
 ## Folder Conventions
 
-### Frontend (Gemini)
+### Frontend (Frontend Agent)
 
 ```
 apps/web/src/layers/{layer_id}/
@@ -47,7 +47,7 @@ Examples:
 - `apps/web/src/layers/layer_08_news_osint/`
 - `apps/web/src/layers/layer_09_user_shapes/`
 
-### Fetch Orchestrator (Codex)
+### Fetch Orchestrator (Fetcher Agent)
 
 ```
 services/fetch-orchestrator/src/layers/{layer_id}/
@@ -60,19 +60,19 @@ Examples:
 - `services/fetch-orchestrator/src/layers/layer_06_maritime/`
 - `services/fetch-orchestrator/src/layers/layer_08_news_osint/`
 
-### Normalizer (Codex)
+### Normalizer (Normalizer Agent)
 
 ```
 services/normalizer/src/layers/{layer_id}/
 ```
 
-### Source Catalog (Codex)
+### Source Catalog (Fetcher Agent)
 
 ```
 packages/source-catalog/layers/{layer_id}/
 ```
 
-### Database Migrations (Codex)
+### Database Migrations (Database Agent)
 
 ```
 database/migrations/layers/{layer_id}/

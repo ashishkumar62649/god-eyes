@@ -1,9 +1,11 @@
 # GOD EYES — Borders & Boundaries Policy and Source Plan
 
 **Layer ID:** `layer_02_borders_boundaries`
-**Status:** Policy/planning only. No implementation started.
-**Author:** Kiro CLI (WO-075-076)
-**Last updated:** 2026-05-26
+**Status:** MVP/local-dev implementation exists (Natural Earth Admin-0 outlines rendered).
+**Production status:** NOT production-approved. India boundary compliance and full production
+gating remain BLOCKED until the gates in Section 9 are cleared.
+**Author:** Orchestrator Agent
+**Last updated:** 2026-06-14 (alignment pass)
 
 ---
 
@@ -12,8 +14,10 @@
 This document defines the official policy, approved source hierarchy, compliance rules, and
 implementation gate checklist for the Borders & Boundaries layer (`layer_02_borders_boundaries`).
 
-No implementation work may begin until all gates in Section 9 are cleared and a Kiro-approved
-work order exists for each implementation phase.
+MVP/local-dev rendering exists (Natural Earth Admin-0). No **production** implementation may
+be approved until all gates in Section 9 are cleared and an Orchestrator-Agent-approved work
+order exists for each production implementation phase. The MVP/local-dev layer is not
+production-approved and is not Survey of India compliant.
 
 ---
 

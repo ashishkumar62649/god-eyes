@@ -54,29 +54,29 @@ const LAYER_REGISTRY = [
     layerId: 'layer_02_borders_boundaries',
     name: 'Borders & Boundaries',
     category: 'Geography',
-    status: 'coming_soon' as const,
+    status: 'active' as const,
     dataStatus: 'static' as const,
-    description: 'Country borders, administrative boundaries, and disputed territories.',
-    sourceRule: 'Static GeoJSON sources (Natural Earth, UN). No real-time fetchers for MVP.',
-    apiStatus: 'coming_soon',
-    frontendStatus: 'coming_soon',
-    safetyNotes: 'Country borders are politically sensitive. Use authoritative sources. No disputed territory rendering without explicit spec.',
+    description: 'Country borders and administrative boundaries (MVP/local-dev via Natural Earth).',
+    sourceRule: 'Static GeoJSON source (Natural Earth Admin-0). Seeded to DB. MVP/local-dev only; not production boundary-compliant.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
+    safetyNotes: 'Country borders are politically sensitive. MVP/local-dev only; not Survey of India compliant; not production-approved. Disputed territories require individual review.',
     isEnabled: true,
-    isImplemented: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_03_earth_events',
     name: 'Earth Events',
     category: 'Natural Phenomena',
-    status: 'coming_soon' as const,
+    status: 'active' as const,
     dataStatus: 'live' as const,
-    description: 'Earthquakes, volcanic activity, weather alerts, and natural disaster tracking.',
-    sourceRule: 'USGS earthquake API, volcanic activity feeds, weather alerts. Standard fetcher/normalizer pattern.',
-    apiStatus: 'coming_soon',
-    frontendStatus: 'coming_soon',
+    description: 'Earthquakes and natural-event tracking from authoritative public feeds.',
+    sourceRule: 'USGS earthquake feed (standard fetcher/normalizer pattern). Additional event feeds may be added by approved work order.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
     safetyNotes: 'Earthquake/tsunami alerts are time-critical. Cache must be short (< 5 min). Must not cause alert fatigue.',
     isEnabled: true,
-    isImplemented: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_04_public_military_security',
@@ -89,64 +89,64 @@ const LAYER_REGISTRY = [
     apiStatus: 'coming_soon',
     frontendStatus: 'coming_soon',
     safetyNotes: 'HIGH SAFETY: Public-only. Static-only. No real-time tracking. No sensitive coordinate data. All data from open, published, verifiable sources. UI disclaimer required.',
-    isEnabled: true,
+    isEnabled: false,
     isImplemented: false,
   },
   {
     layerId: 'layer_05_space_satellites',
     name: 'Space & Satellites',
     category: 'Space',
-    status: 'coming_soon' as const,
+    status: 'active' as const,
     dataStatus: 'live' as const,
-    description: 'Satellite objects, orbital tracks, space debris visualization.',
-    sourceRule: 'Public TLE feeds (Space-Track, CelesTrak). Satellite catalog sources. Standard fetcher/normalizer pattern.',
-    apiStatus: 'coming_soon',
-    frontendStatus: 'coming_soon',
+    description: 'Satellite objects, orbital tracks, and space-debris visualization.',
+    sourceRule: 'Public TLE feeds (Space-Track, CelesTrak). Standard fetcher/normalizer pattern. Live data requires the satellite worker to be running.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
     safetyNotes: 'Debris tracking may be sensitive. Use public TLE data only. No classified satellite references.',
-    isEnabled: true,
-    isImplemented: false,
+    isEnabled: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_06_maritime',
     name: 'Maritime',
     category: 'Transportation',
-    status: 'coming_soon' as const,
+    status: 'active' as const,
     dataStatus: 'live' as const,
     description: 'Vessel positions, ports, and maritime traffic visualization.',
-    sourceRule: 'AIS data providers (MarineTraffic, AISHub). Vessel position feeds. Standard fetcher/normalizer pattern.',
-    apiStatus: 'coming_soon',
-    frontendStatus: 'coming_soon',
+    sourceRule: 'AIS data source family (e.g. AISStream). Standard fetcher/normalizer pattern. Live data requires the maritime worker to be running.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
     safetyNotes: 'AIS data has privacy implications for private vessels. Consider filtering certain vessel types.',
-    isEnabled: true,
-    isImplemented: false,
+    isEnabled: false,
+    isImplemented: true,
   },
   {
-    layerId: 'layer_07_infrastructure',
-    name: 'Infrastructure',
-    category: 'Infrastructure',
-    status: 'coming_soon' as const,
-    dataStatus: 'static' as const,
-    description: 'Power grids, fiber optic cables, water systems, and transportation networks.',
-    sourceRule: 'Public infrastructure datasets. Static GeoJSON or seeded DB. No real-time fetchers for MVP.',
-    apiStatus: 'coming_soon',
-    frontendStatus: 'coming_soon',
-    safetyNotes: 'Infrastructure data is sensitive in aggregate. Use public/open datasets only. No critical infrastructure detail that aids targeting.',
-    isEnabled: true,
-    isImplemented: false,
+    layerId: 'layer_07_weather',
+    name: 'Weather / Live Weather',
+    category: 'Natural Phenomena',
+    status: 'active' as const,
+    dataStatus: 'live' as const,
+    description: 'Point/grid weather observations and forecasts (temperature, wind, precipitation).',
+    sourceRule: 'Open-Meteo (point/grid weather data). Standard fetcher/normalizer pattern. No API key required for fetching.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
+    safetyNotes: 'Model/grid-based weather (not street-level exact). Grid-cell resolution varies by model. Open-Meteo CC-BY 4.0 attribution required.',
+    isEnabled: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_08_news_osint',
     name: 'News & OSINT',
     category: 'Intelligence',
-    status: 'coming_soon' as const,
+    status: 'active' as const,
     dataStatus: 'live' as const,
-    description: 'Geotagged news and open-source intelligence aggregation.',
-    sourceRule: 'RSS/API news feeds, OSINT aggregators. Geotagged news sources. Standard fetcher/normalizer pattern.',
-    apiStatus: 'coming_soon',
-    frontendStatus: 'coming_soon',
-    safetyNotes: 'OSINT sources must be vetted. No fake news/propaganda. Respect copyright and fair use. Must include source attribution for every item.',
-    isEnabled: true,
-    isImplemented: false,
+    description: 'Geolocated disaster/event and open-source intelligence items (globe markers + list).',
+    sourceRule: 'GDACS and GDELT event/news source families. Standard fetcher/normalizer pattern. Live data requires the news worker to be running.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
+    safetyNotes: 'OSINT sources must be vetted. No PII. Respect copyright and fair use. Source attribution required for every item.',
+    isEnabled: false,
+    isImplemented: true,
   },
   {
     layerId: 'layer_09_user_shapes',
@@ -159,10 +159,37 @@ const LAYER_REGISTRY = [
     apiStatus: 'coming_soon',
     frontendStatus: 'coming_soon',
     safetyNotes: 'Must authenticate all writes. Validate geometry to prevent malformed data. Rate-limit per user. Users own their shapes.',
-    isEnabled: true,
+    isEnabled: false,
     isImplemented: false,
   },
+  {
+    layerId: 'layer_10_energy_infrastructure',
+    name: 'Energy Infrastructure',
+    category: 'Infrastructure',
+    status: 'active' as const,
+    dataStatus: 'static' as const,
+    description: 'Power plants, substations, transmission lines, pipelines, and terminals.',
+    sourceRule: 'Public/open data source families (WRI, OpenStreetMap, Global Energy Monitor). Seeded to DB.',
+    apiStatus: 'active',
+    frontendStatus: 'active',
+    safetyNotes: 'Public/open data only. No targeting/sabotage guidance. No real-time operational data.',
+    isEnabled: true,
+    isImplemented: true,
+  },
 ];
+
+// Known object types per layer for the GET /api/layers summary list.
+// Layers without an explicit entry report an empty objectTypes array.
+const LAYER_OBJECT_TYPES: Record<string, string[]> = {
+  layer_01_aviation: [
+    'airport',
+    'runway',
+    'navaid',
+    'airport_frequency',
+    'country',
+    'region',
+  ],
+};
 
 const generatedAt = () => new Date().toISOString();
 
@@ -174,30 +201,27 @@ export async function layerRoutes(fastify: FastifyInstance) {
       const dbStatus = await checkDatabaseStatus();
       const dbConnected = dbStatus.status === 'connected';
 
-      const layers = [
-        {
-          layerId: 'layer_00_globe_core',
-          name: 'Globe Core',
-          status: 'available' as const,
-          description: 'Core Cesium globe visualization and layer management.',
-          objectTypes: [] as string[],
-        },
-        {
-          layerId: 'layer_01_aviation',
-          name: 'Aviation',
-          status: dbConnected ? 'available' as const : 'unavailable' as const,
-          description:
-            'Aviation reference data including airports, runways, navaids, countries, regions, and frequencies.',
-          objectTypes: [
-            'airport',
-            'runway',
-            'navaid',
-            'airport_frequency',
-            'country',
-            'region',
-          ],
-        },
-      ];
+      // Derive the list from the same canonical LAYER_REGISTRY so this
+      // endpoint can never contradict GET /api/layers/registry.
+      const layers = LAYER_REGISTRY.map((entry) => {
+        let status: 'available' | 'unavailable' | 'not_configured';
+        if (!entry.isImplemented) {
+          status = 'not_configured';
+        } else if (entry.layerId === 'layer_00_globe_core') {
+          // Foundation layer is frontend-only; no database dependency.
+          status = 'available';
+        } else {
+          status = dbConnected ? 'available' : 'unavailable';
+        }
+
+        return {
+          layerId: entry.layerId,
+          name: entry.name,
+          status,
+          description: entry.description,
+          objectTypes: LAYER_OBJECT_TYPES[entry.layerId] ?? [],
+        };
+      });
 
       return LayersListResponseSchema.parse({
         layers,
@@ -210,7 +234,7 @@ export async function layerRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // GET /api/layers/registry - Official layer registry (all 10 layers)
+  // GET /api/layers/registry - Official layer registry (all 11 layers, 00-10)
   fastify.get(
     '/api/layers/registry',
     async (_request, _reply) => {
@@ -391,7 +415,34 @@ export async function layerRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Unknown layer
+      // All other registered layers: return a sane, contract-valid status.
+      // objectCounts in the shared contract are aviation-specific; for
+      // non-aviation layers they are reported as zero (structural, not fake).
+      const layer = LAYER_REGISTRY.find((l) => l.layerId === layerId);
+      if (layer) {
+        const dbStatus = await checkDatabaseStatus();
+        const dbConnected = dbStatus.status === 'connected';
+        return LayerStatusResponseSchema.parse({
+          layerId: layer.layerId,
+          status: layer.isImplemented
+            ? (dbConnected ? 'ok' : 'degraded')
+            : 'not_configured',
+          sourceId: null,
+          objectCounts: {
+            airports: 0,
+            runways: 0,
+            navaids: 0,
+            airportFrequencies: 0,
+            countries: 0,
+            regions: 0,
+          },
+          database: {
+            status: dbConnected ? 'connected' : 'offline',
+          },
+        });
+      }
+
+      // Truly unknown layer (not present in the registry)
       reply.code(404);
       return {
         error: {
