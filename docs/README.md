@@ -110,7 +110,9 @@ The following rules apply to the entire documentation system:
   archived automatically. Historical/superseded docs are archived under
   `docs/archive/`. The 2026-06-14 cleanup batch lives in
   `docs/archive/2026-06-14-documentation-cleanup/` and is documented by its
-  `INDEX.md`.
+  `INDEX.md`. The 2026-06-14 spec-kit-alignment batch lives in
+  `docs/archive/2026-06-14-spec-kit-alignment/` and is documented by its
+  `INDEX.md` and its deferred-decisions log.
 - **Do not treat audit reports as active instructions** unless a control document
   explicitly adopts something from them.
 - **Do not move or archive docs during feature work.** Archiving is a dedicated
