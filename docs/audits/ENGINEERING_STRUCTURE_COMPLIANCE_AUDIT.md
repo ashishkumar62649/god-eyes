@@ -143,7 +143,7 @@ The audit inspected the following folders and files by category:
 
 | ID | Area | Severity | Timing | Owner/Lane | Finding | Recommendation |
 |----|------|----------|--------|-----------|---------|----------------|
-| ESA-001 | Frontend API client consistency | Medium | Next | Frontend | `useEnergyInfrastructure.ts` builds URLs as `/api/...` without `VITE_API_BASE_URL`; all other layer clients prefix it. Confirmed: only that one file omits the env var. | Change one file to match the rest (already documented as HEALTH-001). |
+| ESA-001 | Frontend API client consistency | Resolved | Done | Frontend | RESOLVED — HEALTH-001 / ESA-001 was already fixed by the frontend health repair branch and merged to main. Current `useEnergyInfrastructure.ts` uses `VITE_API_BASE_URL` with fallback to `http://localhost:4000` (line 4-5) and constructs URLs as `${API_BASE_URL}/api/energy/infrastructure...` (line 57). No further action required. | No action required. |
 | ESA-002 | API route file size | Medium | Next | API | `apps/api/src/routes/weather.ts` is 988 lines and `apps/api/src/routes/news.ts` is 919 lines, both above the 800-line "not allowed for new work" threshold. They are grandfathered as existing work. | Plan a refactor work order to extract per-endpoint `service.ts`/`repository.ts`/`mapper.ts` files matching the recommended large-route layout. |
 | ESA-003 | Shared component size | Medium | Next | Frontend | `apps/web/src/components/DetailPanel.tsx` is 877 lines and `apps/web/src/components/LayerPanel.tsx` is 1030 lines. Both exceed the 400-line component limit. Grandfathered. | Plan to extract sub-panels for vessel and airport details from `DetailPanel.tsx`; extract layer sub-panels from `LayerPanel.tsx`. |
 | ESA-004 | Contracts module size | Low | Next | API / Contract | `packages/contracts/src/index.ts` is 1074 lines. Most content is Zod schemas across all layers. | Plan to split per-layer into `src/layer_XX_name.ts` files re-exported from `index.ts`. Pure file split, no behavioral change. |
@@ -155,7 +155,7 @@ The audit inspected the following folders and files by category:
 | ESA-010 | Migration numbering gap | Low | Do not touch yet | Database | `database/migrations/layers/layer_01_aviation/` has `001` and `003`–`013`; `002` is missing. No other layer folder has this issue. | Grandfathered. Document in `database/migrations/README.md` that `002` was intentionally removed during early aviation development. Same as HEALTH-010. |
 | ESA-011 | Vague file names in frontend | Low | Next | Frontend | Searched for `utils`, `helpers`, `misc`, `temp`, `final`, `new`, `common` in `apps/web/src/`. No frontend file uses these vague names. The `apps/web/src/components/intel/` subfolder mixes multiple presentational components which is reasonable domain grouping. | None. PASS. |
 | ESA-012 | Vague file names in services | Low | Next | Fetcher / Normalizer | No Python file in the inspected trees uses a vague name. Files are domain-named (`weather_normalizer.py`, `maritime_fetcher.py`, `space_satellites_worker.py`, etc.). | None. PASS. |
-| ESA-013 | Direct external API calls in frontend | Low | Next | Frontend | All `fetch(` calls in frontend code are in `lib/api.ts` or in `*Api.ts` / `use*Api.ts` hook files inside per-layer folders. No direct external provider API calls. The energy layer uses a relative path (see ESA-001). | None for the boundary itself. (Fix URL construction in ESA-001.) |
+| ESA-013 | Direct external API calls in frontend | Low | Next | Frontend | All `fetch(` calls in frontend code are in `lib/api.ts` or in `*Api.ts` / `use*Api.ts` hook files inside per-layer folders. No direct external provider API calls. All layer clients (including energy) use `VITE_API_BASE_URL` consistently. | None for the boundary itself. |
 | ESA-014 | SQL in API route handlers | Medium | Next | API | Many large route files (`objects/`, `airport-intelligence/`, `airport-layout-features/`, `public-profile/`, `space/satellites.ts`, `energy/infrastructure.ts`, `maritime.ts`, `news.ts`, `weather.ts`, `layers.ts`) contain `query(...)` calls directly in route files, including handler logic in some cases. The recommended `repository.ts` split is partially implemented for `airport-intelligence/`, `airport-layout-features/`, `public-profile/`, and `objects/` (these have their own `repository.ts`). The five large live-layer route files (`weather.ts`, `news.ts`, `maritime.ts`, `space/satellites.ts`, `energy/infrastructure.ts`) embed SQL directly. | Plan per-layer refactors to extract `repository.ts` and `service.ts` files. Required for Section 8 compliance on new work. |
 | ESA-015 | Business logic in route handlers | Medium | Next | API | `maritime.ts` and `news.ts` route files contain `parseLimit`, `parseOffset`, `parseBbox`, `parseNumeric`, `parseMmsi`, `parseHours`, `parseHistoryLimit`, `toNumber`, `toInteger`, `toNumberOrNull`, `rowToVesselObject`, `rowToVesselDetail`, `buildItemsQuery`, `buildObservationQuery`, `buildEnergyConditions` helpers directly in the route file. Some of these could move to a route-local `validation.ts`, `mapper.ts`, and `service.ts`. | Same as ESA-014: extract. |
 | ESA-016 | Pagination / limit / bbox patterns | Low | Next | API | `MAX_LIST_LIMIT = 500`, `MAX_VIEWPORT_LIMIT = 1000`, `MAX_PRELOAD_LIMIT = 100000` constants live only in `apps/api/src/routes/objects/constants.ts`. `weather.ts`, `news.ts`, `maritime.ts`, and `energy/infrastructure.ts` each define their own `MAX_LIMIT` / `MAX_OFFSET` constants in-file. The pattern is consistent (limit/offset clamping) but not centralized. | Plan a single `apps/api/src/lib/query-limits.ts` constants file when consolidating the API refactor. |
@@ -514,9 +514,9 @@ files into sub-modules will naturally split the function-size violations.
   * `weatherApi.ts` (48 lines)
   * `newsApi.ts` (50 lines)
   * `maritimeApi.ts` (50 lines)
-  * `energyInfrastructureApi.ts` (19 lines, **bare-bones**; uses the relative `/api/...`
-    path in `useEnergyInfrastructure.ts` — see ESA-001)
+  * `energyInfrastructureApi.ts` (19 lines)
   * `useSpaceSatellitesSocket.ts`, `useLiveAircraftSocket.ts` — WebSocket hooks
+  * Previously reported HEALTH-001 is resolved in current main: `useEnergyInfrastructure.ts` now uses `VITE_API_BASE_URL` with `http://localhost:4000` fallback. No active frontend API-base inconsistency remains.
 * Per-layer React hooks:
   * `useWeather.ts`, `useNews.ts`, `useMaritime.ts`, `useEnergyInfrastructure.ts`,
     `useBordersBoundaries.ts`, `useEarthEvents.ts`
@@ -545,9 +545,10 @@ files into sub-modules will naturally split the function-size violations.
   `apps/api/src/routes/objects/constants.ts`, not in `apps/web/src/layers/.../constants/`).
   No frontend-side constants file exists per layer. This is **acceptable** because no
   per-layer constants warrant extraction yet (e.g., `MAX_BBOX_DEGREES`, `MAX_POLLING_MS`).
-* **`useEnergyInfrastructure.ts` builds URL as `/api/...`** with no `VITE_API_BASE_URL`
-  prefix. This is the only inconsistency among layer clients. Already documented in
-  HEALTH-001 and **recommended for next cycle**.
+* All layer clients consistently use `VITE_API_BASE_URL` with fallback to
+  `http://localhost:4000`. The previously reported HEALTH-001 inconsistency in
+  `useEnergyInfrastructure.ts` is **resolved** in current `main` — see
+  Summary Finding Table row ESA-001.
 
 ### 8.2 Cross-layer imports
 
@@ -1049,8 +1050,9 @@ The audit recommends the following repair order. **No code changes are made by t
 audit.** This order is for the next planning cycle.
 
 1. **Contract / planning issues first**
-   * **ESA-001**: One-line energy client URL fix (already known as HEALTH-001).
-     Owner: Frontend Agent. Effort: Trivial. Timing: Next.
+   * **Resolved prior item:** ESA-001 / HEALTH-001 (energy client URL fix) was
+     already resolved in main by the frontend health repair branch. No further
+     work required.
    * **ESA-002 / ESA-014 / ESA-015**: API route split work order. Decide on a
      per-layer `index.ts` + `service.ts` + `repository.ts` + `mapper.ts` +
      `validation.ts` + `types.ts` split. Use the existing `airport-intelligence/`,
@@ -1192,10 +1194,11 @@ agreement, and the rulebook itself was added in `5e6187b` on the same day.
 
 No **Critical** or **High** issues were found. The audit identified:
 
-* 4 **Medium** issues: the energy client URL inconsistency (already known as
-  HEALTH-001), the five oversized API route files, the two oversized shared
-  frontend components, the API route split (per Section 8), and the contracts
-  module size.
+* 4 **Medium** issues: the five oversized API route files, the two oversized
+  shared frontend components, the API route split (per Section 8), and the
+  contracts module size. (The previously reported energy client URL
+  inconsistency, HEALTH-001 / ESA-001, is **RESOLVED** in current `main` by the
+  frontend health repair branch — see the Summary Finding Table row ESA-001.)
 * A handful of **Low** issues: vague file names (none found), direct external
   API calls in frontend (none found), JSONB usage (compliant), spatial naming
   (compliant), migration numbering gap (grandfathered, known as HEALTH-010),
@@ -1203,6 +1206,11 @@ No **Critical** or **High** issues were found. The audit identified:
 * A few items that should be **documented** but not changed: the colocation
   normalizer pattern, the frontend short-name folder pattern, the
   aviation `002` migration gap.
+
+The audit contains **30 numbered findings (ESA-001 through ESA-030)** of which
+**29 are active and 1 is RESOLVED** (ESA-001 / HEALTH-001). The IDs are kept
+stable per the audit's convention; only the Severity, Timing, and Recommendation
+fields of ESA-001 were changed.
 
 The recommended repair order is **contract → database plan → large unsafe
 files → API route split → frontend folder normalization → fetcher source split
