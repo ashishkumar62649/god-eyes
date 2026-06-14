@@ -10,9 +10,8 @@ DOC_PATH = (
     REPO_ROOT
     / "docs"
     / "archive"
-    / "2026-06-14-final-docs-structure"
-    / "data-legacy"
-    / "layer_01_aviation"
+    / "2026-06-14-spec-kit-alignment"
+    / "audits"
     / "AVIATION_CATEGORY_AUDIT_WO-029E.md"
 )
 

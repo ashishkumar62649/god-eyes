@@ -1,4 +1,28 @@
 
+### 2026-06-14T23:50:00Z — required-fix-category-audit-path
+
+- Work order: final-visible-documentation-structure-cleanup-required-fix
+- Agent: Documentation Agent
+- Branch: agent/documentation-system-spec-kit-alignment
+- Reviewer decision: PASS WITH REQUIRED FIXES
+- Summary: Corrected category audit test DOC_PATH to the actual archived audit file and cleaned trailing whitespace / CRLF line endings.
+- Files modified:
+  - tests/data/layer_01_aviation/test_aviation_category_audit.py (DOC_PATH: `2026-06-14-final-docs-structure/data-legacy/layer_01_aviation/` → `2026-06-14-spec-kit-alignment/audits/`; CRLF→LF)
+  - docs/control/MVP_LAYER_REGISTRY.md (trailing whitespace removed on line 16; CRLF→LF)
+- Commands run:
+  - git status --short --branch → clean before edit
+  - Select-String DOC_PATH → confirmed wrong path in test file
+  - Test-Path correct archive path → True
+  - Test-Path wrong archive path → False
+  - Edit applied (test file DOC_PATH + MVP trailing whitespace)
+  - git diff --check → CRLF-induced false positive resolved by LF conversion
+  - python -m pytest tests/data/layer_01_aviation/test_aviation_category_audit.py -q → 7 passed
+  - python -m pytest tests/data -q → 1159 passed, 7 skipped, 8 scope-guard failures (dirty tree; expected)
+- Known issues: 8 scope guard tests fail on dirty tree (pre-existing behavior; pass on clean tree)
+- Review status: Pending Orchestrator Agent re-check.
+
+---
+
 ### 2026-06-14T23:30:00Z — final-visible-documentation-structure-cleanup
 
 - Work order: final-visible-documentation-structure-cleanup
