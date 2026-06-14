@@ -31,9 +31,11 @@ Every agent must read the following documents before starting any task:
 2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — this document
 3. `docs/state/CURRENT_PROJECT_STATE.md` — active phase, implemented layers, next steps
 4. `docs/state/HANDOFF_LOG.md` — what was done last and what state the project is in
-5. Task-specific documents referenced in the work order or spec
+5. `docs/README.md` — the documentation map; defines the classification of every
+   document under `docs/` and `specs/`
+6. Task-specific documents referenced in the work order or spec
 
-Do not start implementation before reading all five.
+Do not start implementation before reading all six.
 
 ---
 
@@ -620,6 +622,31 @@ To add, modify, or supersede a rule in this document:
 3. Update this file.
 4. Update any other affected control documents.
 5. Append a handoff entry.
+
+## Documentation, Specs, and Audit Reports
+
+The documentation system for the project is defined in `docs/README.md`, which sets
+the classification of every document under `docs/` and `specs/` (ACTIVE_RULE,
+CURRENT_STATE, APPEND_ONLY_LOG, AUDIT_REPORT, DECISION_RECORD, SPEC_WORKSPACE,
+SPEC, PLAN, TASK_LIST, REVIEW_REPORT, ARCHIVE).
+
+- **Audit reports are evidence, not active rules.** Documents in `docs/audits/` are
+  research and audit reports. They are not authoritative instructions unless a control
+  document in `docs/control/` explicitly adopts something from them. When citing an
+  audit, the controlling rule lives in `docs/control/`, not in the audit itself.
+- **Medium or large features and refactors should use `specs/`.** Each such piece of
+  work gets a dedicated folder under `specs/<NNN>-<feature-or-layer-name>/` containing
+  `spec.md` (what and why), `plan.md` (selected technical approach), and
+  `tasks.md` (ordered implementation tasks) at minimum. `research.md`,
+  `contracts/`, and `quickstart.md` are added as needed. See `specs/README.md` for
+  the full pattern. Implementation agents must follow `tasks.md` and must not invent
+  scope. Reviewer agents must review against `spec.md`, `plan.md`, and `tasks.md`.
+- **Architecture decisions are captured as ADRs in `docs/decisions/`.** Use ADRs
+  for important project-wide decisions such as documentation hierarchy, API
+  architecture, database strategy, deployment strategy, or large refactor strategy.
+- **Old or superseded documents go to `docs/archive/`** by dedicated cleanup only.
+  Nothing is archived automatically, and no document should be moved to `docs/archive/`
+  as part of feature or refactor work.
 
 **Last updated:** 2026-06-14
 **Author:** Documentation Agent

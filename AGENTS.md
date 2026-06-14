@@ -139,6 +139,8 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 
 ## Key Documents
 
+- `docs/README.md` — the documentation map (start here; lists active rules,
+  current state, audits, decisions, archive, and specs)
 - `docs/control/ENGINEERING_STRUCTURE_RULES.md` — **master engineering rulebook**;
   every agent must follow it for all file structure, database structure, API structure,
   naming conventions, file/function size limits, and refactor boundaries
@@ -155,9 +157,15 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 - `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` — full source contract
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
 - `docs/state/HANDOFF_LOG.md` — log of all agent work
+- `specs/README.md` — Spec Kit workspace guide (folder pattern, file roles, agent
+  rules for spec-driven work)
 - `specs/<number>-<feature-or-layer-name>/` — spec directory for new layers
   and large multi-agent features (spec/overview, contract, work orders, test
   plan, open questions)
+- `docs/decisions/` — Architecture Decision Records (ADRs)
+- `docs/archive/` — historical/superseded documents (not active instructions)
 - `docs/work-orders/` — work orders for small cross-cutting repairs and
   single-lane fixes
 - `docs/audits/` — research and audit evidence
+
+See `docs/README.md` for the full documentation map and document classification.

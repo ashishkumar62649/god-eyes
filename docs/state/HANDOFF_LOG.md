@@ -6784,3 +6784,27 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Forbidden folders touched: no
 - Secrets added: no
 - Review status: Pending Orchestrator Agent review. Not pushed.
+
+---
+
+### 2026-06-14T13:00:00Z — documentation-system-spec-kit-alignment
+
+- Work order: documentation-system-spec-kit-alignment
+- Agent: Documentation Agent
+- Branch: agent/documentation-system-spec-kit-alignment
+- Base branch: main
+- Goal: Align the existing documentation system with the project's Spec Kit workflow. Add a documentation map, an ADR for the documentation system, an archive guide, a Spec Kit workspace guide, and short pointers in AGENTS.md and ENGINEERING_STRUCTURE_RULES.md. No existing docs were moved, renamed, or archived in this task.
+- Files created:
+  - docs/README.md (GOD EYES Documentation Map)
+  - docs/decisions/ADR-001-documentation-system.md (Status: Accepted)
+  - docs/archive/README.md
+  - specs/README.md
+- Files modified:
+  - AGENTS.md (added pointers to docs/README.md, specs/README.md, docs/decisions/, docs/archive/)
+  - docs/control/ENGINEERING_STRUCTURE_RULES.md (added docs/README.md to Required First Read; added Documentation, Specs, and Audit Reports subsection in Change Process)
+  - docs/state/HANDOFF_LOG.md (this appended entry)
+- Summary: Added documentation map, documentation-system ADR, archive guide, and Spec Kit workspace guide; updated AGENTS.md and engineering rules to clarify active docs, audit docs, specs, and archive.
+- Known issues: none
+- Forbidden folders touched: no
+- Secrets added: no
+- Review status: Pending Orchestrator Agent review. Not pushed.
