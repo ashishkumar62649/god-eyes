@@ -27,6 +27,26 @@ Layer 0 (Globe Core) has no data pipeline. It is frontend-only.
 > Some live layers also support local proof/seed output under `tmp/` for verification.
 > `tmp/` and `raw/` are local/generated output and must never be committed.
 
+#### Normalizer Location Rule (HEALTH-004)
+
+Normalizer modules are owned and located as follows:
+
+- **Normalizer Agent owns** `services/normalizer/src/layers/layer_01_aviation/`
+  (the historical/canonical aviation normalizer location). All aviation
+  normalizer modules for Layer 01 continue to live there.
+- **Fetcher Agent owns** colocated normalizer modules under
+  `services/fetch-orchestrator/src/layers/<layer_id>/` for non-aviation
+  implemented layers (02, 03, 05, 06, 07, 08, 10). The colocated pattern is
+  acceptable for live-layer MVP work when fetch, normalize, and proof/seed
+  logic are tightly coupled in a single Python module family.
+- **Future separated normalizers** for a non-aviation layer may be split into
+  `services/normalizer/src/layers/<layer_id>/` only by explicit work order
+  issued by the Orchestrator Agent; ownership for that layer then reverts to
+  the Normalizer Agent.
+- **Do not move existing normalizers** in a documentation-only or refactor
+  task. Follow the source/contract/work-order instructions for the specific
+  layer. Do not invent a new normalizer location.
+
 ### 2. Database → API
 
 - The Database Agent defines table schemas in `database/migrations/layers/{layer_id}/`.

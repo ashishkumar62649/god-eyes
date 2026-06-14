@@ -16,9 +16,9 @@ Normalizer Agent, Database Agent, Review Agent, Integration Agent, Contract Agen
 | `apps/web/` | Frontend Agent | — |
 | `packages/ui/` | Frontend Agent | — |
 | `packages/layers/` | Frontend Agent | — |
-| `services/fetch-orchestrator/` | Fetcher Agent | — |
+| `services/fetch-orchestrator/` | Fetcher Agent | Colocated normalizer modules under `src/layers/<layer_id>/` (see Normalizer Location Rule below) |
 | `packages/source-catalog/` | Fetcher Agent | — |
-| `services/normalizer/` | Normalizer Agent | — |
+| `services/normalizer/` | Normalizer Agent | Owns the canonical aviation normalizer folder only; non-aviation layers follow the Colocated Normalizer Pattern below |
 | `database/` | Database Agent | — |
 | `packages/schemas/` | Database Agent | — |
 | `tests/data/` | Database Agent | — |
@@ -45,6 +45,35 @@ Normalizer Agent, Database Agent, Review Agent, Integration Agent, Contract Agen
 - An agent must not modify files outside its ownership.
 - If an agent needs a change in another agent's area, it logs a request in `HANDOFF_LOG.md`.
 - The Orchestrator Agent resolves cross-agent conflicts.
+
+## Normalizer Location Rule (HEALTH-004)
+
+The `services/normalizer/` folder is the historical/canonical location for
+normalizer code. For Layer 01 Aviation, normalizer modules live under
+`services/normalizer/src/layers/layer_01_aviation/` and are owned by the
+Normalizer Agent. This aviation arrangement is preserved as-is.
+
+For all non-aviation implemented layers, the existing implementation colocates
+the normalizer with the fetcher under
+`services/fetch-orchestrator/src/layers/<layer_id>/`. In that colocated
+pattern, the **Fetcher Agent** owns the normalizer module for the layer, and
+the **Normalizer Agent** has no ownership entry for that layer.
+
+The colocated pattern is acceptable for live-layer MVP work when fetch,
+normalize, and proof/seed logic are tightly coupled in a single Python module
+family. The current non-aviation layers (02, 03, 05, 06, 07, 08, 10) follow
+this pattern.
+
+Future large or reusable normalizers may still be split into
+`services/normalizer/src/layers/<layer_id>/` by explicit work order issued
+by the Orchestrator Agent; in that case ownership reverts to the Normalizer
+Agent for that layer.
+
+**Agent directive:** follow the source/contract/work-order instructions for the
+specific layer. Do not invent a new normalizer location. Do not move existing
+normalizers in a documentation-only or refactor task. If the existing layer
+colocates, follow the colocated pattern; if a future work order specifies a
+separated normalizer, follow that explicit work order.
 
 ## Shared Read Access
 

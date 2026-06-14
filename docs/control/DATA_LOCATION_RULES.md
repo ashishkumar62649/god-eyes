@@ -91,6 +91,31 @@ Raw fetch output is written under `raw/` and is gitignored. Some workers also wr
 proof/seed output under `tmp/` for verification. `raw/` and `tmp/` are local/generated
 output and must never be committed.
 
+## Normalizer Location Rule (HEALTH-004)
+
+Normalizer code is owned and located per the documented pattern:
+
+- **`services/normalizer/src/layers/layer_01_aviation/`** — the historical/canonical
+  aviation normalizer location. Owned by the **Normalizer Agent**. This is the
+  only layer with normalizer code under `services/normalizer/`.
+- **`services/fetch-orchestrator/src/layers/<layer_id>/`** — the colocated
+  pattern used for all non-aviation implemented layers (02, 03, 05, 06, 07, 08,
+  10). Normalizer modules in this folder are owned by the **Fetcher Agent**.
+  The colocated pattern is acceptable for live-layer MVP work when fetch,
+  normalize, and proof/seed logic are tightly coupled in a single Python
+  module family.
+- **Future separated normalizers** for a non-aviation layer may be added to
+  `services/normalizer/src/layers/<layer_id>/` only by explicit work order
+  issued by the Orchestrator Agent; ownership for that layer then reverts to
+  the Normalizer Agent.
+- **Do not move existing normalizers** in a documentation-only or refactor
+  task. Follow the source/contract/work-order instructions for the specific
+  layer. Do not invent a new normalizer location.
+
+The diagram above is authoritative: only `layer_01_aviation/` lives under
+`services/normalizer/`. All other layer normalizer modules are colocated under
+the corresponding `services/fetch-orchestrator/src/layers/<layer_id>/` folder.
+
 ## Rules
 
 0. `docs/control/MVP_LAYER_REGISTRY.md` is authoritative for layer IDs and layer order.

@@ -82,7 +82,7 @@ higher-priority sources are unavailable or unlicensed.
 | 5 | Survey of India licensed digital vector data | Contact Survey of India for licensing | If available and licensed, preferred over PDF-derived data. Requires explicit licensing confirmation before use. |
 
 **Before using any India boundary data source not listed above, a new work order must be raised
-and approved by Kiro.**
+and approved by the Orchestrator Agent.**
 
 ---
 
@@ -139,7 +139,7 @@ Before any boundary dataset is ingested, the following must be confirmed and doc
 - [ ] India boundary conflict check completed
 - [ ] Disputed territory handling reviewed
 - [ ] Survey of India compliance confirmed for India-adjacent data
-- [ ] Kiro sign-off recorded in the relevant work order
+- [ ] Orchestrator Agent sign-off recorded in the relevant work order
 
 ---
 
@@ -158,7 +158,7 @@ Before any boundary dataset is ingested, the following must be confirmed and doc
 | G7 | Database schema work order (WO-077) drafted and approved | PENDING — can be cleared by drafting WO-077 schema-only |
 | G8 | No agent has started writing code or ingesting data | **PASS** — confirmed by WO-076A review |
 
-*Gate statuses last reviewed: 2026-05-26 by Kiro CLI (WO-076A). See
+*Gate statuses last reviewed: 2026-05-26 by the Orchestrator Agent (WO-076A). See
 `docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md` for full assessment.*
 
 ---
@@ -215,8 +215,8 @@ Before approving any Borders & Boundaries work order (WO-077 through WO-081):
 ## 13. Stop Conditions
 
 **If any of the following conditions are triggered, all Borders & Boundaries implementation
-work must STOP immediately. The condition must be documented and escalated to Kiro before
-any further work proceeds.**
+work must STOP immediately. The condition must be documented and escalated to the
+Orchestrator Agent before any further work proceeds.**
 
 1. **India official source cannot be verified** — the Survey of India source for India
    boundaries cannot be confirmed as authentic, current, or licensed.
@@ -226,7 +226,7 @@ any further work proceeds.**
    shows India's boundary in a way that contradicts the official Indian government position,
    including for J&K, Ladakh, PoK, or Aksai Chin.
 4. **Agent uses unapproved India GeoJSON** — any agent attempts to use a random or
-   third-party India boundary GeoJSON file without explicit Kiro approval and source
+   third-party India boundary GeoJSON file without explicit Orchestrator Agent approval and source
    documentation.
 5. **Implementation would imply a disputed boundary position inconsistent with Indian
    government depiction** — any rendering choice, data selection, or API response would
@@ -241,6 +241,6 @@ any further work proceeds.**
 ## Change Process
 
 To modify this policy document:
-1. Create a work order for Kiro CLI.
-2. Changes to Sections 4, 5, 6, or 13 require explicit justification and Kiro sign-off.
-3. No agent may weaken the India compliance policy without a Kiro-approved work order.
+1. Create a work order for the Orchestrator Agent.
+2. Changes to Sections 4, 5, 6, or 13 require explicit justification and Orchestrator Agent sign-off.
+3. No agent may weaken the India compliance policy without an Orchestrator-approved work order.

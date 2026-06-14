@@ -72,7 +72,46 @@ numbering are consistent. Space uses `layer_05_space_satellites`.
 
 Build → Review/Test → Push → Next.
 
-1. The Orchestrator Agent creates work orders in `docs/work-orders/`.
+### Where future work goes (specs vs work-orders)
+
+Use the folder that matches the scope of the work:
+
+- **New layer or large multi-agent feature** — create a spec directory under
+  `specs/<number>-<feature-or-layer-name>/` containing, as needed for the
+  feature:
+  - `SPEC_OVERVIEW.md` (or `README.md` / `spec.md`) — problem, scope, non-goals
+  - Contract or interface document — what the feature exposes or consumes
+  - `WORK_ORDERS.md` — enumerated sub-work-orders for the feature
+  - `*_PLANNING.md` files — per-lane (database, fetching, normalization,
+    API, frontend) planning
+  - Test plan, proof reports, and open questions as the feature requires
+  The spec dir is the source of truth for that feature. This is the pattern
+  used by the existing `specs/001-*` through `specs/007-*` directories.
+
+- **Small cross-cutting repair or single-lane fix** — create a single work
+  order under `docs/work-orders/`, or a direct handoff/audit doc under
+  `docs/state/` or `docs/audits/` when the work does not need a full spec.
+  This is the pattern used by the historical `docs/work-orders/WO-001`
+  through `WO-079A` files.
+
+- **Research or audit evidence** — write under `docs/audits/`
+  (e.g. `docs/audits/PROJECT_HEALTH_WORKFLOW_AUDIT.md`,
+  `docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md`).
+
+- **Review or integration records** — write under
+  `docs/state/INTEGRATION_REVIEW_*.md` per step 7 below.
+
+- **Active project state** — keep `docs/state/CURRENT_PROJECT_STATE.md`
+  current as the single source of truth for the active phase, status, and
+  the next planned step.
+
+### Cycle steps
+
+1. The Orchestrator Agent creates a spec directory under
+   `specs/<number>-<feature-or-layer-name>/` for new layers or large
+   multi-agent features, OR a work order under `docs/work-orders/` for
+   small cross-cutting repairs or single-lane fixes, following the
+   conventions above.
 2. The responsible worker agent picks up its work order.
 3. The agent does the work within its allowed folders only.
 4. The agent runs the required build/test checks.
@@ -101,10 +140,18 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 - `docs/control/MVP_LAYER_REGISTRY.md` — authoritative layer registry and order
 - `docs/control/LAYER_ARCHITECTURE.md` — layer definitions and order
 - `docs/control/LAYER_ID_CONVENTIONS.md` — naming and folder conventions
-- `docs/control/LLM_OWNERSHIP_MATRIX.md` — agent ownership matrix
+- `docs/control/LLM_OWNERSHIP_MATRIX.md` — agent ownership matrix (includes
+  Normalizer Location Rule for colocated vs separated normalizer patterns)
 - `docs/control/PIPELINE_HANDOFF_RULES.md` — how data flows between agents
-- `docs/control/DATA_LOCATION_RULES.md` — where files go
+  (includes Normalizer Location Rule)
+- `docs/control/DATA_LOCATION_RULES.md` — where files go (includes Normalizer
+  Location Rule)
 - `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` — full source contract
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
 - `docs/state/HANDOFF_LOG.md` — log of all agent work
-- `docs/work-orders/` — active work orders
+- `specs/<number>-<feature-or-layer-name>/` — spec directory for new layers
+  and large multi-agent features (spec/overview, contract, work orders, test
+  plan, open questions)
+- `docs/work-orders/` — work orders for small cross-cutting repairs and
+  single-lane fixes
+- `docs/audits/` — research and audit evidence

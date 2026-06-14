@@ -6641,3 +6641,18 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   workers are still run manually (unified runner deferred); some documentation-only audit
   observations remain out of scope for this pass.
 - **Review status:** Pending Orchestrator Agent review. Not pushed.
+
+
+---
+
+### 2026-06-14 — Documentation Agent — Health Docs Workflow Clarity Repair
+
+- **Work order:** health-docs-workflow-clarity
+- **Agent:** Documentation Agent (Orchestrator-role documentation repair lane)
+- **Branch:** agent/health-docs-workflow-clarity
+- **Summary:** Addressed the documentation-only workflow clarity findings from the project health audit (HEALTH-003, HEALTH-004, HEALTH-005, HEALTH-006, HEALTH-012). Created retrospective integration review documents for Layer 07 Weather and Layer 08 News & OSINT to close the audit-trail gap. Documented the official colocated normalizer pattern in LLM_OWNERSHIP_MATRIX, PIPELINE_HANDOFF_RULES, and DATA_LOCATION_RULES (Normalizer Agent owns aviation normalizer under services/normalizer/; Fetcher Agent owns colocated normalizer modules under services/fetch-orchestrator/src/layers/<layer_id>/ for all other implemented layers; do not move existing normalizers). Replaced residual tool names with neutral role names in MVP_LAYER_REGISTRY and BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN. Clarified in AGENTS.md that new layer or large multi-agent features go under specs/<number>-<feature-or-layer-name>/ while small cross-cutting repairs or single-lane fixes go under docs/work-orders/ or direct handoff/audit docs.
+- **Files changed:** AGENTS.md; docs/control/LLM_OWNERSHIP_MATRIX.md; docs/control/PIPELINE_HANDOFF_RULES.md; docs/control/DATA_LOCATION_RULES.md; docs/control/MVP_LAYER_REGISTRY.md; docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md; docs/state/INTEGRATION_REVIEW_LAYER_07_WEATHER_COMPLETE.md (new); docs/state/INTEGRATION_REVIEW_LAYER_08_NEWS_OSINT_COMPLETE.md (new); and this log entry.
+- **Commands run:** git status --short --branch; git log --oneline --decorate -n 6; git diff --stat; git diff --check; Select-String for residual tool names in MVP_LAYER_REGISTRY.md and BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md; python -m pytest tests/data -q (rerun after commit on a clean tree).
+- **Results:** No residual tool names in the two active docs after edit. Diff is documentation-only. Data tests rerun on clean tree after commit (results recorded in the Final Report).
+- **Known issues:** None for the documentation repair itself. Pre-existing HEALTH-001 (frontend relative path), HEALTH-002 (aviation-specific status schema), HEALTH-007 (frontend offline registry sourceRule for layer 08), HEALTH-008 (duplicate npm script), HEALTH-009 (no root README), HEALTH-010 (aviation migration sequence gap), and HEALTH-011 (.gitignore tool-specific entries) are out of scope for this documentation-only pass and remain in the backlog.
+- **Review status:** Pending Orchestrator Agent review. Not pushed.
