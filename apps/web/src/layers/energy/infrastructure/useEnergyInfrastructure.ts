@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { EnergyFeature, EnergyFilters, EnergyInfrastructureResponse } from './energyInfrastructureTypes';
 
+const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:4000';
+
+
 interface UseEnergyInfrastructureResult {
   features: EnergyFeature[];
   loading: boolean;
@@ -50,7 +54,7 @@ export function useEnergyInfrastructure(
         params.append('limit', '1000');
         
         const queryString = params.toString();
-        const url = `/api/energy/infrastructure${queryString ? `?${queryString}` : ''}`;
+        const url = `${API_BASE_URL}/api/energy/infrastructure${queryString ? `?${queryString}` : ''}`;
         
         const response = await fetch(url, {
           signal: abortControllerRef.current?.signal,
