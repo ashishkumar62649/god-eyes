@@ -1,36 +1,3 @@
-### 2026-06-14T12:51:00Z — health-frontend-runtime-config
-
-- Work order: health-frontend-runtime-config
-- Agent: Frontend Agent
-- Branch: agent/health-frontend-runtime-config
-- Base branch: main (547fecf)
-- Start time: 2026-06-14T18:12:00+05:30
-- End time: 2026-06-14T18:52:00+05:30
-- Commit hash: (pending — local only)
-- Push status: local only (NOT pushed — Orchestrator Agent owns pushes)
-- Goal: Fix energy infrastructure client base URL configuration (HEALTH-001) and News & OSINT local registry fallback wording (HEALTH-007).
-- Files modified:
-  - apps/web/src/layers/energy/infrastructure/useEnergyInfrastructure.ts
-  - apps/web/src/lib/useLayerRegistry.ts
-  - apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts
-  - docs/state/HANDOFF_LOG.md (this entry)
-- Commands run:
-  - git status --short --branch
-  - git log --oneline --decorate -n 8
-  - git diff --stat
-  - git diff --check
-  - pnpm --filter web test
-  - pnpm --filter web build
-  - python -m pytest tests/data -q
-- Results:
-  - git diff --check: PASS
-  - pnpm --filter web test: PASS (64/64 passed)
-  - pnpm --filter web build: PASS
-  - python -m pytest tests/data -q: 11 tests failed on dirty tree due to worktree scope guards checking allowed paths (rerun on clean tree pending commit)
-- Known issues: none
-- Review status: Ready for Reviewer Agent
-
----
 
 ### 2026-06-14T10:08:00Z — project-health-findings-explanation
 
@@ -6708,3 +6675,37 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   clean committed tree pass.
 - **Known issues:** None.
 - **Review status:** Required fix applied, ready for Reviewer Agent re-check.
+
+---
+
+### 2026-06-14T12:51:00Z — health-frontend-runtime-config
+
+- Work order: health-frontend-runtime-config
+- Agent: Frontend Agent
+- Branch: agent/health-frontend-runtime-config
+- Base branch: main (547fecf)
+- Start time: 2026-06-14T18:12:00+05:30
+- End time: 2026-06-14T18:52:00+05:30
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — Orchestrator Agent owns pushes)
+- Goal: Fix energy infrastructure client base URL configuration (HEALTH-001) and News & OSINT local registry fallback wording (HEALTH-007).
+- Files modified:
+  - apps/web/src/layers/energy/infrastructure/useEnergyInfrastructure.ts
+  - apps/web/src/lib/useLayerRegistry.ts
+  - apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch
+  - git log --oneline --decorate -n 8
+  - git diff --stat
+  - git diff --check
+  - pnpm --filter web test
+  - pnpm --filter web build
+  - python -m pytest tests/data -q
+- Results:
+  - git diff --check: PASS
+  - pnpm --filter web test: PASS (64/64 passed)
+  - pnpm --filter web build: PASS
+  - python -m pytest tests/data -q: 11 tests failed on dirty tree due to worktree scope guards checking allowed paths (rerun on clean tree pending commit)
+- Known issues: none
+- Review status: Ready for Reviewer Agent
