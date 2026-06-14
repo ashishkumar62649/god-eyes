@@ -1,3 +1,48 @@
+### 2026-06-14T10:08:00Z — project-health-findings-explanation
+
+- Work order: project-health-findings-explanation
+- Agent: Research Agent
+- Branch: research/project-health-workflow-audit
+- Base branch: main (5fea8f2)
+- Start time: 2026-06-14T15:38:00+05:30
+- End time: 2026-06-14T15:55:00+05:30
+- Commit hash: (pending — local only)
+- Push status: local only (NOT pushed — Orchestrator Agent owns pushes)
+- Goal: Produce evidence-level explanation for every Medium and Low project health finding so the Planning Agent can safely prioritize repairs.
+- Files created:
+  - docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md (1206 lines)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch → clean, branch research/project-health-workflow-audit
+  - git log --oneline --decorate -n 8 → HEAD = 5b89062
+  - git branch --merged main → only 'main' (this branch not yet merged)
+  - git ls-files .env .env.example apps/web/.env apps/web/.env.example → .env.example, apps/web/.env.example only (PASS)
+  - git check-ignore → .env, tmp, raw, __pycache__, node_modules all ignored (PASS)
+  - pnpm --filter @god-eyes/contracts build → PASS
+  - pnpm --filter api build → PASS
+  - pnpm --filter api test → PASS (503/503, 17 files)
+  - pnpm --filter web test → PASS (64/64, 3 files)
+  - pnpm --filter web build → PASS
+  - python -m pytest tests/data -q (before report) → 1159 passed, 15 skipped, 0 failed
+- Summary of evidence gathered:
+  - HEALTH-001: Energy frontend useEnergyInfrastructure.ts line 53 uses bare relative /api/ path. All other clients use VITE_API_BASE_URL. One-line fix.
+  - HEALTH-002: LayerStatusResponseSchema.objectCounts (contracts/index.ts lines 46-62) has aviation-specific fields used for all 11 layers. Non-aviation returns all zeros.
+  - HEALTH-003: No INTEGRATION_REVIEW files exist in docs/state/ for layers 07 or 08. Most recent review is WO-079B (aviation). AGENTS.md requires review per WO.
+  - HEALTH-004: services/normalizer/src/layers/ only has layer_01_aviation. All 7 other layers colocate normalizer in services/fetch-orchestrator/. LLM_OWNERSHIP_MATRIX.md and PIPELINE_HANDOFF_RULES.md do not document this pattern.
+  - HEALTH-005: MVP_LAYER_REGISTRY.md row 4 safety notes has one occurrence of tool product name. One word change needed.
+  - HEALTH-006: BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md body text has 7-8 tool product name occurrences. Safety rules intact. Find-and-replace only.
+  - HEALTH-007: useLayerRegistry.ts layer_08 sourceRule says 'GDACS' only. API registry says 'GDACS and GDELT'. Mismatch in offline fallback.
+  - HEALTH-008: package.json has duplicate api:test / test:api scripts. CI uses api:test.
+  - HEALTH-009: No README.md at repo root. AGENTS.md is landing doc.
+  - HEALTH-010: layer_01_aviation migrations gap: 001 then 003, no 002. Pre-existing, no functional impact.
+  - HEALTH-011: .gitignore has tool-product-specific entries. Files do not exist. Harmless.
+  - HEALTH-012: docs/work-orders/ has no WOs for layers 05-10. Those used specs/ convention. AGENTS.md step 1 says work-orders/.
+- Known issues: none
+- Review status: Pending Orchestrator Agent review. Not pushed.
+
+---
+
 ### 2026-06-14T09:46:00Z — project-health-workflow-audit
 
 - Work order: project-health-workflow-audit
