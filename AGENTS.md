@@ -139,6 +139,9 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 
 ## Key Documents
 
+- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — **master engineering rulebook**;
+  every agent must follow it for all file structure, database structure, API structure,
+  naming conventions, file/function size limits, and refactor boundaries
 - `docs/control/GIT_WORKFLOW_POLICY.md` — Git commit and push rules
 - `docs/control/MVP_LAYER_REGISTRY.md` — authoritative layer registry and order
 - `docs/control/LAYER_ARCHITECTURE.md` — layer definitions and order
