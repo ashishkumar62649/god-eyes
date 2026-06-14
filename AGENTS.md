@@ -16,6 +16,9 @@ documents. Use the neutral role names above only.
 
 ## Hard Rules
 
+0. Every agent must read `AGENTS.md` before starting any work. This file is the entry
+   point for agent behavior, folder ownership, documentation structure, workflow rules,
+   safety rules, and final report requirements.
 1. Everything must belong to a layer.
 2. Every layer must have a unique `layer_id`.
 3. Every source must declare which layer it belongs to.

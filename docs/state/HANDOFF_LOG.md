@@ -6656,3 +6656,21 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - **Results:** No residual tool names in the two active docs after edit. Diff is documentation-only. Data tests rerun on clean tree after commit (results recorded in the Final Report).
 - **Known issues:** None for the documentation repair itself. Pre-existing HEALTH-001 (frontend relative path), HEALTH-002 (aviation-specific status schema), HEALTH-007 (frontend offline registry sourceRule for layer 08), HEALTH-008 (duplicate npm script), HEALTH-009 (no root README), HEALTH-010 (aviation migration sequence gap), and HEALTH-011 (.gitignore tool-specific entries) are out of scope for this documentation-only pass and remain in the backlog.
 - **Review status:** Pending Orchestrator Agent review. Not pushed.
+
+---
+
+### 2026-06-14 — Documentation Agent — Health Docs Workflow Clarity Required Fix
+
+- **Work order:** health-docs-workflow-clarity-review-fix
+- **Agent:** Documentation Agent (Orchestrator-role documentation repair lane)
+- **Branch:** agent/health-docs-workflow-clarity
+- **Summary:** Added explicit AGENTS.md first-read rule required by Reviewer Agent.
+- **Files changed:** AGENTS.md; docs/state/HANDOFF_LOG.md (this entry).
+- **Commands run:** git status --short --branch; git log --oneline --decorate -n 6;
+  git diff --stat; git diff --check; Select-String on AGENTS.md for the new first-read
+  sentence; python -m pytest tests/data -q (rerun after commit on a clean tree).
+- **Results:** New Hard Rule 0 added; no existing rule removed or weakened;
+  Select-String confirms the new sentence is present in AGENTS.md; data tests on the
+  clean committed tree pass.
+- **Known issues:** None.
+- **Review status:** Required fix applied, ready for Reviewer Agent re-check.
