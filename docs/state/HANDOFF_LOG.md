@@ -6519,3 +6519,39 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Security result: No environment files, credentials, sensitive values, local machine paths, raw data, product code, tests, migrations, ingestion code, fetchers, normalizers, contracts, or lockfiles were modified.
 - Known issues: Remote CI has not rerun because worker agents are not permitted to push.
 - Review status: Ready for integration review and reviewer-owned push.
+
+
+---
+
+### 2026-06-14 — Project Alignment Fix Agent — Repository Alignment Repair
+
+- **Work order:** alignment (repository docs/code/registry/config alignment)
+- **Agent:** Project Alignment Fix Agent (Orchestrator-role alignment pass)
+- **Branch:** `alignment/project-docs-code-registry-fix`
+- **Summary:** Aligned API and frontend layer registries, control/state/workflow docs, CI,
+  Python dependencies, environment example, and route documentation with the current working
+  code. Canonical Layer 07 is `layer_07_weather` (removed `layer_07_infrastructure` from
+  active registries); `layer_10_energy_infrastructure` added to all active registries and
+  layer-order docs. Active control documents neutralized to role names only.
+- **Files changed:** `apps/api/src/routes/layers.ts`, `apps/web/src/lib/useLayerRegistry.ts`,
+  `AGENTS.md`, `docs/control/MVP_LAYER_REGISTRY.md`, `docs/control/LAYER_ARCHITECTURE.md`,
+  `docs/control/LAYER_ID_CONVENTIONS.md`, `docs/control/LLM_OWNERSHIP_MATRIX.md`,
+  `docs/control/PIPELINE_HANDOFF_RULES.md`, `docs/control/GIT_WORKFLOW_POLICY.md`,
+  `docs/control/DATA_LOCATION_RULES.md`, `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md`,
+  `docs/control/layer_05_space_satellites_mvp_contract.md`,
+  `docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md`,
+  `docs/state/CURRENT_PROJECT_STATE.md`, `.github/workflows/ci.yml`, `requirements-data.txt`,
+  `.env.example`, `docs/audits/PROJECT_ALIGNMENT_REPORT.md`,
+  `docs/audits/PROJECT_ALIGNMENT_FIX_REPORT.md`, and this log.
+- **Commands run:** `pnpm install`; `pnpm --filter @god-eyes/contracts build`;
+  `pnpm --filter api build`; `pnpm --filter api test`; `pnpm --filter web test`;
+  `pnpm --filter web build`; `python -m pip install -r requirements-data.txt`;
+  `python -m pytest tests/data -q`.
+- **Results:** Contracts/API/web builds PASS. API tests 503 passed. Web tests 64 passed.
+  Python data tests 1152 passed, 7 skipped; 15 single-lane work-order scope guardrail tests
+  flag the intentionally cross-cutting dirty worktree and skip/pass on a clean committed tree
+  (verified after commit: 1159 passed, 15 skipped, 0 failed).
+- **Known issues:** Per-lane guardrail tests assume single-lane work orders; live-layer
+  workers are still run manually (unified runner deferred); some documentation-only audit
+  observations remain out of scope for this pass.
+- **Review status:** Pending Orchestrator Agent review. Not pushed.

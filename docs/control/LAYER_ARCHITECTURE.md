@@ -15,12 +15,12 @@ GOD EYES is built as a stack of visual layers on a 3D globe. Each layer represen
 | 2 | `layer_02_borders_boundaries` | Borders & Boundaries | Country borders, administrative boundaries, disputed areas | active (MVP/local-dev) | static |
 | 3 | `layer_03_earth_events` | Earth Events | Earthquakes, volcanic activity, weather alerts, natural disasters | active | live |
 | 4 | `layer_04_public_military_security` | Public Military & Security | Public defense installations, open-source military data | coming_soon | static (MVP) |
-| 5 | `layer_05_space_satellites` | Space & Satellites | Satellite objects, orbits, tracks, debris | coming_soon | live |
-| 6 | `layer_06_maritime` | Maritime | Vessel positions, ports, vessel details | coming_soon | live |
-| 7 | `layer_07_weather` | Weather / Live Weather | Point/grid weather forecast data, temperature, wind, precipitation | coming_soon | live |
-| 8 | `layer_08_news_osint` | News & OSINT | Geotagged news, open-source intelligence feeds | coming_soon | live |
+| 5 | `layer_05_space_satellites` | Space & Satellites | Satellite objects, orbits, tracks, debris | active | live |
+| 6 | `layer_06_maritime` | Maritime | Vessel positions, ports, vessel details | active | live |
+| 7 | `layer_07_weather` | Weather / Live Weather | Point/grid weather forecast data, temperature, wind, precipitation | active | live |
+| 8 | `layer_08_news_osint` | News & OSINT | Geotagged news, open-source intelligence feeds | active | live |
 | 9 | `layer_09_user_shapes` | User Shapes | User-created polygons, lines, markers | coming_soon | static |
-| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | Power plants, substations, transmission lines, oil/gas pipelines, LNG terminals | coming_soon | static |
+| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | Power plants, substations, transmission lines, oil/gas pipelines, LNG terminals | active | static |
 
 ## Layer 0: Globe Core
 
@@ -84,7 +84,7 @@ Components:
 - Read-only API â€” no write endpoints
 - UI disclaimer: "Publicly available information only"
 
-## Layer 5: Space & Satellites (Coming Soon)
+## Layer 5: Space & Satellites (Implemented, default OFF)
 
 Satellite tracking and orbital visualization.
 
@@ -94,7 +94,7 @@ Components:
 - TLE feed sources (Space-Track, CelesTrak)
 - Latest snapshot + history DB tables
 
-## Layer 6: Maritime (Coming Soon)
+## Layer 6: Maritime (Implemented, default OFF)
 
 Vessel tracking and port database.
 
@@ -105,19 +105,19 @@ Components:
 - AIS data feeds
 - Latest snapshot + history DB tables
 
-## Layer 7: Infrastructure (Coming Soon)
+## Layer 7: Weather / Live Weather
 
-Critical infrastructure visualization from public datasets.
+Point/grid weather observations and forecasts from a public weather model source.
 
 Components:
-- Power grid line overlays
-- Fiber optic cable routes
-- Water system nodes
-- Transportation network lines
-- Static GeoJSON sources
-- Single snapshot DB table
+- Temperature-colored weather markers on the globe
+- Click detail card (temperature, wind, precipitation, weather code)
+- Open-Meteo source (no API key required for fetching)
+- Latest observation + history DB tables
+- Stale-data handling; CC-BY 4.0 attribution in UI
+- Implemented; UI toggle defaults to OFF
 
-## Layer 8: News & OSINT (Coming Soon)
+## Layer 8: News & OSINT (Implemented, default OFF)
 
 Geotagged news and open-source intelligence aggregation.
 
@@ -138,6 +138,18 @@ Components:
 - Visibility toggle
 - Authenticated write API
 - User shapes DB table with user_id, geometry, properties
+
+## Layer 10: Energy Infrastructure (Implemented)
+
+Energy infrastructure visualization from public/open datasets.
+
+Components:
+- Point markers for power plants, substations, terminals
+- Line markers for transmission lines and pipelines
+- Public/open data source families (WRI, OpenStreetMap, Global Energy Monitor)
+- Single snapshot DB table (`energy_infrastructure`)
+- API: `GET /api/energy/infrastructure` (+ `/categories`, `/sources`, `/:featureId`)
+- Public/open data only; no targeting/sabotage guidance; no real-time operational data
 
 ## Rules
 

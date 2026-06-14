@@ -1,10 +1,15 @@
 # Layer 05 — Space & Satellites MVP Lane Contract
 
+> **Status note (alignment pass):** This lane contract is **historical/completed**. Layer 05
+> Space & Satellites is implemented in the current code (fetcher/worker, API routes,
+> WebSocket, frontend, and tests). The authoritative status is in
+> `docs/control/MVP_LAYER_REGISTRY.md`. The content below is preserved for reference.
+
 ## 1. Layer Identity
 
 - **Layer ID:** `layer_05_space_satellites`
 - **Display Name:** Space & Satellites
-- **MVP Status:** coming_soon (implementation in progress)
+- **MVP Status:** active — this lane contract is **historical**; Layer 05 is implemented (see `docs/control/MVP_LAYER_REGISTRY.md` and current code). UI toggle defaults OFF.
 - **Type:** live (estimated orbital positions)
 - **Canonical Folders:**
   - Fetching: `services/fetch-orchestrator/src/layers/layer_05_space_satellites/`

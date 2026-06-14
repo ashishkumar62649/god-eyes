@@ -1,115 +1,95 @@
 # Current Project State
 
-## Phase: Layer 05 Space & Satellites MVP Planning
+## Phase: Repository Alignment In Progress
 
-## Goal
+Documentation, layer registries (API + frontend), CI/dependency files, environment
+examples, and route documentation are being aligned with the current working code on
+the main branch. No layer business logic is being redesigned in this phase.
 
-Define the authoritative lane contract for Layer 05 Space & Satellites so database, fetching, API, frontend, and review agents can work in parallel without drifting.
+## Authoritative Sources
 
-## Status
+- `docs/control/MVP_LAYER_REGISTRY.md` is the authoritative layer registry (IDs, order, status).
+- The API registry (`apps/api/src/routes/layers.ts`) and the frontend fallback registry
+  (`apps/web/src/lib/useLayerRegistry.ts`) are aligned to that registry.
 
-**WO-082A Lane Contract Complete:** GOD EYES frontend cleanup (WO-081) is complete. Main branch is clean. Multi-lane workflow is active again. Layer 05 Space & Satellites MVP lane contract defined in `docs/control/layer_05_space_satellites_mvp_contract.md`. Five parallel lanes ready to start:
-- Database (Codex, WO-082B)
-- Fetching (MiniMax, WO-082C)
-- API (DeepSeek, WO-082D)
-- Frontend (Sonnet 4.6, WO-082E)
-- Review (Claude Haiku 4.5, WO-082F)
+## Implemented Layers (status: active)
 
-### Completed Work Orders
-- ✅ WO-001 through WO-029F: Foundation, data pipeline, API, frontend infrastructure
-- ✅ WO-030A: Aviation API Preload/Resident Cache Mode
-- ✅ WO-031-FE: Aviation Simple Global Category Renderer
-- ✅ HOTFIX-2: Frontend Fetch/Render/Status Fixes
-- ✅ WO-060: Repository Health Audit (score: 74/100)
-- ✅ WO-061: Repository Safe Cleanup (Phase 1)
-- ✅ WO-063: MVP Layer Registry (10-layer authoritative registry)
-- ✅ WO-071: Earth Events database migration
-- ✅ WO-072: Earth Events USGS fetcher
-- ✅ WO-073 / WO-073A: Earth Events API + timestamp fix
-- ✅ WO-074 / WO-074A: Earth Events frontend globe layer + occlusion fix
-- ✅ WO-075-076: Earth Events closeout + Borders & Boundaries policy plan
-- ✅ WO-076A: Borders & Boundaries implementation gate review
-- ✅ WO-077: Borders & Boundaries database schema foundation (schema-only, no data)
-- ✅ WO-078A: Borders source license clearance kit created
-- ✅ WO-078A1: Borders MVP boundary mode decision recorded
-- ✅ WO-078B: Natural Earth Admin-0 Countries 1:50m selected for MVP/local/dev
-- ✅ WO-078C through WO-078E10: Natural Earth ingestion, Borders frontend, MVP closeout
-- ✅ WO-079A: Aviation live-data source, database, and API architecture planned
-- ✅ WO-079B through WO-080C7: Aviation live aircraft schema, worker, WebSocket/API integration, Cesium render fixes, aircraft icons, and altitude color scale
-- ✅ WO-081A: Repository guardrails and layer registry cleanup
-- ✅ WO-081B: Frontend overlay extraction and layer folder skeleton
-- ✅ WO-081C: FPS counter hook extraction
-- ✅ WO-081D: Cesium token setup helper extraction
-- ✅ WO-081E: Globe viewer helper cleanup bundle
-- ✅ WO-081F: Frontend layer organization + aircraft visual hotfix
-- ✅ WO-081G: Legacy aircraft frontend cleanup
-- ✅ WO-082A: Layer 05 Space & Satellites MVP lane contract
+| Layer ID | Name | Notes |
+|----------|------|-------|
+| `layer_00_globe_core` | Globe Core | Frontend-only foundation; always on. |
+| `layer_01_aviation` | Aviation | Airports + live aircraft; default ON. |
+| `layer_02_borders_boundaries` | Borders & Boundaries | MVP/local-dev (Natural Earth); default ON; **not production-approved**. |
+| `layer_03_earth_events` | Earth Events | USGS earthquakes; default ON. |
+| `layer_05_space_satellites` | Space & Satellites | Implemented; UI toggle default OFF. |
+| `layer_06_maritime` | Maritime | Implemented; UI toggle default OFF. |
+| `layer_07_weather` | Weather / Live Weather | Open-Meteo; implemented; UI toggle default OFF. |
+| `layer_08_news_osint` | News & OSINT | GDACS + GDELT; implemented; UI toggle default OFF. |
+| `layer_10_energy_infrastructure` | Energy Infrastructure | WRI/OSM/GEM; implemented; default ON. |
 
-### Current Capabilities
-- ✅ Layer 0 Globe Core: Cesium globe with camera controls
-- ✅ Layer 1 Aviation: 85,377 airports globally plus MVP live aircraft rendering
-  - 8 category support (international, regional, local, heliport, seaplane, balloonport, closed, unknown)
-  - Resident global cache mode (no tile/bbox/zoom loading)
-  - Category filtering with instant updates
-  - Object Intel detail view
-  - StatusPanel with preload progress, loaded/visible counts
-  - No FPS loss at 85k+ airports
-  - Live aircraft render through WebSocket when the live aircraft worker is running and publishing snapshots
-  - Airport intelligence panel (ICAO, IATA, elevation, timezone, region)
-  - Airport public profile enrichment works when the worker is running
-  - Airport image gallery
-  - Airport layout runway overlay (OSM-sourced)
-  - Closed runways hidden by default via `is_active = false`
-- ✅ Layer 2 Borders & Boundaries: Natural Earth MVP/local/dev frontend complete (pushed e6639e9)
-  - Red polyline outlines on globe
-  - Toggle in LayerPanel
-  - MVP caveat displayed
-  - Not production-approved; not Survey of India compliant
-- ✅ Layer 3 Earth Events: USGS earthquake feed end-to-end
-  - Database tables: earth_events_latest + earth_events_history
-  - USGS fetcher (magnitude, location, time, coordinates)
-  - API endpoint: `GET /api/earth-events/latest`
-  - Frontend Cesium markers, color-coded by severity
-  - Globe depth/occlusion correct (markers behind globe hidden)
+## Coming Soon Layers (status: coming_soon)
 
-## What Exists
+| Layer ID | Name |
+|----------|------|
+| `layer_04_public_military_security` | Public Military & Security |
+| `layer_09_user_shapes` | User Shapes |
 
-- [x] AGENTS.md (layer-based)
-- [x] docs/control/ (all control documents)
-- [x] docs/state/ (all state documents including integration reviews)
-- [x] docs/work-orders/ (all completed work orders)
-- [x] specs/001-layer-zero-globe-core/spec.md
-- [x] specs/002-layer-one-aviation/spec.md
-- [x] apps/api/ (Fastify API with preload, intelligence, layout endpoints)
-- [x] apps/web/ (React + Cesium frontend with resident renderer)
-- [x] packages/contracts/ (TypeScript type contracts)
-- [x] database/ (PostgreSQL schema with 85k+ airports)
-- [x] services/fetch-orchestrator/ (OurAirports data fetcher)
-- [x] services/normalizer/ (Aviation data normalizer)
-- [x] tests/data/ (Data pipeline tests)
+## Current Capabilities by Layer
+
+- **Layer 0 — Globe Core:** Cesium 3D globe with camera controls and layer toggle system.
+- **Layer 1 — Aviation:** ~85k airports with resident global cache, category filters, intel
+  detail panel, public profile/intelligence/image/layout enrichment, and live aircraft
+  rendering over WebSocket when the aviation worker is running.
+- **Layer 2 — Borders & Boundaries:** Natural Earth Admin-0 outlines (MVP/local-dev only).
+  Not Survey of India compliant; not production-approved.
+- **Layer 3 — Earth Events:** USGS earthquake markers, color-coded by severity.
+- **Layer 5 — Space & Satellites:** Satellite catalog/orbit endpoints + WebSocket; renders
+  when the satellite worker has populated data. UI toggle default OFF.
+- **Layer 6 — Maritime:** Vessel object/stats endpoints; renders when the maritime worker
+  has populated data. UI toggle default OFF.
+- **Layer 7 — Weather:** Open-Meteo observation/forecast endpoints and weather markers/detail
+  card. UI toggle default OFF.
+- **Layer 8 — News & OSINT:** GDACS/GDELT event endpoints, globe markers + list. UI toggle
+  default OFF.
+- **Layer 10 — Energy Infrastructure:** Power plants/substations/lines/pipelines endpoints
+  and markers. Default ON.
+
+## Live Workers
+
+Fetcher/normalizer/ingestion workers exist for the live layers under
+`services/fetch-orchestrator/src/layers/<layer_id>/` and
+`database/ingestion/layers/<layer_id>/`. They are currently run manually (proof/seed/CLI
+modes). A unified runner/scheduler cleanup is deferred to a later work order. Live layers
+display an empty state until their worker has populated the database. No fake/demo data is
+ever displayed.
+
+## API Surface (implemented)
+
+- `GET /api/health`
+- `GET /api/layers`, `GET /api/layers/registry`, `GET /api/layers/:layerId`, `GET /api/layers/:layerId/status`
+- `GET /api/layers/layer_01_aviation/objects` (+ `/:objectId`, `/:objectId/detail`)
+- `GET /api/aviation/aircraft/latest`, `GET /api/aviation/aircraft/:sourceObjectId`
+- `GET /api/airports/:airportId/{intelligence,layout-features,public-profile}`
+- `GET /api/borders-boundaries/countries`
+- `GET /api/earth-events/latest`
+- `GET /api/space/satellites` (+ `/categories`, `/:satelliteId`)
+- `GET /api/energy/infrastructure` (+ `/categories`, `/sources`, `/:featureId`)
+- `GET /api/layers/layer_06_maritime/objects` (+ `/:objectId`, `/stats`, `/vessels/:mmsi/positions`)
+- `GET /api/layers/layer_07_weather/weather/{latest,current,hourly,nearby,sources,fetch-runs}`
+- `GET /api/layers/layer_08_news_osint/news/{items,markers,sources,fetch-runs,stats}`
+- WebSockets: `/ws/aviation/aircraft/live`, `/ws/space/satellites/live`
 
 ## What Does Not Exist Yet
 
-- [ ] Layer 4 Public Military & Security
-- [ ] Layer 5 Space & Satellites
-- [ ] Layer 6 Maritime
-- [ ] Layer 7 Infrastructure
-- [ ] Layer 8 News & OSINT
-- [ ] Layer 9 User Shapes / Drawings / Custom Overlays
-- [ ] User authentication
-- [ ] Data export/sharing
-- [ ] Generic layer API endpoints
-- [ ] Earth Events: bbox support, clustering, refresh controls, timeline replay (deferred)
+- Layer 4 Public Military & Security (planned, coming_soon)
+- Layer 9 User Shapes / Custom Overlays (planned, coming_soon)
+- User authentication
+- Data export/sharing
+- Unified live-worker runner/scheduler (workers exist but are run manually)
 
-## Next Safe Steps
+## Workflow
 
-1. **WO-082B Database Lane:** Codex creates schema, migrations, tests
-2. **WO-082C Fetching Lane:** MiniMax implements fetcher, normalizer, tests
-3. **WO-082D API Lane:** DeepSeek implements endpoints, WebSocket, tests
-4. **WO-082E Frontend Lane:** Sonnet 4.6 implements UI, WebSocket client, tests
-5. **WO-082F Review Lane:** Claude Haiku 4.5 reviews all lanes, verifies integration
-6. **Boss review:** Final integration and merge to main
+Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/GIT_WORKFLOW_POLICY.md`.
 
 ## Last Updated
 
-2026-05-31 — Kiro CLI (WO-082A-SPACE-LAYER-CONTRACT)
+2026-06-14 — Orchestrator Agent (repository alignment pass)
