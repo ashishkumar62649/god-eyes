@@ -70,7 +70,8 @@ Secrets added: no
 - Review all agent work
 - Run integration checks
 - Verify security/privacy
-- Create `docs/state/INTEGRATION_REVIEW_[WO].md`
+- Create `docs/state/INTEGRATION_REVIEW_[WO].md` during active work.
+  Completed reviews are archived under `docs/archive/`.
 - Push approved branches to remote
 - Update `HANDOFF_LOG.md` with push record
 
@@ -130,7 +131,7 @@ python -m pytest tests/data -q
 
 #### 5. Review Document
 
-Create: `docs/state/INTEGRATION_REVIEW_[WORK_ORDER].md`
+Create: `docs/state/INTEGRATION_REVIEW_[WORK_ORDER].md` (completed reviews are archived)
 
 Include:
 - PASS / FAIL / NEEDS REVIEW status
@@ -184,7 +185,7 @@ Worker Agent updates HANDOFF_LOG.md
     ↓
 Orchestrator Agent reviews work
     ↓
-Orchestrator Agent creates INTEGRATION_REVIEW_[WO].md
+Orchestrator Agent creates INTEGRATION_REVIEW_[WO].md (archived after completion)
     ↓
 Review = PASS?
     ├─ YES → Orchestrator Agent pushes branch to origin
@@ -284,8 +285,8 @@ A work package is "complete" when:
   resolved on the same branch).
 - All required build, test, and lint checks pass.
 - `HANDOFF_LOG.md` has a complete entry for the work package.
-- A `docs/state/INTEGRATION_REVIEW_*.md` (or equivalent review record) exists with a
-  PASS decision.
+- A `docs/state/INTEGRATION_REVIEW_*.md` (or equivalent review record, or archived review) exists with
+  a PASS decision.
 
 Only then may the user push, open a PR, and merge.
 

@@ -62,7 +62,9 @@ def test_search_performance_document_exists():
     doc = (
         REPO_ROOT
         / "docs"
-        / "data"
+        / "archive"
+        / "2026-06-14-final-docs-structure"
+        / "data-legacy"
         / "layer_01_aviation"
         / "AVIATION_SEARCH_PERFORMANCE.md"
     ).read_text(encoding="utf-8")

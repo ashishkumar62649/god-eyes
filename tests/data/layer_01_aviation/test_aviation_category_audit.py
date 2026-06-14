@@ -9,7 +9,9 @@ SCRIPT_PATH = REPO_ROOT / "scripts" / "aviation_category_audit.py"
 DOC_PATH = (
     REPO_ROOT
     / "docs"
-    / "data"
+    / "archive"
+    / "2026-06-14-final-docs-structure"
+    / "data-legacy"
     / "layer_01_aviation"
     / "AVIATION_CATEGORY_AUDIT_WO-029E.md"
 )

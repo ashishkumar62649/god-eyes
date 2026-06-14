@@ -149,7 +149,7 @@
 - [ ] Document files created/modified
 
 ### Task DOC-2: Control Documents
-- [ ] Update `docs/control/layer_10_energy_infrastructure_mvp_contract.md`
+- [ ] Update `docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_10_energy_infrastructure/layer_10_energy_infrastructure_mvp_contract.md` (archived; reference preserved for historical context)
 - [ ] Update `docs/control/MVP_LAYER_REGISTRY.md` (if needed)
 - [ ] Update `docs/control/LAYER_ARCHITECTURE.md` (if needed)
 

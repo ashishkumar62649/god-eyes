@@ -8,7 +8,9 @@ SCRIPT_PATH = REPO_ROOT / "scripts" / "aviation_airport_detail_qa_samples.py"
 DOC_PATH = (
     REPO_ROOT
     / "docs"
-    / "data"
+    / "archive"
+    / "2026-06-14-final-docs-structure"
+    / "data-legacy"
     / "layer_01_aviation"
     / "AIRPORT_DETAIL_QA_SAMPLES.md"
 )

@@ -135,7 +135,9 @@ def test_manual_override_recommendation_docs_exist():
     assert (
         REPO_ROOT
         / "docs"
-        / "data"
+        / "archive"
+        / "2026-06-14-final-docs-structure"
+        / "data-legacy"
         / "layer_01_aviation"
         / "AVIATION_DATA_QUALITY.md"
     ).read_text(encoding="utf-8").find("manual override") >= 0

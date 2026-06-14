@@ -1,4 +1,52 @@
 
+### 2026-06-14T23:30:00Z — final-visible-documentation-structure-cleanup
+
+- Work order: final-visible-documentation-structure-cleanup
+- Agent: Documentation Agent
+- Branch: agent/documentation-system-spec-kit-alignment
+- Base branch: (from previous work on same branch)
+- Start time UTC: 2026-06-14T18:00:00Z
+- End time UTC: 2026-06-14T18:30:00Z
+- Commit hash: 68d8737 (local only)
+- Push status: local only (NOT pushed — Orchestrator Agent owns pushes)
+- Goal: Final visible documentation structure cleanup — move all historical layer-specific control docs, old integration reviews, completed work orders, legacy API/data notes, and superseded audits into archive; promote decision/template docs; update documentation map and archive index.
+- Files moved (97 total):
+  - docs/control/AIRPORT_PUBLIC_ENRICHMENT_PIPELINE.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_01_aviation/
+  - docs/control/EARTH_EVENTS_LAYER_PLAN.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_03_earth_events/
+  - docs/control/layer_05_space_satellites_mvp_contract.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_05_space_satellites/
+  - docs/control/layer_10_energy_infrastructure_mvp_contract.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_10_energy_infrastructure/
+  - docs/control/BORDERS_BOUNDARIES_*.md (7 files) → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_02_borders_boundaries/
+  - docs/state/INTEGRATION_REVIEW_*.md (49 files) → docs/archive/2026-06-14-final-docs-structure/state-integration-reviews/
+  - docs/work-orders/WO-*.md (17 files) → docs/archive/2026-06-14-final-docs-structure/work-orders/project_infrastructure/
+  - docs/api/*.md (5 files) → docs/archive/2026-06-14-final-docs-structure/api-legacy/layer_01_aviation/
+  - docs/data/layer_01_aviation/*.md (13 files) → docs/archive/2026-06-14-final-docs-structure/data-legacy/layer_01_aviation/
+  - docs/audits/PROJECT_ALIGNMENT_FIX_REPORT.md → docs/archive/2026-06-14-final-docs-structure/audits/
+  - docs/audits/PROJECT_ALIGNMENT_FIX_REVIEW.md → docs/archive/2026-06-14-final-docs-structure/audits/
+- Files created:
+  - docs/archive/2026-06-14-final-docs-structure/INDEX.md
+  - docs/work-orders/README.md
+  - docs/api/README.md
+  - docs/data/README.md
+- Files modified:
+  - AGENTS.md (updated integration review workflow references)
+  - docs/README.md (updated directory meaning table, archive batch reference)
+  - docs/control/GIT_WORKFLOW_POLICY.md (updated integration review references)
+  - docs/control/MVP_LAYER_REGISTRY.md (updated borders reference to archive path)
+  - specs/004-layer-10-energy-infrastructure-mvp/tasks.md (updated contract reference)
+  - 16 test files in tests/data/layer_01_aviation/ (updated doc path references)
+- Commands run:
+  - git status --short --branch → clean branch
+  - git mv (97 file moves) → all successful
+  - git add -A → staged
+  - git commit → 68d8737
+  - python -m pytest tests/data -q → 1158 passed, 15 skipped, 1 failed (pre-existing: test_aviation_category_audit.py references non-existent AVIATION_CATEGORY_AUDIT_WO-029E.md)
+  - git diff --check → no whitespace errors
+- Known issues:
+  - test_aviation_category_audit.py::test_category_audit_document_covers_required_sections fails — references docs/data/layer_01_aviation/AVIATION_CATEGORY_AUDIT_WO-029E.md which never existed (pre-existing, not caused by this cleanup)
+- Review status: Pending Orchestrator Agent review. Not pushed.
+
+---
+
 ### 2026-06-14T10:08:00Z — project-health-findings-explanation
 
 - Work order: project-health-findings-explanation

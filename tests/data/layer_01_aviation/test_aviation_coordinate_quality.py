@@ -14,7 +14,9 @@ MIGRATION_PATH = (
 DOC_PATH = (
     REPO_ROOT
     / "docs"
-    / "data"
+    / "archive"
+    / "2026-06-14-final-docs-structure"
+    / "data-legacy"
     / "layer_01_aviation"
     / "AVIATION_COORDINATE_QUALITY_AND_OVERRIDES.md"
 )
