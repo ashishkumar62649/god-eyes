@@ -6709,3 +6709,34 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - python -m pytest tests/data -q: 11 tests failed on dirty tree due to worktree scope guards checking allowed paths (rerun on clean tree pending commit)
 - Known issues: none
 - Review status: Ready for Reviewer Agent
+
+---
+
+### 2026-06-14T19:51:00+05:30 — engineering-structure-rules
+
+- Work order: engineering-structure-rules
+- Agent: Documentation Agent
+- Branch: agent/engineering-structure-rules
+- Base branch: main (7f2e22c)
+- Start time: 2026-06-14T19:51:00+05:30
+- End time: 2026-06-14T20:15:00+05:30
+- Goal: Create master engineering structure rules document covering file structure, database structure, API structure, naming conventions, file/function size limits, and refactor boundaries. Update AGENTS.md Key Documents. Append this handoff entry.
+- Files created:
+  - docs/control/ENGINEERING_STRUCTURE_RULES.md (626 lines, 19 sections)
+- Files modified:
+  - AGENTS.md (Key Documents section — added ENGINEERING_STRUCTURE_RULES.md as first entry)
+  - docs/state/HANDOFF_LOG.md (this entry)
+- Commands run:
+  - git status --short --branch → clean, branch agent/engineering-structure-rules
+  - git log --oneline --decorate -n 8 → HEAD = 7f2e22c (merged from main)
+  - git diff --stat → 3 files changed after edits
+  - git diff --check → PASS
+  - Select-String -Path "AGENTS.md" -Pattern "ENGINEERING_STRUCTURE_RULES" → PASS (found)
+  - Select-String -Path "docs/control/ENGINEERING_STRUCTURE_RULES.md" -Pattern "Database table rules" → PASS (found)
+  - Select-String -Path "docs/control/ENGINEERING_STRUCTURE_RULES.md" -Pattern "Reviewer checklist" → PASS (found)
+  - python -m pytest tests/data -q → 1159 passed, 15 skipped, 0 failed
+- Summary: Added master engineering structure rules for code, database, migrations, API transport, live data, file size limits, refactor boundaries, and reviewer checks. Updated AGENTS.md Key Documents to reference the new rulebook as mandatory reading. All 19 required sections included.
+- Known issues: none
+- Forbidden folders touched: no
+- Secrets added: no
+- Review status: Pending Orchestrator Agent review. Not pushed.
