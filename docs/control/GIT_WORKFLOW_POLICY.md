@@ -212,6 +212,85 @@ Before every push, the Orchestrator Agent must verify:
 - [ ] All changes are from the assigned work order
 - [ ] No unrelated changes mixed in
 
+## PR / Merge Policy
+
+This project does **not** create a PR for every small local correction. A single PR
+represents one **completed work package** after the Reviewer Agent decision is PASS.
+The user is the only role that pushes branches, opens PRs, merges PRs, and deletes
+branches.
+
+### Rules
+
+1. Do not create a PR for every small local correction.
+2. A branch may contain multiple local commits during one work package.
+3. Required fixes after review should usually stay on the same branch and be
+   re-checked by the Reviewer Agent.
+4. Create one PR only when the full work package is complete and the Reviewer Agent
+   decision is PASS.
+5. A PR is required before anything reaches `main`.
+6. A PR is required for completed features, refactors, audits, control-doc changes,
+   database migrations, API contracts, and cross-lane work.
+7. A PR is not required for small local corrections before the work package is
+   complete.
+8. Agents never push, open PRs, merge, or delete branches.
+9. The user handles push, PR creation, merge, and branch deletion.
+
+### Work package branch workflow
+
+A work package branch typically looks like:
+
+- local commit 1
+- review
+- required fix commit if needed
+- reviewer re-check
+- final PASS
+- user pushes branch
+- user opens one PR for the whole completed work package
+- user merges after approval
+- user deletes branch if desired
+
+The "small local correction" rule is intentional: pushing and opening a PR is a
+human-facing event. The user decides when a work package is ready to be exposed as a
+PR. Agents must not bypass this rule by opening a PR "for convenience" or by pushing
+a branch on their own.
+
+### What this means for each role
+
+- **Worker agents** (Frontend, API, Fetcher, Normalizer, Database, Contract, Research,
+  Documentation, etc.) — create local commits on the work-package branch; update
+  `HANDOFF_LOG.md`; do not push; do not open PRs; do not merge; do not delete
+  branches.
+- **Reviewer / Integration Agent** — review the branch; if PASS, hand off to the
+  user; if FAIL or NEEDS REVIEW, request fixes on the same branch. The reviewer does
+  not push, open, merge, or delete.
+- **Orchestrator Agent** — coordinates the workflow and resolves cross-agent
+  conflicts. The Orchestrator Agent does not push to `main` directly and does not
+  bypass the user's PR/merge authority.
+- **User** — the only role that pushes branches, opens PRs, merges PRs, and deletes
+  branches after a reviewer PASS.
+
+### PR scope
+
+A single PR must cover one work package, not several unrelated changes. If a branch
+has grown to cover more than one work package, split it into multiple branches and
+multiple PRs, one per work package. The user will open a separate PR for each.
+
+### What "completed work package" means
+
+A work package is "complete" when:
+
+- All worker-agent tasks are done.
+- The Reviewer Agent decision is PASS (or PASS WITH REQUIRED FIXES that are already
+  resolved on the same branch).
+- All required build, test, and lint checks pass.
+- `HANDOFF_LOG.md` has a complete entry for the work package.
+- A `docs/state/INTEGRATION_REVIEW_*.md` (or equivalent review record) exists with a
+  PASS decision.
+
+Only then may the user push, open a PR, and merge.
+
+---
+
 ## Rollback Procedure
 
 If a pushed commit introduces critical issues:
