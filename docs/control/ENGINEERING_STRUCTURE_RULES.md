@@ -647,6 +647,10 @@ SPEC, PLAN, TASK_LIST, REVIEW_REPORT, ARCHIVE).
 - **Old or superseded documents go to `docs/archive/`** by dedicated cleanup only.
   Nothing is archived automatically, and no document should be moved to `docs/archive/`
   as part of feature or refactor work.
+- **PR / Merge Policy lives in `docs/control/GIT_WORKFLOW_POLICY.md`.** Refactor and
+  feature branches may contain multiple local commits before one final PR. Agents
+  never push, open PRs, merge, or delete branches; the user handles all of those
+  after the Reviewer Agent decision is PASS.
 
 **Last updated:** 2026-06-14
 **Author:** Documentation Agent

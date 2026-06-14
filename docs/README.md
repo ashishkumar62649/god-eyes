@@ -114,6 +114,10 @@ The following rules apply to the entire documentation system:
   documentation cleanup task on its own branch.
 - **Do not create random docs outside the defined folders.** Every new document must
   belong to a documented directory and classification.
+- **PR and merge rules live in `docs/control/GIT_WORKFLOW_POLICY.md`.** Agents do not
+  push, open PRs, merge, or delete branches; the user handles all of those after the
+  Reviewer Agent decision is PASS. Do not create a PR for every small local
+  correction.
 
 ---
 

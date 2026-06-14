@@ -6808,3 +6808,23 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Forbidden folders touched: no
 - Secrets added: no
 - Review status: Pending Orchestrator Agent review. Not pushed.
+
+---
+
+### 2026-06-14T13:35:00Z — documentation-system-spec-kit-alignment-required-fix
+
+- Work order: documentation-system-spec-kit-alignment-required-fix
+- Agent: Documentation Agent
+- Branch: agent/documentation-system-spec-kit-alignment
+- Base branch: main (previous reviewed commit: c665881d0ae6800e3890dba5c18498df9342984c)
+- Goal: Reviewer returned PASS WITH REQUIRED FIXES — add a clear PR / Merge Policy so future agents and reviewers understand that we do not create a PR for every small local correction. One PR = one completed work package after reviewer PASS. The user handles push, PR, merge, and branch deletion. Agents never push, open PRs, merge, or delete branches.
+- Files modified:
+  - docs/control/GIT_WORKFLOW_POLICY.md (added PR / Merge Policy section with 9 rules, work-package branch workflow, role rules, PR scope, and "completed work package" definition)
+  - docs/README.md (added a short reference in the Rules section to docs/control/GIT_WORKFLOW_POLICY.md for PR and merge rules)
+  - docs/control/ENGINEERING_STRUCTURE_RULES.md (added a short note in the Documentation, Specs, and Audit Reports subsection pointing to GIT_WORKFLOW_POLICY.md)
+  - docs/state/HANDOFF_LOG.md (this appended entry)
+- Summary: Added PR / Merge Policy clarifying work-package PRs, same-branch review fixes, reviewer PASS before PR, and user-only push/PR/merge/branch deletion.
+- Known issues: none
+- Forbidden folders touched: no
+- Secrets added: no
+- Review status: Pending Reviewer Agent re-check on the same branch. Not pushed.
