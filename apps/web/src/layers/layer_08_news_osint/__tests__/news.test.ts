@@ -84,7 +84,7 @@ describe('News & OSINT Layer (Layer 08) Tests', () => {
       expect(layer?.status).toBe('active');
       expect(layer?.isImplemented).toBe(true);
       expect(layer?.isEnabled).toBe(false);
-      expect(layer?.sourceRule).toBe('GDACS');
+      expect(layer?.sourceRule).toBe('GDACS and GDELT Event Export');
     });
   });
 
