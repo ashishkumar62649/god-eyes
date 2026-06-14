@@ -6740,3 +6740,47 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Forbidden folders touched: no
 - Secrets added: no
 - Review status: Pending Orchestrator Agent review. Not pushed.
+
+---
+
+### 2026-06-14T21:30:00+05:30 — engineering-structure-compliance-audit
+
+- Work order: engineering-structure-compliance-audit
+- Agent: Research Agent
+- Branch: research/engineering-structure-compliance-audit
+- Base branch: main (4296a62)
+- Start time: 2026-06-14T21:00:00+05:30
+- End time: 2026-06-14T21:30:00+05:30
+- Goal: Audit current repository against docs/control/ENGINEERING_STRUCTURE_RULES.md. Produce a findings report showing what follows the rules, what violates them, which violations matter most, and what should be planned later. Research only — no code changes, no refactors, no file moves, no renames.
+- Files created:
+  - docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md (full 18-section compliance audit)
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this appended entry)
+- Summary: Audited frontend layer folders, API routes, fetcher/normalizer services, database migrations, database ingestion, and tests/data. Confirmed rulebook alignment with current code. No Critical or High findings. 4 Medium (oversized API route files, oversized shared frontend components, contracts module size, API route split / SQL-in-handlers), and a handful of Low findings (frontend short-name folders grandfathered, large fetcher workers, large data tests, migration numbering gap). No import boundary violations found. Aviation normalizer remains in canonical separate location; other layers use the documented colocated normalizer pattern. Live layers correctly separate *_latest from history tables. JSONB usage is compliant. Spatial naming (geom, latitude, longitude) is consistent. Raw storage path pattern matches Section 15.
+- Files inspected by category:
+  - apps/web/src/layers/ (full recursion), apps/web/src/components/, apps/web/src/lib/
+  - apps/api/src/routes/ (full recursion), apps/api/src/lib/
+  - packages/contracts/src/
+  - services/fetch-orchestrator/src/layers/, services/normalizer/src/layers/
+  - database/migrations/, database/ingestion/
+  - tests/data/layer_*/
+- Commands run:
+  - git status --short --branch → on research/engineering-structure-compliance-audit
+  - git log --oneline --decorate -n 8 → HEAD = 4296a62 (merged from main)
+  - Get-ChildItem -Recurse apps/web/src/layers → 8 layer folders listed
+  - Get-ChildItem -Recurse apps/api/src/routes → 4 subfolders + 10 file routes
+  - Get-ChildItem -Recurse services/fetch-orchestrator/src/layers → 8 layer folders listed
+  - Get-ChildItem -Recurse services/normalizer/src/layers → 1 layer folder (aviation)
+  - Get-ChildItem -Recurse database/migrations → 7 layer folders + 1 core
+  - Get-ChildItem -Recurse database/ingestion → 2 layer folders
+  - Get-ChildItem -Recurse tests → 8 layer folders + conftest
+  - Line counts across *.ts, *.tsx, *.py, *.sql files via PowerShell
+  - Grep checks: vague file names, fetch( in frontend, SQL in API routes, forbidden cross-imports, geom/lat/lon patterns, MAX_/validate patterns, raw storage paths, JSONB usage
+- Results:
+  - git diff --check: PASS
+  - Section header check: Select-String confirms Executive Summary, Database and Migration Structure Findings, Recommended Repair Order, Do-Not-Touch-Yet all present in the audit doc
+  - python -m pytest tests/data -q: 1159 passed, 15 skipped (clean tree)
+- Known issues: none
+- Forbidden folders touched: no
+- Secrets added: no
+- Review status: Pending Orchestrator Agent review. Not pushed.
