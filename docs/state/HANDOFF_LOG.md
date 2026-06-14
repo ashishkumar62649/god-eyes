@@ -6828,3 +6828,53 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Forbidden folders touched: no
 - Secrets added: no
 - Review status: Pending Reviewer Agent re-check on the same branch. Not pushed.
+
+---
+
+### 2026-06-14T14:00:00Z — documentation-archive-cleanup
+
+- Work order: documentation-archive-cleanup
+- Agent: Documentation Agent
+- Branch: agent/documentation-system-spec-kit-alignment
+- Base branch: main
+- Goal: Make the documentation folder easier to understand by moving clearly old, superseded, duplicate, or historical documents into docs/archive/. Use git mv only. Do not delete anything. Keep active rules, current state, active specs, and important audit evidence visible. This is a safe, reversible cleanup.
+- Files created:
+  - docs/archive/2026-06-14-documentation-cleanup/INDEX.md
+- Files modified:
+  - docs/README.md (extended the "Old/superseded docs" rule with a short pointer to the 2026-06-14 cleanup batch and its INDEX.md)
+  - docs/state/HANDOFF_LOG.md (this appended entry)
+- Files moved (git mv, no content changes):
+  - docs/devlog/2026-06-04.md → docs/archive/2026-06-14-documentation-cleanup/devlog/2026-06-04.md
+  - docs/postman/GOD_EYES_LOCAL_API.postman_collection.json → docs/archive/2026-06-14-documentation-cleanup/misc/GOD_EYES_LOCAL_API.postman_collection.json
+  - docs/reports/WO-060-repository-health-audit.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-060-repository-health-audit.md
+  - docs/reports/WO-062-god-eyes-mvp-layer-architecture-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-062-god-eyes-mvp-layer-architecture-plan.md
+  - docs/reports/WO-063-mvp-layer-registry-control-report.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-063-mvp-layer-registry-control-report.md
+  - docs/reports/WO-067-database-live-static-history-foundation.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-067-database-live-static-history-foundation.md
+  - docs/reports/WO-069-mvp-live-source-research-and-catalog-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-069-mvp-live-source-research-and-catalog-plan.md
+  - docs/reports/WO-070-earth-events-layer-implementation-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-070-earth-events-layer-implementation-plan.md
+  - docs/reports/WO-071-earth-events-database-migration.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-071-earth-events-database-migration.md
+  - docs/reports/WO-075-076-earth-events-closeout-and-borders-policy-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
+  - docs/reports/WO-076A-borders-boundaries-gate-and-source-review.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-076A-borders-boundaries-gate-and-source-review.md
+  - docs/reports/WO-077-borders-boundaries-database-schema.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-077-borders-boundaries-database-schema.md
+  - docs/reports/WO-078A-borders-source-license-clearance-kit.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078A-borders-source-license-clearance-kit.md
+  - docs/reports/WO-078A1-borders-mvp-boundary-mode-decision.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078A1-borders-mvp-boundary-mode-decision.md
+  - docs/reports/WO-078B-borders-natural-earth-mvp-source-selection.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078B-borders-natural-earth-mvp-source-selection.md
+  - docs/reports/WO-078C-borders-natural-earth-mvp-ingestion.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078C-borders-natural-earth-mvp-ingestion.md
+  - docs/reports/WO-078E-borders-boundaries-frontend.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078E-borders-boundaries-frontend.md
+  - docs/reports/WO-083A-energy-infrastructure-contract-report.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-083A-energy-infrastructure-contract-report.md
+- Files intentionally NOT moved (kept active):
+  - All docs/control/ docs (active rules).
+  - docs/state/CURRENT_PROJECT_STATE.md and docs/state/HANDOFF_LOG.md (current state and append-only log).
+  - All docs/audits/ docs (active audit evidence, including the alignment reports and the engineering structure compliance audit).
+  - All docs/work-orders/ files (the folder is referenced from AGENTS.md, docs/README.md, LLM_OWNERSHIP_MATRIX.md, and active specs).
+  - All docs/api/ files (referenced from docs/README.md and the integration review records).
+  - All docs/data/layer_01_aviation/ files (referenced from active control docs and the active api/ contracts).
+  - All specs/ docs and spec folders (active spec workspace).
+  - All docs/state/INTEGRATION_REVIEW_*.md and docs/state/AVIATION_LIVE_SOURCE_DECISION.md (active review reports and decision).
+  - AGENTS.md, docs/README.md, docs/archive/README.md, specs/README.md (protected).
+- Reference safety: Active doc references were checked before each git mv. The folder-level references in AGENTS.md, docs/README.md, and active specs to docs/work-orders/, docs/api/, docs/data/, and docs/state/INTEGRATION_REVIEW_*.md are not broken because those folders/files were not touched. No active reference was updated because no active file was moved.
+- Summary: Archived clearly superseded or historical documentation into docs/archive/2026-06-14-documentation-cleanup and added an archive index. Active rules, current state, active specs, and important audit evidence remain visible at their original locations.
+- Known issues: docs/reports/ is now empty. We did not delete the empty folder in this task. A future cleanup may remove it.
+- Forbidden folders touched: no
+- Secrets added: no
+- Review status: Pending Reviewer Agent review. Not pushed.

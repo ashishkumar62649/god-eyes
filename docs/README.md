@@ -107,7 +107,10 @@ The following rules apply to the entire documentation system:
   project-wide decisions such as documentation hierarchy, API architecture, database
   strategy, deployment strategy, or large refactor strategy.
 - **Old/superseded docs go to `docs/archive/`** by dedicated cleanup only. Nothing is
-  archived automatically.
+  archived automatically. Historical/superseded docs are archived under
+  `docs/archive/`. The 2026-06-14 cleanup batch lives in
+  `docs/archive/2026-06-14-documentation-cleanup/` and is documented by its
+  `INDEX.md`.
 - **Do not treat audit reports as active instructions** unless a control document
   explicitly adopts something from them.
 - **Do not move or archive docs during feature work.** Archiving is a dedicated
