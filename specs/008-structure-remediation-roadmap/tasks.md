@@ -699,6 +699,16 @@ For every task, the following metadata is recorded:
 
 ## Cross-Task Summary
 
+**Every worker agent picking up an SR-NNN task must read
+`specs/008-structure-remediation-roadmap/repository-skeleton.md` before
+starting work.** The skeleton defines the approved target folder tree, naming
+conventions, split mapping, and connection flow. If implementation conflicts
+with the skeleton, stop and report to the Orchestrator Agent.
+
+**Every reviewer agent checking an SR-NNN branch must verify changes against
+`repository-skeleton.md`.** Confirm that folder names, file names, split
+patterns, and shim placement match the approved target.
+
 | ID | Phase | Lane | Title |
 |---|---|---|---|
 | SR-001 | 0 | API / Contract | Contract / layer status response shape repair |

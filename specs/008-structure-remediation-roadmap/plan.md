@@ -858,6 +858,12 @@ These apply to every phase above:
 11. **Rollback strategy exists.**
 12. **No piggyback scope** (no formatter runs, no dependency bumps,
     no unrelated refactors).
+13. **Every phase must follow `repository-skeleton.md`.** Before
+    starting any work package, the agent must read
+    `specs/008-structure-remediation-roadmap/repository-skeleton.md`
+    and confirm the planned changes match the approved target skeleton.
+14. **Every rename or split must preserve compatibility** per the shim
+    strategy defined in `repository-skeleton.md`.
 
 ---
 

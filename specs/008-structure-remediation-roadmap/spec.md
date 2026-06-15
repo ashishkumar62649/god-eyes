@@ -99,6 +99,20 @@ The remediation must converge on the rules already documented in
   folder naming, file naming, file size, function size, single
   responsibility, import boundary, no unauthorized refactor).
 
+### Approved target skeleton
+
+The full target folder tree, naming conventions, split/rename mapping,
+connection flow diagrams, and work-package mapping are defined in:
+
+```
+specs/008-structure-remediation-roadmap/repository-skeleton.md
+```
+
+**The naming conventions in `repository-skeleton.md` are binding for all
+`SR-NNN` work packages.** If an implementation decision conflicts with
+`repository-skeleton.md`, the worker agent must stop and report to the
+Orchestrator Agent before proceeding.
+
 ---
 
 ## 4. Non-Goals

@@ -58,9 +58,27 @@ explicitly says so.
 | `research.md` | Current findings from the repo inspection and prior audits. |
 | `plan.md` | The recommended remediation order: 9 phases (Phase 0 through Phase 8). |
 | `tasks.md` | The 18 ordered work packages (`SR-001` through `SR-018`) that implement the plan. |
+| `graphify-findings.md` | Graphify discovery findings — verified coupling, hub, and line-count findings. |
+| `repository-skeleton.md` | **The approved target repository skeleton.** Every future `SR-NNN` agent must read this before starting work. Contains naming conventions, the full target folder tree, split/rename mapping, connection flow diagrams, and work-package mapping. |
 
 No `contracts/` or `quickstart.md` is required because this spec introduces no
 runtime behaviour, no new endpoints, and no new data shapes.
+
+---
+
+## Important: read `repository-skeleton.md` before any SR-NNN implementation
+
+Before picking up any `SR-NNN` work package, the responsible agent must read:
+
+1. This `README.md` — what the spec is.
+2. `spec.md` — safety rules and success criteria.
+3. `plan.md` — the phase plan for the work package.
+4. `tasks.md` — the exact task row for the work package.
+5. **`repository-skeleton.md`** — the approved target skeleton, naming conventions,
+   and connection map.
+
+If an implementation decision conflicts with `repository-skeleton.md`, **stop and
+report** to the Orchestrator Agent before proceeding.
 
 ---
 
