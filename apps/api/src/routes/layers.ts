@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+﻿import { FastifyInstance } from 'fastify';
 import { checkDatabaseStatus } from '../lib/db.js';
 import {
   LayersListResponseSchema,
@@ -32,7 +32,7 @@ const LAYER_REGISTRY = [
     sourceRule: 'No external sources. Frontend-only foundation layer.',
     apiStatus: 'ready',
     frontendStatus: 'implemented',
-    safetyNotes: 'Foundation layer — must never crash. Must maintain 60 FPS.',
+    safetyNotes: 'Foundation layer â€” must never crash. Must maintain 60 FPS.',
     isEnabled: true,
     isImplemented: true,
   },
@@ -284,14 +284,7 @@ export async function layerRoutes(fastify: FastifyInstance) {
           layerId: 'layer_00_globe_core',
           status: 'ok',
           sourceId: null,
-          objectCounts: {
-            airports: 0,
-            runways: 0,
-            navaids: 0,
-            airportFrequencies: 0,
-            countries: 0,
-            regions: 0,
-          },
+          objectCounts: {},
           database: {
             status: 'connected',
           },
@@ -323,7 +316,7 @@ export async function layerRoutes(fastify: FastifyInstance) {
         // Try to count records from aviation tables
         try {
           const { query } = await import('../lib/db.js');
-          const counts = {
+          const counts: Record<string, number> = {
             airports: 0,
             runways: 0,
             navaids: 0,
@@ -415,27 +408,101 @@ export async function layerRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // All other registered layers: return a sane, contract-valid status.
-      // objectCounts in the shared contract are aviation-specific; for
-      // non-aviation layers they are reported as zero (structural, not fake).
+      // Per-layer status for all other registered layers.
+      // Each layer returns domain-specific count keys; counts are queried
+      // from the layer's own tables when the DB is available.
+      // SR-001: objectCounts is now per-layer-aware, not aviation-specific.
       const layer = LAYER_REGISTRY.find((l) => l.layerId === layerId);
       if (layer) {
         const dbStatus = await checkDatabaseStatus();
         const dbConnected = dbStatus.status === 'connected';
+
+        const layerStatus = layer.isImplemented
+          ? (dbConnected ? 'ok' : 'degraded')
+          : 'not_configured';
+
+        // Attempt to build per-layer objectCounts from real tables when DB is up.
+        let objectCounts: Record<string, number> = {};
+
+        if (dbConnected && layer.isImplemented) {
+          try {
+            const { query } = await import('../lib/db.js');
+
+            if (layerId === 'layer_07_weather') {
+              const [obs, src, runs] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM weather_observations_latest').catch(() => [{ count: '0' }]),
+                query<{ count: string }>('SELECT COUNT(*) as count FROM weather_sources').catch(() => [{ count: '0' }]),
+                query<{ count: string }>('SELECT COUNT(*) as count FROM weather_fetch_runs').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                observations: parseInt(obs[0]?.count || '0', 10),
+                sources: parseInt(src[0]?.count || '0', 10),
+                fetchRuns: parseInt(runs[0]?.count || '0', 10),
+              };
+            } else if (layerId === 'layer_08_news_osint') {
+              const [items, src, runs] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM news_items_latest').catch(() => [{ count: '0' }]),
+                query<{ count: string }>('SELECT COUNT(*) as count FROM news_sources').catch(() => [{ count: '0' }]),
+                query<{ count: string }>('SELECT COUNT(*) as count FROM news_fetch_runs').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                items: parseInt(items[0]?.count || '0', 10),
+                sources: parseInt(src[0]?.count || '0', 10),
+                fetchRuns: parseInt(runs[0]?.count || '0', 10),
+              };
+            } else if (layerId === 'layer_06_maritime') {
+              const [vessels, positions] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM maritime_vessels').catch(() => [{ count: '0' }]),
+                query<{ count: string }>('SELECT COUNT(*) as count FROM maritime_positions_latest').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                vessels: parseInt(vessels[0]?.count || '0', 10),
+                positions: parseInt(positions[0]?.count || '0', 10),
+              };
+            } else if (layerId === 'layer_05_space_satellites') {
+              const [sats, positions] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM space_satellites').catch(() => [{ count: '0' }]),
+                query<{ count: string }>('SELECT COUNT(*) as count FROM space_satellite_positions_latest').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                satellites: parseInt(sats[0]?.count || '0', 10),
+                positions: parseInt(positions[0]?.count || '0', 10),
+              };
+            } else if (layerId === 'layer_10_energy_infrastructure') {
+              const [features] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM energy_infrastructure').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                features: parseInt(features[0]?.count || '0', 10),
+              };
+            } else if (layerId === 'layer_02_borders_boundaries') {
+              const [countries] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM countries_boundaries').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                countries: parseInt(countries[0]?.count || '0', 10),
+              };
+            } else if (layerId === 'layer_03_earth_events') {
+              const [events] = await Promise.all([
+                query<{ count: string }>('SELECT COUNT(*) as count FROM earth_events_latest').catch(() => [{ count: '0' }]),
+              ]);
+              objectCounts = {
+                events: parseInt(events[0]?.count || '0', 10),
+              };
+            }
+            // layer_04_public_military_security and layer_09_user_shapes
+            // are coming_soon with no tables yet â€” objectCounts remains {}
+          } catch {
+            // DB query failed; return empty counts rather than misleading zeros
+            objectCounts = {};
+          }
+        }
+
         return LayerStatusResponseSchema.parse({
           layerId: layer.layerId,
-          status: layer.isImplemented
-            ? (dbConnected ? 'ok' : 'degraded')
-            : 'not_configured',
+          status: layerStatus,
           sourceId: null,
-          objectCounts: {
-            airports: 0,
-            runways: 0,
-            navaids: 0,
-            airportFrequencies: 0,
-            countries: 0,
-            regions: 0,
-          },
+          objectCounts,
           database: {
             status: dbConnected ? 'connected' : 'offline',
           },

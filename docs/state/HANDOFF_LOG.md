@@ -29,3 +29,52 @@
 - Review status: Pending Orchestrator Agent review. Not pushed.
 
 ---
+
+### 2026-06-15T14:09:12Z — SR-001 layer-status-response-shape
+
+- Work order: SR-001 layer status response shape
+- Agent: API Agent / Contract Agent
+- Branch: api/sr-001/layer-status-response-shape
+- Summary: Repaired LayerStatusResponse objectCounts so it supports per-layer count keys instead of forcing aviation-specific fields on all layers. The contract was generalised from a fixed Zod object (airports/runways/navaids/airportFrequencies/countries/regions) to z.record(z.string(), z.number().int().nonnegative()). Aviation layer_01 retains its historical keys. All other layers now return meaningful domain-specific keys (observations/sources/fetchRuns for weather; items/sources/fetchRuns for news; vessels/positions for maritime; satellites/positions for space; features for energy; countries for borders; events for earth events). Globe Core and coming_soon layers return {}. When the DB is offline, all non-aviation layers return {}.
+- Files created:
+  - apps/api/tests/layer-status.test.ts (23 new tests)
+- Files modified:
+  - packages/contracts/src/index.ts (LayerStatusResponseSchema.objectCounts: z.object({aviation fields}) → z.record(z.string(), z.number().int().nonnegative()))
+  - apps/api/src/routes/layers.ts (per-layer objectCounts queries; layer_00 returns {}; layer_01 keeps aviation keys; layers 02–10 return domain keys)
+- Contract change:
+  - OLD: objectCounts was z.object({ airports, runways, navaids, airportFrequencies, countries, regions }) — aviation-specific fields forced on all 11 layers
+  - NEW: objectCounts is z.record(z.string(), z.number().int().nonnegative()) — any string key is accepted; each layer returns its own real count keys
+  - COMPATIBILITY: aviation keys still parse under the new schema (they are valid string record entries); any existing consumer that relied on aviation keys for a non-aviation layer (which returned 0s) will now receive an empty {} or domain-specific keys — this is the intended breaking-but-correct change documented in SR-001
+- Per-layer objectCounts keys (when DB is online):
+  - layer_00_globe_core: {}
+  - layer_01_aviation: { airports, runways, navaids, airportFrequencies, countries, regions }
+  - layer_02_borders_boundaries: { countries }
+  - layer_03_earth_events: { events }
+  - layer_04_public_military_security: {} (coming_soon, no tables)
+  - layer_05_space_satellites: { satellites, positions }
+  - layer_06_maritime: { vessels, positions }
+  - layer_07_weather: { observations, sources, fetchRuns }
+  - layer_08_news_osint: { items, sources, fetchRuns }
+  - layer_09_user_shapes: {} (coming_soon, no tables)
+  - layer_10_energy_infrastructure: { features }
+- Commands run:
+  - git status --short --branch → ## api/sr-001/layer-status-response-shape (clean)
+  - git grep "LayerStatusResponseSchema" → 5 usages in layers.ts, 1 in contracts index.ts
+  - git grep "objectCounts" → aviation-specific shape confirmed in contracts + layers.ts
+  - git grep "layer_07_weather" apps/api/src packages/contracts/src database/migrations/layers → table names confirmed
+  - git grep "layer_08_news_osint" apps/api/src packages/contracts/src database/migrations/layers → table names confirmed
+  - pnpm --filter @god-eyes/contracts build → PASS
+  - pnpm --filter api build → PASS
+  - pnpm --filter api test → 526 passed (18 files, including 23 new layer-status tests) PASS
+  - python -m pytest tests/data -q → 1156 passed, 7 skipped, 11 failed (all scope-guard failures on dirty worktree; pre-existing pattern identical to all prior WOs)
+  - git diff --check → CRLF-as-trailing-whitespace on layers.ts new lines only (Windows env artifact with core.autocrlf=true; pre-existing pattern in this repo; contracts/src/index.ts is clean)
+  - git diff --check HEAD~1..HEAD → same CRLF-only warnings (no real whitespace errors)
+- Commit hash: 00ee2ca (local only — NOT pushed; Orchestrator Agent owns pushes)
+- Push status: local only
+- Known issues: none
+- Forbidden folders touched: no
+- Secrets added: no
+- Graphify/generated files committed: no
+- Review status: Pending Orchestrator Agent review
+
+---
