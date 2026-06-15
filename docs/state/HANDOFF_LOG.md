@@ -78,3 +78,123 @@
 - Review status: Pending Orchestrator Agent review
 
 ---
+
+## Contracts + API Structure Milestone — SR-007, SR-002, SR-003, SR-004
+
+- Work orders: SR-007, SR-002, SR-003, SR-004
+- Agent: Contract Agent / API Weather Agent / API News Agent / API Route Planning Agent
+- Branch: api/contracts-and-api-structure
+- Date: 2026-06-15
+
+### Summary
+
+Completed the full Contracts + API Structure Milestone in two local commits on branch
+`api/contracts-and-api-structure`.
+
+**SR-007 — Contracts Package Split (commit 2ac960b)**
+Split `packages/contracts/src/index.ts` (1325 lines) into per-domain module files.
+Created `common/errors.ts`, `common/pagination.ts`, `common/layer-status.ts`, and
+`layers/layer_01_aviation.ts` through `layers/layer_10_energy_infrastructure.ts` (8 files).
+`index.ts` replaced with a compatibility barrel re-export. All existing imports from
+`@god-eyes/contracts` continue to work unchanged.
+
+**SR-002 — Weather Route Split (commit ed9ad09)**
+Split `apps/api/src/routes/weather.ts` (1095 lines) into `apps/api/src/routes/weather/`
+with `index.ts` (HTTP only, 300L), `service.ts` (orchestration, 68L), `repository.ts`
+(SQL, 161L), `mapper.ts` (row→response, 87L), `validation.ts` (parse helpers, 65L),
+`types.ts` (interfaces, 95L). `weather.ts` replaced with 3-line compatibility re-export shim.
+
+**SR-003 — News Route Split (commit ed9ad09)**
+Split `apps/api/src/routes/news.ts` (1014 lines) into `apps/api/src/routes/news/`
+with same 6-file pattern. `news.ts` replaced with 3-line compatibility re-export shim.
+
+**SR-004 — Remaining Route Split Review (commit ed9ad09)**
+Created `specs/008-structure-remediation-roadmap/api-remaining-route-review.md`.
+Reviewed maritime.ts (797L), energy/infrastructure.ts (683L), space/satellites.ts (582L),
+layers.ts (523L), aviation-aircraft.ts (386L). All five are in the warning/must-split band.
+Recommended split order for next milestone: maritime → energy → space (defer layers + aircraft).
+Proposed follow-up task IDs: SR-005A (maritime), SR-005B (energy), SR-005C (space).
+No source code modified for SR-004.
+
+### Files Changed
+
+SR-007:
+- packages/contracts/src/index.ts (modified — now compatibility barrel)
+- packages/contracts/src/common/errors.ts (new)
+- packages/contracts/src/common/pagination.ts (new)
+- packages/contracts/src/common/layer-status.ts (new)
+- packages/contracts/src/layers/layer_01_aviation.ts (new)
+- packages/contracts/src/layers/layer_02_borders_boundaries.ts (new)
+- packages/contracts/src/layers/layer_03_earth_events.ts (new)
+- packages/contracts/src/layers/layer_05_space_satellites.ts (new)
+- packages/contracts/src/layers/layer_06_maritime.ts (new)
+- packages/contracts/src/layers/layer_07_weather.ts (new)
+- packages/contracts/src/layers/layer_08_news_osint.ts (new)
+- packages/contracts/src/layers/layer_10_energy_infrastructure.ts (new)
+
+SR-002:
+- apps/api/src/routes/weather.ts (modified — 3-line re-export shim)
+- apps/api/src/routes/weather/index.ts (new)
+- apps/api/src/routes/weather/service.ts (new)
+- apps/api/src/routes/weather/repository.ts (new)
+- apps/api/src/routes/weather/mapper.ts (new)
+- apps/api/src/routes/weather/validation.ts (new)
+- apps/api/src/routes/weather/types.ts (new)
+
+SR-003:
+- apps/api/src/routes/news.ts (modified — 3-line re-export shim)
+- apps/api/src/routes/news/index.ts (new)
+- apps/api/src/routes/news/service.ts (new)
+- apps/api/src/routes/news/repository.ts (new)
+- apps/api/src/routes/news/mapper.ts (new)
+- apps/api/src/routes/news/validation.ts (new)
+- apps/api/src/routes/news/types.ts (new)
+
+SR-004:
+- specs/008-structure-remediation-roadmap/api-remaining-route-review.md (new)
+
+### Commands Run and Results
+
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS (both commits)
+- pnpm --filter api test → 526 passed (18 files) PASS (both commits)
+- pnpm --filter web build → PASS (built in 1.02s)
+- pnpm --filter web test → 64 passed (3 files) PASS
+- python -m pytest tests/data -q → 1159 passed, 15 skipped PASS
+- git diff --check → PASS (CRLF warnings only — Windows env artifact; no real whitespace errors)
+- git diff --check HEAD~1..HEAD → PASS (same)
+- git diff --name-status main..HEAD → 28 files: 26 A (new), 2 M (shims + barrel)
+- Live API smoke: servers not running in this environment — N/A
+- Live UI smoke: servers not running in this environment — N/A
+
+### Local Commits
+
+- 2ac960b refactor(contracts): split contracts package by domain
+- ed9ad09 refactor(api): split weather and news routes by responsibility; add remaining route review
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only — NOT pushed. Orchestrator Agent owns push after Reviewer Agent PASS.
+
+### Forbidden Folders
+
+- apps/web/ — not touched
+- services/ — not touched
+- database/ — not touched
+- docs/control/ — not touched
+- docs/archive/ — not touched
+- tests/data/ — not touched (data tests run read-only)
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Pending Reviewer Agent review. Ready for review.
+
+---
