@@ -43,18 +43,17 @@ export type LayersListResponse = z.infer<typeof LayersListResponseSchema>;
 
 // ==================== Layer Status ====================
 
+// SR-001: objectCounts is now a generic per-layer record.
+// Each layer returns its own meaningful count keys; aviation keeps its
+// historical keys (airports, runways, navaids, airportFrequencies,
+// countries, regions). Non-aviation layers return their own domain keys.
+// Globe Core and unimplemented layers return an empty object {}.
+// Consumers must not hard-code aviation-specific keys for non-aviation layers.
 export const LayerStatusResponseSchema = z.object({
   layerId: z.string(),
   status: z.enum(['ok', 'degraded', 'not_configured']),
   sourceId: z.string().nullable(),
-  objectCounts: z.object({
-    airports: z.number(),
-    runways: z.number(),
-    navaids: z.number(),
-    airportFrequencies: z.number(),
-    countries: z.number(),
-    regions: z.number(),
-  }),
+  objectCounts: z.record(z.string(), z.number().int().nonnegative()),
   database: z.object({
     status: z.enum(['connected', 'offline']),
   }),
