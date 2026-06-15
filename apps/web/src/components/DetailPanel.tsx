@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AirportObject, AirportDetailResponse, MaritimeVesselObject, MaritimeVesselDetail } from '@god-eyes/contracts';
+import { AirportObject, MaritimeVesselObject, MaritimeVesselDetail } from '@god-eyes/contracts';
 import IntelSection from './intel/IntelSection';
 import RunwaysSection from './intel/RunwaysSection';
 import FrequenciesSection from './intel/FrequenciesSection';
@@ -11,9 +11,6 @@ import { useAirportIntelligence } from '../layers/aviation/airports/useAirportIn
 import type { PublicProfileData, PublicProfileAttribution } from '../layers/aviation/airports/airportPublicProfileTypes';
 import type { AirportIntelImages } from '../layers/aviation/airports/airportIntelligenceTypes';
 import AirportLayoutOverlayToggle from './intel/AirportLayoutOverlayToggle';
-import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
-import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
-import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
 import {
   formatMeasurement,
   formatWindDirection,
@@ -21,7 +18,6 @@ import {
   formatCondition,
 } from '../layers/layer_07_weather/weatherDetail';
 import { NEWS_SEVERITY_COLORS } from '../layers/layer_08_news_osint/newsTypes';
-import type { NewsRenderMarker } from '../layers/layer_08_news_osint/newsTypes';
 import {
   formatNewsTimestamp,
   formatNewsSeverity,
@@ -29,22 +25,9 @@ import {
   orDash,
 } from '../layers/layer_08_news_osint/newsDetail';
 
-interface DetailPanelProps {
-  selectedObject: AirportObject | MaritimeVesselObject | null;
-  airportDetail: AirportDetailResponse | null;
-  detailLoading: boolean;
-  detailError: string | null;
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
-  layoutPhase: LayoutPhase;
-  selectedEnergyFeature: EnergyFeature | null;
-  onEnergyFeatureClose: () => void;
-  vesselDetail: MaritimeVesselDetail | null;
-  selectedWeatherItem: WeatherRenderItem | null;
-  onWeatherClose: () => void;
-  selectedNewsItem: NewsRenderMarker | null;
-  onNewsClose: () => void;
-}
+// SR-006A: Props type extracted to detail-panel/detailTypes.ts.
+export type { DetailPanelProps } from './detail-panel/detailTypes';
+import type { DetailPanelProps } from './detail-panel/detailTypes';
 
 // ── error boundary ────────────────────────────────────────────────────────────
 class IntelBoundary extends React.Component<
