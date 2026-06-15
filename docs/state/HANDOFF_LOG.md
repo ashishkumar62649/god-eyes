@@ -7477,3 +7477,106 @@ No.
 Pending Reviewer Agent review. Ready for review.
 
 ---
+
+
+## SR-006A/B Required Fix — True Frontend Panel Split
+
+- Work orders: SR-006A required fix, SR-006B required fix
+- Agent: Frontend Structure Agent
+- Branch: api/contracts-and-api-structure
+- Date: 2026-06-15
+
+### Reason for Required Fix
+
+Previous SR-006A/B attempt (commit cfc4d7e) only extracted props/type interfaces
+into `detail-panel/detailTypes.ts` and `layer-panel/layerPanelTypes.ts`.
+No JSX or render logic was moved. `DetailPanel.tsx` remained ~860 lines and
+`LayerPanel.tsx` remained ~966 lines. Reviewer classification: PASS WITH REQUIRED FIXES.
+
+### Summary
+
+**SR-006A DetailPanel True Split (commit ed64ce4)**
+All JSX and render logic moved out of `DetailPanel.tsx` into `detail-panel/` sub-components.
+`DetailPanel.tsx` reduced from 860 lines to 8 lines (thin wrapper).
+`detail-panel/DetailPanelRoot.tsx` (110 lines) owns selection orchestration.
+Layer-specific detail cards extracted:
+  - `AviationDetail.tsx` (206 lines) — airport overview, IntelBoundary, HeroImage, IntelImageGallery, runways, frequencies, navaids
+  - `MaritimeDetail.tsx` (69 lines) — vessel card with voyage details
+  - `WeatherDetail.tsx` (43 lines) — weather observation card
+  - `NewsDetail.tsx` (77 lines) — news/OSINT event card
+  - `EnergyDetail.tsx` (44 lines) — energy infrastructure feature card
+  - `SourcesSection.tsx` (54 lines) — Wikipedia/Wikidata attribution
+  - `DetailEmptyState.tsx` (16 lines) — empty/no-selection placeholder
+
+**SR-006B LayerPanel True Split (commit fff098b)**
+All JSX and render logic moved out of `LayerPanel.tsx` into `layer-panel/` sub-components.
+`LayerPanel.tsx` reduced from 966 lines to 8 lines (thin wrapper).
+`layer-panel/LayerPanelRoot.tsx` (190 lines) owns layer registry loop + routing.
+Layer-specific controls extracted:
+  - `AviationControls.tsx` (113 lines) — airports toggle, live aircraft, filters, legend
+  - `SpaceControls.tsx` (92 lines) — satellites toggle, extreme mode, category/source filters
+  - `MaritimeControls.tsx` (84 lines) — maritime toggle, vessel search, type dropdown, stats, legend
+  - `WeatherControls.tsx` (67 lines) — weather toggle, status, refresh, temperature legend, attribution
+  - `NewsControls.tsx` (151 lines) — news toggle, source/severity filters, items list, refresh, legend
+  - `EnergyControls.tsx` (115 lines) — energy toggle, feature/fuel/country/status filters, legend
+
+### Behavior Preserved
+
+All layer toggles, filters, refresh buttons, status text, legends, detail cards, and
+empty states are functionally identical. No CSS class names changed. No props changed.
+No API calls changed. No contracts changed.
+
+### Files Changed
+
+SR-006A (DetailPanel):
+- apps/web/src/components/DetailPanel.tsx (8 lines — thin wrapper)
+- apps/web/src/components/detail-panel/DetailPanelRoot.tsx (new)
+- apps/web/src/components/detail-panel/AviationDetail.tsx (new)
+- apps/web/src/components/detail-panel/MaritimeDetail.tsx (new)
+- apps/web/src/components/detail-panel/WeatherDetail.tsx (new)
+- apps/web/src/components/detail-panel/NewsDetail.tsx (new)
+- apps/web/src/components/detail-panel/EnergyDetail.tsx (new)
+- apps/web/src/components/detail-panel/SourcesSection.tsx (new)
+- apps/web/src/components/detail-panel/DetailEmptyState.tsx (new)
+- apps/web/src/components/detail-panel/index.ts (updated)
+
+SR-006B (LayerPanel):
+- apps/web/src/components/LayerPanel.tsx (8 lines — thin wrapper)
+- apps/web/src/components/layer-panel/LayerPanelRoot.tsx (new)
+- apps/web/src/components/layer-panel/AviationControls.tsx (new)
+- apps/web/src/components/layer-panel/SpaceControls.tsx (new)
+- apps/web/src/components/layer-panel/MaritimeControls.tsx (new)
+- apps/web/src/components/layer-panel/WeatherControls.tsx (new)
+- apps/web/src/components/layer-panel/NewsControls.tsx (new)
+- apps/web/src/components/layer-panel/EnergyControls.tsx (new)
+- apps/web/src/components/layer-panel/index.ts (updated)
+
+### Commands Run and Results
+
+- pnpm --filter web build → PASS (913ms / 863ms)
+- pnpm --filter web test → PASS — 64/64 (both phases)
+- pnpm --filter @god-eyes/contracts build → PASS
+- git diff --check → PASS (CRLF warnings only)
+
+### Local Commits
+
+- ed64ce4 refactor(web): split detail panel into focused components
+- fff098b refactor(web): split layer panel into focused controls
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Pending Reviewer Agent review. Ready for review.
+
+---
