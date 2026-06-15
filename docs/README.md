@@ -54,17 +54,17 @@ If you are reviewing a pull request or a branch:
 
 | Directory | Type | Purpose | Who reads it | Can agents edit it? | Notes |
 |---|---|---|---|---|---|
-| `docs/control/` | ACTIVE_RULE | Active permanent rules and control documents | All agents and humans | Only Orchestrator Agent (read-only for others) | Authoritative instructions. Do not modify without a change request. |
-| `docs/state/` | CURRENT_STATE / APPEND_ONLY_LOG | Current project state and append-only timeline | All agents and humans | Orchestrator Agent owns state doc; **all agents may append** to `HANDOFF_LOG.md` | `CURRENT_PROJECT_STATE.md` is rewritten to reflect the current state. `HANDOFF_LOG.md` is append-only. |
-| `docs/audits/` | AUDIT_REPORT | Research and audit evidence | All agents and humans | Only Research / Documentation Agent, and only as new audit reports | Audits are evidence, not active control rules, unless a control doc explicitly adopts something from them. |
+| `docs/control/` | ACTIVE_RULE | **Global constitutions, rules, policies, registries, templates, and cross-project contracts only.** Layer-specific historical plans, contracts, and gate reviews do NOT belong here. | All agents and humans | Only Orchestrator Agent (read-only for others) | Authoritative instructions. Do not modify without a change request. |
+| `docs/state/` | CURRENT_STATE / APPEND_ONLY_LOG | **Current working state and append-only handoff timeline only.** Old integration reviews do NOT belong here. | All agents and humans | Orchestrator Agent owns state doc; **all agents may append** to `HANDOFF_LOG.md` | `CURRENT_PROJECT_STATE.md` is rewritten to reflect the current state. `HANDOFF_LOG.md` is append-only. |
+| `docs/audits/` | AUDIT_REPORT | Active audit evidence (current health, compliance, workflow audits). Superseded audits are archived. | All agents and humans | Only Research / Documentation Agent, and only as new audit reports | Audits are evidence, not active control rules, unless a control doc explicitly adopts something from them. |
 | `docs/decisions/` | DECISION_RECORD | Architecture Decision Records (ADRs) | All agents and humans | Only Orchestrator Agent (and Documentation Agent) | New ADRs are added; existing ADRs are not rewritten. |
-| `docs/archive/` | ARCHIVE | Old, superseded, duplicate, or historical documents | All agents and humans | Only Documentation Agent, and only through a dedicated cleanup task | Archived docs are historical and not active instructions. Nothing is archived automatically. |
-| `docs/work-orders/` | WORK_ORDER | Work orders for small cross-cutting repairs and single-lane fixes | Workers and Orchestrator | Only Orchestrator Agent (read-only for workers) | The historical WO-001 through WO-079A work-order pattern. |
+| `docs/archive/` | ARCHIVE | Old, superseded, duplicate, or historical documents. Organized by cleanup batch and by layer/work area. | All agents and humans | Only Documentation Agent, and only through a dedicated cleanup task | Archived docs are historical and not active instructions. Nothing is archived automatically. See `docs/archive/README.md`. |
+| `docs/work-orders/` | WORK_ORDER | **Active/future work orders only.** Completed work orders are archived. Use `docs/control/WORK_ORDER_TEMPLATE.md` for new work orders. | Workers and Orchestrator | Only Orchestrator Agent (read-only for workers) | See `docs/work-orders/README.md`. |
 | `docs/devlog/` | DEV_LOG | Engineering/devlog notes | All agents and humans | Only authors of each entry | Historical and reference material. |
-| `docs/api/` | API_REFERENCE | API reference material | All agents and humans | Read-only for most agents | Reference material. |
+| `docs/api/` | API_REFERENCE | **Reserved for future active API documentation.** Historical API notes are archived. | All agents and humans | Read-only for most agents | See `docs/api/README.md`. Current API contracts live in code/contracts and specs. |
 | `docs/postman/` | API_COLLECTION | Postman collection assets | All agents and humans | Read-only for most agents | API test/exploration collections. |
 | `docs/reports/` | REPORT | Generated reports | All agents and humans | Only report authors | Generated or periodic reports. |
-| `docs/data/` | DATA_REFERENCE | Data pipeline and contract reference | All agents and humans | Read-only for most agents | Reference material. |
+| `docs/data/` | DATA_REFERENCE | **Reserved for future active data documentation.** Historical data notes are archived. | All agents and humans | Read-only for most agents | See `docs/data/README.md`. Current data rules live in `docs/control/DATA_LOCATION_RULES.md`. |
 | `specs/` | SPEC_WORKSPACE | Spec Kit feature/refactor work packages | Orchestrator, Planning Agent, worker agents, Reviewer | Orchestrator Agent creates spec dirs; worker agents edit their scope within the spec | Each spec dir is the source of truth for that feature. |
 | `AGENTS.md` | ENTRY_POINT | Multi-agent roles, hard rules, workflow, git rules | All agents and humans | Only Orchestrator Agent | Entry point for all work. |
 | `apps/`, `packages/`, `services/`, `database/`, `tests/` | CODE | Application code (out of scope of this document) | Owning agents | Owning agents per `LLM_OWNERSHIP_MATRIX.md` | Subject to `ENGINEERING_STRUCTURE_RULES.md`. |
@@ -87,7 +87,7 @@ classification determines how it is read, edited, and superseded.
 | **SPEC** | A `spec.md` file inside a Spec Kit spec folder. Describes the what and why of the work. | All agents | Worker agents and Orchestrator Agent may update during the spec lifecycle. | `specs/<NNN>-<feature>/spec.md` |
 | **PLAN** | A `plan.md` file inside a Spec Kit spec folder. Describes the selected technical approach. | All agents | Worker agents and Orchestrator Agent may update. | `specs/<NNN>-<feature>/plan.md` |
 | **TASK_LIST** | A `tasks.md` file inside a Spec Kit spec folder. Ordered implementation tasks. | All agents | Worker agents and Orchestrator Agent may update. Implementation agents must follow `tasks.md` and must not invent scope. | `specs/<NNN>-<feature>/tasks.md` |
-| **REVIEW_REPORT** | An integration review record per work order or per spec. | All agents | Orchestrator / Reviewer Agent writes the review. | `docs/state/INTEGRATION_REVIEW_*.md`, `specs/<NNN>-<feature>/review.md` |
+| **REVIEW_REPORT** | An integration review record per work order or per spec. New reviews are written to `docs/state/` during active work; completed reviews are archived. | All agents | Orchestrator / Reviewer Agent writes the review. | `specs/<NNN>-<feature>/review.md` |
 | **ARCHIVE** | A historical or superseded document. Not active instructions. | Optional, for context only | Only Documentation Agent may add, and only through a dedicated cleanup task. | `docs/archive/**` |
 
 ---
@@ -107,7 +107,14 @@ The following rules apply to the entire documentation system:
   project-wide decisions such as documentation hierarchy, API architecture, database
   strategy, deployment strategy, or large refactor strategy.
 - **Old/superseded docs go to `docs/archive/`** by dedicated cleanup only. Nothing is
-  archived automatically.
+  archived automatically. Historical/superseded docs are archived under
+  `docs/archive/`. The 2026-06-14 documentation-cleanup batch lives in
+  `docs/archive/2026-06-14-documentation-cleanup/` and is documented by its
+  `INDEX.md`. The 2026-06-14 spec-kit-alignment batch lives in
+  `docs/archive/2026-06-14-spec-kit-alignment/` and is documented by its
+  `INDEX.md` and its deferred-decisions log. The 2026-06-14 final-docs-structure
+  batch lives in `docs/archive/2026-06-14-final-docs-structure/` and is documented
+  by its `INDEX.md`.
 - **Do not treat audit reports as active instructions** unless a control document
   explicitly adopts something from them.
 - **Do not move or archive docs during feature work.** Archiving is a dedicated

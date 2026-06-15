@@ -102,7 +102,8 @@ Use the folder that matches the scope of the work:
   `docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md`).
 
 - **Review or integration records** — write under
-  `docs/state/INTEGRATION_REVIEW_*.md` per step 7 below.
+  `docs/state/INTEGRATION_REVIEW_[WO].md` during active work. Completed reviews
+  are archived under `docs/archive/`.
 
 - **Active project state** — keep `docs/state/CURRENT_PROJECT_STATE.md`
   current as the single source of truth for the active phase, status, and
@@ -121,6 +122,7 @@ Use the folder that matches the scope of the work:
 5. The agent creates one local commit with the proper message format.
 6. The agent updates `docs/state/HANDOFF_LOG.md`.
 7. The Orchestrator Agent reviews and creates `docs/state/INTEGRATION_REVIEW_[WO].md`.
+   Completed reviews are archived under `docs/archive/`.
 8. If PASS: the Orchestrator Agent pushes the branch to origin.
 9. If FAIL/NEEDS REVIEW: the Orchestrator Agent documents issues; the agent revises.
 

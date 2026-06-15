@@ -15,7 +15,9 @@ SCRIPT_PATH = REPO_ROOT / "scripts" / "aviation_coordinate_quality.py"
 DOC_PATH = (
     REPO_ROOT
     / "docs"
-    / "data"
+    / "archive"
+    / "2026-06-14-final-docs-structure"
+    / "data-legacy"
     / "layer_01_aviation"
     / "AVIATION_COORDINATE_MIGRATION_VERIFICATION.md"
 )

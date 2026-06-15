@@ -13,7 +13,9 @@ MIGRATION_PATH = (
 DOC_PATH = (
     REPO_ROOT
     / "docs"
-    / "data"
+    / "archive"
+    / "2026-06-14-final-docs-structure"
+    / "data-legacy"
     / "layer_01_aviation"
     / "AIRPORT_PUBLIC_PROFILE_SCHEMA_PLAN.md"
 )

@@ -604,9 +604,9 @@ The contract/spec is complete only if:
 
 - [ ] All required docs exist:
   - [ ] `docs/control/layer_10_energy_infrastructure_mvp_contract.md` (this file)
-  - [ ] `specs/004-layer-06-energy-infrastructure-mvp/spec.md`
-  - [ ] `specs/004-layer-06-energy-infrastructure-mvp/plan.md`
-  - [ ] `specs/004-layer-06-energy-infrastructure-mvp/tasks.md`
+  - [ ] `specs/004-layer-10-energy-infrastructure-mvp/spec.md`
+  - [ ] `specs/004-layer-10-energy-infrastructure-mvp/plan.md`
+  - [ ] `specs/004-layer-10-energy-infrastructure-mvp/tasks.md`
   - [ ] `docs/state/HANDOFF_LOG.md` updated
 - [ ] `layer_id` and `source_ids` are stable
 - [ ] MVP scope is clear
