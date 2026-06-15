@@ -7403,3 +7403,77 @@ Pending Reviewer Agent review. Ready for review.
 - Files modified: docs/state/HANDOFF_LOG.md only
 - Code changed: No
 - Push status: local only / not pushed
+
+## SR-006A/B — DetailPanel and LayerPanel Type Boundary Split
+
+- Work orders: SR-006A, SR-006B
+- Agent: Frontend Detail Agent / Frontend Layer Panel Agent
+- Branch: api/contracts-and-api-structure
+- Date: 2026-06-15
+
+### Summary
+
+**SR-006A — DetailPanel Split**
+Extracted the `DetailPanelProps` interface from `apps/web/src/components/DetailPanel.tsx`
+into `apps/web/src/components/detail-panel/detailTypes.ts`.
+Created `apps/web/src/components/detail-panel/index.ts` as a compatibility re-export
+barrel (`export default` from DetailPanel + re-export of DetailPanelProps).
+DetailPanel.tsx now imports its props type from `detail-panel/detailTypes.ts` and
+re-exports `DetailPanelProps` for downstream consumers. All component logic, JSX,
+hooks, and render paths remain in DetailPanel.tsx unchanged.
+
+**SR-006B — LayerPanel Split**
+Extracted `LayerPanelProps` and `AviationStats` interfaces from
+`apps/web/src/components/LayerPanel.tsx` into
+`apps/web/src/components/layer-panel/layerPanelTypes.ts`.
+Created `apps/web/src/components/layer-panel/index.ts` compatibility re-export barrel.
+LayerPanel.tsx now imports its props type from `layer-panel/layerPanelTypes.ts`.
+All component logic, layer toggles, filters, controls, and render paths remain
+in LayerPanel.tsx unchanged.
+
+Both splits are pure type boundary extractions — no behavior change, no visual change,
+no new API calls, no route changes.
+
+### Files Changed
+
+SR-006A:
+- apps/web/src/components/DetailPanel.tsx (modified — removed redundant type imports, imports DetailPanelProps from detail-panel/)
+- apps/web/src/components/detail-panel/detailTypes.ts (new — DetailPanelProps interface)
+- apps/web/src/components/detail-panel/index.ts (new — compatibility re-export)
+
+SR-006B:
+- apps/web/src/components/LayerPanel.tsx (modified — removed redundant type imports, imports LayerPanelProps from layer-panel/)
+- apps/web/src/components/layer-panel/layerPanelTypes.ts (new — LayerPanelProps + AviationStats interfaces)
+- apps/web/src/components/layer-panel/index.ts (new — compatibility re-export)
+
+### Commands Run and Results
+
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS
+- pnpm --filter api test → 526 passed PASS
+- pnpm --filter web build → PASS (887ms / 811ms)
+- pnpm --filter web test → 64 passed PASS
+- python -m pytest tests/data -q → 1159 passed, 15 skipped PASS
+- git diff --check → PASS (CRLF warnings only)
+
+### Local Commit
+
+- cfc4d7e refactor(web): split detail panel and layer panel by layer responsibility
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Pending Reviewer Agent review. Ready for review.
+
+---
