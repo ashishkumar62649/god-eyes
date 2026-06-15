@@ -40,8 +40,8 @@ These are the **reference pattern** for the live-layer route split.
 | `apps/api/src/routes/weather.ts` | 1095 | 800+ (must split) | ESA-002 |
 | `apps/api/src/routes/news.ts` | 1014 | 800+ (must split) | ESA-002 |
 | `apps/api/src/routes/maritime.ts` | 797 | 501–800 (must split) | ESA-002 |
-| `apps/api/src/routes/energy/infrastructure.ts` | 614 | 501–800 (must split) | ESA-002 |
-| `apps/api/src/routes/space/satellites.ts` | 520 | 501–800 (must split) | ESA-002 |
+| `apps/api/src/routes/energy/infrastructure.ts` | 683 | 501–800 (must split) | ESA-002 |
+| `apps/api/src/routes/space/satellites.ts` | 582 | 501–800 (must split) | ESA-002 |
 | `apps/api/src/routes/layers.ts` | 455 | 301–500 (warning) | — |
 | `apps/api/src/routes/aviation-aircraft.ts` | 386 | 301–500 (warning) | — |
 | `apps/api/src/routes/live-aircraft.ts` | 236 | good | — |
