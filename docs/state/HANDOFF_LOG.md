@@ -198,3 +198,99 @@ No.
 Pending Reviewer Agent review. Ready for review.
 
 ---
+
+
+## SR-005A/B/C — Maritime, Energy, Space Route Split Batch
+
+- Work orders: SR-005A, SR-005B, SR-005C
+- Agent: API Maritime Agent / API Energy Agent / API Space Agent
+- Branch: api/contracts-and-api-structure
+- Date: 2026-06-15
+
+### Summary
+
+Three large API route files split into per-responsibility folder pattern in one local commit.
+
+**SR-005A — Maritime Route Split**
+Split `apps/api/src/routes/maritime.ts` (797 lines) into `apps/api/src/routes/maritime/`
+with `index.ts` (HTTP only), `service.ts`, `repository.ts`, `mapper.ts`, `validation.ts`,
+`types.ts`. `maritime.ts` replaced with 2-line compatibility re-export shim.
+All 4 endpoints preserved unchanged: objects list, single object, stats, position history.
+
+**SR-005B — Energy Infrastructure Route Split**
+Split `apps/api/src/routes/energy/infrastructure.ts` (683 lines) into
+`apps/api/src/routes/energy/infrastructure/` with same 6-file pattern.
+`infrastructure.ts` replaced with 2-line re-export shim.
+CANONICAL_SOURCES static list kept in `service.ts` (not DB-driven).
+Route registration order preserved: `/categories` registered before `/:featureId`.
+
+**SR-005C — Space Satellites Route Split**
+Split REST handlers from `apps/api/src/routes/space/satellites.ts` (582 lines) into
+`apps/api/src/routes/space/satellites/` folder. WebSocket code
+(`attachSpaceSatellitesWebSocket`, `upgradeSpaceSatellitesWebSocket`) kept in
+`satellites.ts` shim so `apps/api/src/index.ts` imports are unchanged.
+
+### Files Changed
+
+SR-005A:
+- apps/api/src/routes/maritime.ts (modified — 2-line re-export shim)
+- apps/api/src/routes/maritime/index.ts (new)
+- apps/api/src/routes/maritime/service.ts (new)
+- apps/api/src/routes/maritime/repository.ts (new)
+- apps/api/src/routes/maritime/mapper.ts (new)
+- apps/api/src/routes/maritime/validation.ts (new)
+- apps/api/src/routes/maritime/types.ts (new)
+
+SR-005B:
+- apps/api/src/routes/energy/infrastructure.ts (modified — 2-line re-export shim)
+- apps/api/src/routes/energy/infrastructure/index.ts (new)
+- apps/api/src/routes/energy/infrastructure/service.ts (new)
+- apps/api/src/routes/energy/infrastructure/repository.ts (new)
+- apps/api/src/routes/energy/infrastructure/mapper.ts (new)
+- apps/api/src/routes/energy/infrastructure/validation.ts (new)
+- apps/api/src/routes/energy/infrastructure/types.ts (new)
+
+SR-005C:
+- apps/api/src/routes/space/satellites.ts (modified — shim + WS code retained)
+- apps/api/src/routes/space/satellites/index.ts (new)
+- apps/api/src/routes/space/satellites/service.ts (new)
+- apps/api/src/routes/space/satellites/repository.ts (new)
+- apps/api/src/routes/space/satellites/mapper.ts (new)
+- apps/api/src/routes/space/satellites/validation.ts (new)
+- apps/api/src/routes/space/satellites/types.ts (new)
+
+### Commands Run and Results
+
+- pnpm --filter @god-eyes/contracts build → PASS
+- pnpm --filter api build → PASS
+- pnpm --filter api test → 526 passed (18 files) PASS
+- pnpm --filter web build → PASS (built in 897ms)
+- pnpm --filter web test → 64 passed (3 files) PASS
+- python -m pytest tests/data -q → 1159 passed, 15 skipped PASS
+- git diff --check → PASS (CRLF warnings only — Windows env artifact)
+
+### Local Commit
+
+- d729796 refactor(api): split maritime, energy, and space satellite routes by responsibility
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Forbidden Folders
+
+apps/web/, services/, database/, tests/data/, docs/control/, docs/archive/ — not touched.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Pending Reviewer Agent review. Ready for review.
+
+---
