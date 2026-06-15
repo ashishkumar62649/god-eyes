@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+﻿import { FastifyInstance } from 'fastify';
 import { checkDatabaseStatus } from '../lib/db.js';
 import {
   LayersListResponseSchema,
@@ -32,7 +32,7 @@ const LAYER_REGISTRY = [
     sourceRule: 'No external sources. Frontend-only foundation layer.',
     apiStatus: 'ready',
     frontendStatus: 'implemented',
-    safetyNotes: 'Foundation layer — must never crash. Must maintain 60 FPS.',
+    safetyNotes: 'Foundation layer â€” must never crash. Must maintain 60 FPS.',
     isEnabled: true,
     isImplemented: true,
   },
@@ -491,7 +491,7 @@ export async function layerRoutes(fastify: FastifyInstance) {
               };
             }
             // layer_04_public_military_security and layer_09_user_shapes
-            // are coming_soon with no tables yet — objectCounts remains {}
+            // are coming_soon with no tables yet â€” objectCounts remains {}
           } catch {
             // DB query failed; return empty counts rather than misleading zeros
             objectCounts = {};
