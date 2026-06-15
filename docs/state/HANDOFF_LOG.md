@@ -7010,3 +7010,49 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Forbidden folders touched: no
 - Secrets added: no
 - Review status: Pending Reviewer Agent review. Not pushed.
+
+---
+
+### 2026-06-15T00:00:00Z — structure-remediation-roadmap
+
+- Work order: structure-remediation-roadmap
+- Agent: Documentation Agent
+- Branch: spec/structure-remediation-roadmap
+- Base branch: main
+- Start time: 2026-06-15
+- End time: 2026-06-15
+- Push status: local only (NOT pushed — Orchestrator Agent owns pushes)
+- Goal: Add the master structure remediation roadmap spec (008) that defines how the project will fix grandfathered codebase/file/folder structure safely, based on the 2026-06-14 Engineering Structure Compliance Audit and Project Health Findings Explained. No code is changed in this branch.
+- Files created:
+  - specs/008-structure-remediation-roadmap/README.md
+  - specs/008-structure-remediation-roadmap/spec.md
+  - specs/008-structure-remediation-roadmap/plan.md
+  - specs/008-structure-remediation-roadmap/tasks.md
+  - specs/008-structure-remediation-roadmap/research.md
+- Files modified:
+  - docs/state/HANDOFF_LOG.md (this entry — append only)
+- Spec summary: 9-phase roadmap (Phase 0 contract/status repair → Phase 1 API route split → Phase 2 frontend large component split → Phase 3 contracts split → Phase 4 frontend layer folder canonicalization → Phase 5 fetcher/normalizer source split → Phase 6 database documentation cleanup → Phase 7 large test file split → Phase 8 future scaling spec). 18 ordered work packages SR-001..SR-018. Safety rules: no broad cleanup branch, one focused work package per branch, no behaviour change unless explicitly stated, preserve compatibility during renames, tests must pass before review, reviewer must verify structure rules every time. Detailed plan, research, and tasks are in the spec folder.
+- Task summary: SR-001 contract/layer status response shape repair; SR-002 API weather route split; SR-003 API news route split; SR-004 API remaining route split review; SR-005 Frontend DetailPanel split; SR-006 Frontend LayerPanel split; SR-007 contracts package split; SR-008 frontend layer folder canonicalization plan; SR-009..SR-014 frontend per-layer folder canonicalization (aviation, borders, earth-events, space, maritime, energy); SR-015 fetcher/normalizer canonical source structure; SR-016 database migration documentation cleanup; SR-017 large tests split; SR-018 future scaling architecture spec.
+- Commands run:
+  - git status --short --branch → clean (## spec/structure-remediation-roadmap)
+  - ls docs/control/ → 10 rule files (DATA_LOCATION_RULES, ENGINEERING_STRUCTURE_RULES, GIT_WORKFLOW_POLICY, LAYER_ARCHITECTURE, LAYER_ID_CONVENTIONS, LLM_OWNERSHIP_MATRIX, MVP_LAYER_REGISTRY, PIPELINE_HANDOFF_RULES, SOURCE_TO_FRONTEND_CONTRACT, WORK_ORDER_TEMPLATE)
+  - ls docs/state/ → CURRENT_PROJECT_STATE.md, HANDOFF_LOG.md
+  - ls specs/ → 007-…-mvp + README.md
+  - ls apps/api/src/routes -Recurse → resource-oriented layout (objects/ fully split; airport-intelligence/, airport-layout-features/, public-profile/ split; weather.ts 1095, news.ts 1014, maritime.ts 797, energy/infrastructure.ts 614, space/satellites.ts 520 are oversized)
+  - ls apps/web/src/layers -Recurse → canonical (layer_07_weather, layer_08_news_osint) + grandfathered (aviation, borders, earth-events, space, maritime, energy)
+  - ls packages/contracts/src -Recurse → single index.ts (1325 lines)
+  - ls services/fetch-orchestrator/src/layers -Recurse → 8 canonical layer folders
+  - ls database/migrations -Recurse → core/ + layers/ with 8 canonical layer folders (aviation has 13 files with 002 gap; space has 2; others have 1 each)
+  - ls tests/data -Recurse → 8 canonical layer folders
+  - python -m pytest tests/data -q → baseline prior to commit (run on commit)
+  - git diff --check → clean
+  - git status --short --branch after commit → clean
+  - python -m pytest tests/data -q after commit → baseline (run on commit)
+  - git diff --check HEAD~1..HEAD → clean
+- Spec safety language present (verified by Select-String on the spec files): "no broad cleanup branch", "one focused work package", "no behaviour change", "compatibility", "reviewer".
+- Phase coverage (verified by Select-String on plan.md): Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8 — all present.
+- Task coverage (verified by Select-String on tasks.md): SR-001..SR-018 — all present.
+- Known issues: none
+- Forbidden folders touched: no
+- Secrets added: no
+- Review status: Pending Reviewer Agent review. Not pushed.
