@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-011 Earth-Events Canonicalization
+
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-011/earth-events-canonical-folder
+- What changed: Renamed the frontend earth-events layer folder to `layer_03_earth_events` via `git mv`; added canonical `index.ts`; recreated the `earth-events/` shim folder with `index.ts` re-exporting from the canonical path; updated the 5 active frontend import sites. Runtime strings (`CesiumGlobe.tsx` `new CustomDataSource('earth-events')` data source identifier; `lib/api.ts` `/api/earth-events/latest` API path) preserved as intentional.
+- Validation: old `layers/earth-events` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent reviews SR-011; do not PR yet unless user explicitly decides; recommended next task after SR-011 review is SR-013 maritime canonicalization.
+
 ## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files
 
 - Agent: Structure Cleanup Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: conflict-marker grep PASS; "Updated upstream/Stashed changes" grep PASS; git diff --check PASS
 - Known issues: None
 - Next: User / decision-control layer reviews local SR-019 commit and decides whether to push/open PR; continue roadmap (e.g. SR-020 Spec 008 status refresh) only after SR-019 is merged.
-
-## 2026-06-16 - Frontend Layer Canonicalization Plan
-
-- Agent: Documentation Planning Agent
-- Branch: plan/frontend-layer-canonicalization
-- What changed: Created specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md with current folder inventory, target canonical names, import impact analysis (74 imports across 29 files), risk classification, implementation sequence, compatibility strategy, validation plan, and reviewer checklist.
-- Validation: No code changed; planning document only; git diff --check pending
-- Known issues: None
-- Next: Reviewer Agent to review plan before implementation; Frontend Agent to execute SR-009 through SR-014 tasks

@@ -8,7 +8,7 @@ import { AirportObject, AirportDetailResponse, MaritimeVesselObject, MaritimeVes
 import { SearchResult } from '../lib/searchTypes';
 import { AviationFilters } from '../layers/aviation/airports/aviationCategories';
 import type { LayoutPhase } from '../layers/aviation/airports/useAirportLayoutFeatures';
-import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
+import type { EarthEventsPhase } from '../layers/layer_03_earth_events/useEarthEvents';
 import type { BordersPhase } from '../layers/layer_02_borders_boundaries/useBordersBoundaries';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';

@@ -1,4 +1,76 @@
 
+### 2026-06-16T02:00:00Z — sr-011-earth-events-canonical-folder
+
+- Work order: SR-011
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-011/earth-events-canonical-folder
+- Base stack: SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-011 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-010S (borders) and SR-021 (.gitkeep cleanup) cleared the way, SR-011 is the lowest-risk remaining per-layer move (5 imports, single hook file `useEarthEvents.ts`, no subfolders, no API changes).
+- Goal: Rename the frontend `apps/web/src/layers/earth-events/` folder to the canonical `apps/web/src/layers/layer_03_earth_events/`, add canonical barrel + compatibility shim, and update the 5 active frontend import sites.
+- Files changed:
+  1. `apps/web/src/layers/earth-events/` → `apps/web/src/layers/layer_03_earth_events/` (via `git mv`; `useEarthEvents.ts` moved atomically, no content change).
+  2. `apps/web/src/layers/layer_03_earth_events/index.ts` — new file, content `export * from './useEarthEvents';` (canonical re-export).
+  3. `apps/web/src/layers/earth-events/` — recreated as a shim folder; contains only `apps/web/src/layers/earth-events/index.ts` with content `export * from '../layer_03_earth_events';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — single-line import update: `'./layers/earth-events/useEarthEvents'` → `'./layers/layer_03_earth_events/useEarthEvents'`.
+  5. `apps/web/src/components/Shell.tsx` — single-line import update: `'../layers/earth-events/useEarthEvents'` → `'../layers/layer_03_earth_events/useEarthEvents'`.
+  6. `apps/web/src/components/StatusPanel.tsx` — single-line import update: `'../layers/earth-events/useEarthEvents'` → `'../layers/layer_03_earth_events/useEarthEvents'`.
+  7. `apps/web/src/components/layer-panel/LayerPanelRoot.tsx` — single-line import update: `'../../layers/earth-events/useEarthEvents'` → `'../../layers/layer_03_earth_events/useEarthEvents'`.
+  8. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — single-line import update: `'../../layers/earth-events/useEarthEvents'` → `'../../layers/layer_03_earth_events/useEarthEvents'`.
+  9. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-011 Earth-Events Canonicalization` and removed the oldest entry (`## 2026-06-16 - Frontend Layer Canonicalization Plan`) to keep the rolling window at 5 entries per the file's own update rule.
+  10. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/CesiumGlobe.tsx:494` — `new CustomDataSource('earth-events')`. This is the Cesium `DataSource` name used to identify the layer in the Cesium scene graph and the DOM/console. The string is a runtime data-source identifier, not a TypeScript module path; it does not need to match the folder name. Changing it would risk breaking Cesium-side references (e.g. `viewer.dataSources.getByName('earth-events')` if added later) and would couple the layer-name registry to the folder name in a way the project does not require.
+  - `apps/web/src/lib/api.ts:178` — `${API_BASE_URL}/api/earth-events/latest`. This is the active backend API path. The frontend rename task explicitly excludes API routes; the API path is owned by the API Agent and any change would require a coordinated `apps/api/` edit, a contract update in `packages/contracts/`, and a backend deployment. Out of scope for SR-011.
+  - Inside `apps/web/src/layers/layer_03_earth_events/useEarthEvents.ts` (after rename): no `earth-events` string literals were found. The file references `fetchEarthEventsLatest(...)` (function name) and `'earthquake'` (event_type query value), neither of which contains the substring `earth-events`. The relative `import { fetchEarthEventsLatest } from '../../lib/api';` continues to work because the file is at the same depth in the new folder (2 levels deep into `src/`).
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `energy/`, `maritime/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-012, SR-013, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/` — no source code outside the allowed files was changed. The `apps/api/src/routes/earth-events.ts` route file is owned by the API Agent and is intentionally not modified in SR-011; the frontend rename does not change the backend route.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `earth-events/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-011/earth-events-canonical-folder` (PASS)
+  - `git log -6 --oneline` → confirmed stack
+    `63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/earth-events"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/earth-events` (pre-rename) → `useEarthEvents.ts` only (PASS; SR-021 already removed the redundant `.gitkeep`)
+  - `git grep -n "earth-events" -- apps/web/src` (pre-rename) → 7 matches classified as 5 import paths to update + 2 runtime strings to preserve (PASS)
+  - `git mv apps/web/src/layers/earth-events apps/web/src/layers/layer_03_earth_events` → succeeded (PASS)
+  - Post-rename `git ls-files` shows `useEarthEvents.ts` now under `apps/web/src/layers/layer_03_earth_events/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 5 import files → 5 files updated (PASS)
+  - `git grep -n "layers/earth-events" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "earth-events" -- apps/web/src` (post-import-update) → only 2 runtime strings preserved (PASS; no active import paths)
+  - `git grep -n "layer_03_earth_events" -- apps/web/src` → 5 active import sites + 2 string `layerId` registry values (`LayerPanelRoot.tsx:113` and `lib/useLayerRegistry.ts:51`); all correct (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events/useEarthEvents.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/earth-events/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/earth-events` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_03_earth_events` → `index.ts` + `useEarthEvents.ts` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules, 881ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 10 expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, in the SR-010S handoff entry, and in this SR-011 body as a validation caveat. No regression is introduced.
+  - The 2 `apps/api/.../earth-events` matches in the broader grep output (e.g. `apps/api/src/routes/earth-events.ts`) are **the API route file** for this layer. The route file is owned by the API Agent and is intentionally not modified in SR-011; the frontend rename does not change the backend route.
+  - The runtime strings `'earth-events'` in `CesiumGlobe.tsx` and `/api/earth-events/latest` in `lib/api.ts` are intentionally preserved. See the "Runtime strings preserved" section above for the full justification.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-011 before SR-013 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, and SR-011 to remote and open PRs. After SR-011 is reviewed, the recommended next task is **SR-013 maritime canonicalization** (3 imports, self-contained, low risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
 ### 2026-06-16T01:30:00Z — sr-021-retry-remove-redundant-gitkeep
 
 - Work order: SR-021
