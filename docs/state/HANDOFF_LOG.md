@@ -7659,3 +7659,61 @@ No.
 Ready for Reviewer Agent review.
 
 ---
+
+
+## Documentation Architecture Compression Plan
+
+- Work order: Planning task — documentation architecture compression
+- Agent: Documentation Planning Agent
+- Branch: plan/documentation-architecture-compression
+- Date: 2026-06-16 04:10 UTC
+
+### Summary
+
+Planning-only task. Produced a precise 6-phase implementation plan for restructuring
+the docs/ folder and consolidating 10 control docs into 3 active files. No files moved,
+merged, deleted, or restructured. No code changed. No PR opened.
+
+### Files Created
+
+- `specs/008-structure-remediation-roadmap/documentation-architecture-compression-plan.md`
+  (new — full implementation plan)
+
+### Files Modified
+
+- `docs/state/HANDOFF_LOG.md` (this entry appended — append only)
+
+### Plan Summary
+
+Target: reduce mandatory agent reads from ~176k tokens to ~11k tokens (94% reduction).
+5 active docs/ subfolders (down from 8). 3 active control docs (down from 10).
+RECENT_CONTEXT.md (new) replaces mandatory HANDOFF_LOG reading.
+
+### Recommended First Implementation Phase
+
+Phase 1 (branch: `docs/fix/recent-context-and-reading-policy`):
+Create `docs/state/RECENT_CONTEXT.md`, update mandatory reading lists in AGENTS.md +
+docs/README.md + ENGINEERING_STRUCTURE_RULES.md to remove HANDOFF_LOG, add reading
+policy tiers to AGENTS.md. Estimated context reduction: ~150k tokens in one small PR.
+
+### Known Risks
+
+- PROJECT_RULES.md consolidation (Phase 2) must not drop any rule — reviewer gate required.
+- LAYER_AND_DATA_CONTRACT.md (Phase 3) must copy the layer registry table verbatim.
+- Deleting docs/api/, docs/data/, docs/work-orders/ stubs (Phase 4) requires pre-deletion
+  cross-reference search across all code.
+- Specs 001–007 archival (Phase 5) requires cross-reference search before moving.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
