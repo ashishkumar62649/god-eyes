@@ -8206,3 +8206,79 @@ No.
 Ready for Reviewer Agent review.
 
 ---
+
+## Phase 5 -- Archive Implemented Layer Specs
+
+- Work order: Phase 5 -- documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 06:55 UTC
+
+### Summary
+
+Moved specs/001-007 (all implemented layer specs) to docs/archive/2026-06-16-implemented-specs/
+using git mv, preserving full git history. Created archive INDEX.md. Updated specs/README.md
+to list 008 as the only active spec. Updated docs/README.md SPEC_WORKSPACE classification.
+AGENTS.md not changed (it already classifies specs/001-007 as historical/search-only).
+
+### Folders Moved (via git mv)
+
+- specs/001-layer-zero-globe-core -> docs/archive/2026-06-16-implemented-specs/001-layer-zero-globe-core
+- specs/002-layer-one-aviation -> docs/archive/2026-06-16-implemented-specs/002-layer-one-aviation
+- specs/003-layer-05-space-satellites-mvp -> docs/archive/2026-06-16-implemented-specs/003-layer-05-space-satellites-mvp
+- specs/004-layer-10-energy-infrastructure-mvp -> docs/archive/2026-06-16-implemented-specs/004-layer-10-energy-infrastructure-mvp
+- specs/005-layer-06-maritime-mvp -> docs/archive/2026-06-16-implemented-specs/005-layer-06-maritime-mvp
+- specs/006-layer-07-weather-mvp -> docs/archive/2026-06-16-implemented-specs/006-layer-07-weather-mvp
+- specs/007-layer-08-news-osint-mvp -> docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint-mvp
+
+### Files Created
+
+- docs/archive/2026-06-16-implemented-specs/INDEX.md
+
+### Files Modified
+
+- specs/README.md -- active spec list updated; archived specs noted; related docs updated
+- docs/README.md -- SPEC_WORKSPACE classification updated to reflect 008 active, 001-007 archived
+- docs/state/RECENT_CONTEXT.md -- Phase 5 entry added; oldest entry dropped; 4 entries
+- docs/state/HANDOFF_LOG.md -- this entry appended
+
+### Cross-Reference Search Results
+
+Active docs referencing specs/001-007:
+- docs/README.md SPEC_WORKSPACE examples row -- updated in this commit
+- specs/README.md existing spec list -- updated in this commit
+- AGENTS.md: already classifies specs/001-007 as "historical specs -- search only"; no change needed
+- docs/control/WORK_ORDER_TEMPLATE.md: generic example reference to specs/002 -- intentionally left (template example, not broken)
+
+### What Did Not Change
+
+- AGENTS.md: already correct; no change needed
+- docs/control/**
+- All code files
+- Archive/audits/decisions
+
+### Validation
+
+- git diff --check: PASS (CRLF warnings only)
+- specs/001-007: absent from specs/
+- specs/008: present in specs/
+- docs/archive/2026-06-16-implemented-specs/001-007: all present
+- data tests: 1159 passed
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---

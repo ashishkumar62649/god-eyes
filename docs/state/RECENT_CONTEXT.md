@@ -31,24 +31,6 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
-## 2026-06-16 - Phase 1 Documentation Context Reduction
-
-- Agent: Documentation Implementation Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Created RECENT_CONTEXT.md; updated reading policy in AGENTS.md, docs/README.md, ENGINEERING_STRUCTURE_RULES.md to replace mandatory HANDOFF_LOG read with RECENT_CONTEXT
-- Validation: 1159 data tests PASS, git diff --check PASS
-- Known issues: None
-- Next: Phase 2 - create PROJECT_RULES.md consolidated engineering rulebook
-
-## 2026-06-16 - Phase 2 Required Fix: Complete Project Rules Consolidation
-
-- Agent: Documentation Implementation Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Created docs/control/PROJECT_RULES.md (21 sections); added Time-Series/Live-Data, API Transport, Background Worker, and Exceptions/Grandfathering; fixed LAYER_AND_DATA_CONTRACT.md references
-- Validation: 1159 data tests PASS, git diff --check PASS
-- Known issues: None; source files not yet retired (Phase 4)
-- Next: Phase 3 - create LAYER_AND_DATA_CONTRACT.md
-
 ## 2026-06-16 - Phase 3 Review: Layer and Data Contract
 
 - Agent: Reviewer Agent
@@ -66,3 +48,12 @@ receive the **complete** handoff entry after every completed task.
 - Validation: 1159 data tests PASS, git diff --check PASS
 - Known issues: One stale docs/work-orders comment in code (out of scope)
 - Next: Reviewer Agent reviews Phase 4 before Phase 5 (specs archival)
+
+## 2026-06-16 - Phase 5 Archive Implemented Layer Specs
+
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- What changed: Moved specs/001-007 to docs/archive/2026-06-16-implemented-specs/ via git mv; created INDEX.md; updated specs/README.md and docs/README.md; specs/ now contains only spec 008
+- Validation: 1159 data tests PASS, git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent reviews Phase 5; then Phase 6 archive fence hardening
