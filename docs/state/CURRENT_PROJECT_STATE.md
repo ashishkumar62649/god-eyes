@@ -1,7 +1,4 @@
-# Current Project State
-
-Classification: CURRENT_STATE
-Last updated: 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
+﻿# Current Project State
 
 Classification: CURRENT_STATE
 Last updated: 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
@@ -14,9 +11,10 @@ the main branch. No layer business logic is being redesigned in this phase.
 
 ## Authoritative Sources
 
-- `docs/control/MVP_LAYER_REGISTRY.md` is the authoritative layer registry (IDs, order, status).
+- `docs/control/PROJECT_CONTROL.md` is the authoritative layer registry
+  (IDs, order, status, ownership, and source contract expectations).
 - The API registry (`apps/api/src/routes/layers.ts`) and the frontend fallback registry
-  (`apps/web/src/lib/useLayerRegistry.ts`) are aligned to that registry.
+  (`apps/web/src/lib/useLayerRegistry.ts`) must remain aligned to that registry.
 
 ## Implemented Layers (status: active)
 
@@ -94,16 +92,10 @@ ever displayed.
 
 ## Workflow
 
-Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/GIT_WORKFLOW_POLICY.md`.
+Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJECT_CONTROL.md`.
 
 ## Last Updated
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-2026-06-14 — Orchestrator Agent (repository alignment pass)
-=======
-=======
->>>>>>> Stashed changes
 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
 
 Change log for this file:
@@ -119,7 +111,3 @@ Change log for this file:
   "Superseded" / "Post-Phase 6" addenda. Spec 008 README carries a Phase 6
   status banner. State docs carry Classification lines. No layer business
   logic was changed.
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes

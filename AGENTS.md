@@ -1,4 +1,4 @@
-# AGENTS.md — GOD EYES Multi-Agent Control
+﻿# AGENTS.md — GOD EYES Multi-Agent Control
 
 Classification: ENTRY_POINT
 Last updated: 2026-06-16
@@ -9,16 +9,7 @@ rules, layer registry, ownership matrix, source contract, Git workflow, naming r
 size limits, and work-order template live in `docs/control/PROJECT_CONTROL.md`.
 Archived documents never override the active control file.
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-No model, provider, assistant, or tool product names are used anywhere in active control
-documents. Use the neutral role names above only.
-=======
 ---
->>>>>>> Stashed changes
-=======
----
->>>>>>> Stashed changes
 
 ## Hard Rules
 
@@ -63,18 +54,18 @@ Full ownership matrix (with shared read access and "Others may" rules) lives in
 ### Always read (every agent, every session)
 
 1. `AGENTS.md` — this file
-2. `docs/control/PROJECT_RULES.md` — master engineering rulebook
-3. `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer registry, ownership, and source/data contract
-4. `docs/state/CURRENT_PROJECT_STATE.md` — current phase and implemented layers
-5. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries
-6. The task-specific spec or work order for the current task
+2. `docs/control/PROJECT_CONTROL.md` — single active project control file
+3. `docs/state/CURRENT_PROJECT_STATE.md` — current phase and implemented layers
+4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries
+5. The task-specific spec or work order for the current task
 
 ### Task-specific read (load only when relevant)
 
-- `docs/control/GIT_WORKFLOW_POLICY.md` — user/decision-control layer before push/PR;
-  workers when uncertain about commit format
 - Active spec files for the current feature (e.g. `specs/008-structure-remediation-roadmap/`)
 - `docs/decisions/ADR-*.md` — when making an architectural decision in the relevant area
+- When a codebase, documentation, or project-content question needs relationship context,
+  and `graphify-out/graph.json` exists, use Graphify (`graphify query`, `graphify path`,
+  or `graphify explain`) before broad manual searching. Skip it for tiny exact-file edits.
 
 ### Search-only (do not load full file into context)
 
@@ -99,17 +90,7 @@ Full ownership matrix (with shared read access and "Others may" rules) lives in
 
 ---
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-`docs/control/LAYER_AND_DATA_CONTRACT.md` is the authoritative source of truth for layer IDs,
-layer order, and layer status. If any document or code disagrees with that registry, pause
-new layer work until the registry drift is fixed.
-=======
 ## Layer Order and Scope
->>>>>>> Stashed changes
-=======
-## Layer Order and Scope
->>>>>>> Stashed changes
 
 `docs/control/PROJECT_CONTROL.md` Part 2 §4 is the single source of truth for layer
 IDs, names, statuses, and order. Key facts agents must remember:
@@ -158,15 +139,7 @@ format, pre-push verification, and PR/merge policy are in
 
 ---
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
-=======
 ## Git Workflow (summary)
->>>>>>> Stashed changes
-=======
-## Git Workflow (summary)
->>>>>>> Stashed changes
 
 See `docs/control/PROJECT_CONTROL.md` Part 3 for the complete policy. Key rules:
 
@@ -182,43 +155,17 @@ See `docs/control/PROJECT_CONTROL.md` Part 3 for the complete policy. Key rules:
 
 ## Key Documents
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-- `docs/README.md` — the documentation map (start here; lists active rules,
-  current state, audits, decisions, archive, and specs)
-- `docs/control/PROJECT_RULES.md` — **master engineering rulebook**;
-  every agent must follow it for all file structure, database structure, API structure,
-  naming conventions, file/function size limits, and refactor boundaries
-- `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer registry, agent ownership, and
-  source-to-frontend contract (authoritative for layer IDs, statuses, and data contracts)
-- `docs/control/GIT_WORKFLOW_POLICY.md` — Git commit and push rules
-=======
-=======
->>>>>>> Stashed changes
 - `docs/README.md` — documentation map (start here; lists active rules, current state,
   audits, decisions, archive, and specs)
 - `docs/control/PROJECT_CONTROL.md` — single active project control file: engineering
   rules, layer registry, ownership, source/data contract, Git workflow, work-order
   template, naming rules, file/function size limits, validation, refactor boundaries
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
 - `docs/state/RECENT_CONTEXT.md` — short rolling summary of the last 3–5 work sessions
 - `docs/state/HANDOFF_LOG.md` — full append-only log of all agent work (search-only)
 - `specs/README.md` — Spec Kit workspace guide
 - `docs/decisions/ADR-*.md` — Architecture Decision Records
 - `docs/archive/` — historical/superseded documents (not active instructions)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-- `docs/work-orders/` — work orders for small cross-cutting repairs and single-lane fixes
-=======
 - `docs/work-orders/` — active work orders for small cross-cutting repairs (create
   the folder only when an active work order exists)
->>>>>>> Stashed changes
-=======
-- `docs/work-orders/` — active work orders for small cross-cutting repairs (create
-  the folder only when an active work order exists)
->>>>>>> Stashed changes
 - `docs/audits/` — research and audit evidence

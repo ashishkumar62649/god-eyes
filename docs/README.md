@@ -1,49 +1,52 @@
-# GOD EYES Documentation Map
+﻿# GOD EYES Documentation Map
 
-> **Agent:** Documentation Agent
-> **Lane:** Documentation
-> **Last updated:** 2026-06-14
+Classification: CURRENT_DOC_MAP
+Last updated: 2026-06-16
 
-This file explains which documents are **active rules**, which are **current state**,
-which are **audits / evidence**, which are **specs** (planned feature/refactor work),
-which are **decisions**, and which are **archive**. It is the entry point for both
-humans and agents navigating the documentation tree.
+This is the human and agent map for repository documentation. It explains what each
+document area owns, what agents should read, and where new documentation belongs.
 
-If you read only one document under `docs/`, read this one. It tells you where to read
-next.
+## Read This First
 
----
+### Humans
 
-## 1. Human First-Read
+1. `docs/README.md` - this map
+2. `docs/state/CURRENT_PROJECT_STATE.md` - current phase, layers, API surface, and gaps
+3. `AGENTS.md` - agent roles, hard rules, and workflow
+4. `.specify/memory/constitution.md` - Spec Kit project principles
+5. `docs/control/PROJECT_CONTROL.md` - single active project control file
 
-If you are a human contributor joining the project, read these in order:
+### Agents
 
-1. `docs/README.md` — this file (the documentation map)
-2. `docs/state/CURRENT_PROJECT_STATE.md` — current phase, implemented layers, next steps
-3. `docs/control/PROJECT_RULES.md` — the master engineering rulebook
-4. `docs/control/LAYER_AND_DATA_CONTRACT.md` — authoritative layer IDs, order, status, ownership
+1. `AGENTS.md`
+2. `.specify/memory/constitution.md`
+3. `docs/control/PROJECT_CONTROL.md`
+4. `docs/state/CURRENT_PROJECT_STATE.md`
+5. `docs/state/RECENT_CONTEXT.md`
+6. The task-specific spec or work order
 
----
+Search `docs/state/HANDOFF_LOG.md` only for a specific work order or session. Do not
+load the whole file as routine context.
 
-## 2. Agent First-Read
+## Spec Kit Workflow
 
-If you are an agent (worker or orchestrator) starting a task, read these in order:
+GOD EYES follows the GitHub Spec Kit model for new layers, large features, and broad
+refactors:
 
-1. `AGENTS.md` — entry point: roles, layer registry, hard rules, workflow, git rules
-2. `docs/control/PROJECT_RULES.md` — file/folder/DB/API structure rules
-3. `docs/state/CURRENT_PROJECT_STATE.md` — what phase we are in, what is implemented
-4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries (replaces full HANDOFF_LOG read)
-5. The task-specific spec or work order referenced by the work order
-6. `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer IDs, statuses, ownership, and source contract
+1. Constitution: project principles in `.specify/memory/constitution.md`
+2. Specify: feature intent in `specs/<NNN>-<feature>/spec.md`
+3. Clarify: open questions resolved before planning
+4. Plan: approach in `plan.md`, with `research.md`, `contracts/`, `data-model.md`, and `quickstart.md` when needed
+5. Tasks: ordered task breakdown in `tasks.md`
+6. Analyze/checklist: consistency and quality checks before implementation
+7. Implement: agents execute tasks and record validation
 
-`docs/state/HANDOFF_LOG.md` is the full append-only project history. Do not load it in
-full. Search it only when you need to investigate a specific past session or work order.
+The templates and prompt packs under `.specify/` and `.kiro/` support this workflow.
+They are tooling assets, not active GOD EYES control rules. The one exception is
+`.specify/memory/constitution.md`, which is an active principles document.
 
----
+## Directory Ownership
 
-<<<<<<< Updated upstream
-## 3. Reviewer First-Read
-=======
 | Path | Classification | Purpose | Edit rule |
 |------|----------------|---------|-----------|
 | `AGENTS.md` | ENTRY_POINT | Reading policy, neutral role list, hard rules, workflow | Decided by the user / decision-control layer; read by all |
@@ -64,112 +67,46 @@ full. Search it only when you need to investigate a specific past session or wor
 | `services/**/README.md` | LOCAL_REFERENCE | Service-local operating notes | Owned by the corresponding service |
 | `database/**/README.md` | LOCAL_REFERENCE | Database/migration operating notes | Owned by the database track |
 | `tests/**/fixtures/**/*.md` | TEST_FIXTURE | Test evidence or fixture reports | Owned by the corresponding test area |
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
-If you are reviewing a pull request or a branch:
+## Active Control Document
 
-1. `AGENTS.md` — roles, hard rules, workflow, git rules
-2. `docs/control/PROJECT_RULES.md` — what the change should conform to
-3. The changed files (the diff itself)
-4. The related spec / plan / tasks document
-5. `docs/state/HANDOFF_LOG.md` — what the agent reported (search or read the relevant
-   entry only; do not load the full file)
+| File | Owns |
+|------|------|
+| `docs/control/PROJECT_CONTROL.md` | Engineering rules, layer registry, ownership, source/data contract, Git workflow, validation checklist, and work-order template |
 
----
+## Active State Documents
 
-## 4. Directory Meaning
+| File | Use |
+|------|-----|
+| `docs/state/CURRENT_PROJECT_STATE.md` | Current implementation and project phase |
+| `docs/state/RECENT_CONTEXT.md` | Last three to five completed sessions |
+| `docs/state/HANDOFF_LOG.md` | Full append-only history; search-only by default |
 
-| Directory | Type | Purpose | Who reads it | Can agents edit it? | Notes |
-|---|---|---|---|---|---|
-| `docs/control/` | ACTIVE_RULE | **Global constitutions, rules, policies, registries, templates, and cross-project contracts only.** Layer-specific historical plans, contracts, and gate reviews do NOT belong here. | All agents and humans | Only Orchestrator Agent (read-only for others) | Authoritative instructions. Do not modify without a change request. |
-| `docs/state/` | CURRENT_STATE / APPEND_ONLY_LOG | **Current working state and append-only handoff timeline only.** Old integration reviews do NOT belong here. | All agents and humans | Orchestrator Agent owns state doc; **all agents may append** to `HANDOFF_LOG.md` | `CURRENT_PROJECT_STATE.md` is rewritten to reflect the current state. `HANDOFF_LOG.md` is append-only. |
-| `docs/audits/` | AUDIT_REPORT | Active audit evidence (current health, compliance, workflow audits). Superseded audits are archived. | All agents and humans | Only Research / Documentation Agent, and only as new audit reports | Audits are evidence, not active control rules, unless a control doc explicitly adopts something from them. |
-| `docs/decisions/` | DECISION_RECORD | Architecture Decision Records (ADRs) | All agents and humans | Only Orchestrator Agent (and Documentation Agent) | New ADRs are added; existing ADRs are not rewritten. |
-| `docs/archive/` | ARCHIVE | Old, superseded, duplicate, or historical documents. Organized by cleanup batch and by layer/work area. | All agents and humans | Only Documentation Agent, and only through a dedicated cleanup task | Archived docs are historical and not active instructions. Nothing is archived automatically. See `docs/archive/README.md`. |
-| `docs/work-orders/` | WORK_ORDER | **Active/future work orders only.** Completed work orders are archived. Use `docs/control/WORK_ORDER_TEMPLATE.md` for new work orders. | Workers and Orchestrator | Only Orchestrator Agent (read-only for workers) | See `docs/work-orders/README.md`. |
-| `docs/devlog/` | DEV_LOG | Engineering/devlog notes | All agents and humans | Only authors of each entry | Historical and reference material. |
-| `docs/api/` | API_REFERENCE | **Reserved for future active API documentation.** Historical API notes are archived. | All agents and humans | Read-only for most agents | See `docs/api/README.md`. Current API contracts live in code/contracts and specs. |
-| `docs/postman/` | API_COLLECTION | Postman collection assets | All agents and humans | Read-only for most agents | API test/exploration collections. |
-| `docs/reports/` | REPORT | Generated reports | All agents and humans | Only report authors | Generated or periodic reports. |
-| `docs/data/` | DATA_REFERENCE | **Reserved for future active data documentation.** Historical data notes are archived. | All agents and humans | Read-only for most agents | See `docs/data/README.md`. Current data rules live in `docs/control/PROJECT_RULES.md`. |
-| `specs/` | SPEC_WORKSPACE | Spec Kit feature/refactor work packages | Orchestrator, Planning Agent, worker agents, Reviewer | Orchestrator Agent creates spec dirs; worker agents edit their scope within the spec | Each spec dir is the source of truth for that feature. |
-| `AGENTS.md` | ENTRY_POINT | Multi-agent roles, hard rules, workflow, git rules | All agents and humans | Only Orchestrator Agent | Entry point for all work. |
-| `apps/`, `packages/`, `services/`, `database/`, `tests/` | CODE | Application code (out of scope of this document) | Owning agents | Owning agents per `docs/control/LAYER_AND_DATA_CONTRACT.md` | Subject to `docs/control/PROJECT_RULES.md`. |
+## Spec Workspace
 
----
+Use `specs/` for new layers, large multi-agent features, and broad refactors. Current
+rules are in `specs/README.md`.
 
-## 5. Document Classification
+Active spec:
 
-Every document under `docs/` and `specs/` falls into exactly one classification. The
-classification determines how it is read, edited, and superseded.
+- `specs/008-structure-remediation-roadmap/`
 
-| Classification | Meaning | Read by | Edit rule | Example files |
-|---|---|---|---|---|
-| **ACTIVE_RULE** | Authoritative, current rules. Agents must follow these. | All agents and humans | Only user / decision-control layer may modify. Changes follow the rule's own change process. | `docs/control/PROJECT_RULES.md`, `docs/control/LAYER_AND_DATA_CONTRACT.md`, `docs/control/GIT_WORKFLOW_POLICY.md` |
-| **CURRENT_STATE** | A snapshot of the current project state. May be rewritten in place. | All agents and humans | Only Orchestrator Agent may rewrite. | `docs/state/CURRENT_PROJECT_STATE.md` |
-| **APPEND_ONLY_LOG** | A timeline that must only be appended to, never rewritten. | All agents and humans | All agents may append. Do not prepend, do not rewrite older entries. | `docs/state/HANDOFF_LOG.md` |
-| **AUDIT_REPORT** | Research and audit evidence. Findings, severity, recommendations. | All agents and humans | Only Research / Documentation Agent may add a new audit report. Existing audits are not rewritten; corrections go in a new audit or a handoff log note. | `docs/audits/PROJECT_HEALTH_WORKFLOW_AUDIT.md`, `docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md`, `docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md` |
-| **DECISION_RECORD** | Architecture Decision Record. Captures context, decision, consequences. | All agents and humans | New ADRs may be added. Existing ADRs are not rewritten; superseding decisions are a new ADR. | `docs/decisions/ADR-001-documentation-system.md` |
-| **SPEC_WORKSPACE** | A folder containing a single Spec Kit feature/refactor work package. | Orchestrator, Planning Agent, worker agents, Reviewer | Orchestrator Agent creates the spec folder. Worker agents edit their lane's content within the spec's `plan.md` / `tasks.md` / `contracts/`. | `specs/008-structure-remediation-roadmap/` (active). Specs 001–007 are archived in `docs/archive/2026-06-16-implemented-specs/`. |
-| **SPEC** | A `spec.md` file inside a Spec Kit spec folder. Describes the what and why of the work. | All agents | Worker agents and Orchestrator Agent may update during the spec lifecycle. | `specs/<NNN>-<feature>/spec.md` |
-| **PLAN** | A `plan.md` file inside a Spec Kit spec folder. Describes the selected technical approach. | All agents | Worker agents and Orchestrator Agent may update. | `specs/<NNN>-<feature>/plan.md` |
-| **TASK_LIST** | A `tasks.md` file inside a Spec Kit spec folder. Ordered implementation tasks. | All agents | Worker agents and Orchestrator Agent may update. Implementation agents must follow `tasks.md` and must not invent scope. | `specs/<NNN>-<feature>/tasks.md` |
-| **REVIEW_REPORT** | An integration review record per work order or per spec. New reviews are written to `docs/state/` during active work; completed reviews are archived. | All agents | Orchestrator / Reviewer Agent writes the review. | `specs/<NNN>-<feature>/review.md` |
-| **ARCHIVE** | A historical or superseded document. Not active instructions. | Optional, for context only | Only Documentation Agent may add, and only through a dedicated cleanup task. | `docs/archive/**` |
+Archived implemented specs:
 
----
+- `docs/archive/2026-06-16-implemented-specs/`
 
-## 6. Rules
+Archived placeholder and evidence docs:
 
-The following rules apply to the entire documentation system:
+- `docs/archive/2026-06-16-docs-pruned/`
 
-- **Active rules live in `docs/control/`.** Authoritative instructions belong here.
-- **Current state lives in `docs/state/`.** `CURRENT_PROJECT_STATE.md` is a snapshot
-  that may be rewritten; `HANDOFF_LOG.md` is append-only.
-- **Audits live in `docs/audits/`.** They are evidence, not active instructions.
-- **Feature/refactor specs live in `specs/`.** Each medium or large feature or refactor
-  gets a dedicated spec folder under `specs/`. Implementation agents must follow
-  `tasks.md` and must not invent scope.
-- **Architecture decisions live in `docs/decisions/`** as ADRs. Use ADRs for important
-  project-wide decisions such as documentation hierarchy, API architecture, database
-  strategy, deployment strategy, or large refactor strategy.
-- **Old/superseded docs go to `docs/archive/`** by dedicated cleanup only. Nothing is
-  archived automatically. Historical/superseded docs are archived under
-  `docs/archive/`. The 2026-06-14 documentation-cleanup batch lives in
-  `docs/archive/2026-06-14-documentation-cleanup/` and is documented by its
-  `INDEX.md`. The 2026-06-14 spec-kit-alignment batch lives in
-  `docs/archive/2026-06-14-spec-kit-alignment/` and is documented by its
-  `INDEX.md` and its deferred-decisions log. The 2026-06-14 final-docs-structure
-  batch lives in `docs/archive/2026-06-14-final-docs-structure/` and is documented
-  by its `INDEX.md`.
-- **Do not treat audit reports as active instructions** unless a control document
-  explicitly adopts something from them.
-- **Do not move or archive docs during feature work.** Archiving is a dedicated
-  documentation cleanup task on its own branch.
-- **Do not create random docs outside the defined folders.** Every new document must
-  belong to a documented directory and classification.
-- **PR and merge rules live in `docs/control/GIT_WORKFLOW_POLICY.md`.** Agents do not
-  push, open PRs, merge, or delete branches; the user handles all of those after the
-  Reviewer Agent decision is PASS. Do not create a PR for every small local
-  correction.
+New specs start at `009`.
 
----
+## Archive Policy
 
-## 7. Related Documents
+Archived documents are historical. They may contain stale layer names, old role names,
+old model/tool metadata, outdated work orders, and superseded architecture. They are
+useful for evidence, but they never override active control docs.
 
-<<<<<<< Updated upstream
-- `AGENTS.md` — multi-agent control and entry point
-- `docs/control/PROJECT_RULES.md` — master engineering rulebook
-- `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer registry, ownership, and source/data contract
-- `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
-- `docs/state/HANDOFF_LOG.md` — append-only agent handoff timeline
-- `docs/decisions/ADR-001-documentation-system.md` — this documentation system as an ADR
-- `docs/archive/README.md` — archive rules
-- `specs/README.md` — Spec Kit workspace guide
-=======
 Read `docs/archive/_DO_NOT_READ.md` before using archived files.
 
 ### When to archive (triggers)
@@ -425,4 +362,3 @@ Do not duplicate active rules. If two active documents contain the same instruct
 1. Keep the detailed version in the document that owns that topic.
 2. Replace the duplicate with a short pointer.
 3. Record the change in `HANDOFF_LOG.md` and `RECENT_CONTEXT.md`.
->>>>>>> Stashed changes
