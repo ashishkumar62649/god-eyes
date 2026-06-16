@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-019 Constitution Conflict Resolution
+
+- Agent: Documentation / Control Agent
+- Branch: docs/sr-019-resolve-constitution-conflict
+- What changed: Resolved unresolved Git merge conflict markers in `.specify/memory/constitution.md`; active constitution now has clean v1.3.0 / ACTIVE_PRINCIPLES metadata and amendment history.
+- Validation: conflict-marker grep PASS; "Updated upstream/Stashed changes" grep PASS; git diff --check PASS
+- Known issues: None
+- Next: User / decision-control layer reviews local SR-019 commit and decides whether to push/open PR; continue roadmap (e.g. SR-020 Spec 008 status refresh) only after SR-019 is merged.
+
 ## 2026-06-16 - Frontend Layer Canonicalization Plan
 
 - Agent: Documentation Planning Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: git diff --check PASS; active terminology scan PASS with source-lineage/report-mapping exceptions only.
 - Known issues: Historical HANDOFF_LOG/archive entries still contain old names by design; they remain search-only history.
 - Next: Orchestrator Agent should review and push after validation if the branch passes.
-
-## 2026-06-16 - Active Docs Pruned
-
-- Agent: Orchestrator Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Archived placeholder docs/api, docs/data, docs/work-orders folders and bulky Spec 008 evidence under docs/archive/2026-06-16-docs-pruned; active specs now keep only the compact spine.
-- Validation: git diff --check PASS; active docs tree reduced to archive/audits/control/decisions/state plus README.
-- Known issues: Historical archive/evidence paths remain search-only and may contain stale wording.
-- Next: Orchestrator Agent should review the simplified docs tree before push.

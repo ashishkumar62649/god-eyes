@@ -1,4 +1,50 @@
 
+### 2026-06-16T00:30:00Z — sr-019-resolve-constitution-conflict
+
+- Work order: SR-019
+- Agent: Documentation / Control Agent
+- Branch: docs/sr-019-resolve-constitution-conflict
+- Base branch: main
+- Reviewer decision: PENDING (agent-only local docs/control handoff; no code change)
+- Goal: Resolve the unresolved Git merge conflict markers (`<<<<<<< Updated
+  upstream`, `=======`, `>>>>>>> Stashed changes`) in
+  `.specify/memory/constitution.md` so worker agents have a clean
+  first-read constitution. The active v1.3.0 / ACTIVE_PRINCIPLES side of
+  the conflict was retained; the stale v1.0.0 metadata side was discarded
+  as a duplicated conflicting metadata fragment.
+- Files changed:
+  1. `.specify/memory/constitution.md` — removed the 3 conflict marker
+     lines and the 3-line v1.0.0 metadata block (`**Version**: 1.0.0 |
+     **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05` plus the
+     `---` separator). Retained the v1.3.0 / ACTIVE_PRINCIPLES metadata
+     block, the Amendment History section, and the `## Authority`
+     heading. All other constitution content (Preamble, Core Principles
+     I–IX, Tooling Governance, Development Workflow, Quality Gates,
+     Migration Path, Governance) was preserved verbatim.
+  2. `docs/state/RECENT_CONTEXT.md` — added a new top entry
+     "2026-06-16 - SR-019 Constitution Conflict Resolution" and removed
+     the oldest entry ("2026-06-16 - Active Docs Pruned") to keep the
+     rolling window at 5 entries.
+  3. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the
+     top (append-only rule).
+- Validation:
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"`
+    → no output (PASS)
+  - `git grep -n "Updated upstream|Stashed changes" -- . ":(exclude)docs/archive/**"`
+    → no output (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only `.specify/memory/constitution.md`
+    (M), `docs/state/RECENT_CONTEXT.md` (M), `docs/state/HANDOFF_LOG.md` (M) (PASS)
+- Known issues: None
+- Push/PR/merge status: not performed by agent. Branch is local only.
+- Next step: user / decision-control layer reviews the local SR-019
+  commit and decides whether to push the branch and open a PR. After
+  SR-019 is merged, continue with SR-020 Spec 008 status refresh. Do
+  not continue frontend canonicalization (SR-009..SR-014) until the
+  constitution fix is reviewed and merged.
+
+---
+
 ### 2026-06-16T00:00:00Z — post-phase-6-documentation-cleanup-13
 
 - Work order: post-phase-6-documentation-cleanup-13
