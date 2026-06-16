@@ -34,14 +34,14 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
-## 2026-06-16 - Post-Phase 6 Documentation Cleanup (13 steps)
+## 2026-06-16 - Frontend Layer Canonicalization Plan
 
-- Agent: Orchestrator Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Resolved 13 remaining documentation drift / de-duplication items after the single-control-file consolidation. Critical: archive fence now lists PROJECT_CONTROL.md. AGENTS.md de-duplicated (entry-point pointer only). Stale audits marked superseded. Spec 008 carries Phase 6 banner. Constitution bumped to 1.3.0. State docs carry Classification lines.
-- Validation: No code / schema / API / layer logic changed; documentation-only pass; grep verification pending
-- Known issues: None blocking
-- Next: User to review and commit; then run full validation (git diff --check + grep for retired control filenames in active docs)
+- Agent: Documentation Planning Agent
+- Branch: plan/frontend-layer-canonicalization
+- What changed: Created specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md with current folder inventory, target canonical names, import impact analysis (74 imports across 29 files), risk classification, implementation sequence, compatibility strategy, validation plan, and reviewer checklist.
+- Validation: No code changed; planning document only; git diff --check pending
+- Known issues: None
+- Next: Reviewer Agent to review plan before implementation; Frontend Agent to execute SR-009 through SR-014 tasks
 
 ## 2026-06-16 - Phase 6 Archive Fence Hardening
 
