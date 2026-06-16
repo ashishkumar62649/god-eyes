@@ -7796,3 +7796,99 @@ No.
 Ready for Reviewer Agent review.
 
 ---
+
+
+## Phase 2 — Consolidated Project Rules
+
+- Work order: Phase 2 — documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 04:55 UTC
+
+### Summary
+
+Created `docs/control/PROJECT_RULES.md` — a new consolidated engineering rulebook that
+merges the active content from four source files:
+
+- `ENGINEERING_STRUCTURE_RULES.md` (primary: all 19 sections)
+- `DATA_LOCATION_RULES.md` (unique: directory tree, gitignore, generated folders)
+- `PIPELINE_HANDOFF_RULES.md` (unique: data flow diagram, handoff protocol, forbidden imports)
+- `LAYER_ID_CONVENTIONS.md` (unique: folder convention examples per lane, API route pattern)
+
+Normalizer Location Rule appears exactly once (§8). Raw path pattern appears exactly once
+(§10). All duplicate copies removed. Target size met at ~14KB / 509 lines.
+
+Source files are not retired or modified. Retirement (in-place pointer stubs) is Phase 4.
+Mandatory reading lists not yet updated to reference PROJECT_RULES.md — that follows
+Reviewer confirmation that no rules were lost.
+
+### Files Created
+
+- `docs/control/PROJECT_RULES.md` (new — consolidated rulebook, 509 lines)
+
+### Files Modified
+
+- `docs/state/RECENT_CONTEXT.md` (updated — Phase 2 entry added; oldest SR-006A/B entry
+  dropped; 4 entries now, within 5-entry cap)
+- `docs/state/HANDOFF_LOG.md` (this entry appended — append only)
+
+### What Did Not Change
+
+- Source control docs (ENGINEERING_STRUCTURE_RULES.md, DATA_LOCATION_RULES.md,
+  PIPELINE_HANDOFF_RULES.md, LAYER_ID_CONVENTIONS.md) — not touched
+- AGENTS.md — not touched
+- docs/README.md — not touched
+- All code files — not touched
+- Archive, audits, decisions, specs — not touched
+
+### Content preserved in PROJECT_RULES.md
+
+All 19 sections from ENGINEERING_STRUCTURE_RULES.md are present:
+§3 Naming → §4; §4 Layer Folders → §5; §5 Big-Layer → §6; §6 File Sizes → §13;
+§7 Frontend → §6; §8 API → §7; §9 Fetcher/Normalizer → §8; §10 DB Tables → §9;
+§11 Migrations → §9; §12 Time-Series → §9; §13 API Transport → §7; §14 Background Jobs
+→ §17 (what-not-to-do); §15 Raw Data → §10; §16 Import Boundaries → §12; §17 Refactor
+→ §14; §18 Exceptions → §13; §19 Reviewer Checklist → §16.
+
+Unique content from DATA_LOCATION_RULES.md: directory tree diagram, gitignore list,
+generated folders. Unique content from PIPELINE_HANDOFF_RULES.md: data flow diagram,
+handoff protocol steps, forbidden cross-boundary imports. Unique content from
+LAYER_ID_CONVENTIONS.md: per-lane folder pattern table, API route pattern.
+
+### Commands Run
+
+- Get-Content docs/control/ENGINEERING_STRUCTURE_RULES.md — full read
+- Get-Content docs/control/DATA_LOCATION_RULES.md — full read
+- Get-Content docs/control/PIPELINE_HANDOFF_RULES.md — full read
+- Get-Content docs/control/LAYER_ID_CONVENTIONS.md — full read
+- git status --short --branch → 3 files changed (expected)
+- git diff --check → PASS (CRLF warnings only)
+- python -m pytest tests/data -q → 1159 passed, 15 skipped
+
+### Results
+
+- git diff --check: PASS
+- data tests: 1159 passed, 15 skipped
+
+### Known Issues
+
+Source files (ENGINEERING_STRUCTURE_RULES.md, DATA_LOCATION_RULES.md,
+PIPELINE_HANDOFF_RULES.md, LAYER_ID_CONVENTIONS.md) are not yet retired. They remain
+active. Agents should continue reading them until Phase 4 places in-place pointer stubs
+and mandatory reading lists are updated.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review. Reviewer must verify: all rules from all four source
+files are present in PROJECT_RULES.md with identical meaning. Normalizer Location Rule
+appears exactly once. Raw path pattern appears exactly once.
+
+---
