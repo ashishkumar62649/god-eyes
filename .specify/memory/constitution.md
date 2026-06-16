@@ -2,9 +2,36 @@
 
 This Constitution defines the non-negotiable principles that govern all code, configuration, data, and agent behavior in the GOD EYES project. It supersedes ad-hoc decisions. The authoritative source of truth for layer IDs and layer order remains `docs/control/MVP_LAYER_REGISTRY.md`.
 
+<<<<<<< Updated upstream
 **Version**: 1.0.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05
 
 ---
+=======
+Classification: ACTIVE_PRINCIPLES
+Version: 1.3.0
+Ratified: 2026-06-05
+Last Amended: 2026-06-16
+
+### Amendment History
+
+- **1.3.0 (2026-06-16) — Structure consolidation.** All engineering rules,
+  layer registry, ownership matrix, source/data contract, Git workflow, and
+  work-order template were merged into a single active project control file
+  at `docs/control/PROJECT_CONTROL.md` (4 parts). The earlier active control
+  filenames (`PROJECT_RULES.md`, `LAYER_AND_DATA_CONTRACT.md`,
+  `GIT_WORKFLOW_POLICY.md`, `WORK_ORDER_TEMPLATE.md`, `MVP_LAYER_REGISTRY.md`,
+  `LAYER_ID_CONVENTIONS.md`, `LAYER_ARCHITECTURE.md`, `LLM_OWNERSHIP_MATRIX.md`,
+  `SOURCE_TO_FRONTEND_CONTRACT.md`, `ENGINEERING_STRUCTURE_RULES.md`,
+  `DATA_LOCATION_RULES.md`, `PIPELINE_HANDOFF_RULES.md`) are retired. `AGENTS.md`
+  was de-duplicated to a pure entry-point pointer. Principle VIII (Human and
+  Agent Readability) was strengthened by removing duplicate active rules.
+- **1.2.0 (2026-06-16) — Spec Kit alignment.** Constitution rewritten in the
+  Spec Kit principles/governance form.
+- **1.1.0 and earlier** — pre-Spec-Kit governance and engineering rulebook
+  drafts. Preserved in Git history.
+
+## Authority
+>>>>>>> Stashed changes
 
 ## Preamble — MVP Focus
 

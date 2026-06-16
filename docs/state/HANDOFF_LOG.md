@@ -1,4 +1,56 @@
 
+### 2026-06-16T00:00:00Z â€” post-phase-6-documentation-cleanup-13
+
+- Work order: post-phase-6-documentation-cleanup-13
+- Agent: Orchestrator Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Reviewer decision: PENDING (this is a documentation-only handoff; no code change)
+- Goal: Resolve the 13 remaining documentation drift / de-duplication items
+  identified after the single-control-file consolidation. No code, schema,
+  API, or layer business logic was changed.
+- Files modified (13-step work):
+  1. docs/archive/_DO_NOT_READ.md â€” replaced obsolete PROJECT_RULES.md /
+     LAYER_AND_DATA_CONTRACT.md references with docs/control/PROJECT_CONTROL.md;
+     added an explicit retired-filenames list.
+  2. docs/audits/DOCUMENTATION_REORGANIZATION_REPORT_2026-06-16.md â€” added
+     SUPERSEDED banner explaining the single-file consolidation.
+  3. docs/audits/DOCUMENTATION_STRUCTURE_TERMINOLOGY_AUDIT_2026-06-16.md â€”
+     added Post-Phase 6 status addendum mapping each P1/P2/P3 finding to its
+     current resolved state.
+  4. specs/008-structure-remediation-roadmap/README.md â€” added explicit
+     "Status After Phase 6" banner listing the completed work.
+  5. specs/README.md â€” added README.md and repository-skeleton.md to the
+     file-roles table.
+  6. docs/README.md â€” added .claude/ (TOOL_ADAPTER) and .agents/ (TOOL_SKILLS)
+     classifications.
+  7. .specify/memory/constitution.md â€” bumped to v1.3.0 with amendment history
+     covering the single-control-file consolidation.
+  8. docs/state/CURRENT_PROJECT_STATE.md â€” added Classification line, updated
+     Last Updated, added change log for both the single-file consolidation
+     and this post-Phase 6 cleanup.
+  9. (verification) packages/source-catalog/layers/layer_06_maritime/README.md
+     and source_decisions.md â€” both already contain explicit Layer Identity
+     tables; no edit required. Audit P2 finding confirmed resolved.
+  10. docs/state/CURRENT_PROJECT_STATE.md, docs/state/RECENT_CONTEXT.md,
+      docs/state/HANDOFF_LOG.md â€” Classification lines added.
+  11. (this entry) docs/state/HANDOFF_LOG.md â€” appended handoff entry.
+  12. docs/state/RECENT_CONTEXT.md â€” dropped oldest entry ("2026-06-16 -
+      Single Control File"); added new top entry for this cleanup.
+  13. AGENTS.md â€” de-duplicated to a pure entry-point pointer (no duplicated
+      layer table, ownership matrix, or hard-rules body) â€” completed in the
+      previous session and recorded in step 8 change log.
+- Commands run: documentation-only edits via Edit tool. No build, no test,
+  no data migration. git diff --check pending user commit.
+- Validation: see docs/state/RECENT_CONTEXT.md and Step 13 grep checks
+  (no residual references to the retired control filenames in any active doc).
+- Known issues: None. The two open audit items (spelling drift on archived
+  evidence; non-neutral role names in archived RECENT_CONTEXT history) are
+  accepted as low-risk and are not blocking.
+- Review status: Pending user review and commit. No code-review gate required
+  because no code, schema, API, or layer logic changed.
+
+---
+
 ### 2026-06-14T23:50:00Z â€” required-fix-category-audit-path
 
 - Work order: final-visible-documentation-structure-cleanup-required-fix
@@ -8085,7 +8137,7 @@ no rules from source files were omitted.
 
 
 
-### 2026-06-16T14:30:00Z — phase-3-review-layer-and-data-contract
+### 2026-06-16T14:30:00Z ï¿½ phase-3-review-layer-and-data-contract
 
 - Work order: phase-3-create-layer-and-data-contract
 - Agent: Reviewer Agent
@@ -8093,24 +8145,24 @@ no rules from source files were omitted.
 - Reviewer decision: PASS
 - Summary: Completed review of LAYER_AND_DATA_CONTRACT.md (294 lines, 15,341 bytes) against all 4 source docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md). All review checks PASS.
 - Files reviewed:
-  - docs/control/LAYER_AND_DATA_CONTRACT.md (A) — 294 lines, 223 content lines, 15,341 bytes
-  - docs/state/RECENT_CONTEXT.md (M) — Phase 3 entry updated to reflect review completion
-  - docs/state/HANDOFF_LOG.md (M) — full entry appended
+  - docs/control/LAYER_AND_DATA_CONTRACT.md (A) ï¿½ 294 lines, 223 content lines, 15,341 bytes
+  - docs/state/RECENT_CONTEXT.md (M) ï¿½ Phase 3 entry updated to reflect review completion
+  - docs/state/HANDOFF_LOG.md (M) ï¿½ full entry appended
 - Validation summary:
-  - Scope: PASS — exactly 3 files changed, all expected
-  - Layer registry: PASS — all 11 layer IDs with exact canonical names and statuses
-  - Layer status definitions: PASS — active, active (MVP/local-dev), active (default OFF), coming_soon, no_data
-  - Layer architecture rules: PASS — Layer 0 renders first, 60 FPS, independent toggles, no cross-layer deps, no fake data, layer_04 safety rules, layer_02 MVP warning, generic API pattern
-  - Ownership matrix: PASS — all 22 path patterns from LLM_OWNERSHIP_MATRIX.md, neutral role naming
-  - Source-to-frontend contract: PASS — all 9 required fields, layer 0 exception, needs-contract-detail marker
-  - Source families: PASS — all 9 families with correct layer IDs, code locations, API surfaces
-  - API/frontend contract: PASS — frontend must not invent fields, packages/contracts/ boundary, database agent owns migrations
-  - Change protocols: PASS — adding/changing layer (§13) and source (§14) protocols preserved
-  - Duplication: PASS — no harmful duplication, cross-references to PROJECT_RULES.md for shared rules
-  - Size: 15,341 bytes (~15KB) — over 12KB soft target but acceptable; all content preserved
-  - Wording: PASS — uses "user / decision-control layer" for coordination decisions
-  - RECENT_CONTEXT: PASS — Phase 3 entry updated, 5 entries (at cap), no HANDOFF_LOG history removed
-  - HANDOFF_LOG: PASS — full entry appended only, no old entries edited
+  - Scope: PASS ï¿½ exactly 3 files changed, all expected
+  - Layer registry: PASS ï¿½ all 11 layer IDs with exact canonical names and statuses
+  - Layer status definitions: PASS ï¿½ active, active (MVP/local-dev), active (default OFF), coming_soon, no_data
+  - Layer architecture rules: PASS ï¿½ Layer 0 renders first, 60 FPS, independent toggles, no cross-layer deps, no fake data, layer_04 safety rules, layer_02 MVP warning, generic API pattern
+  - Ownership matrix: PASS ï¿½ all 22 path patterns from LLM_OWNERSHIP_MATRIX.md, neutral role naming
+  - Source-to-frontend contract: PASS ï¿½ all 9 required fields, layer 0 exception, needs-contract-detail marker
+  - Source families: PASS ï¿½ all 9 families with correct layer IDs, code locations, API surfaces
+  - API/frontend contract: PASS ï¿½ frontend must not invent fields, packages/contracts/ boundary, database agent owns migrations
+  - Change protocols: PASS ï¿½ adding/changing layer (ï¿½13) and source (ï¿½14) protocols preserved
+  - Duplication: PASS ï¿½ no harmful duplication, cross-references to PROJECT_RULES.md for shared rules
+  - Size: 15,341 bytes (~15KB) ï¿½ over 12KB soft target but acceptable; all content preserved
+  - Wording: PASS ï¿½ uses "user / decision-control layer" for coordination decisions
+  - RECENT_CONTEXT: PASS ï¿½ Phase 3 entry updated, 5 entries (at cap), no HANDOFF_LOG history removed
+  - HANDOFF_LOG: PASS ï¿½ full entry appended only, no old entries edited
   - Data tests: 1159 passed, 15 skipped (pre-existing)
   - git diff --check: PASS
 - Commands run:
@@ -8128,7 +8180,7 @@ no rules from source files were omitted.
   - python -m pytest tests/data -q: 1159 passed, 15 skipped
   - git diff --check: PASS
 - Known issues: None
-- Push status: Local only — NOT pushed.
+- Push status: Local only ï¿½ NOT pushed.
 - Secrets added: No.
 - Review status: PASS. Ready for Phase 4 (retire old source control docs with in-place pointer stubs).
 ---

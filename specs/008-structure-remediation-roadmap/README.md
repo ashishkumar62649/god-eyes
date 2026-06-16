@@ -6,7 +6,35 @@
 > **Status:** Planning spec only — no code changes in this branch.
 > **Date:** 2026-06-15
 
+<<<<<<< Updated upstream
 ---
+=======
+## Status After Phase 6 (2026-06-16)
+
+The documentation consolidation work that motivated Spec 008 is **complete**:
+
+- `docs/control/PROJECT_CONTROL.md` is the single active project control file
+  (engineering rules, layer registry, ownership, source/data contract, Git
+  workflow, and work-order template in 4 parts).
+- Retired pointer stubs were removed from `docs/control/`; only
+  `PROJECT_CONTROL.md` remains there.
+- `AGENTS.md` is now a pure entry-point pointer and no longer duplicates the
+  layer table, ownership matrix, or hard-rules body.
+- The audit reports in `docs/audits/` (`DOCUMENTATION_REORGANIZATION_REPORT_2026-06-16.md`
+  and `DOCUMENTATION_STRUCTURE_TERMINOLOGY_AUDIT_2026-06-16.md`) carry
+  "Superseded" / "Post-Phase 6" addenda and remain as historical evidence.
+- `docs/archive/_DO_NOT_READ.md` lists `docs/control/PROJECT_CONTROL.md` as the
+  only active control file and explicitly retires the earlier control filenames.
+- Implemented layer specs 001-007 are archived under
+  `docs/archive/2026-06-16-implemented-specs/`.
+
+Spec 008 itself **remains active** for any remaining non-documentation SR tasks
+(grandfathered folder renames, API route standardisation, etc.). The pre-
+consolidation research files inside this folder are now historical evidence only
+and must not be read as active rules — the active authorities are listed below.
+
+## Purpose
+>>>>>>> Stashed changes
 
 ## What this spec is
 

@@ -56,7 +56,23 @@ New specs should be numbered starting from `009`.
 
 ---
 
+<<<<<<< Updated upstream
 ## File roles inside a spec folder
+=======
+| File/folder | Role | Required |
+|-------------|------|----------|
+| `spec.md` | What and why: user stories, requirements, success criteria, assumptions, non-goals | Yes |
+| `plan.md` | How: technical context, constitution check, structure decision, risks | Yes for medium/large work |
+| `tasks.md` | Ordered execution tasks with dependencies, `[P]` markers, exact paths, validation | Yes before implementation |
+| `README.md` | Spec-local overview, status banner, and pointers to the active control docs and to the rest of this spec folder | Optional, recommended for active multi-phase roadmaps |
+| `repository-skeleton.md` | Target repository skeleton and per-lane folder/ownership mapping for structure-remediation specs | Optional, used by Spec 008 and similar remediation specs |
+| Evidence docs | Options, rejected alternatives, discovery notes, and open technical questions | Archive under `docs/archive/<date-topic>/` after they are no longer part of the active reading spine |
+| `contracts/` | API/data contracts, schemas, endpoint definitions, interface agreements | When contracts change |
+| `data-model.md` | Entities, fields, relationships, lifecycle rules | When data shape changes |
+| `quickstart.md` | How to run and validate the work | When runtime behavior changes |
+| `checklists/` | Requirement quality or review checklists | When extra quality gates are useful |
+| `review.md` | Spec-local review record, if not using `docs/state/INTEGRATION_REVIEW_*` | Optional |
+>>>>>>> Stashed changes
 
 Each spec folder should contain, as needed for the work:
 

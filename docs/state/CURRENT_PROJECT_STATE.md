@@ -1,5 +1,8 @@
 # Current Project State
 
+Classification: CURRENT_STATE
+Last updated: 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
+
 ## Phase: Repository Alignment In Progress
 
 Documentation, layer registries (API + frontend), CI/dependency files, environment
@@ -92,4 +95,22 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/GIT_W
 
 ## Last Updated
 
+<<<<<<< Updated upstream
 2026-06-14 — Orchestrator Agent (repository alignment pass)
+=======
+2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
+
+Change log for this file:
+
+- 2026-06-16 (single control file consolidation) - `docs/control/PROJECT_CONTROL.md`
+  is now the only active project control file. Retired pointer stubs were
+  removed from `docs/control/`. This state file's Authoritative Sources section
+  was updated to point at `PROJECT_CONTROL.md`.
+- 2026-06-16 (post-Phase 6 documentation cleanup) - `AGENTS.md` was de-duplicated
+  to a pure entry-point pointer (no duplicated layer table, ownership matrix, or
+  hard-rules body). `docs/archive/_DO_NOT_READ.md` now lists the correct active
+  control file. The two 2026-06-16 audit reports in `docs/audits/` carry
+  "Superseded" / "Post-Phase 6" addenda. Spec 008 README carries a Phase 6
+  status banner. State docs carry Classification lines. No layer business
+  logic was changed.
+>>>>>>> Stashed changes
