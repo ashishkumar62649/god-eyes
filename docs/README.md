@@ -64,6 +64,9 @@ full. Search it only when you need to investigate a specific past session or wor
 | `services/**/README.md` | LOCAL_REFERENCE | Service-local operating notes | Owned by the corresponding service |
 | `database/**/README.md` | LOCAL_REFERENCE | Database/migration operating notes | Owned by the database track |
 | `tests/**/fixtures/**/*.md` | TEST_FIXTURE | Test evidence or fixture reports | Owned by the corresponding test area |
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 If you are reviewing a pull request or a branch:

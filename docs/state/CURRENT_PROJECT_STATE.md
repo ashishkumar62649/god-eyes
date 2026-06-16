@@ -3,6 +3,9 @@
 Classification: CURRENT_STATE
 Last updated: 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
 
+Classification: CURRENT_STATE
+Last updated: 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
+
 ## Phase: Repository Alignment In Progress
 
 Documentation, layer registries (API + frontend), CI/dependency files, environment
@@ -96,8 +99,11 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/GIT_W
 ## Last Updated
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 2026-06-14 — Orchestrator Agent (repository alignment pass)
 =======
+=======
+>>>>>>> Stashed changes
 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
 
 Change log for this file:
@@ -113,4 +119,7 @@ Change log for this file:
   "Superseded" / "Post-Phase 6" addenda. Spec 008 README carries a Phase 6
   status banner. State docs carry Classification lines. No layer business
   logic was changed.
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes

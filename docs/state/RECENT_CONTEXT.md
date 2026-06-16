@@ -35,6 +35,7 @@ receive the **complete** handoff entry after every completed task.
 ---
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 ## 2026-06-16 - Phase 4 Retire Source Control Docs
 
 - Agent: Documentation Implementation Agent
@@ -54,6 +55,18 @@ receive the **complete** handoff entry after every completed task.
 - Next: Reviewer Agent reviews Phase 5; then Phase 6 archive fence hardening
 =======
 ## 2026-06-16 - Post-Phase 6 Documentation Cleanup (13 steps)
+=======
+## 2026-06-16 - Post-Phase 6 Documentation Cleanup (13 steps)
+
+- Agent: Orchestrator Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- What changed: Resolved 13 remaining documentation drift / de-duplication items after the single-control-file consolidation. Critical: archive fence now lists PROJECT_CONTROL.md. AGENTS.md de-duplicated (entry-point pointer only). Stale audits marked superseded. Spec 008 carries Phase 6 banner. Constitution bumped to 1.3.0. State docs carry Classification lines.
+- Validation: No code / schema / API / layer logic changed; documentation-only pass; grep verification pending
+- Known issues: None blocking
+- Next: User to review and commit; then run full validation (git diff --check + grep for retired control filenames in active docs)
+
+## 2026-06-16 - Phase 6 Archive Fence Hardening
+>>>>>>> Stashed changes
 
 - Agent: Orchestrator Agent
 - Branch: docs/fix/recent-context-and-reading-policy
@@ -101,4 +114,7 @@ receive the **complete** handoff entry after every completed task.
 - Validation: git diff --check PASS; active docs tree reduced to archive/audits/control/decisions/state plus README.
 - Known issues: Historical archive/evidence paths remain search-only and may contain stale wording.
 - Next: Orchestrator Agent should review the simplified docs tree before push.
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes

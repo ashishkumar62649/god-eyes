@@ -10,8 +10,12 @@ size limits, and work-order template live in `docs/control/PROJECT_CONTROL.md`.
 Archived documents never override the active control file.
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 No model, provider, assistant, or tool product names are used anywhere in active control
 documents. Use the neutral role names above only.
+=======
+---
+>>>>>>> Stashed changes
 =======
 ---
 >>>>>>> Stashed changes
@@ -96,9 +100,13 @@ Full ownership matrix (with shared read access and "Others may" rules) lives in
 ---
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 `docs/control/LAYER_AND_DATA_CONTRACT.md` is the authoritative source of truth for layer IDs,
 layer order, and layer status. If any document or code disagrees with that registry, pause
 new layer work until the registry drift is fixed.
+=======
+## Layer Order and Scope
+>>>>>>> Stashed changes
 =======
 ## Layer Order and Scope
 >>>>>>> Stashed changes
@@ -151,7 +159,11 @@ format, pre-push verification, and PR/merge policy are in
 ---
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
+=======
+## Git Workflow (summary)
+>>>>>>> Stashed changes
 =======
 ## Git Workflow (summary)
 >>>>>>> Stashed changes
@@ -171,6 +183,7 @@ See `docs/control/PROJECT_CONTROL.md` Part 3 for the complete policy. Key rules:
 ## Key Documents
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 - `docs/README.md` — the documentation map (start here; lists active rules,
   current state, audits, decisions, archive, and specs)
 - `docs/control/PROJECT_RULES.md` — **master engineering rulebook**;
@@ -180,11 +193,16 @@ See `docs/control/PROJECT_CONTROL.md` Part 3 for the complete policy. Key rules:
   source-to-frontend contract (authoritative for layer IDs, statuses, and data contracts)
 - `docs/control/GIT_WORKFLOW_POLICY.md` — Git commit and push rules
 =======
+=======
+>>>>>>> Stashed changes
 - `docs/README.md` — documentation map (start here; lists active rules, current state,
   audits, decisions, archive, and specs)
 - `docs/control/PROJECT_CONTROL.md` — single active project control file: engineering
   rules, layer registry, ownership, source/data contract, Git workflow, work-order
   template, naming rules, file/function size limits, validation, refactor boundaries
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
 - `docs/state/RECENT_CONTEXT.md` — short rolling summary of the last 3–5 work sessions
@@ -193,7 +211,12 @@ See `docs/control/PROJECT_CONTROL.md` Part 3 for the complete policy. Key rules:
 - `docs/decisions/ADR-*.md` — Architecture Decision Records
 - `docs/archive/` — historical/superseded documents (not active instructions)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 - `docs/work-orders/` — work orders for small cross-cutting repairs and single-lane fixes
+=======
+- `docs/work-orders/` — active work orders for small cross-cutting repairs (create
+  the folder only when an active work order exists)
+>>>>>>> Stashed changes
 =======
 - `docs/work-orders/` — active work orders for small cross-cutting repairs (create
   the folder only when an active work order exists)
