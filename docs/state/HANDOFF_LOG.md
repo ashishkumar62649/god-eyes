@@ -1,4 +1,64 @@
 
+### 2026-06-16T01:00:00Z — sr-010s-restack-borders-canonical-folder
+
+- Work order: SR-010S
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-010s-restack-borders-canonical-folder
+- Base stack: SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: The original SR-010 commit `5275e61 refactor(web): rename borders layer folder to canonical path` exists on the separate, unmerged branch `frontend/sr-010/borders-canonical-folder`. The current active correction stack (this branch) does not contain it, so the on-disk state still has `apps/web/src/layers/borders/` and is missing `apps/web/src/layers/layer_02_borders_boundaries/`. SR-021 redundant-`.gitkeep` cleanup was forced to stop and report because the canonical borders folder did not exist in this stack. SR-010S re-applies the SR-010 rename pattern onto the current stacked branch so subsequent cleanup/canonicalization work sees the correct on-disk structure.
+- Goal: Re-apply the SR-010 borders canonical folder rename onto the current correction stack.
+- Files changed:
+  1. `apps/web/src/layers/borders/` → `apps/web/src/layers/layer_02_borders_boundaries/` (via `git mv`; both files — `.gitkeep` and `useBordersBoundaries.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_02_borders_boundaries/index.ts` — new file, content `export * from './useBordersBoundaries';` (canonical re-export).
+  3. `apps/web/src/layers/borders/` — recreated as a shim folder; contains only `apps/web/src/layers/borders/index.ts` with content `export * from '../layer_02_borders_boundaries';` (compatibility shim for any code that still imports from the old path).
+  4. `apps/web/src/App.tsx` — single-line import update: `'./layers/borders/useBordersBoundaries'` → `'./layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  5. `apps/web/src/components/Shell.tsx` — single-line import update: `'../layers/borders/useBordersBoundaries'` → `'../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  6. `apps/web/src/components/StatusPanel.tsx` — single-line import update: `'../layers/borders/useBordersBoundaries'` → `'../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  7. `apps/web/src/components/layer-panel/LayerPanelRoot.tsx` — single-line import update: `'../../layers/borders/useBordersBoundaries'` → `'../../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  8. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — single-line import update: `'../../layers/borders/useBordersBoundaries'` → `'../../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  9. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-010S Borders Restack` and removed the oldest entry (`## 2026-06-16 - Documentation Structure Audit`) to keep the rolling window at 5 entries per the file's own update rule.
+  10. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `earth-events/`, `energy/`, `maritime/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-011..SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/` — no source code outside the allowed files was changed. The 3 `apps/api/.../layer_02_borders_boundaries` references in the grep output are string `layerId` registry values (not folder paths) and were already correct.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `borders/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - The `borders/` shim folder's `.gitkeep` and `useBordersBoundaries.ts` — already moved into the canonical folder by the `git mv` step; they are no longer in `borders/`.
+  - No `.gitkeep` files removed — that is SR-021's task.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-010s-restack-borders-canonical-folder` (PASS)
+  - `git log -4 --oneline` → confirmed stack
+    `a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/borders"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_02_borders_boundaries"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/borders` (pre-rename) → `.gitkeep`, `useBordersBoundaries.ts` (PASS)
+  - `git grep -n "layers/borders" -- apps packages tests` (pre-rename) → 5 hits in `apps/web/src/**`; 0 hits in `packages/` or `tests/` (PASS)
+  - `git mv apps/web/src/layers/borders apps/web/src/layers/layer_02_borders_boundaries` → succeeded (PASS)
+  - Post-rename `git ls-files` shows `.gitkeep` and `useBordersBoundaries.ts` now under `apps/web/src/layers/layer_02_borders_boundaries/` (PASS)
+  - `git grep -n "layers/borders" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `Test-Path "apps/web/src/layers/layer_02_borders_boundaries/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/borders/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^packages/ ^services/ ^database/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, see output captured in §4)
+  - `pnpm --filter web test` → succeeded (PASS, see output captured in §4)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 10 expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body and in this SR-010S body as a validation caveat. No regression is introduced.
+  - The 3 `apps/api/.../layer_02_borders_boundaries` matches in the post-update grep are **string `layerId` registry values** (e.g. `layerId: 'layer_02_borders_boundaries'`), not folder-path imports. They are already correct and were intentionally not modified.
+  - The `borders/` folder is **retained as a shim** with only `index.ts`; the old `.gitkeep` and `useBordersBoundaries.ts` were moved out by `git mv`. Future cleanup of the redundant `apps/web/src/layers/borders/index.ts` shim (and the `apps/web/src/layers/.gitkeep` etc.) is the scope of SR-021.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`) and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-010S before SR-021 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, and SR-010S to remote and open PRs. After SR-010S is reviewed, the recommended next task is to retry SR-021 redundant `.gitkeep` cleanup using the original 7-file allowed list (the canonical borders folder now exists in the stack).
+
+---
+
 ### 2026-06-16T00:45:00Z — sr-020-refresh-spec-008-status
 
 - Work order: SR-020

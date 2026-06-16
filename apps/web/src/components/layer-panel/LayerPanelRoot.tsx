@@ -9,7 +9,7 @@ import { WeatherControls } from './WeatherControls';
 import { NewsControls } from './NewsControls';
 import { EnergyControls } from './EnergyControls';
 import type { EarthEventsPhase } from '../../layers/earth-events/useEarthEvents';
-import type { BordersPhase } from '../../layers/borders/useBordersBoundaries';
+import type { BordersPhase } from '../../layers/layer_02_borders_boundaries/useBordersBoundaries';
 
 function statusLabel(entry: LayerRegistryEntry): string {
   if (entry.status === 'active') return 'ACTIVE';

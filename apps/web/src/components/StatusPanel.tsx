@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { BordersPhase } from '../layers/borders/useBordersBoundaries';
+import type { BordersPhase } from '../layers/layer_02_borders_boundaries/useBordersBoundaries';
 import type { EarthEventsPhase } from '../layers/earth-events/useEarthEvents';
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 import type { SpaceSatellitesStatus } from '../layers/space/satellites/satelliteTypes';

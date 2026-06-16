@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-010S Borders Restack
+
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-010s-restack-borders-canonical-folder
+- What changed: Restacked the SR-010 borders canonical folder rename onto the active correction stack. Renamed `apps/web/src/layers/borders/` to `apps/web/src/layers/layer_02_borders_boundaries/` via `git mv`; added canonical `index.ts`; recreated the `borders/` shim folder with `index.ts` re-exporting from the canonical path; updated the 5 active frontend import sites.
+- Validation: old `layers/borders` import grep PASS (no output); canonical folder + shim + coming-soon checks PASS; `pnpm --filter web build` PASS; `pnpm --filter web test` PASS; conflict-marker grep PASS; git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent reviews SR-010S; do not PR yet unless user explicitly decides; after SR-010S review, retry SR-021 redundant .gitkeep cleanup using the original 7-file allowed list (the canonical borders folder now exists).
+
 ## 2026-06-16 - SR-020 Spec 008 Status Refresh
 
 - Agent: Documentation / Spec Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: 1159 data tests PASS, git diff --check PASS
 - Known issues: None
 - Next: Orchestrator Agent full final review of the entire docs/fix branch before push/PR
-
-## 2026-06-16 - Documentation Structure Audit
-
-- Agent: Orchestrator Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Added docs/audits/DOCUMENTATION_STRUCTURE_TERMINOLOGY_AUDIT_2026-06-16.md covering 271 tracked document files, structure drift, duplication, and terminology.
-- Validation: git diff --check PASS
-- Known issues: Audit found active authority drift, non-neutral role names, stale work-order template metadata, and Layer 06 source-doc identity gaps.
-- Next: Orchestrator Agent should create cleanup work orders for the P1 findings before additional documentation consolidation.
