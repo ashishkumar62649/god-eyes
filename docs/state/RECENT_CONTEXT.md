@@ -62,7 +62,16 @@ receive the **complete** handoff entry after every completed task.
 
 - Agent: Documentation Implementation Agent
 - Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Added Time-Series/Live-Data (§10), API Transport (§11), Background Worker (§12), and Exceptions/Grandfathering (§20) to PROJECT_RULES.md; fixed LAYER_AND_DATA_CONTRACT.md references; renumbered all sections to §1-§21
+- What changed: Created docs/control/PROJECT_RULES.md (21 sections); added Time-Series/Live-Data, API Transport, Background Worker, and Exceptions/Grandfathering; fixed LAYER_AND_DATA_CONTRACT.md references
 - Validation: 1159 data tests PASS, git diff --check PASS
 - Known issues: None; source files not yet retired (Phase 4)
-- Next: Reviewer Agent re-checks PROJECT_RULES.md before Phase 3
+- Next: Phase 3 - create LAYER_AND_DATA_CONTRACT.md
+
+## 2026-06-16 - Phase 3 Consolidated Layer and Data Contract
+
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- What changed: Created docs/control/LAYER_AND_DATA_CONTRACT.md - layer registry (all 11 layers), agent ownership matrix, source-to-frontend contract, source families, adding/changing rules (294 lines)
+- Validation: 1159 data tests PASS, git diff --check PASS
+- Known issues: Source files not retired yet (Phase 4); mandatory reading lists not yet updated (after Reviewer PASS)
+- Next: Reviewer Agent reviews LAYER_AND_DATA_CONTRACT.md against source docs before Phase 4

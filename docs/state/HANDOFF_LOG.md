@@ -7977,3 +7977,109 @@ No.
 Ready for Reviewer Agent re-check.
 
 ---
+
+
+## Phase 3 — Consolidated Layer and Data Contract
+
+- Work order: Phase 3 — documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 06:20 UTC
+
+### Summary
+
+Created `docs/control/LAYER_AND_DATA_CONTRACT.md` — the consolidated layer registry
+and data contract file. Merges content from four source files:
+
+- `MVP_LAYER_REGISTRY.md` (canonical layer table, status definitions, product rules,
+  change process)
+- `LAYER_ARCHITECTURE.md` (layer rendering and product rules)
+- `LLM_OWNERSHIP_MATRIX.md` (agent/folder ownership matrix, ownership rules)
+- `SOURCE_TO_FRONTEND_CONTRACT.md` (required fields per source, source families table,
+  adding sources protocol)
+
+Source files are not modified. Mandatory reading lists not yet updated to point here —
+that happens after Reviewer confirms this file preserves all source rules.
+
+### Files Created
+
+- `docs/control/LAYER_AND_DATA_CONTRACT.md` (new — 294 lines / 15,341 bytes)
+
+### Files Modified
+
+- `docs/state/RECENT_CONTEXT.md` (Phase 3 entry added; oldest entry dropped;
+  4 entries now within 5-entry cap)
+- `docs/state/HANDOFF_LOG.md` (this entry appended)
+
+### Content Preserved
+
+- All 11 layer IDs with exact canonical names (layer_00 through layer_10)
+- All layer statuses (active, active-MVP/local-dev, active-default-OFF, coming_soon)
+- MVP/local-dev warning for layer_02_borders_boundaries (boundary compliance required)
+- layer_04_public_military_security: coming_soon, public-only static-only safety rules
+- layer_09_user_shapes: coming_soon
+- layer_10_energy_infrastructure: active, public/open data only
+- Full layer rendering and product rules (60 FPS, no fake data, layer order)
+- Agent/folder ownership matrix (22 path patterns)
+- HANDOFF_LOG.md append-only ownership; RECENT_CONTEXT.md append-only ownership
+- .env.example owned by API Agent
+- Source-to-frontend required fields table (9 fields)
+- Implemented source families table (9 source families)
+- "Frontend must not invent fields" rule
+- "No agent starts work without a completed contract entry" rule
+- Adding/changing layer and source protocols
+- archive/historical docs do not override active registry rule
+
+### Duplication Avoided
+
+- Normalizer Location Rule: cross-reference to PROJECT_RULES.md §8 (not duplicated)
+- Raw path pattern: cross-reference to PROJECT_RULES.md §13 (not duplicated)
+- File size limits, folder structure rules: cross-reference to PROJECT_RULES.md
+- Git workflow detail: cross-reference to GIT_WORKFLOW_POLICY.md
+
+### What Did Not Change
+
+- Source control docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md,
+  LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md) — not touched
+- PROJECT_RULES.md — not touched
+- AGENTS.md, docs/README.md — not touched
+- All code files — not touched
+- Archive, audits, decisions, specs — not touched
+
+### Commands Run
+
+- Get-Content docs/control/MVP_LAYER_REGISTRY.md — full read
+- Get-Content docs/control/LLM_OWNERSHIP_MATRIX.md — full read
+- Get-Content docs/control/SOURCE_TO_FRONTEND_CONTRACT.md — full read
+- Get-Item docs/control/LAYER_AND_DATA_CONTRACT.md | Select-Object Name,Length
+- Select-String keyword check — all required keywords present
+- git status, git diff --check → PASS (CRLF warnings only)
+- python -m pytest tests/data -q → 1159 passed
+
+### Results
+
+- git diff --check: PASS
+- data tests: 1159 passed, 15 skipped
+
+### Known Issues
+
+Source files remain active until Phase 4 places in-place pointer stubs.
+File is ~15KB — slightly over the 12KB soft target. All required content preserved;
+no information was dropped to meet the target.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review. Reviewer must verify: all 11 layer IDs and statuses
+match MVP_LAYER_REGISTRY.md exactly; ownership table covers all paths from
+LLM_OWNERSHIP_MATRIX.md; source contract fields match SOURCE_TO_FRONTEND_CONTRACT.md;
+no rules from source files were omitted.
+
+---
