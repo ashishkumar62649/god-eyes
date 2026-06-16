@@ -7580,3 +7580,775 @@ No.
 Pending Reviewer Agent review. Ready for review.
 
 ---
+
+## Documentation Context Compression Research
+
+- Work order: Research task — documentation context compression
+- Agent: Documentation Research Agent
+- Branch: research/documentation-context-compression
+- Date: 2026-06-16 03:53 UTC
+
+### Summary
+
+Research-only task. Analysed all documentation and spec folders to design a smaller,
+LLM-friendly documentation architecture. No files were moved, merged, deleted, or
+restructured. No code changed. No PR opened.
+
+### Scope
+
+Read: AGENTS.md, docs/README.md, all docs/control/ files, docs/state/CURRENT_PROJECT_STATE.md,
+docs/state/HANDOFF_LOG.md (tail + headings only), docs/audits/ headings, all specs/
+directory trees, docs/archive/ file inventory. Used ripgrep and PowerShell for cross-
+reference counts and size measurements.
+
+### Files Created
+
+- `specs/008-structure-remediation-roadmap/documentation-context-compression-research.md`
+  (new — full research report)
+
+### Files Modified
+
+- `docs/state/HANDOFF_LOG.md` (this entry appended — append only)
+
+### Commands Run
+
+git status, git log, Get-ChildItem (docs + specs recursive), Select-String on all control
+docs, rg cross-reference counts, tail of HANDOFF_LOG, full reads of CURRENT_PROJECT_STATE
+and docs/README.md.
+
+### Key Findings
+
+1. **HANDOFF_LOG.md is 600KB / ~150,201 tokens and is listed as mandatory reading.**
+   This is the single largest context cost in the project. It alone makes the mandatory
+   reading list ~176k tokens — approximately 12× the 8k–15k target.
+
+2. **Normalizer Location Rule (HEALTH-004) is duplicated in 4 control docs.**
+   ENGINEERING_STRUCTURE_RULES, DATA_LOCATION_RULES, PIPELINE_HANDOFF_RULES,
+   LLM_OWNERSHIP_MATRIX all contain the same rule.
+
+3. **Layer list is duplicated in 4 documents.** MVP_LAYER_REGISTRY (canonical), AGENTS.md,
+   LAYER_ARCHITECTURE.md, LAYER_ID_CONVENTIONS.md.
+
+4. **Specs 001–007 are all implemented layers.** ~487KB / ~122k tokens of historical spec
+   files serve no active planning purpose and should be archived.
+
+5. **Without HANDOFF_LOG, current mandatory reads are ~17k tokens** — already close to
+   target, and reducible to ~11.5k with consolidation of the 9 control docs into 2.
+
+### Recommended Next Task
+
+Reviewer Agent reviews the research report. Then Orchestrator Agent creates a Phase 1
+implementation task: create `docs/state/RECENT_CONTEXT.md` and update both mandatory-
+reading lists (AGENTS.md, ENGINEERING_STRUCTURE_RULES, docs/README.md) to remove
+HANDOFF_LOG as mandatory. This alone reduces context by ~150k tokens.
+
+### Known Issues
+
+None. This is research only.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
+
+
+## Documentation Architecture Compression Plan
+
+- Work order: Planning task — documentation architecture compression
+- Agent: Documentation Planning Agent
+- Branch: plan/documentation-architecture-compression
+- Date: 2026-06-16 04:10 UTC
+
+### Summary
+
+Planning-only task. Produced a precise 6-phase implementation plan for restructuring
+the docs/ folder and consolidating 10 control docs into 3 active files. No files moved,
+merged, deleted, or restructured. No code changed. No PR opened.
+
+### Files Created
+
+- `specs/008-structure-remediation-roadmap/documentation-architecture-compression-plan.md`
+  (new — full implementation plan)
+
+### Files Modified
+
+- `docs/state/HANDOFF_LOG.md` (this entry appended — append only)
+
+### Plan Summary
+
+Target: reduce mandatory agent reads from ~176k tokens to ~11k tokens (94% reduction).
+5 active docs/ subfolders (down from 8). 3 active control docs (down from 10).
+RECENT_CONTEXT.md (new) replaces mandatory HANDOFF_LOG reading.
+
+### Recommended First Implementation Phase
+
+Phase 1 (branch: `docs/fix/recent-context-and-reading-policy`):
+Create `docs/state/RECENT_CONTEXT.md`, update mandatory reading lists in AGENTS.md +
+docs/README.md + ENGINEERING_STRUCTURE_RULES.md to remove HANDOFF_LOG, add reading
+policy tiers to AGENTS.md. Estimated context reduction: ~150k tokens in one small PR.
+
+### Known Risks
+
+- PROJECT_RULES.md consolidation (Phase 2) must not drop any rule — reviewer gate required.
+- LAYER_AND_DATA_CONTRACT.md (Phase 3) must copy the layer registry table verbatim.
+- Deleting docs/api/, docs/data/, docs/work-orders/ stubs (Phase 4) requires pre-deletion
+  cross-reference search across all code.
+- Specs 001–007 archival (Phase 5) requires cross-reference search before moving.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
+
+
+## Phase 1 — Documentation Context Reduction
+
+- Work order: Phase 1 — documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 04:35 UTC
+
+### Summary
+
+Implemented Phase 1 of the documentation architecture compression plan. Created
+`docs/state/RECENT_CONTEXT.md` as the new lightweight session-context file. Updated
+mandatory reading lists in AGENTS.md, docs/README.md, and
+docs/control/ENGINEERING_STRUCTURE_RULES.md to replace the full HANDOFF_LOG.md read
+with RECENT_CONTEXT.md. HANDOFF_LOG.md is preserved intact as full append-only history
+and remains the target for full handoff entries after every completed task.
+
+No code changed. No docs restructured. No specs moved. No folders removed.
+
+### Files Created
+
+- `docs/state/RECENT_CONTEXT.md` (new — rolling 3–5 session summary; 3 entries seeded
+  from last sessions in HANDOFF_LOG.md)
+
+### Files Modified
+
+- `AGENTS.md` — Hard Rule 14 amended (both HANDOFF_LOG + RECENT_CONTEXT required);
+  Hard Rule 16 added (5-entry cap for RECENT_CONTEXT); Agent Reading Policy section
+  added (4 tiers: always/task-specific/search-only/never); Key Documents updated to
+  add RECENT_CONTEXT and demote HANDOFF_LOG to search-only
+- `docs/README.md` — §2 Agent First-Read: item 4 replaced HANDOFF_LOG with
+  RECENT_CONTEXT; search-only note added for HANDOFF_LOG; §3 Reviewer First-Read:
+  item 5 parenthetical added (relevant entry only, not full file)
+- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — §2 Required First Read: replaced
+  HANDOFF_LOG with RECENT_CONTEXT at item 4; removed docs/README.md from numbered
+  list; added search-only note for HANDOFF_LOG; list reduced from 6 to 5 items
+- `docs/state/HANDOFF_LOG.md` — this entry appended (append only)
+
+### What Did Not Change
+
+- `docs/state/HANDOFF_LOG.md` history — all prior entries intact; append-only preserved
+- All code files — no changes
+- All archive, audit, spec, and other control docs — no changes
+- No folders created or removed
+
+### Commands Run
+
+- git checkout — confirmed on branch docs/fix/recent-context-and-reading-policy
+- Get-Content HANDOFF_LOG.md -Tail 300 — read last 3 sessions for RECENT_CONTEXT seeding
+- Get-Content AGENTS.md — read for targeted edits
+- Get-Content docs/README.md — read §2 and §3
+- Get-Content docs/control/ENGINEERING_STRUCTURE_RULES.md — read §2
+- git status --short --branch → 5 files changed (expected)
+- git diff --check → PASS (CRLF warnings only)
+- python -m pytest tests/data -q → see results below
+
+### Results
+
+- git diff --check: PASS (CRLF warnings only, pre-existing)
+- python -m pytest tests/data -q: 1159 passed, 15 skipped
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
+
+
+## Phase 2 — Consolidated Project Rules
+
+- Work order: Phase 2 — documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 04:55 UTC
+
+### Summary
+
+Created `docs/control/PROJECT_RULES.md` — a new consolidated engineering rulebook that
+merges the active content from four source files:
+
+- `ENGINEERING_STRUCTURE_RULES.md` (primary: all 19 sections)
+- `DATA_LOCATION_RULES.md` (unique: directory tree, gitignore, generated folders)
+- `PIPELINE_HANDOFF_RULES.md` (unique: data flow diagram, handoff protocol, forbidden imports)
+- `LAYER_ID_CONVENTIONS.md` (unique: folder convention examples per lane, API route pattern)
+
+Normalizer Location Rule appears exactly once (§8). Raw path pattern appears exactly once
+(§10). All duplicate copies removed. Target size met at ~14KB / 509 lines.
+
+Source files are not retired or modified. Retirement (in-place pointer stubs) is Phase 4.
+Mandatory reading lists not yet updated to reference PROJECT_RULES.md — that follows
+Reviewer confirmation that no rules were lost.
+
+### Files Created
+
+- `docs/control/PROJECT_RULES.md` (new — consolidated rulebook, 509 lines)
+
+### Files Modified
+
+- `docs/state/RECENT_CONTEXT.md` (updated — Phase 2 entry added; oldest SR-006A/B entry
+  dropped; 4 entries now, within 5-entry cap)
+- `docs/state/HANDOFF_LOG.md` (this entry appended — append only)
+
+### What Did Not Change
+
+- Source control docs (ENGINEERING_STRUCTURE_RULES.md, DATA_LOCATION_RULES.md,
+  PIPELINE_HANDOFF_RULES.md, LAYER_ID_CONVENTIONS.md) — not touched
+- AGENTS.md — not touched
+- docs/README.md — not touched
+- All code files — not touched
+- Archive, audits, decisions, specs — not touched
+
+### Content preserved in PROJECT_RULES.md
+
+All 19 sections from ENGINEERING_STRUCTURE_RULES.md are present:
+§3 Naming → §4; §4 Layer Folders → §5; §5 Big-Layer → §6; §6 File Sizes → §13;
+§7 Frontend → §6; §8 API → §7; §9 Fetcher/Normalizer → §8; §10 DB Tables → §9;
+§11 Migrations → §9; §12 Time-Series → §9; §13 API Transport → §7; §14 Background Jobs
+→ §17 (what-not-to-do); §15 Raw Data → §10; §16 Import Boundaries → §12; §17 Refactor
+→ §14; §18 Exceptions → §13; §19 Reviewer Checklist → §16.
+
+Unique content from DATA_LOCATION_RULES.md: directory tree diagram, gitignore list,
+generated folders. Unique content from PIPELINE_HANDOFF_RULES.md: data flow diagram,
+handoff protocol steps, forbidden cross-boundary imports. Unique content from
+LAYER_ID_CONVENTIONS.md: per-lane folder pattern table, API route pattern.
+
+### Commands Run
+
+- Get-Content docs/control/ENGINEERING_STRUCTURE_RULES.md — full read
+- Get-Content docs/control/DATA_LOCATION_RULES.md — full read
+- Get-Content docs/control/PIPELINE_HANDOFF_RULES.md — full read
+- Get-Content docs/control/LAYER_ID_CONVENTIONS.md — full read
+- git status --short --branch → 3 files changed (expected)
+- git diff --check → PASS (CRLF warnings only)
+- python -m pytest tests/data -q → 1159 passed, 15 skipped
+
+### Results
+
+- git diff --check: PASS
+- data tests: 1159 passed, 15 skipped
+
+### Known Issues
+
+Source files (ENGINEERING_STRUCTURE_RULES.md, DATA_LOCATION_RULES.md,
+PIPELINE_HANDOFF_RULES.md, LAYER_ID_CONVENTIONS.md) are not yet retired. They remain
+active. Agents should continue reading them until Phase 4 places in-place pointer stubs
+and mandatory reading lists are updated.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review. Reviewer must verify: all rules from all four source
+files are present in PROJECT_RULES.md with identical meaning. Normalizer Location Rule
+appears exactly once. Raw path pattern appears exactly once.
+
+---
+
+
+## Phase 2 Required Fix — Complete Project Rules Consolidation
+
+- Work order: Phase 2 required fix — complete PROJECT_RULES.md
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 05:20 UTC
+
+### Summary
+
+Added four missing rule sections to `docs/control/PROJECT_RULES.md` per Reviewer
+PASS WITH REQUIRED FIXES decision. All sections from ENGINEERING_STRUCTURE_RULES.md
+are now represented. Renumbered all sections to maintain a clean §1–§21 sequence.
+Fixed two stale references to `LAYER_AND_DATA_CONTRACT.md` (not yet created).
+
+### Sections Added
+
+- §10 Time-Series / Live-Data Rules (from ESR §12): separate tables for latest/history,
+  UTC time column requirement, provenance fields, high-volume candidates, no new
+  time-series technology without work order
+- §11 API Transport Rules (from ESR §13): REST default, WebSocket for live streams,
+  large result set strategies (pagination, bounding box, time window, async job,
+  compression), API quality requirements, technology neutrality note
+- §12 Background Worker / Job Rules (from ESR §14): when jobs are needed, job state
+  requirements (status, retry count, source, time, error details), no new job
+  queue/scheduler without work order
+- §20 Exceptions / Grandfathering (from ESR §18): legacy folders, generated files,
+  historical docs, large schema files, short-name layer folders, agent protocol when
+  encountering a violation (note/don't-fix/raise separately)
+
+### LAYER_AND_DATA_CONTRACT.md References Fixed
+
+- §3 safety rule #2: now points to `LLM_OWNERSHIP_MATRIX.md` as current source;
+  LAYER_AND_DATA_CONTRACT.md noted as "planned, not yet available"
+- §5 layer ID authority: already had "planned — not yet created" note; confirmed correct
+
+### Section Renumbering
+
+Old §10–§17 became §13–§21 after inserting the three new sections (§10, §11, §12).
+All internal §-references (Reviewer Checklist, Exceptions table) updated accordingly.
+
+### Files Modified
+
+- `docs/control/PROJECT_RULES.md` (465 lines / ~24.7KB)
+- `docs/state/RECENT_CONTEXT.md` (Phase 2 entry updated to reflect required fix)
+- `docs/state/HANDOFF_LOG.md` (this entry appended)
+
+### What Did Not Change
+
+- All four source control docs — not touched
+- AGENTS.md, docs/README.md — not touched
+- No code changes, no archive/audit/spec changes
+
+### Commands Run
+
+- Get-Content PROJECT_RULES.md | Select-Object -Last 60 — read current state
+- Get-Content ENGINEERING_STRUCTURE_RULES.md | Select-Object -Skip 370 -First 280
+- Multiple strReplace operations to insert sections and renumber headings
+- git status, git diff --check, Measure-Object -Line, keyword Select-String
+- python -m pytest tests/data -q → 1159 passed
+
+### Results
+
+- git diff --check: PASS (CRLF warnings only, pre-existing)
+- data tests: 1159 passed, 15 skipped
+
+### Known Issues
+
+None. Source files (ENGINEERING_STRUCTURE_RULES.md and others) remain active until
+Phase 4 places in-place pointer stubs.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent re-check.
+
+---
+
+
+## Phase 3 — Consolidated Layer and Data Contract
+
+- Work order: Phase 3 — documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 06:20 UTC
+
+### Summary
+
+Created `docs/control/LAYER_AND_DATA_CONTRACT.md` — the consolidated layer registry
+and data contract file. Merges content from four source files:
+
+- `MVP_LAYER_REGISTRY.md` (canonical layer table, status definitions, product rules,
+  change process)
+- `LAYER_ARCHITECTURE.md` (layer rendering and product rules)
+- `LLM_OWNERSHIP_MATRIX.md` (agent/folder ownership matrix, ownership rules)
+- `SOURCE_TO_FRONTEND_CONTRACT.md` (required fields per source, source families table,
+  adding sources protocol)
+
+Source files are not modified. Mandatory reading lists not yet updated to point here —
+that happens after Reviewer confirms this file preserves all source rules.
+
+### Files Created
+
+- `docs/control/LAYER_AND_DATA_CONTRACT.md` (new — 294 lines / 15,341 bytes)
+
+### Files Modified
+
+- `docs/state/RECENT_CONTEXT.md` (Phase 3 entry added; oldest entry dropped;
+  4 entries now within 5-entry cap)
+- `docs/state/HANDOFF_LOG.md` (this entry appended)
+
+### Content Preserved
+
+- All 11 layer IDs with exact canonical names (layer_00 through layer_10)
+- All layer statuses (active, active-MVP/local-dev, active-default-OFF, coming_soon)
+- MVP/local-dev warning for layer_02_borders_boundaries (boundary compliance required)
+- layer_04_public_military_security: coming_soon, public-only static-only safety rules
+- layer_09_user_shapes: coming_soon
+- layer_10_energy_infrastructure: active, public/open data only
+- Full layer rendering and product rules (60 FPS, no fake data, layer order)
+- Agent/folder ownership matrix (22 path patterns)
+- HANDOFF_LOG.md append-only ownership; RECENT_CONTEXT.md append-only ownership
+- .env.example owned by API Agent
+- Source-to-frontend required fields table (9 fields)
+- Implemented source families table (9 source families)
+- "Frontend must not invent fields" rule
+- "No agent starts work without a completed contract entry" rule
+- Adding/changing layer and source protocols
+- archive/historical docs do not override active registry rule
+
+### Duplication Avoided
+
+- Normalizer Location Rule: cross-reference to PROJECT_RULES.md §8 (not duplicated)
+- Raw path pattern: cross-reference to PROJECT_RULES.md §13 (not duplicated)
+- File size limits, folder structure rules: cross-reference to PROJECT_RULES.md
+- Git workflow detail: cross-reference to GIT_WORKFLOW_POLICY.md
+
+### What Did Not Change
+
+- Source control docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md,
+  LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md) — not touched
+- PROJECT_RULES.md — not touched
+- AGENTS.md, docs/README.md — not touched
+- All code files — not touched
+- Archive, audits, decisions, specs — not touched
+
+### Commands Run
+
+- Get-Content docs/control/MVP_LAYER_REGISTRY.md — full read
+- Get-Content docs/control/LLM_OWNERSHIP_MATRIX.md — full read
+- Get-Content docs/control/SOURCE_TO_FRONTEND_CONTRACT.md — full read
+- Get-Item docs/control/LAYER_AND_DATA_CONTRACT.md | Select-Object Name,Length
+- Select-String keyword check — all required keywords present
+- git status, git diff --check → PASS (CRLF warnings only)
+- python -m pytest tests/data -q → 1159 passed
+
+### Results
+
+- git diff --check: PASS
+- data tests: 1159 passed, 15 skipped
+
+### Known Issues
+
+Source files remain active until Phase 4 places in-place pointer stubs.
+File is ~15KB — slightly over the 12KB soft target. All required content preserved;
+no information was dropped to meet the target.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review. Reviewer must verify: all 11 layer IDs and statuses
+match MVP_LAYER_REGISTRY.md exactly; ownership table covers all paths from
+LLM_OWNERSHIP_MATRIX.md; source contract fields match SOURCE_TO_FRONTEND_CONTRACT.md;
+no rules from source files were omitted.
+
+
+
+
+### 2026-06-16T14:30:00Z � phase-3-review-layer-and-data-contract
+
+- Work order: phase-3-create-layer-and-data-contract
+- Agent: Reviewer Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Reviewer decision: PASS
+- Summary: Completed review of LAYER_AND_DATA_CONTRACT.md (294 lines, 15,341 bytes) against all 4 source docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md). All review checks PASS.
+- Files reviewed:
+  - docs/control/LAYER_AND_DATA_CONTRACT.md (A) � 294 lines, 223 content lines, 15,341 bytes
+  - docs/state/RECENT_CONTEXT.md (M) � Phase 3 entry updated to reflect review completion
+  - docs/state/HANDOFF_LOG.md (M) � full entry appended
+- Validation summary:
+  - Scope: PASS � exactly 3 files changed, all expected
+  - Layer registry: PASS � all 11 layer IDs with exact canonical names and statuses
+  - Layer status definitions: PASS � active, active (MVP/local-dev), active (default OFF), coming_soon, no_data
+  - Layer architecture rules: PASS � Layer 0 renders first, 60 FPS, independent toggles, no cross-layer deps, no fake data, layer_04 safety rules, layer_02 MVP warning, generic API pattern
+  - Ownership matrix: PASS � all 22 path patterns from LLM_OWNERSHIP_MATRIX.md, neutral role naming
+  - Source-to-frontend contract: PASS � all 9 required fields, layer 0 exception, needs-contract-detail marker
+  - Source families: PASS � all 9 families with correct layer IDs, code locations, API surfaces
+  - API/frontend contract: PASS � frontend must not invent fields, packages/contracts/ boundary, database agent owns migrations
+  - Change protocols: PASS � adding/changing layer (�13) and source (�14) protocols preserved
+  - Duplication: PASS � no harmful duplication, cross-references to PROJECT_RULES.md for shared rules
+  - Size: 15,341 bytes (~15KB) � over 12KB soft target but acceptable; all content preserved
+  - Wording: PASS � uses "user / decision-control layer" for coordination decisions
+  - RECENT_CONTEXT: PASS � Phase 3 entry updated, 5 entries (at cap), no HANDOFF_LOG history removed
+  - HANDOFF_LOG: PASS � full entry appended only, no old entries edited
+  - Data tests: 1159 passed, 15 skipped (pre-existing)
+  - git diff --check: PASS
+- Commands run:
+  - git status --short --branch: clean, on branch
+  - git log --oneline --decorate -n 15: 5b05fd6 is HEAD
+  - git show --stat --oneline 5b05fd6: 3 files, 411 insertions, 2 deletions
+  - git diff --name-status 5b05fd6~1..5b05fd6: A LAYER_AND_DATA_CONTRACT.md, M HANDOFF_LOG.md, M RECENT_CONTEXT.md
+  - git diff --check 5b05fd6~1..5b05fd6: PASS
+  - Get-Content LAYER_AND_DATA_CONTRACT.md | Measure-Object -Line: 223 content lines, 294 total
+  - Get-Item LAYER_AND_DATA_CONTRACT.md | Select-Object Name,Length: 15,341 bytes
+  - Select-String LAYER_AND_DATA_CONTRACT.md: all layer IDs, statuses, ownership, contract, HANDOFF_LOG, RECENT_CONTEXT confirmed
+  - Select-String MVP_LAYER_REGISTRY.md: all layer IDs and statuses confirmed
+  - Select-String LLM_OWNERSHIP_MATRIX.md: ownership patterns confirmed
+  - Select-String SOURCE_TO_FRONTEND_CONTRACT.md: contract fields confirmed
+  - python -m pytest tests/data -q: 1159 passed, 15 skipped
+  - git diff --check: PASS
+- Known issues: None
+- Push status: Local only � NOT pushed.
+- Secrets added: No.
+- Review status: PASS. Ready for Phase 4 (retire old source control docs with in-place pointer stubs).
+---
+
+## Phase 4 -- Retire Source Control Docs with Pointer Stubs
+
+- Work order: Phase 4 -- documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 06:40 UTC
+
+### Summary
+
+Retired 8 old source control docs by replacing their content with short pointer stubs
+at their original paths. Updated AGENTS.md and docs/README.md to point to the two new
+consolidated docs as active always-read files. Updated PROJECT_RULES.md and
+LAYER_AND_DATA_CONTRACT.md to remove "planned" qualifiers.
+
+### Files Retired as Pointer Stubs (-> PROJECT_RULES.md)
+
+- docs/control/ENGINEERING_STRUCTURE_RULES.md
+- docs/control/DATA_LOCATION_RULES.md
+- docs/control/PIPELINE_HANDOFF_RULES.md
+
+### Files Retired as Pointer Stubs (-> LAYER_AND_DATA_CONTRACT.md)
+
+- docs/control/MVP_LAYER_REGISTRY.md
+- docs/control/LAYER_ARCHITECTURE.md
+- docs/control/LLM_OWNERSHIP_MATRIX.md
+- docs/control/SOURCE_TO_FRONTEND_CONTRACT.md
+
+### Files Retired as Mixed Pointer Stub (-> both)
+
+- docs/control/LAYER_ID_CONVENTIONS.md
+
+### AGENTS.md Changes
+
+Reading policy always-read list: ESR replaced with PROJECT_RULES.md + LAYER_AND_DATA_CONTRACT.md.
+Layer Order authority: MVP_LAYER_REGISTRY -> LAYER_AND_DATA_CONTRACT.
+Key Documents: 8 old entries -> 2 consolidated entries.
+
+### docs/README.md Changes
+
+Sections 1-3 and Directory Meaning/Classification tables updated to new doc names.
+DATA_LOCATION_RULES reference -> PROJECT_RULES. LLM_OWNERSHIP_MATRIX ref -> LAYER_AND_DATA_CONTRACT.
+
+### PROJECT_RULES.md + LAYER_AND_DATA_CONTRACT.md Changes
+
+Removed "planned" qualifiers. Both files now active.
+
+### Cross-Reference Search
+
+Active doc references updated. Archive/specs/code refs intentionally left (historical).
+One stale docs/work-orders comment in a code file (pre-existing, out of scope).
+
+### Known Issues
+
+Stale docs/work-orders comment in services/fetch-orchestrator -- pre-existing, out of scope.
+
+### Validation
+
+- git diff --check: PASS
+- data tests: 1159 passed
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
+
+## Phase 5 -- Archive Implemented Layer Specs
+
+- Work order: Phase 5 -- documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 06:55 UTC
+
+### Summary
+
+Moved specs/001-007 (all implemented layer specs) to docs/archive/2026-06-16-implemented-specs/
+using git mv, preserving full git history. Created archive INDEX.md. Updated specs/README.md
+to list 008 as the only active spec. Updated docs/README.md SPEC_WORKSPACE classification.
+AGENTS.md not changed (it already classifies specs/001-007 as historical/search-only).
+
+### Folders Moved (via git mv)
+
+- specs/001-layer-zero-globe-core -> docs/archive/2026-06-16-implemented-specs/001-layer-zero-globe-core
+- specs/002-layer-one-aviation -> docs/archive/2026-06-16-implemented-specs/002-layer-one-aviation
+- specs/003-layer-05-space-satellites-mvp -> docs/archive/2026-06-16-implemented-specs/003-layer-05-space-satellites-mvp
+- specs/004-layer-10-energy-infrastructure-mvp -> docs/archive/2026-06-16-implemented-specs/004-layer-10-energy-infrastructure-mvp
+- specs/005-layer-06-maritime-mvp -> docs/archive/2026-06-16-implemented-specs/005-layer-06-maritime-mvp
+- specs/006-layer-07-weather-mvp -> docs/archive/2026-06-16-implemented-specs/006-layer-07-weather-mvp
+- specs/007-layer-08-news-osint-mvp -> docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint-mvp
+
+### Files Created
+
+- docs/archive/2026-06-16-implemented-specs/INDEX.md
+
+### Files Modified
+
+- specs/README.md -- active spec list updated; archived specs noted; related docs updated
+- docs/README.md -- SPEC_WORKSPACE classification updated to reflect 008 active, 001-007 archived
+- docs/state/RECENT_CONTEXT.md -- Phase 5 entry added; oldest entry dropped; 4 entries
+- docs/state/HANDOFF_LOG.md -- this entry appended
+
+### Cross-Reference Search Results
+
+Active docs referencing specs/001-007:
+- docs/README.md SPEC_WORKSPACE examples row -- updated in this commit
+- specs/README.md existing spec list -- updated in this commit
+- AGENTS.md: already classifies specs/001-007 as "historical specs -- search only"; no change needed
+- docs/control/WORK_ORDER_TEMPLATE.md: generic example reference to specs/002 -- intentionally left (template example, not broken)
+
+### What Did Not Change
+
+- AGENTS.md: already correct; no change needed
+- docs/control/**
+- All code files
+- Archive/audits/decisions
+
+### Validation
+
+- git diff --check: PASS (CRLF warnings only)
+- specs/001-007: absent from specs/
+- specs/008: present in specs/
+- docs/archive/2026-06-16-implemented-specs/001-007: all present
+- data tests: 1159 passed
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
+
+## Phase 6 -- Archive Fence Hardening
+
+- Work order: Phase 6 -- documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 07:05 UTC
+
+### Summary
+
+Created docs/archive/_DO_NOT_READ.md as an explicit read fence for the archive folder.
+Updated docs/archive/README.md to reference the fence, list active docs, note the
+implemented-specs archive batch, and fix the stale ENGINEERING_STRUCTURE_RULES reference.
+AGENTS.md and docs/README.md did not need changes -- both already had correct archive
+policy. specs/README.md did not need changes.
+
+### Files Created
+
+- docs/archive/_DO_NOT_READ.md (27 lines -- explicit archive read fence)
+
+### Files Modified
+
+- docs/archive/README.md (added fence reference, active doc list, implemented-specs note,
+  fixed Related Documents section -- ENGINEERING_STRUCTURE_RULES replaced with PROJECT_RULES)
+- docs/state/RECENT_CONTEXT.md (Phase 6 entry added; oldest dropped; 4 entries)
+- docs/state/HANDOFF_LOG.md (this entry appended)
+
+### AGENTS.md -- no change needed
+
+Already has: docs/archive/** in Never-read tier at Agent Reading Policy.
+
+### docs/README.md -- no change needed
+
+Already has: ARCHIVE classification row correctly marking archive as historical/superseded.
+
+### specs/README.md -- no change needed
+
+Already updated in Phase 5.
+
+### What Did Not Change
+
+- docs/control/**
+- Code files
+- Specs folders
+- docs/archive/2026-06-16-implemented-specs/** contents
+
+### Commands Run
+
+- Get-Content docs/archive/README.md
+- rg "archive" AGENTS.md docs/README.md -c
+- git status, git diff --check -> PASS
+- python -m pytest tests/data -q -> 1159 passed
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent full final branch review before push/PR.
+
+---

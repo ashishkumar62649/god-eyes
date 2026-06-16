@@ -40,18 +40,19 @@ Where:
 - `<feature-or-layer-name>` is a short kebab-case slug that describes the work
   (e.g., `layer-zero-globe-core`, `layer-07-weather-mvp`).
 
-### Existing spec folders
+### Active spec folders
 
-The following spec folders already exist in the current tree and follow this
-pattern. New specs should be appended after the highest existing number:
+Only one spec folder is currently active:
 
-- `specs/001-layer-zero-globe-core/`
-- `specs/002-layer-one-aviation/`
-- `specs/003-layer-05-space-satellites-mvp/`
-- `specs/004-layer-10-energy-infrastructure-mvp/`
-- `specs/005-layer-06-maritime-mvp/`
-- `specs/006-layer-07-weather-mvp/`
-- `specs/007-layer-08-news-osint-mvp/`
+- `specs/008-structure-remediation-roadmap/` — active; SR-001 through SR-018 in progress
+
+### Archived spec folders
+
+Specs 001–007 (implemented layers) were archived on 2026-06-16 to:
+`docs/archive/2026-06-16-implemented-specs/`
+
+Do not read archived specs by default. They are historical context only.
+New specs should be numbered starting from `009`.
 
 ---
 
@@ -152,8 +153,8 @@ The `quickstart.md` file answers:
 
 ## Related documents
 
-- `docs/README.md` — documentation map and the `SPEC_WORKSPACE` classification
-- `docs/decisions/ADR-001-documentation-system.md` — the ADR that defines this
-  workspace
-- `AGENTS.md` — agent roles, hard rules, workflow cycle
-- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — engineering structure rules
+- \docs/README.md\ - documentation map and the \SPEC_WORKSPACE\ classification
+- \docs/decisions/ADR-001-documentation-system.md\ - the ADR that defines this workspace
+- \AGENTS.md\ - agent roles, hard rules, workflow cycle
+- \docs/control/PROJECT_RULES.md\ - engineering structure rules
+- \docs/archive/2026-06-16-implemented-specs/INDEX.md\ - index of archived layer specs

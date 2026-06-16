@@ -1,107 +1,14 @@
-﻿# Layer ID Conventions
+# Retired Control Document
 
-## Naming Pattern
+This file is retired as an active rule source.
 
-```
-layer_{NN}_{short_name}
-```
+Use instead:
 
-- `NN` = two-digit zero-padded number
-- `short_name` = lowercase snake_case domain name
+- `docs/control/PROJECT_RULES.md` for engineering, folder, and structure rules
+- `docs/control/LAYER_AND_DATA_CONTRACT.md` for layer IDs, layer registry, and layer/data contract rules
 
-## Registered Layer IDs
+Do not use this file as an active instruction source.
 
-> **Note:** The authoritative layer registry is now `MVP_LAYER_REGISTRY.md`. This table is a summary.
+Historical content is preserved in git history.
 
-| # | ID | Name | MVP Status |
-|---|----|------|------------|
-| 0 | `layer_00_globe_core` | Globe Core | active |
-| 1 | `layer_01_aviation` | Aviation | active |
-| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | active |
-| 3 | `layer_03_earth_events` | Earth Events | active |
-| 4 | `layer_04_public_military_security` | Public Military & Security | coming_soon |
-| 5 | `layer_05_space_satellites` | Space & Satellites | active |
-| 6 | `layer_06_maritime` | Maritime | active |
-| 7 | `layer_07_weather` | Weather / Live Weather | active |
-| 8 | `layer_08_news_osint` | News & OSINT | active |
-| 9 | `layer_09_user_shapes` | User Shapes | coming_soon |
-| 10 | `layer_10_energy_infrastructure` | Energy Infrastructure | active |
-
-## Folder Conventions
-
-### Frontend (Frontend Agent)
-
-```
-apps/web/src/layers/{layer_id}/
-```
-
-Examples:
-- `apps/web/src/layers/layer_00_globe_core/`
-- `apps/web/src/layers/layer_01_aviation/`
-- `apps/web/src/layers/layer_02_borders_boundaries/`
-- `apps/web/src/layers/layer_03_earth_events/`
-- `apps/web/src/layers/layer_04_public_military_security/`
-- `apps/web/src/layers/layer_05_space_satellites/`
-- `apps/web/src/layers/layer_06_maritime/`
-- `apps/web/src/layers/layer_07_weather/`
-- `apps/web/src/layers/layer_08_news_osint/`
-- `apps/web/src/layers/layer_09_user_shapes/`
-
-### Fetch Orchestrator (Fetcher Agent)
-
-```
-services/fetch-orchestrator/src/layers/{layer_id}/
-```
-
-Examples:
-- `services/fetch-orchestrator/src/layers/layer_01_aviation/`
-- `services/fetch-orchestrator/src/layers/layer_03_earth_events/`
-- `services/fetch-orchestrator/src/layers/layer_05_space_satellites/`
-- `services/fetch-orchestrator/src/layers/layer_06_maritime/`
-- `services/fetch-orchestrator/src/layers/layer_08_news_osint/`
-
-### Normalizer (Normalizer Agent)
-
-```
-services/normalizer/src/layers/{layer_id}/
-```
-
-### Source Catalog (Fetcher Agent)
-
-```
-packages/source-catalog/layers/{layer_id}/
-```
-
-### Database Migrations (Database Agent)
-
-```
-database/migrations/layers/{layer_id}/
-```
-
-### Raw Storage Path Pattern
-
-```
-raw/{layer_id}/{source_id}/{yyyy}/{mm}/{dd}/{fetch_run_id}/payload.{ext}
-```
-
-Example:
-```
-raw/layer_01_aviation/adsb_exchange/2026/05/14/fetch_run_abc/payload.json
-```
-
-## API Route Pattern
-
-```
-GET /api/layers
-GET /api/layers/:layerId/status
-GET /api/layers/:layerId/objects
-GET /api/layers/:layerId/objects/:objectId
-GET /api/layers/:layerId/sources
-GET /api/health
-```
-
-## Rules
-
-- Never create a folder for a layer without a registered `layer_id`.
-- Layer 0 has no fetchers/normalizers/source-catalog (it is frontend-only).
-- All data layers (1+) must have entries in source catalog, fetchers, normalizers, DB, and API.
+Do not restore old content unless the user / decision-control layer explicitly requests it.

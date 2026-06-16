@@ -20,8 +20,8 @@ If you are a human contributor joining the project, read these in order:
 
 1. `docs/README.md` — this file (the documentation map)
 2. `docs/state/CURRENT_PROJECT_STATE.md` — current phase, implemented layers, next steps
-3. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — the master engineering rulebook
-4. `docs/control/MVP_LAYER_REGISTRY.md` — authoritative layer IDs, order, status
+3. `docs/control/PROJECT_RULES.md` — the master engineering rulebook
+4. `docs/control/LAYER_AND_DATA_CONTRACT.md` — authoritative layer IDs, order, status, ownership
 
 ---
 
@@ -30,11 +30,14 @@ If you are a human contributor joining the project, read these in order:
 If you are an agent (worker or orchestrator) starting a task, read these in order:
 
 1. `AGENTS.md` — entry point: roles, layer registry, hard rules, workflow, git rules
-2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — file/folder/DB/API structure rules
+2. `docs/control/PROJECT_RULES.md` — file/folder/DB/API structure rules
 3. `docs/state/CURRENT_PROJECT_STATE.md` — what phase we are in, what is implemented
-4. `docs/state/HANDOFF_LOG.md` — what was done last and what state the project is in
+4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries (replaces full HANDOFF_LOG read)
 5. The task-specific spec or work order referenced by the work order
-6. `docs/control/MVP_LAYER_REGISTRY.md` — layer IDs and statuses for the work scope
+6. `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer IDs, statuses, ownership, and source contract
+
+`docs/state/HANDOFF_LOG.md` is the full append-only project history. Do not load it in
+full. Search it only when you need to investigate a specific past session or work order.
 
 ---
 
@@ -43,10 +46,11 @@ If you are an agent (worker or orchestrator) starting a task, read these in orde
 If you are reviewing a pull request or a branch:
 
 1. `AGENTS.md` — roles, hard rules, workflow, git rules
-2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — what the change should conform to
+2. `docs/control/PROJECT_RULES.md` — what the change should conform to
 3. The changed files (the diff itself)
 4. The related spec / plan / tasks document
-5. `docs/state/HANDOFF_LOG.md` — what the agent reported
+5. `docs/state/HANDOFF_LOG.md` — what the agent reported (search or read the relevant
+   entry only; do not load the full file)
 
 ---
 
@@ -64,10 +68,10 @@ If you are reviewing a pull request or a branch:
 | `docs/api/` | API_REFERENCE | **Reserved for future active API documentation.** Historical API notes are archived. | All agents and humans | Read-only for most agents | See `docs/api/README.md`. Current API contracts live in code/contracts and specs. |
 | `docs/postman/` | API_COLLECTION | Postman collection assets | All agents and humans | Read-only for most agents | API test/exploration collections. |
 | `docs/reports/` | REPORT | Generated reports | All agents and humans | Only report authors | Generated or periodic reports. |
-| `docs/data/` | DATA_REFERENCE | **Reserved for future active data documentation.** Historical data notes are archived. | All agents and humans | Read-only for most agents | See `docs/data/README.md`. Current data rules live in `docs/control/DATA_LOCATION_RULES.md`. |
+| `docs/data/` | DATA_REFERENCE | **Reserved for future active data documentation.** Historical data notes are archived. | All agents and humans | Read-only for most agents | See `docs/data/README.md`. Current data rules live in `docs/control/PROJECT_RULES.md`. |
 | `specs/` | SPEC_WORKSPACE | Spec Kit feature/refactor work packages | Orchestrator, Planning Agent, worker agents, Reviewer | Orchestrator Agent creates spec dirs; worker agents edit their scope within the spec | Each spec dir is the source of truth for that feature. |
 | `AGENTS.md` | ENTRY_POINT | Multi-agent roles, hard rules, workflow, git rules | All agents and humans | Only Orchestrator Agent | Entry point for all work. |
-| `apps/`, `packages/`, `services/`, `database/`, `tests/` | CODE | Application code (out of scope of this document) | Owning agents | Owning agents per `LLM_OWNERSHIP_MATRIX.md` | Subject to `ENGINEERING_STRUCTURE_RULES.md`. |
+| `apps/`, `packages/`, `services/`, `database/`, `tests/` | CODE | Application code (out of scope of this document) | Owning agents | Owning agents per `docs/control/LAYER_AND_DATA_CONTRACT.md` | Subject to `docs/control/PROJECT_RULES.md`. |
 
 ---
 
@@ -78,12 +82,12 @@ classification determines how it is read, edited, and superseded.
 
 | Classification | Meaning | Read by | Edit rule | Example files |
 |---|---|---|---|---|
-| **ACTIVE_RULE** | Authoritative, current rules. Agents must follow these. | All agents and humans | Only Orchestrator Agent may modify. Changes follow the rule's own change process. | `docs/control/ENGINEERING_STRUCTURE_RULES.md`, `docs/control/MVP_LAYER_REGISTRY.md`, `docs/control/LLM_OWNERSHIP_MATRIX.md`, `docs/control/PIPELINE_HANDOFF_RULES.md`, `docs/control/DATA_LOCATION_RULES.md`, `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` |
+| **ACTIVE_RULE** | Authoritative, current rules. Agents must follow these. | All agents and humans | Only user / decision-control layer may modify. Changes follow the rule's own change process. | `docs/control/PROJECT_RULES.md`, `docs/control/LAYER_AND_DATA_CONTRACT.md`, `docs/control/GIT_WORKFLOW_POLICY.md` |
 | **CURRENT_STATE** | A snapshot of the current project state. May be rewritten in place. | All agents and humans | Only Orchestrator Agent may rewrite. | `docs/state/CURRENT_PROJECT_STATE.md` |
 | **APPEND_ONLY_LOG** | A timeline that must only be appended to, never rewritten. | All agents and humans | All agents may append. Do not prepend, do not rewrite older entries. | `docs/state/HANDOFF_LOG.md` |
 | **AUDIT_REPORT** | Research and audit evidence. Findings, severity, recommendations. | All agents and humans | Only Research / Documentation Agent may add a new audit report. Existing audits are not rewritten; corrections go in a new audit or a handoff log note. | `docs/audits/PROJECT_HEALTH_WORKFLOW_AUDIT.md`, `docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md`, `docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md` |
 | **DECISION_RECORD** | Architecture Decision Record. Captures context, decision, consequences. | All agents and humans | New ADRs may be added. Existing ADRs are not rewritten; superseding decisions are a new ADR. | `docs/decisions/ADR-001-documentation-system.md` |
-| **SPEC_WORKSPACE** | A folder containing a single Spec Kit feature/refactor work package. | Orchestrator, Planning Agent, worker agents, Reviewer | Orchestrator Agent creates the spec folder. Worker agents edit their lane's content within the spec's `plan.md` / `tasks.md` / `contracts/`. | `specs/001-layer-zero-globe-core/`, `specs/002-layer-one-aviation/`, `specs/003-layer-05-space-satellites-mvp/`, `specs/004-layer-10-energy-infrastructure-mvp/`, `specs/005-layer-06-maritime-mvp/`, `specs/006-layer-07-weather-mvp/`, `specs/007-layer-08-news-osint-mvp/` |
+| **SPEC_WORKSPACE** | A folder containing a single Spec Kit feature/refactor work package. | Orchestrator, Planning Agent, worker agents, Reviewer | Orchestrator Agent creates the spec folder. Worker agents edit their lane's content within the spec's `plan.md` / `tasks.md` / `contracts/`. | `specs/008-structure-remediation-roadmap/` (active). Specs 001–007 are archived in `docs/archive/2026-06-16-implemented-specs/`. |
 | **SPEC** | A `spec.md` file inside a Spec Kit spec folder. Describes the what and why of the work. | All agents | Worker agents and Orchestrator Agent may update during the spec lifecycle. | `specs/<NNN>-<feature>/spec.md` |
 | **PLAN** | A `plan.md` file inside a Spec Kit spec folder. Describes the selected technical approach. | All agents | Worker agents and Orchestrator Agent may update. | `specs/<NNN>-<feature>/plan.md` |
 | **TASK_LIST** | A `tasks.md` file inside a Spec Kit spec folder. Ordered implementation tasks. | All agents | Worker agents and Orchestrator Agent may update. Implementation agents must follow `tasks.md` and must not invent scope. | `specs/<NNN>-<feature>/tasks.md` |
@@ -131,7 +135,8 @@ The following rules apply to the entire documentation system:
 ## 7. Related Documents
 
 - `AGENTS.md` — multi-agent control and entry point
-- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — master engineering rulebook
+- `docs/control/PROJECT_RULES.md` — master engineering rulebook
+- `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer registry, ownership, and source/data contract
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
 - `docs/state/HANDOFF_LOG.md` — append-only agent handoff timeline
 - `docs/decisions/ADR-001-documentation-system.md` — this documentation system as an ADR
