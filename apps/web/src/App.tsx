@@ -10,10 +10,10 @@ import { useAirportLayoutFeatures } from './layers/aviation/airports/useAirportL
 import { useEarthEvents } from './layers/layer_03_earth_events/useEarthEvents';
 import { useBordersBoundaries } from './layers/layer_02_borders_boundaries/useBordersBoundaries';
 import { useLiveAircraftSocket, LiveAircraftStatus } from './layers/aviation/aircraft/useLiveAircraftSocket';
-import { useSpaceSatellitesSocket } from './layers/space/satellites/useSpaceSatellitesSocket';
-import type { SpaceSatellitesStatus } from './layers/space/satellites/satelliteTypes';
-import { DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
-import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
+import { useSpaceSatellitesSocket } from './layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket';
+import type { SpaceSatellitesStatus } from './layers/layer_05_space_satellites/satellites/satelliteTypes';
+import { DEFAULT_SATELLITE_FILTERS } from './layers/layer_05_space_satellites/satellites/satelliteFilters';
+import type { SatelliteFilters } from './layers/layer_05_space_satellites/satellites/satelliteFilters';
 import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
 import { useEnergyInfrastructure } from './layers/energy/infrastructure/useEnergyInfrastructure';
 import { useMaritime } from './layers/layer_06_maritime/useMaritime';

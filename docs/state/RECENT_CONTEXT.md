@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-012 Space Canonicalization
+
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-012/space-canonical-folder
+- What changed: Renamed the frontend space layer folder to `layer_05_space_satellites` via `git mv`; preserved the `satellites/` subfolder with all 4 nested files; added canonical `index.ts` re-exporting all 4 public modules; recreated the `space/` shim folder with `index.ts` re-exporting from the canonical path; updated the 16 active frontend import sites across 7 files. Runtime strings preserved as intentional: `layer_05_space_satellites` layerId registry values (already canonical), `/ws/space/satellites/live` WebSocket URL, `new CustomDataSource('space-satellites')` Cesium data source name, message types (`space.satellites.subscribe`, `space.satellites.snapshot`, `space.satellites.error`), source filter values (`celestrak`, `space-track`), CSS `justify-content: space-between`, font name `'JetBrains Mono'`, and internal React state/prop names like `spaceSatellitesLayerActive` (JS identifiers, not file paths).
+- Validation: old `layers/space` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests); conflict-marker grep PASS; git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent reviews SR-012; do not PR yet unless user explicitly decides; recommended next task after SR-012 review is SR-014 energy canonicalization.
+
 ## 2026-06-16 - SR-013 Maritime Canonicalization
 
 - Agent: Frontend Structure Agent
@@ -69,12 +78,6 @@ receive the **complete** handoff entry after every completed task.
 - Validation: old `layers/borders` import grep PASS (no output); canonical folder + shim + coming-soon checks PASS; `pnpm --filter web build` PASS; `pnpm --filter web test` PASS; conflict-marker grep PASS; git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews SR-010S; do not PR yet unless user explicitly decides; after SR-010S review, retry SR-021 redundant .gitkeep cleanup using the original 7-file allowed list (the canonical borders folder now exists).
-
-## 2026-06-16 - SR-020 Spec 008 Status Refresh
-
-- Agent: Documentation / Spec Agent
-- Branch: docs/sr-020-refresh-spec-008-status
-- What changed: Refreshed Spec 008 roadmap/status (`tasks.md`, `plan.md`, `README.md`) so completed SR items (SR-001..SR-008, SR-005A/B/C, SR-010) are clearly marked Done and remaining structure/naming work (SR-009, SR-011, SR-012, SR-013, SR-014, plus auxiliary cleanup items) is visibly pending. Detailed SR-NNN task descriptions preserved as the audit trail.
 - Validation: conflict-marker grep PASS; status-wording grep PASS; SR-010 references verified in spec/state docs; git diff --check PASS
 - Known issues: None
 - Next: User / decision-control layer reviews the local SR-020 commit; reviewer Agent should review SR-020 before any next work; do not PR yet unless user explicitly decides; recommended next task after SR-020 review is to decide between redundant `.gitkeep` cleanup and the next low-risk frontend canonicalization (SR-011 earth-events).

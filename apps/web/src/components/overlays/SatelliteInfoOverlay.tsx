@@ -2,7 +2,7 @@
 // Info overlay shown when user clicks a satellite or debris object.
 // Follows AircraftInfoOverlay pattern.
 
-import type { SatelliteFrontendItem } from '../../layers/space/satellites/satelliteTypes';
+import type { SatelliteFrontendItem } from '../../layers/layer_05_space_satellites/satellites/satelliteTypes';
 
 interface SatelliteInfoOverlayProps {
   satellite: SatelliteFrontendItem;

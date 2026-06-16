@@ -34,10 +34,10 @@ import WeatherLayer from './layers/layer_07_weather/WeatherLayer';
 import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
 import NewsLayer from './layers/layer_08_news_osint/NewsLayer';
 import type { NewsRenderMarker } from './layers/layer_08_news_osint/newsTypes';
-import { getSatelliteColor, getSatellitePixelSize } from './layers/space/satellites/satelliteColors';
-import type { SatelliteFrontendItem } from './layers/space/satellites/satelliteTypes';
-import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFilters';
-import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
+import { getSatelliteColor, getSatellitePixelSize } from './layers/layer_05_space_satellites/satellites/satelliteColors';
+import type { SatelliteFrontendItem } from './layers/layer_05_space_satellites/satellites/satelliteTypes';
+import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from './layers/layer_05_space_satellites/satellites/satelliteFilters';
+import type { SatelliteFilters } from './layers/layer_05_space_satellites/satellites/satelliteFilters';
 
 import {
   fetchAllAviationCategories,

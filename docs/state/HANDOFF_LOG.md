@@ -1,4 +1,130 @@
 
+### 2026-06-16T03:00:00Z — sr-012-space-canonical-folder
+
+- Work order: SR-012
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-012/space-canonical-folder
+- Base stack: SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-012 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-013 (maritime) cleared the way, SR-012 is the third per-layer move. The space layer has a `satellites/` subfolder (medium complexity: 4 nested files, 16 imports, Cesium `CustomDataSource` integration, WebSocket integration).
+- Goal: Rename the frontend `apps/web/src/layers/space/` folder to the canonical `apps/web/src/layers/layer_05_space_satellites/`, preserve the `satellites/` subfolder and all nested files, add canonical barrel + compatibility shim, and update the 16 active frontend import sites across 7 files.
+- Files changed:
+  1. `apps/web/src/layers/space/` → `apps/web/src/layers/layer_05_space_satellites/` (via `git mv`; the `satellites/` subfolder and all 4 nested files — `satellites/satelliteColors.ts`, `satellites/satelliteFilters.ts`, `satellites/satelliteTypes.ts`, `satellites/useSpaceSatellitesSocket.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_05_space_satellites/index.ts` — new file, content:
+     ```ts
+     export * from './satellites/useSpaceSatellitesSocket';
+     export * from './satellites/satelliteTypes';
+     export * from './satellites/satelliteFilters';
+     export * from './satellites/satelliteColors';
+     ```
+     (canonical re-export of all 4 public modules in the `satellites/` subfolder; UTF-8 no BOM).
+  3. `apps/web/src/layers/space/` — recreated as a shim folder; contains only `apps/web/src/layers/space/index.ts` with content `export * from '../layer_05_space_satellites';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — 4 import-path updates:
+     - `'./layers/space/satellites/useSpaceSatellitesSocket'` → `'./layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket'`
+     - `'./layers/space/satellites/satelliteTypes'` → `'./layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'./layers/space/satellites/satelliteFilters'` (× 2: value import and type import) → `'./layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  5. `apps/web/src/CesiumGlobe.tsx` — 4 import-path updates:
+     - `'./layers/space/satellites/satelliteColors'` → `'./layers/layer_05_space_satellites/satellites/satelliteColors'`
+     - `'./layers/space/satellites/satelliteTypes'` → `'./layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'./layers/space/satellites/satelliteFilters'` (× 2) → `'./layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  6. `apps/web/src/components/Shell.tsx` — 2 import-path updates:
+     - `'../layers/space/satellites/satelliteTypes'` → `'../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'../layers/space/satellites/satelliteFilters'` → `'../layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  7. `apps/web/src/components/StatusPanel.tsx` — 1 import-path update:
+     - `'../layers/space/satellites/satelliteTypes'` → `'../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+  8. `apps/web/src/components/layer-panel/SpaceControls.tsx` — 2 import-path updates:
+     - `'../../layers/space/satellites/satelliteFilters'` → `'../../layers/layer_05_space_satellites/satellites/satelliteFilters'`
+     - `'../../layers/space/satellites/satelliteTypes'` → `'../../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+  9. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — 2 import-path updates:
+     - `'../../layers/space/satellites/satelliteTypes'` → `'../../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'../../layers/space/satellites/satelliteFilters'` → `'../../layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  10. `apps/web/src/components/overlays/SatelliteInfoOverlay.tsx` — 1 import-path update:
+      - `'../../layers/space/satellites/satelliteTypes'` → `'../../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+  11. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-012 Space Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-020 Spec 008 Status Refresh`) to keep the rolling window at 5 entries per the file's own update rule.
+  12. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public modules exported (4 in canonical `index.ts`):
+  1. `./satellites/useSpaceSatellitesSocket` — the public WebSocket hook (`useSpaceSatellitesSocket`, `SatelliteSnapshotCallback`).
+  2. `./satellites/satelliteTypes` — the public type module (`SpaceSatelliteItem`, `SpaceSatellitesStatus`, `SatelliteFrontendItem`, `SatelliteObjectType`, `SatelliteFilters`, `INITIAL_SPACE_STATUS`).
+  3. `./satellites/satelliteFilters` — the public filter module (`DEFAULT_SATELLITE_FILTERS`, `getFilteredSatellites`, `satellitePassesFilter`, `SAFE_RENDER_CAP`).
+  4. `./satellites/satelliteColors` — the public color module (`getSatelliteColor`, `getSatellitePixelSize`).
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:79` — `layerId: 'layer_05_space_satellites'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/lib/useLayerRegistry.ts:81` — `category: 'space'`. String category value; intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:127` — `entry.layerId === 'layer_05_space_satellites'`. Already canonical; layerId comparison.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket.ts:16` — `apiBase.replace(/^http/, 'ws') + '/ws/space/satellites/live'`. WebSocket URL path; this is a runtime protocol endpoint, not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket.ts:56,64,76` — message types `'space.satellites.subscribe'`, `'space.satellites.snapshot'`, `'space.satellites.error'`. WebSocket protocol message types; intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteFilters.ts:16` — `sourceFilter: 'all' | 'celestrak' | 'space-track'`. Source filter type values; intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteFilters.ts:53` — `filters.sourceFilter === 'space-track' && !sid.includes('space')`. Runtime string check; intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteColors.ts:16` — `'deep space: light red'` color label comment. Intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteTypes.ts:5` — `SatelliteObjectType = 'satellite' | 'debris' | 'rocket_body' | 'inactive_payload' | 'unknown'`. Type string literals; intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:507` — `new CustomDataSource('space-satellites')`. Cesium `DataSource` runtime identifier; not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:1248-1249,1253-1254,1327` and `apps/web/src/CesiumGlobe.tsx:119-121,157-159` and `apps/web/src/components/Shell.tsx:51,53-54,104-105,139,141-142,202-203` — React state/prop JavaScript identifiers like `spaceSatellitesLayerActive`, `spaceSatellites`, `spaceSatelliteFilters`, `spaceSatellitesStatus`, `setSpaceSatellitesLayerActive`, `onSpaceFiltersChange`. JS identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/StatusPanel.tsx:47` — `if (spaceSatellitesLayerActive) activeLayers.push('L5');`. The `'L5'` string is a human-readable status panel label; intentionally preserved.
+  - `apps/web/src/components/StatusPanel.tsx:137-145` — phase string values `'live'`, `'error'`, `'connecting'`, `'reconnecting'`, `'UNAVAILABLE'`, `'CONNECTING...'`, `'RECONNECTING...'` and CSS variable `'var(--shell-accent)'` and color `'#ff4d4d'`. Runtime status display values; intentionally preserved.
+  - `apps/web/src/components/overlays/SatelliteInfoOverlay.tsx:18,26-27,39,43,45-46,54-69` — component name `SatelliteInfoOverlay`, prop names, labels `'SATELLITE'`, `'NORAD ID'`, `'CATEGORY'`, `'ORBIT'`, `'ALTITUDE'`, `'SPEED'`, `'LAT'`, `'LON'`, `'COUNTRY'`, `'SOURCE'`, `'ESTIMATED AT'`, and status text `'UNKNOWN'`. Human-readable UI text; intentionally preserved.
+  - `apps/web/src/components/layer-panel/SpaceControls.tsx:81` — `value: 'space-track' as const, label: 'Space-Track'`. UI option value and label; intentionally preserved.
+  - `apps/web/src/components/intel/AirportMapPopup.tsx:9,67`, `apps/web/src/components/intel/AirportPublicProfilePanel.tsx:131`, `apps/web/src/components/intel/CoordinateSourceCard.tsx:38`, `apps/web/src/components/intel/DataQualityCard.tsx:34,40,46,52,59`, `apps/web/src/components/intel/IntelSection.tsx:25`, `apps/web/src/components/intel/RunwaysSection.tsx:27,36`, `apps/web/src/components/layer-panel/AviationControls.tsx:52`, `apps/web/src/components/overlays/AircraftInfoOverlay.tsx:17,21`, `apps/web/src/components/overlays/EarthquakeInfoOverlay.tsx:15,19`, `apps/web/src/components/overlays/SatelliteInfoOverlay.tsx:39,43`, `apps/web/src/components/overlays/TokenWarningOverlay.tsx:9` — all use `justifyContent: 'space-between'` CSS property or `'JetBrains Mono'` font name. CSS properties and font names; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/styles/shell.css:13,47,201,222` — CSS `justify-content: space-between` property and `--shell-font-mono: 'JetBrains Mono', ...` variable. CSS values; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/layers/aviation/airports/airportViewport.ts:13` — `// Fallback if looking into space or full globe`. Source comment; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/globe/configureViewerScene.ts:3` — `// Global max zoom distance — allows viewing Earth plus the full satellite shell.`. Source comment; not related to the layer folder rename. Intentionally preserved.
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `maritime/` shim, `layer_06_maritime/`, `energy/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-011, SR-013, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/space/satellites.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are owned by their respective agents and are intentionally not modified in SR-012; the frontend rename does not change the backend route or the layer registry.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `space/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+  - All 4 moved source files (`satellites/satelliteColors.ts`, `satellites/satelliteFilters.ts`, `satellites/satelliteTypes.ts`, `satellites/useSpaceSatellitesSocket.ts`) — content unchanged; only their tracked path moved.
+  - All WebSocket protocol strings, CSS properties, font names, UI labels, and React state/prop JavaScript identifiers — intentionally preserved (see above).
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-012/space-canonical-folder` (PASS)
+  - `git log -8 --oneline` → confirmed stack
+    `5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/space"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_05_space_satellites"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/space` (pre-rename) → 4 tracked files in the `satellites/` subfolder (PASS)
+  - `git ls-files apps/web/src/layers/layer_05_space_satellites` (pre-rename) → empty (PASS)
+  - `git grep -n "space" -- apps/web/src` (pre-rename) → classified: 16 import paths to update + many runtime strings (JS identifiers, layerId registry, WebSocket URL, CustomDataSource, message types, source filter values, CSS properties, font names, UI labels, comments) to preserve (PASS)
+  - `git grep -n "satellite" -- apps/web/src` (pre-rename) → classified: many matches, mostly runtime strings (JS identifiers, type literals, prop names, function names, labels, comments) to preserve; no import paths (PASS)
+  - `git grep -n "layers/space" -- apps packages tests` (pre-rename) → 16 matches in `apps/web/src/**` (7 files) (PASS)
+  - `git mv apps/web/src/layers/space apps/web/src/layers/layer_05_space_satellites` → succeeded; `satellites/` subfolder preserved (PASS)
+  - Post-rename `git ls-files` shows all 4 files now under `apps/web/src/layers/layer_05_space_satellites/satellites/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` (4 exports) and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 7 import files → 7 files updated, 16 import-path occurrences replaced (PASS)
+  - `git grep -n "layers/space" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_05_space_satellites" -- apps packages tests` → 16 active import sites updated + pre-existing canonical references in `packages/contracts/src/index.ts:14` and `tests/data/layer_05_space_satellites/...` (PASS)
+  - `git grep -n "space" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, layerId registry values, WebSocket URL, CustomDataSource, message types, CSS properties, font names, UI labels, comments); no active folder-path imports (PASS)
+  - `git grep -n "satellite" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, type literals, prop names, function names, labels, comments); no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_05_space_satellites"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_05_space_satellites/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/space/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/space` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_05_space_satellites` → 4 nested source files + `index.ts` (PASS, `satellites/` subfolder preserved)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/satelliteColors.ts apps/web/src/layers/layer_05_space_satellites/satellites/satelliteColors.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/satelliteFilters.ts apps/web/src/layers/layer_05_space_satellites/satellites/satelliteFilters.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/satelliteTypes.ts apps/web/src/layers/layer_05_space_satellites/satellites/satelliteTypes.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/useSpaceSatellitesSocket.ts apps/web/src/layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket.ts` → no content diff (PASS, pure rename)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules, 861ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 12 expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-013, and now this SR-012 handoff entry. No regression is introduced.
+  - The `apps/api/src/routes/space/satellites.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are intentionally not modified. The frontend rename does not change the backend route or the layer registry.
+  - The runtime strings preserved above (WebSocket protocol URLs and message types, Cesium data-source name, source filter values, CSS properties, font names, UI labels, React JS identifiers, comments) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `space/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-012.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-012 before SR-014 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, SR-013, and SR-012 to remote and open PRs. After SR-012 is reviewed, the recommended next task is **SR-014 energy canonicalization** (10 imports, has `infrastructure/` subfolder, medium risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
 ### 2026-06-16T02:30:00Z — sr-013-maritime-canonical-folder
 
 - Work order: SR-013
