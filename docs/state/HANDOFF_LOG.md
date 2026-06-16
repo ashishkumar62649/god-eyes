@@ -8082,4 +8082,53 @@ match MVP_LAYER_REGISTRY.md exactly; ownership table covers all paths from
 LLM_OWNERSHIP_MATRIX.md; source contract fields match SOURCE_TO_FRONTEND_CONTRACT.md;
 no rules from source files were omitted.
 
+
+
+
+### 2026-06-16T14:30:00Z — phase-3-review-layer-and-data-contract
+
+- Work order: phase-3-create-layer-and-data-contract
+- Agent: Reviewer Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Reviewer decision: PASS
+- Summary: Completed review of LAYER_AND_DATA_CONTRACT.md (294 lines, 15,341 bytes) against all 4 source docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md). All review checks PASS.
+- Files reviewed:
+  - docs/control/LAYER_AND_DATA_CONTRACT.md (A) — 294 lines, 223 content lines, 15,341 bytes
+  - docs/state/RECENT_CONTEXT.md (M) — Phase 3 entry updated to reflect review completion
+  - docs/state/HANDOFF_LOG.md (M) — full entry appended
+- Validation summary:
+  - Scope: PASS — exactly 3 files changed, all expected
+  - Layer registry: PASS — all 11 layer IDs with exact canonical names and statuses
+  - Layer status definitions: PASS — active, active (MVP/local-dev), active (default OFF), coming_soon, no_data
+  - Layer architecture rules: PASS — Layer 0 renders first, 60 FPS, independent toggles, no cross-layer deps, no fake data, layer_04 safety rules, layer_02 MVP warning, generic API pattern
+  - Ownership matrix: PASS — all 22 path patterns from LLM_OWNERSHIP_MATRIX.md, neutral role naming
+  - Source-to-frontend contract: PASS — all 9 required fields, layer 0 exception, needs-contract-detail marker
+  - Source families: PASS — all 9 families with correct layer IDs, code locations, API surfaces
+  - API/frontend contract: PASS — frontend must not invent fields, packages/contracts/ boundary, database agent owns migrations
+  - Change protocols: PASS — adding/changing layer (§13) and source (§14) protocols preserved
+  - Duplication: PASS — no harmful duplication, cross-references to PROJECT_RULES.md for shared rules
+  - Size: 15,341 bytes (~15KB) — over 12KB soft target but acceptable; all content preserved
+  - Wording: PASS — uses "user / decision-control layer" for coordination decisions
+  - RECENT_CONTEXT: PASS — Phase 3 entry updated, 5 entries (at cap), no HANDOFF_LOG history removed
+  - HANDOFF_LOG: PASS — full entry appended only, no old entries edited
+  - Data tests: 1159 passed, 15 skipped (pre-existing)
+  - git diff --check: PASS
+- Commands run:
+  - git status --short --branch: clean, on branch
+  - git log --oneline --decorate -n 15: 5b05fd6 is HEAD
+  - git show --stat --oneline 5b05fd6: 3 files, 411 insertions, 2 deletions
+  - git diff --name-status 5b05fd6~1..5b05fd6: A LAYER_AND_DATA_CONTRACT.md, M HANDOFF_LOG.md, M RECENT_CONTEXT.md
+  - git diff --check 5b05fd6~1..5b05fd6: PASS
+  - Get-Content LAYER_AND_DATA_CONTRACT.md | Measure-Object -Line: 223 content lines, 294 total
+  - Get-Item LAYER_AND_DATA_CONTRACT.md | Select-Object Name,Length: 15,341 bytes
+  - Select-String LAYER_AND_DATA_CONTRACT.md: all layer IDs, statuses, ownership, contract, HANDOFF_LOG, RECENT_CONTEXT confirmed
+  - Select-String MVP_LAYER_REGISTRY.md: all layer IDs and statuses confirmed
+  - Select-String LLM_OWNERSHIP_MATRIX.md: ownership patterns confirmed
+  - Select-String SOURCE_TO_FRONTEND_CONTRACT.md: contract fields confirmed
+  - python -m pytest tests/data -q: 1159 passed, 15 skipped
+  - git diff --check: PASS
+- Known issues: None
+- Push status: Local only — NOT pushed.
+- Secrets added: No.
+- Review status: PASS. Ready for Phase 4 (retire old source control docs with in-place pointer stubs).
 ---
