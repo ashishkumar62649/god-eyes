@@ -8494,3 +8494,76 @@ Ready for review.
 - Results: git diff --check PASS. docs/control now contains only PROJECT_CONTROL.md. Active reference scans found no references to deleted control filenames outside historical/audit/archive material.
 - Known issues: Historical reports, archived evidence, and HANDOFF_LOG history still mention old control filenames by design. Full runtime tests were not run because this is documentation-only.
 - Review status: Ready for Orchestrator Agent review. Local only; not pushed.
+---
+
+## Frontend Layer Folder Canonicalization Plan
+
+- Work order: SR-008 - Frontend layer folder canonicalization plan
+- Agent: Documentation Planning Agent
+- Branch: plan/frontend-layer-canonicalization
+- Date: 2026-06-16
+
+### Summary
+
+Created planning document for frontend layer folder canonicalization at specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md. The plan covers current folder inventory (6 grandfathered folders), target canonical names, import impact analysis (74 imports across 29 files), risk classification, implementation sequence, compatibility strategy with re-export shims, validation plan, and reviewer checklist.
+
+### Files Created
+
+- specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md (planning document)
+
+### Files Modified
+
+- docs/state/RECENT_CONTEXT.md (added entry, removed oldest)
+- docs/state/HANDOFF_LOG.md (this entry appended)
+
+### Current Folders Found
+
+- apps/web/src/layers/aviation/
+- apps/web/src/layers/borders/
+- apps/web/src/layers/earth-events/
+- apps/web/src/layers/space/
+- apps/web/src/layers/maritime/
+- apps/web/src/layers/energy/
+- apps/web/src/layers/layer_07_weather/ (already canonical)
+- apps/web/src/layers/layer_08_news_osint/ (already canonical)
+
+### Target Folders
+
+- aviation ? layer_01_aviation
+- borders ? layer_02_borders_boundaries
+- earth-events ? layer_03_earth_events
+- space ? layer_05_space_satellites
+- maritime ? layer_06_maritime
+- energy ? layer_10_energy_infrastructure
+
+### Import Impact Summary
+
+- aviation: 35 imports across 15 files (High risk)
+- space: 16 imports across 7 files (Medium risk)
+- energy: 10 imports across 7 files (Medium risk)
+- borders: 5 imports across 5 files (Low risk)
+- earth-events: 5 imports across 5 files (Low risk)
+- maritime: 3 imports across 2 files (Low risk)
+
+### Commands Run
+
+- Get-Content docs/state/HANDOFF_LOG.md -Tail 200
+- Get-ChildItem apps/web/src/layers -Directory
+- rg "from ['\"].*/layers/(aviation|borders|earth-events|space|maritime|energy)" apps packages tests
+- rg "layers/(aviation|borders|earth-events|space|maritime|energy)" apps packages tests specs docs
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
