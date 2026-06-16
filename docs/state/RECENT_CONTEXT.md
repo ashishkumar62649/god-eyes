@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files
+
+- Agent: Structure Cleanup Agent
+- Branch: chore/sr-021-retry-remove-redundant-gitkeep
+- What changed: Removed exactly 7 redundant .gitkeep placeholder files from non-empty frontend folders: `apps/web/src/layers/.gitkeep`, `aviation/.gitkeep`, `aviation/aircraft/.gitkeep`, `aviation/airports/.gitkeep`, `earth-events/.gitkeep`, `layer_02_borders_boundaries/.gitkeep`, `globe/.gitkeep`. This retry was run after SR-010S created the canonical borders folder, so the previous blocker (canonical folder missing) is resolved.
+- Validation: target gitkeep files no longer tracked; affected folders still contain tracked content; borders shim preserved; canonical export preserved; conflict-marker grep PASS; forbidden-area check PASS; source-code-change check PASS; git diff --check PASS
+- Known issues: None
+- Next: User / decision-control layer reviews local SR-021 commit and decides whether to push/open PR; recommended next task after SR-021 review is SR-011 earth-events canonicalization (lowest-risk per-layer move).
+
 ## 2026-06-16 - SR-010S Borders Restack
 
 - Agent: Frontend Structure Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: No code changed; planning document only; git diff --check pending
 - Known issues: None
 - Next: Reviewer Agent to review plan before implementation; Frontend Agent to execute SR-009 through SR-014 tasks
-
-## 2026-06-16 - Phase 6 Archive Fence Hardening
-
-- Agent: Orchestrator Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Created docs/archive/_DO_NOT_READ.md (explicit read fence); updated docs/archive/README.md (added active-doc pointers, implemented-specs note, fence reference, fixed ESR reference)
-- Validation: 1159 data tests PASS, git diff --check PASS
-- Known issues: None
-- Next: Orchestrator Agent full final review of the entire docs/fix branch before push/PR

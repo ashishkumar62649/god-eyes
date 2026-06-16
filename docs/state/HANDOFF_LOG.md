@@ -1,4 +1,89 @@
 
+### 2026-06-16T01:30:00Z — sr-021-retry-remove-redundant-gitkeep
+
+- Work order: SR-021
+- Agent: Structure Cleanup Agent
+- Branch: chore/sr-021-retry-remove-redundant-gitkeep
+- Base stack: SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local structure cleanup handoff; no code logic change, no import change, no folder rename)
+- Reason: The original SR-021 (on branch `chore/sr-021-remove-redundant-gitkeep`) correctly stopped and reported because the canonical borders folder did not yet exist in the stack. SR-010S (`2b23bd9 refactor(web): restack borders layer canonical folder rename`) created the canonical `apps/web/src/layers/layer_02_borders_boundaries/` folder with `.gitkeep`, `index.ts`, and `useBordersBoundaries.ts`, so the SR-021 blocker is now resolved. This retry branch is stacked on SR-010S.
+- Goal: Remove the 7 redundant `.gitkeep` placeholder files from non-empty frontend folders, exactly as specified in the original SR-021 task.
+- Files deleted (7):
+  1. `apps/web/src/layers/.gitkeep` — parent folder `apps/web/src/layers/` still contains `aviation/`, `borders/` (shim), `earth-events/`, `energy/`, `layer_02_borders_boundaries/`, `layer_07_weather/`, `layer_08_news_osint/`, `maritime/`, `space/`.
+  2. `apps/web/src/layers/aviation/.gitkeep` — parent folder still contains `aircraft/` and `airports/`.
+  3. `apps/web/src/layers/aviation/aircraft/.gitkeep` — parent folder still contains `aircraftMarker.ts` and `useLiveAircraftSocket.ts`.
+  4. `apps/web/src/layers/aviation/airports/.gitkeep` — parent folder still contains 16 tracked `.ts` files.
+  5. `apps/web/src/layers/earth-events/.gitkeep` — parent folder still contains `useEarthEvents.ts`.
+  6. `apps/web/src/layers/layer_02_borders_boundaries/.gitkeep` — parent folder still contains `index.ts` and `useBordersBoundaries.ts`.
+  7. `apps/web/src/globe/.gitkeep` — parent folder still contains `cesiumVisibility.ts`, `configureViewerScene.ts`, `setupCesiumToken.ts`, `useFpsCounter.ts`, `viewerOptions.ts`.
+- Files changed (2 state docs):
+  1. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files` and removed the oldest entry (`## 2026-06-16 - Phase 6 Archive Fence Hardening`) to keep the rolling window at 5 entries per the file's own update rule.
+  2. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Files intentionally not touched (preserved as-is):
+  - `apps/web/src/layers/borders/index.ts` (borders compatibility shim) — content verified: `export * from '../layer_02_borders_boundaries';`
+  - `apps/web/src/layers/layer_02_borders_boundaries/index.ts` (canonical export) — content verified: `export * from './useBordersBoundaries';`
+  - `apps/web/src/layers/layer_02_borders_boundaries/useBordersBoundaries.ts` (canonical hook) — not modified
+  - All other layer folders (`energy/`, `maritime/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) and their subfolders — not modified
+  - All `apps/api/`, `packages/`, `services/`, `database/`, `tests/` folders — not modified
+  - All import files in `apps/web/src/**` — not modified (no import path changes)
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `chore/sr-021-retry-remove-redundant-gitkeep` (PASS)
+  - `git log -5 --oneline` → confirmed stack
+    `2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `git ls-files -- <7 target paths>` (pre-deletion) → exactly 7 tracked
+    files (PASS)
+  - `git ls-files` for each parent folder (pre-deletion) → all 7 parent
+    folders have tracked content besides `.gitkeep` (PASS)
+  - `git rm <7 target paths>` → succeeded; 7 files deleted and staged (PASS)
+  - `git ls-files -- <7 target paths>` (post-deletion) → no output (PASS)
+  - `git ls-files` for each parent folder (post-deletion) → all 7 parent
+    folders still have tracked content; no folder became empty (PASS)
+  - `git ls-files apps/web/src/layers/borders` → only `index.ts` (shim
+    preserved) (PASS)
+  - `Get-Content apps/web/src/layers/borders/index.ts` → `export * from
+    '../layer_02_borders_boundaries';` (PASS, shim content verified)
+  - `Get-Content apps/web/src/layers/layer_02_borders_boundaries/index.ts` →
+    `export * from './useBordersBoundaries';` (PASS, canonical content
+    verified)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"`
+    → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/
+    ^specs/ ^packages/ ^services/ ^database/ ^tests/ ^.specify/ ^.env"`
+    → no output (PASS, no forbidden areas changed)
+  - `git diff --name-only | findstr /R ".ts$ .tsx$ .js$ .jsx$ .py$
+    .sql$ .json$"` → no output (PASS, no source code changed)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → exactly 9 paths: 7 deletions + 2 state doc
+    modifications (PASS)
+  - `git diff --stat` → confirms scope is exactly the 7 .gitkeep
+    deletions plus the 2 state doc modifications (PASS)
+- Known issues:
+  - No app build or test suite was run, per the task's "Do not run app
+    builds/tests because this task deletes placeholder files only"
+    instruction. The `.gitkeep` placeholders are not imported by any
+    source code, so removing them cannot affect runtime behaviour.
+  - The pre-existing line-3 reference to retired
+    `docs/control/MVP_LAYER_REGISTRY.md` in `.specify/memory/constitution.md`
+    is **not** in scope of SR-021; it remains for a future work order.
+- Push/PR/merge status: not performed by agent. Branch is local only.
+  Stacked on top of the SR-010S local commit
+  (`frontend/sr-010s-restack-borders-canonical-folder`, commit
+  `2b23bd9`), the SR-020 local commit
+  (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the
+  SR-019 local commit
+  (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-021 before next work. The
+  user / decision-control layer should decide whether to push SR-019,
+  SR-020, SR-010S, and SR-021 to remote and open PRs. After SR-021 is
+  reviewed, the recommended next task is **SR-011 earth-events
+  canonicalization** (lowest-risk per-layer move: 5 imports, single
+  hook file).
+
+---
+
 ### 2026-06-16T01:00:00Z — sr-010s-restack-borders-canonical-folder
 
 - Work order: SR-010S
