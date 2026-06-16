@@ -34,14 +34,14 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
-## 2026-06-16 - Frontend Layer Canonicalization Plan
+## 2026-06-16 - SR-010 Borders Canonical Folder
 
-- Agent: Documentation Planning Agent
-- Branch: plan/frontend-layer-canonicalization
-- What changed: Created specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md with current folder inventory, target canonical names, import impact analysis (74 imports across 29 files), risk classification, implementation sequence, compatibility strategy, validation plan, and reviewer checklist.
-- Validation: No code changed; planning document only; git diff --check pending
-- Known issues: None
-- Next: Reviewer Agent to review plan before implementation; Frontend Agent to execute SR-009 through SR-014 tasks
+- Agent: Frontend Agent
+- Branch: frontend/sr-010/borders-canonical-folder
+- What changed: Renamed apps/web/src/layers/borders to apps/web/src/layers/layer_02_borders_boundaries; added canonical index export; added a compatibility shim at the old borders path; updated active frontend imports.
+- Validation: git grep old active imports passed (no output); git diff --check passed; pnpm --filter web build passed; pnpm --filter web test passed (64 tests).
+- Known issues: tests/data pytest failed only on unrelated dirty-worktree work-order scope guards because apps/web files were dirty; expected and not blocking SR-010 frontend closeout.
+- Next: User / decision-control layer pushes branch and opens a single PR for the SR-010 work package.
 
 ## 2026-06-16 - Phase 6 Archive Fence Hardening
 

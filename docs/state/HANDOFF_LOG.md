@@ -8567,3 +8567,48 @@ No.
 ### Review Status
 
 Ready for Reviewer Agent review.
+
+## SR-010 - Borders Frontend Layer Canonical Folder
+
+- Work order: SR-010
+- Agent: Frontend Agent
+- Branch: frontend/sr-010/borders-canonical-folder
+- Date: 2026-06-16
+
+### Summary
+
+Borders frontend layer folder renamed to the canonical layer_02_borders_boundaries path. The legacy apps/web/src/layers/borders folder is retained only as a thin compatibility shim re-exporting from the new canonical location. Active frontend imports across the apps/web tree were updated to consume the canonical path directly.
+
+### Files Changed
+
+- Renamed (via git mv):
+  - apps/web/src/layers/borders/.gitkeep -> apps/web/src/layers/layer_02_borders_boundaries/.gitkeep
+  - apps/web/src/layers/borders/useBordersBoundaries.ts -> apps/web/src/layers/layer_02_borders_boundaries/useBordersBoundaries.ts
+- Added:
+  - apps/web/src/layers/layer_02_borders_boundaries/index.ts (canonical index export)
+  - apps/web/src/layers/borders/index.ts (compatibility shim re-exporting from the canonical path)
+- Modified (active frontend imports updated to canonical path):
+  - apps/web/src/App.tsx
+  - apps/web/src/components/Shell.tsx
+  - apps/web/src/components/StatusPanel.tsx
+  - apps/web/src/components/layer-panel/LayerPanelRoot.tsx
+  - apps/web/src/components/layer-panel/layerPanelTypes.ts
+- State docs:
+  - docs/state/RECENT_CONTEXT.md
+  - docs/state/HANDOFF_LOG.md
+
+### Validation
+
+- git grep -n "layers/borders" -- apps packages tests: passed, no output (no active old imports remain)
+- git diff --check: passed
+- pnpm --filter web build: passed
+- pnpm --filter web test: passed, 64 tests passed
+- python -m pytest tests/data -q: failed only on unrelated dirty-worktree work-order scope guards while apps/web changes were uncommitted (expected for this frontend work-order state; not an SR-010 regression)
+
+### Known Issues
+
+None for SR-010 frontend validation.
+
+### Push / PR / Merge
+
+Not performed. User / decision-control layer handles push, PR, merge, and branch deletion.

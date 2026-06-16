@@ -8,7 +8,7 @@ import { fetchAirportDetail } from './lib/api';
 import { AviationFilters, DEFAULT_AVIATION_FILTERS } from './layers/aviation/airports/aviationCategories';
 import { useAirportLayoutFeatures } from './layers/aviation/airports/useAirportLayoutFeatures';
 import { useEarthEvents } from './layers/earth-events/useEarthEvents';
-import { useBordersBoundaries } from './layers/borders/useBordersBoundaries';
+import { useBordersBoundaries } from './layers/layer_02_borders_boundaries/useBordersBoundaries';
 import { useLiveAircraftSocket, LiveAircraftStatus } from './layers/aviation/aircraft/useLiveAircraftSocket';
 import { useSpaceSatellitesSocket } from './layers/space/satellites/useSpaceSatellitesSocket';
 import type { SpaceSatellitesStatus } from './layers/space/satellites/satelliteTypes';
