@@ -1,4 +1,97 @@
 
+### 2026-06-16T02:30:00Z — sr-013-maritime-canonical-folder
+
+- Work order: SR-013
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-013/maritime-canonical-folder
+- Base stack: SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-013 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-011 (earth-events) cleared the way, SR-013 is the second-lowest-risk per-layer move (3 imports, 5 tracked source files, no subfolders, no API changes).
+- Goal: Rename the frontend `apps/web/src/layers/maritime/` folder to the canonical `apps/web/src/layers/layer_06_maritime/`, add canonical barrel + compatibility shim, and update the 3 active frontend import sites.
+- Files changed:
+  1. `apps/web/src/layers/maritime/` → `apps/web/src/layers/layer_06_maritime/` (via `git mv`; all 5 tracked files — `MaritimeLayer.tsx`, `__tests__/maritime.test.ts`, `maritimeApi.ts`, `useMaritime.ts`, `vesselMarker.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_06_maritime/index.ts` — new file, content `export * from './useMaritime';` (canonical re-export of the public hook).
+  3. `apps/web/src/layers/maritime/` — recreated as a shim folder; contains only `apps/web/src/layers/maritime/index.ts` with content `export * from '../layer_06_maritime';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — two import-path updates: `'./layers/maritime/useMaritime'` → `'./layers/layer_06_maritime/useMaritime'`; `'./layers/maritime/maritimeApi'` → `'./layers/layer_06_maritime/maritimeApi'`.
+  5. `apps/web/src/CesiumGlobe.tsx` — one import-path update: `'./layers/maritime/MaritimeLayer'` → `'./layers/layer_06_maritime/MaritimeLayer'`.
+  6. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-013 Maritime Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-019 Constitution Conflict Resolution`) to keep the rolling window at 5 entries per the file's own update rule.
+  7. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public hook/module exported: `useMaritime.ts` (from `apps/web/src/layers/layer_06_maritime/`). The canonical `index.ts` re-exports `./useMaritime`. The other 4 moved files (`MaritimeLayer.tsx`, `maritimeApi.ts`, `vesselMarker.ts`, `__tests__/maritime.test.ts`) are imported by name at their active import sites (e.g. `import MaritimeLayer from '.../layer_06_maritime/MaritimeLayer';`) and are not part of the barrel re-export.
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:93` — `layerId: 'layer_06_maritime'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:139` — `entry.layerId === 'layer_06_maritime'`. Already canonical; layerId comparison.
+  - `apps/web/src/components/Shell.tsx` and `apps/web/src/components/layer-panel/layerPanelTypes.ts` — React state/prop type names like `maritimeLayerActive: boolean`, `maritimeStats: MaritimeStatsResponse | null`, `maritimeFilters: { search: string; vesselType: string | null }`. These are JavaScript identifiers (variable and type names), not file paths; they do not need to match the folder name.
+  - `apps/web/src/components/detail-panel/DetailPanelRoot.tsx:33` — `selectedObject.layerId === 'layer_06_maritime'`. LayerId registry comparison.
+  - `apps/web/src/App.tsx:77,144` — `selectedObject.layerId === 'layer_06_maritime'`. LayerId registry comparisons.
+  - `apps/web/src/App.tsx:45-47,81,228-229,272-277` and `apps/web/src/CesiumGlobe.tsx:126-127,163-164,1331,1385,1440-1441` — React state variable names and prop names (`maritimeLayerActive`, `maritimeFilters`, `maritimeBbox`, `maritimeVessels`, `maritimeStats`, `maritimeData`, `setMaritimeLayerActive`, `onMaritimeRefresh`, `onMaritimeBboxChange`). JavaScript identifiers; not file paths.
+  - `apps/web/src/layers/layer_06_maritime/maritimeApi.ts:18,28,38,52,57` — `${API_BASE_URL}/api/layers/layer_06_maritime/objects` and related URL paths; runtime error message strings (`Failed to fetch maritime objects: ${response.status}`, `Failed to fetch maritime statistics: ${response.status}`). The URL paths are already canonical; the error message strings contain the word "maritime" as part of human-readable error text, which is intentionally preserved.
+  - `apps/web/src/layers/layer_06_maritime/useMaritime.ts:103-104` — error message strings (`Failed to fetch maritime data`, `'Failed to fetch maritime data'`). Human-readable error text; intentionally preserved.
+  - `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts:4` — `import { fetchMaritimeObjects, fetchVesselDetail, fetchMaritimeStats } from '../maritimeApi';`. Relative import within the maritime folder; works the same way after rename because both files move together.
+  - `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts:34-39,55,84,118,125` — test assertions referencing `LOCAL_LAYER_REGISTRY`, `layerId === 'layer_06_maritime'`, `'/api/layers/layer_06_maritime/objects'`, and `checkAIS(...)`. All are already canonical; no changes needed.
+  - `apps/api/tests/maritime.test.ts` — all references are `/api/layers/layer_06_maritime/...` API path strings in the API test file. Out of scope (apps/api is forbidden). Not modified.
+  - `packages/contracts/src/index.ts:15` — `export * from './layers/layer_06_maritime.js';`. Pre-existing canonical export; not modified.
+  - `tests/data/layer_06_maritime/...` — pre-existing test data path; not modified.
+  - The `apps/web/src/layers/maritime/` shim folder is intentionally retained. It contains only the new `index.ts` re-exporting from the canonical folder, with no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-013.
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `energy/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-011, SR-012, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/maritime.ts` and `apps/api/tests/maritime.test.ts` files are owned by the API Agent and are intentionally not modified in SR-013; the frontend rename does not change the backend route.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `maritime/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete (SR-021 did not include a maritime `.gitkeep` because SR-011 was the prior task; the maritime folder already had source content).
+  - No API routes, no contracts, no database migrations changed.
+  - All 5 moved source files (`MaritimeLayer.tsx`, `maritimeApi.ts`, `useMaritime.ts`, `vesselMarker.ts`, `__tests__/maritime.test.ts`) — content unchanged; only their tracked path moved.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-013/maritime-canonical-folder` (PASS)
+  - `git log -7 --oneline` → confirmed stack
+    `e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/maritime"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/maritime` (pre-rename) → 5 tracked files
+    (`MaritimeLayer.tsx`, `__tests__/maritime.test.ts`, `maritimeApi.ts`,
+    `useMaritime.ts`, `vesselMarker.ts`); no `.gitkeep` (PASS)
+  - `git ls-files apps/web/src/layers/layer_06_maritime` (pre-rename) → empty (PASS)
+  - `git grep -n "maritime" -- apps/web/src` (pre-rename) → classified:
+    3 import paths to update + many runtime strings (JS identifiers,
+    layerId registry, API path strings, error message strings) to
+    preserve (PASS)
+  - `git grep -n "layers/maritime" -- apps packages tests` (pre-rename) → 3 matches
+    in `apps/web/src/**`: `App.tsx:19,20`, `CesiumGlobe.tsx:32` (PASS)
+  - `git mv apps/web/src/layers/maritime apps/web/src/layers/layer_06_maritime` → succeeded (PASS)
+  - Post-rename `git ls-files` shows all 5 files now under
+    `apps/web/src/layers/layer_06_maritime/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 3 import files → 2 files updated (App.tsx, CesiumGlobe.tsx); no other file required an import-path update (PASS)
+  - `git grep -n "layers/maritime" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_06_maritime" -- apps packages tests` → 3 active import sites updated; remaining matches are pre-existing canonical API path strings, layerId registry values, and pre-existing test paths (PASS)
+  - `git grep -n "maritime" -- apps/web/src` (post-import-update) → 30+ matches, all runtime strings (JS identifiers, layerId registry values, API path strings, error messages, the test file's `LOCAL_LAYER_REGISTRY` find); no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime/useMaritime.ts"` → `True` (PASS, the exported public hook exists in the canonical folder)
+  - `Test-Path "apps/web/src/layers/maritime/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/maritime` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_06_maritime` → 5 source files + `index.ts` (PASS)
+  - `git diff HEAD:apps/web/src/layers/maritime/<file> apps/web/src/layers/layer_06_maritime/<file>` for each of the 5 moved files → no content diff (PASS, all moves are R100 renames)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules, 820ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests, including the relocated maritime test at `src/layers/layer_06_maritime/__tests__/maritime.test.ts` which still finds and runs its 11 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S handoff entry, the SR-011 handoff entry, and this SR-013 body as a validation caveat. No regression is introduced.
+  - The `apps/api/src/routes/maritime.ts` and `apps/api/tests/maritime.test.ts` files are intentionally not modified in SR-013. The frontend rename does not change the backend route; the API path `/api/layers/layer_06_maritime/...` is already canonical in those files.
+  - The runtime strings preserved above (JS identifiers, layerId registry values, API path strings, error message text) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `maritime/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-013.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-013 before SR-012 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, and SR-013 to remote and open PRs. After SR-013 is reviewed, the recommended next task is **SR-012 space canonicalization** (16 imports, has `satellites/` subfolder, medium risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
 ### 2026-06-16T02:00:00Z — sr-011-earth-events-canonical-folder
 
 - Work order: SR-011

@@ -29,7 +29,7 @@ import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, Air
 import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
 import type { EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
 import EnergyInfrastructureLayer from './layers/energy/infrastructure/EnergyInfrastructureLayer';
-import MaritimeLayer from './layers/maritime/MaritimeLayer';
+import MaritimeLayer from './layers/layer_06_maritime/MaritimeLayer';
 import WeatherLayer from './layers/layer_07_weather/WeatherLayer';
 import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
 import NewsLayer from './layers/layer_08_news_osint/NewsLayer';

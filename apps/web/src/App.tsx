@@ -16,8 +16,8 @@ import { DEFAULT_SATELLITE_FILTERS } from './layers/space/satellites/satelliteFi
 import type { SatelliteFilters } from './layers/space/satellites/satelliteFilters';
 import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
 import { useEnergyInfrastructure } from './layers/energy/infrastructure/useEnergyInfrastructure';
-import { useMaritime } from './layers/maritime/useMaritime';
-import { fetchVesselDetail } from './layers/maritime/maritimeApi';
+import { useMaritime } from './layers/layer_06_maritime/useMaritime';
+import { fetchVesselDetail } from './layers/layer_06_maritime/maritimeApi';
 import { useWeather } from './layers/layer_07_weather/useWeather';
 import type { WeatherRenderItem } from './layers/layer_07_weather/weatherTypes';
 import { useNews } from './layers/layer_08_news_osint/useNews';

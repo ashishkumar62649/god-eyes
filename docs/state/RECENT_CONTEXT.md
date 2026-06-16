@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-013 Maritime Canonicalization
+
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-013/maritime-canonical-folder
+- What changed: Renamed the frontend maritime layer folder to `layer_06_maritime` via `git mv`; added canonical `index.ts`; recreated the `maritime/` shim folder with `index.ts` re-exporting from the canonical path; updated the 3 active frontend import sites (`App.tsx` × 2, `CesiumGlobe.tsx` × 1). Runtime strings preserved as intentional: `layer_06_maritime` layerId registry values (already canonical), `/api/layers/layer_06_maritime/...` API paths (owned by API Agent), and internal React state/prop names like `maritimeLayerActive` (JS identifiers, not file paths).
+- Validation: old `layers/maritime` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests including the relocated maritime test at `src/layers/layer_06_maritime/__tests__/maritime.test.ts`); conflict-marker grep PASS; git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent reviews SR-013; do not PR yet unless user explicitly decides; recommended next task after SR-013 review is SR-012 space canonicalization.
+
 ## 2026-06-16 - SR-011 Earth-Events Canonicalization
 
 - Agent: Frontend Structure Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: conflict-marker grep PASS; status-wording grep PASS; SR-010 references verified in spec/state docs; git diff --check PASS
 - Known issues: None
 - Next: User / decision-control layer reviews the local SR-020 commit; reviewer Agent should review SR-020 before any next work; do not PR yet unless user explicitly decides; recommended next task after SR-020 review is to decide between redundant `.gitkeep` cleanup and the next low-risk frontend canonicalization (SR-011 earth-events).
-
-## 2026-06-16 - SR-019 Constitution Conflict Resolution
-
-- Agent: Documentation / Control Agent
-- Branch: docs/sr-019-resolve-constitution-conflict
-- What changed: Resolved unresolved Git merge conflict markers in `.specify/memory/constitution.md`; active constitution now has clean v1.3.0 / ACTIVE_PRINCIPLES metadata and amendment history.
-- Validation: conflict-marker grep PASS; "Updated upstream/Stashed changes" grep PASS; git diff --check PASS
-- Known issues: None
-- Next: User / decision-control layer reviews local SR-019 commit and decides whether to push/open PR; continue roadmap (e.g. SR-020 Spec 008 status refresh) only after SR-019 is merged.
