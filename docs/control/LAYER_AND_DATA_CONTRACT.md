@@ -41,12 +41,12 @@ topic, this file wins. When there is a conflict on a structure/naming/size topic
 
 ## 3. Layer Registry Authority
 
-`docs/control/MVP_LAYER_REGISTRY.md` is the current authoritative source until this file
-is confirmed complete and mandatory reading lists are updated. Once reading lists point
-here, this file is authoritative.
+This file is the authoritative source for layer IDs, layer statuses, and layer order.
+`docs/control/MVP_LAYER_REGISTRY.md` is retired (pointer stub only).
 
-**This file supersedes** the older layer lists in `LAYER_ARCHITECTURE.md` and
-`LAYER_ID_CONVENTIONS.md`. Those files are preserved for historical reference until retired.
+**This file supersedes** the older layer lists in `LAYER_ARCHITECTURE.md`,
+`LLM_OWNERSHIP_MATRIX.md`, `SOURCE_TO_FRONTEND_CONTRACT.md`, and
+`LAYER_ID_CONVENTIONS.md`. Those files now contain pointer stubs only.
 
 **Registry drift rule:** If any document, code, or config disagrees with the layer IDs,
 names, or statuses in this registry, pause new layer work until the drift is corrected.
@@ -242,9 +242,8 @@ Where contract details are not yet recorded, mark them `needs contract detail` โ
 1. Create a work order for the user / decision-control layer.
 2. Update the canonical layer table in this file (ยง4).
 3. Update `docs/state/CURRENT_PROJECT_STATE.md`.
-4. Update `docs/control/MVP_LAYER_REGISTRY.md` to stay in sync (until it is retired).
-5. Create handoff entries for affected agents.
-6. Do not create code or migrations for a new layer until the registry entry exists and
+4. Create handoff entries for affected agents.
+5. Do not create code or migrations for a new layer until the registry entry exists and
    the work order is approved.
 
 ---

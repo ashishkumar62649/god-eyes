@@ -42,8 +42,7 @@ Always-read summary: `AGENTS.md` → this file → `docs/state/CURRENT_PROJECT_S
 These rules may not be overridden by any work order or agent decision:
 
 1. Everything must belong to a registered layer (`layer_id`).
-2. No agent modifies files outside its folder ownership (see `docs/control/LLM_OWNERSHIP_MATRIX.md`
-   and the future `docs/control/LAYER_AND_DATA_CONTRACT.md` when available).
+2. No agent modifies files outside its folder ownership (see `docs/control/LAYER_AND_DATA_CONTRACT.md` §8).
 3. The frontend must never connect directly to the database or call external provider
    APIs directly. All data flows through the GOD EYES API.
 4. The API reads from the database. The API does not import from `apps/web/` or
@@ -113,9 +112,8 @@ Per-service folder pattern:
 | DB migrations | `database/migrations/layers/{layer_id}/` |
 | DB ingestion | `database/ingestion/layers/{layer_id}/` |
 
-> **Layer ID authority:** `docs/control/MVP_LAYER_REGISTRY.md` is the authoritative
-> source for layer IDs and statuses until `docs/control/LAYER_AND_DATA_CONTRACT.md`
-> exists (planned — not yet created). Always check MVP_LAYER_REGISTRY.md for IDs.
+> **Layer ID authority:** `docs/control/LAYER_AND_DATA_CONTRACT.md` is the authoritative
+> source for layer IDs and statuses. Always check it for canonical IDs.
 
 **Existing folders with legacy short names** (`aviation/`, `borders/`, `earth-events/`,
 `space/`, `maritime/`, `energy/`) must not be renamed in feature work. Rename only through

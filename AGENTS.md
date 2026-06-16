@@ -46,16 +46,16 @@ documents. Use the neutral role names above only.
 ### Always read (every agent, every session)
 
 1. `AGENTS.md` — this file
-2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — master engineering rulebook
-3. `docs/state/CURRENT_PROJECT_STATE.md` — current phase and implemented layers
-4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries
-5. The task-specific spec or work order for the current task
+2. `docs/control/PROJECT_RULES.md` — master engineering rulebook
+3. `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer registry, ownership, and source/data contract
+4. `docs/state/CURRENT_PROJECT_STATE.md` — current phase and implemented layers
+5. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries
+6. The task-specific spec or work order for the current task
 
 ### Task-specific read (load only when relevant)
 
 - `docs/control/GIT_WORKFLOW_POLICY.md` — user/decision-control layer before push/PR;
   workers when uncertain about commit format
-- `docs/control/MVP_LAYER_REGISTRY.md` — when the task involves layer IDs or statuses
 - Active spec files for the current feature (e.g. `specs/008-structure-remediation-roadmap/`)
 - `docs/decisions/ADR-*.md` — when making an architectural decision in the relevant area
 
@@ -80,7 +80,7 @@ documents. Use the neutral role names above only.
 
 ## Layer Order
 
-`docs/control/MVP_LAYER_REGISTRY.md` is the authoritative source of truth for layer IDs,
+`docs/control/LAYER_AND_DATA_CONTRACT.md` is the authoritative source of truth for layer IDs,
 layer order, and layer status. If any document or code disagrees with that registry, pause
 new layer work until the registry drift is fixed.
 
@@ -179,20 +179,12 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
 
 - `docs/README.md` — the documentation map (start here; lists active rules,
   current state, audits, decisions, archive, and specs)
-- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — **master engineering rulebook**;
+- `docs/control/PROJECT_RULES.md` — **master engineering rulebook**;
   every agent must follow it for all file structure, database structure, API structure,
   naming conventions, file/function size limits, and refactor boundaries
+- `docs/control/LAYER_AND_DATA_CONTRACT.md` — layer registry, agent ownership, and
+  source-to-frontend contract (authoritative for layer IDs, statuses, and data contracts)
 - `docs/control/GIT_WORKFLOW_POLICY.md` — Git commit and push rules
-- `docs/control/MVP_LAYER_REGISTRY.md` — authoritative layer registry and order
-- `docs/control/LAYER_ARCHITECTURE.md` — layer definitions and order
-- `docs/control/LAYER_ID_CONVENTIONS.md` — naming and folder conventions
-- `docs/control/LLM_OWNERSHIP_MATRIX.md` — agent ownership matrix (includes
-  Normalizer Location Rule for colocated vs separated normalizer patterns)
-- `docs/control/PIPELINE_HANDOFF_RULES.md` — how data flows between agents
-  (includes Normalizer Location Rule)
-- `docs/control/DATA_LOCATION_RULES.md` — where files go (includes Normalizer
-  Location Rule)
-- `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` — full source contract
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
 - `docs/state/RECENT_CONTEXT.md` — short rolling summary of the last 3–5 work sessions
   (always read at session start; replaces mandatory full HANDOFF_LOG read)
@@ -205,8 +197,7 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
   plan, open questions)
 - `docs/decisions/` — Architecture Decision Records (ADRs)
 - `docs/archive/` — historical/superseded documents (not active instructions)
-- `docs/work-orders/` — work orders for small cross-cutting repairs and
-  single-lane fixes
+- `docs/work-orders/` — work orders for small cross-cutting repairs and single-lane fixes
 - `docs/audits/` — research and audit evidence
 
 See `docs/README.md` for the full documentation map and document classification.

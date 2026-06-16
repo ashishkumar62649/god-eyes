@@ -8132,3 +8132,77 @@ no rules from source files were omitted.
 - Secrets added: No.
 - Review status: PASS. Ready for Phase 4 (retire old source control docs with in-place pointer stubs).
 ---
+
+## Phase 4 -- Retire Source Control Docs with Pointer Stubs
+
+- Work order: Phase 4 -- documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 06:40 UTC
+
+### Summary
+
+Retired 8 old source control docs by replacing their content with short pointer stubs
+at their original paths. Updated AGENTS.md and docs/README.md to point to the two new
+consolidated docs as active always-read files. Updated PROJECT_RULES.md and
+LAYER_AND_DATA_CONTRACT.md to remove "planned" qualifiers.
+
+### Files Retired as Pointer Stubs (-> PROJECT_RULES.md)
+
+- docs/control/ENGINEERING_STRUCTURE_RULES.md
+- docs/control/DATA_LOCATION_RULES.md
+- docs/control/PIPELINE_HANDOFF_RULES.md
+
+### Files Retired as Pointer Stubs (-> LAYER_AND_DATA_CONTRACT.md)
+
+- docs/control/MVP_LAYER_REGISTRY.md
+- docs/control/LAYER_ARCHITECTURE.md
+- docs/control/LLM_OWNERSHIP_MATRIX.md
+- docs/control/SOURCE_TO_FRONTEND_CONTRACT.md
+
+### Files Retired as Mixed Pointer Stub (-> both)
+
+- docs/control/LAYER_ID_CONVENTIONS.md
+
+### AGENTS.md Changes
+
+Reading policy always-read list: ESR replaced with PROJECT_RULES.md + LAYER_AND_DATA_CONTRACT.md.
+Layer Order authority: MVP_LAYER_REGISTRY -> LAYER_AND_DATA_CONTRACT.
+Key Documents: 8 old entries -> 2 consolidated entries.
+
+### docs/README.md Changes
+
+Sections 1-3 and Directory Meaning/Classification tables updated to new doc names.
+DATA_LOCATION_RULES reference -> PROJECT_RULES. LLM_OWNERSHIP_MATRIX ref -> LAYER_AND_DATA_CONTRACT.
+
+### PROJECT_RULES.md + LAYER_AND_DATA_CONTRACT.md Changes
+
+Removed "planned" qualifiers. Both files now active.
+
+### Cross-Reference Search
+
+Active doc references updated. Archive/specs/code refs intentionally left (historical).
+One stale docs/work-orders comment in a code file (pre-existing, out of scope).
+
+### Known Issues
+
+Stale docs/work-orders comment in services/fetch-orchestrator -- pre-existing, out of scope.
+
+### Validation
+
+- git diff --check: PASS
+- data tests: 1159 passed
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---

@@ -31,24 +31,6 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
-## 2026-06-16 - Documentation Context Compression Research
-
-- Agent: Documentation Research Agent
-- Branch: research/documentation-context-compression
-- What changed: Created documentation-context-compression-research.md - full analysis showing HANDOFF_LOG alone costs ~150k tokens of the ~176k mandatory read burden
-- Validation: 1159 data tests PASS, research-only
-- Known issues: None
-- Next: Documentation Planning Agent creates architecture compression plan
-
-## 2026-06-16 - Documentation Architecture Compression Plan
-
-- Agent: Documentation Planning Agent
-- Branch: plan/documentation-architecture-compression
-- What changed: Created documentation-architecture-compression-plan.md - 6-phase plan targeting ~11k token mandatory read set (down from ~176k)
-- Validation: 1159 data tests PASS, planning-only
-- Known issues: None
-- Next: Phase 1 - create RECENT_CONTEXT.md, update reading policy
-
 ## 2026-06-16 - Phase 1 Documentation Context Reduction
 
 - Agent: Documentation Implementation Agent
@@ -75,3 +57,12 @@ receive the **complete** handoff entry after every completed task.
 - Validation: 1159 data tests PASS, git diff --check PASS, Select-String keyword checks PASS
 - Known issues: None. Source files not retired yet (Phase 4). Mandatory reading lists not yet updated (Phase 6).
 - Next: Phase 4 - retire old source control docs with in-place pointer stubs
+
+## 2026-06-16 - Phase 4 Retire Source Control Docs
+
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- What changed: Replaced 8 old source control docs with pointer stubs; updated AGENTS.md and docs/README.md to use PROJECT_RULES.md + LAYER_AND_DATA_CONTRACT.md; removed "planned" qualifiers from PROJECT_RULES.md and LAYER_AND_DATA_CONTRACT.md
+- Validation: 1159 data tests PASS, git diff --check PASS
+- Known issues: One stale docs/work-orders comment in code (out of scope)
+- Next: Reviewer Agent reviews Phase 4 before Phase 5 (specs archival)
