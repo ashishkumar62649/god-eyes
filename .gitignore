@@ -84,6 +84,9 @@ graphify-out/
 run_graphify.py
 tools/
 
+# Local steering / skills (see repository-skeleton.md [IGNORE] list)
+.kiro/
+
 # Local adapter notes (per-project, not part of the committed project)
 CLAUDE.md
 GEMINI.md
