@@ -1,9 +1,48 @@
 ﻿# Spec 008 - Structure Remediation Roadmap
 
 Classification: SPEC_WORKSPACE
-Status: Active roadmap with completed documentation phases
+Status: **Partially completed** — documentation phases done; remaining structure/naming work still pending
 Owner: Orchestrator Agent
 Last updated: 2026-06-16
+
+## Status Banner (2026-06-16)
+
+> **Spec 008 is partially completed.** The documentation consolidation
+> phases (Phase 0 contract repair, Phase 1 API route splits including
+> the SR-005A / SR-005B / SR-005C follow-up splits, Phase 2 frontend
+> large component splits, Phase 3 contracts split, and Phase 4 planning
+> + SR-010 borders rename) are all done. The current remaining
+> structure/naming work is **still pending**:
+>
+> * **SR-011** — earth-events → `layer_03_earth_events` (frontend folder
+>   rename).
+> * **SR-013** — maritime → `layer_06_maritime` (frontend folder
+>   rename).
+> * **SR-012** — space → `layer_05_space_satellites` (frontend folder
+>   rename; preserve `satellites/` subfolder).
+> * **SR-014** — energy → `layer_10_energy_infrastructure` (frontend
+>   folder rename; preserve `infrastructure/` subfolder).
+> * **SR-009** — aviation → `layer_01_aviation` (frontend folder
+>   rename; highest-risk per-layer move).
+> * Redundant `.gitkeep` cleanup.
+> * API route file-shape normalization (final review pass).
+> * API endpoint path policy decision (legacy vs canonical paths).
+> * `TODO` / deprecated marker cleanup.
+> * `CesiumGlobe` split planning.
+> * Missing package ownership row decision in `PROJECT_CONTROL.md`
+>   Part 2 §8.
+>
+> Do not start a new frontend canonicalization branch (SR-009,
+> SR-011, SR-012, SR-013, SR-014) until the user / decision-control
+> layer has reviewed the SR-019 / SR-020 commits and decided to
+> resume PR/merge activity.
+>
+> For per-task status with commit references, see the
+> **"Status as of 2026-06-16"** section near the top of `tasks.md`.
+> For the safe-default next-work queue, see the
+> **"Remaining recommended order"** section in `tasks.md` and the
+> **"Status as of 2026-06-16 (post-SR-010 / post-SR-019)"** section
+> near the top of `plan.md`.
 
 ## Status After Phase 6 (2026-06-16)
 

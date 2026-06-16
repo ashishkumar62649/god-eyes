@@ -1,4 +1,120 @@
 
+### 2026-06-16T00:45:00Z — sr-020-refresh-spec-008-status
+
+- Work order: SR-020
+- Agent: Documentation / Spec Agent
+- Branch: docs/sr-020-refresh-spec-008-status
+- Base branch: docs/sr-019-resolve-constitution-conflict (stacked local branch from SR-019 commit `d746c0a`; user is not creating PRs/merges yet)
+- Reviewer decision: PENDING (agent-only local docs/spec handoff; no code change)
+- Goal: Refresh Spec 008 (`specs/008-structure-remediation-roadmap/`) so
+  the roadmap and task list accurately reflect the current SR status:
+  completed SR items (SR-001..SR-008, SR-005A, SR-005B, SR-005C,
+  SR-010) marked Done; remaining structure/naming work (SR-009, SR-011,
+  SR-012, SR-013, SR-014, plus auxiliary cleanup items) kept visibly
+  pending; safe-default next-work queue surfaced.
+- Files changed:
+  1. `specs/008-structure-remediation-roadmap/tasks.md` — added a
+     "Status as of 2026-06-16" section near the top (status legend,
+     per-work-package status table, remaining recommended order,
+     "Done" caveats); added a `> **Status (2026-06-16):** ...`
+     blockquote under each `## SR-NNN — ...` heading (SR-001 through
+     SR-018); inserted three new auxiliary task sections
+     (SR-005A, SR-005B, SR-005C) for the post-SR-004 API route splits
+     (maritime, energy, space-satellites REST-only); updated the
+     cross-task summary table at the bottom to include the new
+     SR-005A/B/C rows; updated the "Last updated" footer. The full
+     original SR-NNN task descriptions, phase details, and reviewer
+     checks are preserved verbatim as the audit trail.
+  2. `specs/008-structure-remediation-roadmap/plan.md` — added a
+     "Status as of 2026-06-16 (post-SR-010 / post-SR-019)" section
+     near the top (completed work, remaining work, needs decision,
+     planned later snapshots); updated the "Recommended Order
+     Summary" table to include a "Status (2026-06-16)" column;
+     replaced the original 11-step safe-default execution order
+     with the new current next-work queue (earth-events → maritime →
+     space → energy → aviation → gitkeep cleanup → API route
+     shape → TODO cleanup → CesiumGlobe split → ownership row →
+     API path policy) and explicitly preserved the original
+     11-step order as "historical only" inside a blockquote;
+     updated the "Last updated" footer.
+  3. `specs/008-structure-remediation-roadmap/README.md` — updated
+     the `Status:` line from "Active roadmap with completed
+     documentation phases" to "**Partially completed** — documentation
+     phases done; remaining structure/naming work still pending";
+     added a new top-of-file "Status Banner (2026-06-16)" section
+     listing the remaining SR items and auxiliary work with an
+     explicit "do not start a new frontend canonicalization branch
+     until the user / decision-control layer has reviewed the
+     SR-019 / SR-020 commits and decided to resume PR/merge activity"
+     note.
+  4. `docs/state/RECENT_CONTEXT.md` — added a new top entry
+     "2026-06-16 - SR-020 Spec 008 Status Refresh" and removed the
+     oldest entry ("2026-06-16 - Documentation Reorganization") to
+     keep the rolling window at 5 entries per the file's own
+     update rule.
+  5. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at
+     the top (append-only rule).
+- Files intentionally not touched:
+  - `specs/008-structure-remediation-roadmap/spec.md` — not in the
+    allowed-files list for this task; its "Success Criteria"
+    section is intentionally preserved as the long-term success
+    definition (some items remain incomplete by design).
+  - `specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md`
+    and `frontend-layer-canonicalization-plan-report.md` — not
+    needed: their internal status tables already accurately
+    reflect the plan/report status; no update was required.
+  - `docs/control/`, `docs/archive/`, `docs/audits/`, `docs/work-orders/`,
+    `docs/README.md`, `docs/state/CURRENT_PROJECT_STATE.md`, `AGENTS.md`,
+    `.specify/memory/constitution.md` — all out of scope per the
+    task's allowed-files list.
+  - All code folders (`apps/`, `packages/`, `services/`,
+    `database/`, `tests/`) — docs/spec-only task; no code change.
+- Validation:
+  - `git status --short --branch` → clean working tree on
+    `docs/sr-020-refresh-spec-008-status` (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- .
+    ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git grep -n "SR-010" -- specs/008-structure-remediation-roadmap
+    docs/state/RECENT_CONTEXT.md docs/state/HANDOFF_LOG.md` →
+    SR-010 referenced in the new status tables, the new handoff
+    entry, and the inline per-task status blockquotes; all
+    references consistent with the SR-010 commit
+    `5275e61 refactor(web): rename borders layer folder to canonical
+    path` on branch `frontend/sr-010/borders-canonical-folder` (PASS)
+  - `git grep -n "Status as of|Done|Pending|Needs decision" --
+    specs/008-structure-remediation-roadmap/tasks.md
+    specs/008-structure-remediation-roadmap/plan.md
+    specs/008-structure-remediation-roadmap/README.md` → all three
+    spec files contain the new status wording (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 5 allowed files (PASS)
+  - `git diff --stat` → confirms scope is small and docs/spec-only (PASS)
+- Known issues:
+  - This is a docs/spec-only task. No app build, no test suite, no
+    data tests were run, per the task's "Do not run app builds/tests
+    because this is docs/spec-only work" instruction.
+  - The original Spec 008 `spec.md` "Success Criteria" section
+    contains items that are not yet done (e.g. "the six
+    grandfathered short-name frontend layer folders have been
+    renamed to canonical `layer_NN_name/`"). This is intentional:
+    the success criteria describe the long-term done state of
+    Spec 008, not the current partial state. The README and tasks.md
+    now make the current partial state explicit. The spec.md
+    success-criteria section was **not** modified.
+- Push/PR/merge status: not performed by agent. Branch is local
+  only. Stacked on top of the SR-019 local commit
+  (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`)
+  because the user / decision-control layer is intentionally not
+  creating PRs/merges yet.
+- Next step: Reviewer Agent should review SR-020 before next work.
+  The user / decision-control layer should decide whether to push
+  SR-019 and SR-020 (and SR-010) to remote and open PRs. The
+  recommended next task after SR-020 review is to decide between
+  redundant `.gitkeep` cleanup and the next low-risk frontend
+  canonicalization (SR-011 earth-events).
+
+---
+
 ### 2026-06-16T00:30:00Z — sr-019-resolve-constitution-conflict
 
 - Work order: SR-019

@@ -20,6 +20,84 @@ order after that, but starting with the largest file is recommended.
 
 ---
 
+## Status as of 2026-06-16 (post-SR-010 / post-SR-019)
+
+The detailed phase descriptions below are preserved unchanged as the
+audit trail. Do not delete them. The status below is the active
+snapshot. For per-work-package status, see the **"Status as of
+2026-06-16"** section at the top of `tasks.md`.
+
+### Completed work (snapshot)
+
+* **Phase 0 — Contract / Status Schema Repair** — completed
+  (SR-001). `LayerStatusResponseSchema` is no longer aviation-specific.
+* **Phase 1 — API Route Split** — completed in full. SR-002, SR-003,
+  and SR-004 done. The three remaining route splits
+  (`maritime`, `energy/infrastructure`, `space/satellites` REST
+  surface) were completed as the post-SR-004 follow-up packages
+  **SR-005A**, **SR-005B**, **SR-005C**. The space-satellites
+  WebSocket handler remains inside `apps/api/src/routes/space/satellites.ts`
+  and was intentionally **not** split in this phase.
+* **Phase 2 — Frontend Large Component Split** — completed.
+  SR-005 (`DetailPanel`) and SR-006 (`LayerPanel`) done.
+* **Phase 3 — Contracts Split** — completed (SR-007). Per-layer
+  contracts module is in place with compatibility re-exports.
+* **Phase 4 (planning) — Frontend Layer Folder Canonicalization Plan**
+  — completed (SR-008). The plan document lives in this spec folder
+  as `frontend-layer-canonicalization-plan.md`.
+* **Phase 4 (first per-layer move) — Frontend Borders Folder
+  Canonicalization** — completed (SR-010, commit `5275e61` on
+  branch `frontend/sr-010/borders-canonical-folder`). Branch is
+  clean and in sync with its remote but **not yet PR'd or merged**.
+
+### Remaining work (snapshot)
+
+* **Phase 4 (remaining per-layer moves) — Frontend Layer Folder
+  Canonicalization** — partly complete. SR-010 (borders) done;
+  SR-011 (earth-events), SR-013 (maritime), SR-012 (space), SR-014
+  (energy), SR-009 (aviation) **pending**. See the "Remaining
+  recommended order" section in `tasks.md` for the safe default
+  order.
+* **Auxiliary cleanup items** — redundant `.gitkeep` cleanup, API
+  route file-shape normalization, `TODO` / deprecated marker
+  cleanup, `CesiumGlobe` split planning, and the missing
+  `PROJECT_CONTROL.md` Part 2 §8 package ownership row decision.
+
+### Needs decision (snapshot)
+
+* **API endpoint path policy** — final decision on whether legacy
+  non-canonical endpoint paths are kept as compatibility aliases
+  after all canonicalization work is complete. **Blocked** until
+  a user / Orchestrator decision is made.
+* **Missing package ownership row in `PROJECT_CONTROL.md` Part 2
+  §8** — at least one row whose owner is undecided. **Blocked**
+  until a user / Orchestrator decision is made.
+
+### Planned later (snapshot)
+
+* **Phase 5 — Fetcher / Normalizer Canonical Source Structure**
+  (SR-015). Multi-source layers still use prefixed flat file names;
+  the `sources/<name>/` subfolder pattern is recommended but not on
+  the current critical path.
+* **Phase 6 — Database / Migration Documentation Cleanup**
+  (SR-016). The aviation `002` gap is grandfathered and
+  explicitly not in scope; the README update is documentation-only
+  and not on the current critical path.
+* **Phase 7 — Large Test File Split** (SR-017). The 700-line
+  Python limit is documented but not blocking any active work.
+* **Phase 8 — Future Scaling Architecture Spec** (SR-018). The
+  architecture decisions are user-level decisions that are not
+  yet made.
+
+> The recommended **execution order** below still describes the
+> original safe default for a single-worker execution. It is
+> **not** a "next" queue — most of the original queue is already
+> done. Use the "Remaining work" snapshot above (or the
+> "Remaining recommended order" section in `tasks.md`) for the
+> current next-work queue.
+
+---
+
 ## Phase 0 — Contract / Status Schema Repair
 
 ### Purpose
@@ -869,35 +947,68 @@ These apply to every phase above:
 
 ## Recommended Order Summary
 
-| Phase | Work Packages | Owner / Lane | Depends on |
-|---|---|---|---|
-| Phase 0 | SR-001 | API / Contract | — |
-| Phase 1 | SR-002, SR-003, SR-004 | API | SR-001 |
-| Phase 2 | SR-005, SR-006 | Frontend | — (independent) |
-| Phase 3 | SR-007 | API / Contract | SR-001 |
-| Phase 4 | SR-008 (plan), SR-009..SR-014 (per-layer) | Frontend | — (independent) |
-| Phase 5 | SR-015 | Fetcher | — (independent) |
-| Phase 6 | SR-016 | Database | — (independent) |
-| Phase 7 | SR-017 | Database / Test | — (independent) |
-| Phase 8 | SR-018 | Orchestrator (planning) | — (independent) |
+| Phase | Work Packages | Owner / Lane | Depends on | Status (2026-06-16) |
+|---|---|---|---|---|
+| Phase 0 | SR-001 | API / Contract | — | **Done** |
+| Phase 1 | SR-002, SR-003, SR-004, SR-005A, SR-005B, SR-005C | API | SR-001 | **Done** (WebSocket handler in `space/satellites.ts` kept in place) |
+| Phase 2 | SR-005, SR-006 | Frontend | — (independent) | **Done** |
+| Phase 3 | SR-007 | API / Contract | SR-001 | **Done** |
+| Phase 4 | SR-008 (plan), SR-009..SR-014 (per-layer) | Frontend | — (independent) | **Partly done** (SR-008 + SR-010 done; SR-009, SR-011, SR-012, SR-013, SR-014 pending) |
+| Phase 5 | SR-015 | Fetcher | — (independent) | **Planned later** |
+| Phase 6 | SR-016 | Database | — (independent) | **Planned later** |
+| Phase 7 | SR-017 | Database / Test | — (independent) | **Planned later** |
+| Phase 8 | SR-018 | Orchestrator (planning) | — (independent) | **Planned later** |
 
-The recommended **execution order** is:
+The recommended **execution order** for any remaining work is:
 
-1. **SR-001** (Phase 0) — unblocks the contract change for status.
-2. **SR-007** (Phase 3) — splits the contracts module; unblocks per-layer
-   work that touches contracts.
-3. **SR-002** and **SR-003** (Phase 1) — the two largest API route
-   splits. Sequenced because they are the largest files.
-4. **SR-004** (Phase 1 review) — review-and-decide on the remaining
-   three large API route files.
-5. **SR-005** and **SR-006** (Phase 2) — the two large frontend
-   components.
-6. **SR-008** (Phase 4 plan) — produces the canonical-folder plan.
-7. **SR-009..SR-014** (Phase 4 per-layer) — one layer at a time.
-8. **SR-015** (Phase 5) — fetcher / normalizer source split.
-9. **SR-016** (Phase 6) — database README.
-10. **SR-017** (Phase 7) — large test files.
-11. **SR-018** (Phase 8) — future scaling spec.
+1. **Earth-events canonicalization** (SR-011, Phase 4) — lowest-risk
+   per-layer move (5 imports, single hook file).
+2. **Maritime canonicalization** (SR-013, Phase 4) — low risk
+   (3 imports, self-contained).
+3. **Space canonicalization** (SR-012, Phase 4) — medium risk
+   (16 imports, has `satellites/` subfolder).
+4. **Energy canonicalization** (SR-014, Phase 4) — medium risk
+   (10 imports, has `infrastructure/` subfolder).
+5. **Aviation canonicalization** (SR-009, Phase 4) — highest-risk
+   per-layer move (35 imports, two subfolders).
+6. **Redundant `.gitkeep` cleanup** — sweep removed after each
+   rename.
+7. **API route file-shape normalization** — final review pass for
+   consistency across the five split routes.
+8. **`TODO` / deprecated marker cleanup** — sweep in renamed
+   folders and their new `index.ts` re-export shims.
+9. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
+   plan a split before any further renderer-layer canonicalization.
+10. **Missing package ownership row decision** — final decision
+    on the undecided `PROJECT_CONTROL.md` Part 2 §8 ownership row.
+11. **API endpoint path policy** — final decision on whether
+    legacy non-canonical endpoint paths are kept as compatibility
+    aliases after all canonicalization work is complete.
+
+This list is the **current next-work queue**. The historical
+execution order (1–11 below) is preserved as the original
+single-worker safe default and is **not** the current next-work
+queue.
+
+> The original 11-step safe-default execution order (now historical
+> only) was:
+>
+> 1. **SR-001** (Phase 0) — unblocks the contract change for status.
+> 2. **SR-007** (Phase 3) — splits the contracts module; unblocks
+>    per-layer work that touches contracts.
+> 3. **SR-002** and **SR-003** (Phase 1) — the two largest API
+>    route splits. Sequenced because they are the largest files.
+> 4. **SR-004** (Phase 1 review) — review-and-decide on the
+>    remaining three large API route files.
+> 5. **SR-005** and **SR-006** (Phase 2) — the two large frontend
+>    components.
+> 6. **SR-008** (Phase 4 plan) — produces the canonical-folder
+>    plan.
+> 7. **SR-009..SR-014** (Phase 4 per-layer) — one layer at a time.
+> 8. **SR-015** (Phase 5) — fetcher / normalizer source split.
+> 9. **SR-016** (Phase 6) — database README.
+> 10. **SR-017** (Phase 7) — large test files.
+> 11. **SR-018** (Phase 8) — future scaling spec.
 
 Phases 5, 6, 7, 8 are largely independent and may run in parallel if
 multiple worker agents are available. The order above is the
@@ -905,6 +1016,6 @@ multiple worker agents are available. The order above is the
 
 ---
 
-**Last updated:** 2026-06-15
+**Last updated:** 2026-06-16 (status refresh per SR-020)
 **Author:** Orchestrator Agent
 **Maintained by:** Orchestrator Agent

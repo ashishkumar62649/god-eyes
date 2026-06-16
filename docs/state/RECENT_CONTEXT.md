@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-020 Spec 008 Status Refresh
+
+- Agent: Documentation / Spec Agent
+- Branch: docs/sr-020-refresh-spec-008-status
+- What changed: Refreshed Spec 008 roadmap/status (`tasks.md`, `plan.md`, `README.md`) so completed SR items (SR-001..SR-008, SR-005A/B/C, SR-010) are clearly marked Done and remaining structure/naming work (SR-009, SR-011, SR-012, SR-013, SR-014, plus auxiliary cleanup items) is visibly pending. Detailed SR-NNN task descriptions preserved as the audit trail.
+- Validation: conflict-marker grep PASS; status-wording grep PASS; SR-010 references verified in spec/state docs; git diff --check PASS
+- Known issues: None
+- Next: User / decision-control layer reviews the local SR-020 commit; reviewer Agent should review SR-020 before any next work; do not PR yet unless user explicitly decides; recommended next task after SR-020 review is to decide between redundant `.gitkeep` cleanup and the next low-risk frontend canonicalization (SR-011 earth-events).
+
 ## 2026-06-16 - SR-019 Constitution Conflict Resolution
 
 - Agent: Documentation / Control Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: git diff --check PASS
 - Known issues: Audit found active authority drift, non-neutral role names, stale work-order template metadata, and Layer 06 source-doc identity gaps.
 - Next: Orchestrator Agent should create cleanup work orders for the P1 findings before additional documentation consolidation.
-
-## 2026-06-16 - Documentation Reorganization
-
-- Agent: Orchestrator Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Aligned active docs with Spec Kit flow; rewrote constitution/docs/spec guides; updated stale authority references; added documentation reorganization report; fixed Layer 06 source identity tables.
-- Validation: git diff --check PASS; active terminology scan PASS with source-lineage/report-mapping exceptions only.
-- Known issues: Historical HANDOFF_LOG/archive entries still contain old names by design; they remain search-only history.
-- Next: Orchestrator Agent should review and push after validation if the branch passes.
