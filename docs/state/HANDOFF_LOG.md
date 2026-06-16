@@ -7580,3 +7580,82 @@ No.
 Pending Reviewer Agent review. Ready for review.
 
 ---
+
+## Documentation Context Compression Research
+
+- Work order: Research task — documentation context compression
+- Agent: Documentation Research Agent
+- Branch: research/documentation-context-compression
+- Date: 2026-06-16 03:53 UTC
+
+### Summary
+
+Research-only task. Analysed all documentation and spec folders to design a smaller,
+LLM-friendly documentation architecture. No files were moved, merged, deleted, or
+restructured. No code changed. No PR opened.
+
+### Scope
+
+Read: AGENTS.md, docs/README.md, all docs/control/ files, docs/state/CURRENT_PROJECT_STATE.md,
+docs/state/HANDOFF_LOG.md (tail + headings only), docs/audits/ headings, all specs/
+directory trees, docs/archive/ file inventory. Used ripgrep and PowerShell for cross-
+reference counts and size measurements.
+
+### Files Created
+
+- `specs/008-structure-remediation-roadmap/documentation-context-compression-research.md`
+  (new — full research report)
+
+### Files Modified
+
+- `docs/state/HANDOFF_LOG.md` (this entry appended — append only)
+
+### Commands Run
+
+git status, git log, Get-ChildItem (docs + specs recursive), Select-String on all control
+docs, rg cross-reference counts, tail of HANDOFF_LOG, full reads of CURRENT_PROJECT_STATE
+and docs/README.md.
+
+### Key Findings
+
+1. **HANDOFF_LOG.md is 600KB / ~150,201 tokens and is listed as mandatory reading.**
+   This is the single largest context cost in the project. It alone makes the mandatory
+   reading list ~176k tokens — approximately 12× the 8k–15k target.
+
+2. **Normalizer Location Rule (HEALTH-004) is duplicated in 4 control docs.**
+   ENGINEERING_STRUCTURE_RULES, DATA_LOCATION_RULES, PIPELINE_HANDOFF_RULES,
+   LLM_OWNERSHIP_MATRIX all contain the same rule.
+
+3. **Layer list is duplicated in 4 documents.** MVP_LAYER_REGISTRY (canonical), AGENTS.md,
+   LAYER_ARCHITECTURE.md, LAYER_ID_CONVENTIONS.md.
+
+4. **Specs 001–007 are all implemented layers.** ~487KB / ~122k tokens of historical spec
+   files serve no active planning purpose and should be archived.
+
+5. **Without HANDOFF_LOG, current mandatory reads are ~17k tokens** — already close to
+   target, and reducible to ~11.5k with consolidation of the 9 control docs into 2.
+
+### Recommended Next Task
+
+Reviewer Agent reviews the research report. Then Orchestrator Agent creates a Phase 1
+implementation task: create `docs/state/RECENT_CONTEXT.md` and update both mandatory-
+reading lists (AGENTS.md, ENGINEERING_STRUCTURE_RULES, docs/README.md) to remove
+HANDOFF_LOG as mandatory. This alone reduces context by ~150k tokens.
+
+### Known Issues
+
+None. This is research only.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---
