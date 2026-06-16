@@ -3,7 +3,7 @@
 > **Title:** Documentation system and Spec Kit workspace alignment
 > **Status:** Accepted
 > **Date:** 2026-06-14
-> **Author:** Documentation Agent
+> **Author:** documentation track (see active control documents)
 > **Supersedes:** — (none)
 > **Superseded by:** — (none)
 
@@ -98,14 +98,14 @@ The project adopts the following documentation structure and rules:
   the change process documented in the rule itself.
 - Current state (`CURRENT_STATE`) is rewritten only by the Orchestrator Agent.
 - The handoff log (`APPEND_ONLY_LOG`) is appended to by any agent.
-- Audit reports (`AUDIT_REPORT`) are added by the Research / Documentation Agent;
-  existing reports are not rewritten.
+- Audit reports (`AUDIT_REPORT`) are added through a dedicated work order with the
+  user's approval; existing reports are not rewritten.
 - ADRs (`DECISION_RECORD`) are added; existing ADRs are not rewritten; superseding
   decisions are a new ADR.
 - Spec workspace content (`SPEC`, `PLAN`, `TASK_LIST`, `REVIEW_REPORT`) is updated by
   the worker agents and Orchestrator Agent within the spec's lifecycle.
-- Archive (`ARCHIVE`) is added only by the Documentation Agent, and only through a
-  dedicated cleanup task.
+- Archive (`ARCHIVE`) moves happen only through a dedicated cleanup work order
+  with the user's approval.
 
 ### What this ADR does not change
 

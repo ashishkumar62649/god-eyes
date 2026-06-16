@@ -1,10 +1,10 @@
-# Spec 008 — Structure Remediation Roadmap
+﻿# Spec 008 — Structure Remediation Roadmap
 
-> **Agent:** Documentation Agent
+> **Agent:** Orchestrator Agent
 > **Lane:** Documentation / Planning
 > **Branch:** `spec/structure-remediation-roadmap`
 > **Date:** 2026-06-15
-> **Source rulebook:** `docs/control/ENGINEERING_STRUCTURE_RULES.md`
+> **Source rulebook:** `docs/control/PROJECT_CONTROL.md`
 > **Source audit:** `docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md`
 
 ---
@@ -39,7 +39,7 @@ The most material items are:
   (HEALTH-010): the gap is grandfathered; the rulebook says document, do not
   renumber.
 * **Oversized Python workers and test files** (Section 6 Python size limit):
-  the largest are listed in `research.md` and `plan.md`.
+  the largest are listed in archived research evidence and `plan.md`.
 * **Fetcher / normalizer source split** (Section 9 recommended pattern): the
   `sources/<name>/` subfolder is "optional" for single-source layers; the
   multi-source layers (aviation, space, news, energy) use prefixed flat file
@@ -70,7 +70,7 @@ package at a time**, behind **reviewer gates**.
 ## 3. Target Structure Principles
 
 The remediation must converge on the rules already documented in
-`docs/control/ENGINEERING_STRUCTURE_RULES.md`. The principles below are
+`docs/control/PROJECT_CONTROL.md`. The principles below are
 **derived from the rulebook**, not new rules:
 
 * **Layer folders use canonical `layer_NN_name/` naming** in every lane
@@ -166,7 +166,7 @@ These rules are mandatory for every remediation branch. They are
    that is caused by the change.
 6. **Reviewer must verify structure rules every time.** The reviewer runs
    the engineering structure rules checklist
-   (`docs/control/ENGINEERING_STRUCTURE_RULES.md` Section 19) on every
+   (`docs/control/PROJECT_CONTROL.md` Section 19) on every
    work-package branch. File placement, folder naming, file naming, file
    size, function size, single responsibility, import boundary, database
    structure, API transport, no unauthorized refactor, append-only
@@ -179,7 +179,7 @@ These rules are mandatory for every remediation branch. They are
    rewritten. This is enforced by the `APPEND_ONLY_LOG` classification.
 9. **No secrets, no real API keys.** The `.env.example` and code may use
    placeholders only. Real keys are never committed.
-10. **Branch name follows `GIT_WORKFLOW_POLICY.md`.** Format
+10. **Branch name follows `PROJECT_CONTROL.md`.** Format
     `<role>/<work-order-or-sr-id>/<short-name>`, e.g.
     `api/sr-002/weather-route-split`.
 11. **Worker agents do not push.** The Orchestrator Agent (or user) owns
@@ -276,11 +276,11 @@ remediation-specific checks.
    from the Git workflow policy.
 8. **Move to reviewer** (Orchestrator Agent). Do not push, do not open
    a PR, do not merge, do not delete the branch.
-9. The **Reviewer Agent** runs the engineering structure rules checklist
+9. The **Orchestrator Agent** runs the engineering structure rules checklist
    (Section 19 of the rulebook), the work-package-specific reviewer
    checks from `plan.md`, the safety rules from `spec.md`, and the
    `spec.md` → `plan.md` → `tasks.md` alignment.
-10. The **Reviewer Agent** writes
+10. The **Orchestrator Agent** writes
     `docs/state/INTEGRATION_REVIEW_[WO].md` (active during the work,
     archived after completion) with PASS / FAIL / NEEDS REVIEW.
 11. On **PASS**, the Orchestrator Agent (or the user) pushes the branch
@@ -293,7 +293,7 @@ remediation-specific checks.
 
 ## 9. How Each Future Work Package Should Be Reviewed
 
-For every `SR-NNN` branch, the Reviewer Agent must verify, with an
+For every `SR-NNN` branch, the Orchestrator Agent must verify, with an
 explicit PASS / FAIL / NOT APPLICABLE for each:
 
 | # | Check | Notes |
@@ -319,29 +319,18 @@ agent revises.
 
 ## 10. Relationship to Other Documents
 
-* **`docs/control/ENGINEERING_STRUCTURE_RULES.md`** — the rulebook every
-  work package enforces.
-* **`docs/control/MVP_LAYER_REGISTRY.md`** — authoritative layer IDs.
-* **`docs/control/LAYER_ID_CONVENTIONS.md`** — folder naming pattern.
-* **`docs/control/LAYER_ARCHITECTURE.md`** — layer definitions.
-* **`docs/control/LLM_OWNERSHIP_MATRIX.md`** — agent ownership; includes
-  the Normalizer Location Rule.
-* **`docs/control/PIPELINE_HANDOFF_RULES.md`** — pipeline handoff and
-  the Normalizer Location Rule.
-* **`docs/control/DATA_LOCATION_RULES.md`** — directory structure.
-* **`docs/control/SOURCE_TO_FRONTEND_CONTRACT.md`** — source contract
-  fields.
-* **`docs/control/GIT_WORKFLOW_POLICY.md`** — git rules.
-* **`docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md`** — the
-  source audit with 30 findings (ESA-001..ESA-030).
-* **`docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md`** — additional
-  evidence for HEALTH-002, HEALTH-010.
-* **`docs/state/CURRENT_PROJECT_STATE.md`** — current state assumed by
-  this roadmap.
-* **`specs/README.md`** — Spec Kit workspace conventions.
+* **`.specify/memory/constitution.md`** - Spec Kit principles and governance for this repository.
+* **`AGENTS.md`** - entry point, role boundaries, reading policy, and handoff requirements.
+* **`docs/control/PROJECT_CONTROL.md`** - master engineering rulebook.
+* **`docs/control/PROJECT_CONTROL.md`** - authoritative layer registry, ownership matrix, and source/data contract.
+* **`docs/control/PROJECT_CONTROL.md`** - git rules.
+* **`docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md`** - the source audit with 30 findings (ESA-001..ESA-030).
+* **`docs/audits/PROJECT_HEALTH_FINDINGS_EXPLAINED.md`** - additional evidence for HEALTH-002, HEALTH-010.
+* **`docs/state/CURRENT_PROJECT_STATE.md`** - current state assumed by this roadmap.
+* **`specs/README.md`** - Spec Kit workspace conventions.
+* Pre-consolidation control documents retained as pointer stubs or historical evidence are not active authority for new work.
 
 ---
-
 ## 11. Lifecycle of This Spec
 
 This spec is a **planning** spec. It does not enter "implementation"
@@ -359,5 +348,5 @@ as "structure remediation complete."
 ---
 
 **Last updated:** 2026-06-15
-**Author:** Documentation Agent
+**Author:** Orchestrator Agent
 **Maintained by:** Orchestrator Agent

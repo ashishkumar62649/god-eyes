@@ -1,6 +1,6 @@
-# Target Repository Skeleton — Structure Remediation Roadmap
+﻿# Target Repository Skeleton — Structure Remediation Roadmap
 
-> **Agent:** Documentation Agent
+> **Agent:** Orchestrator Agent
 > **Lane:** Documentation / Planning
 > **Branch:** `spec/structure-remediation-roadmap`
 > **Date:** 2026-06-15
@@ -182,11 +182,11 @@ god-eyes/
 
 ```
 .agents/                                        # [IGNORE] local agent CLI folder
-.kiro/                                          # [IGNORE] local Kiro CLI steering / skills
-CLAUDE.md                                       # [IGNORE] local Claude adapter
-GEMINI.md                                       # [IGNORE] local Gemini adapter
+.kiro/                                          # [IGNORE] local steering / skills
+CLAUDE.md                                       # [IGNORE] local adapter note
+GEMINI.md                                       # [IGNORE] local adapter note
 run_graphify.py                                 # [IGNORE] local helper script
-graphify-out/                                   # [IGNORE] generated Graphify graph output
+graphify-out/                                   # [IGNORE] generated graph output
 ```
 
 These may exist locally but are not part of the committed project. The source of truth
@@ -201,17 +201,7 @@ docs/
   README.md                                     # [KEEP] documentation map
 
   control/
-    ENGINEERING_STRUCTURE_RULES.md              # [KEEP] master engineering rulebook
-    GIT_WORKFLOW_POLICY.md                      # [KEEP] git / branch / PR / merge rules
-    MVP_LAYER_REGISTRY.md                       # [KEEP] authoritative layer registry
-    LAYER_ARCHITECTURE.md                       # [KEEP] layer architecture overview
-    LAYER_ID_CONVENTIONS.md                     # [KEEP] layer ID and folder naming rules
-    LLM_OWNERSHIP_MATRIX.md                     # [KEEP] lane / folder ownership
-    PIPELINE_HANDOFF_RULES.md                   # [KEEP] cross-lane handoff rules
-    DATA_LOCATION_RULES.md                      # [KEEP] raw / generated file location rules
-    SOURCE_TO_FRONTEND_CONTRACT.md              # [KEEP] full source → DB → API → frontend contract
-    WORK_ORDER_TEMPLATE.md                      # [KEEP] reusable work-order template
-
+    PROJECT_CONTROL.md                          # [KEEP] single active control file
   state/
     CURRENT_PROJECT_STATE.md                    # [KEEP] live project state snapshot
     HANDOFF_LOG.md                              # [KEEP] append-only handoff timeline
@@ -225,20 +215,12 @@ docs/
     ADR-001-documentation-system.md             # [KEEP]
     ADR-002-aviation-live-source.md             # [KEEP]
 
-  work-orders/
-    README.md                                   # [KEEP] active / future work orders only
-
-  api/
-    README.md                                   # [KEEP] reserved; no historical clutter
-
-  data/
-    README.md                                   # [KEEP] reserved; no historical clutter
-
   archive/                                      # [ARCHIVE] completed / historical docs only
     README.md
     2026-06-14-documentation-cleanup/
     2026-06-14-spec-kit-alignment/
     2026-06-14-final-docs-structure/
+    2026-06-16-docs-pruned/
 ```
 
 ---
@@ -249,21 +231,11 @@ docs/
 specs/
   README.md                                     # [KEEP] Spec Kit workspace guide
 
-  001-layer-zero-globe-core/                    # [KEEP]
-  002-layer-one-aviation/                       # [KEEP]
-  003-layer-05-space-satellites-mvp/            # [KEEP]
-  004-layer-10-energy-infrastructure-mvp/       # [KEEP]
-  005-layer-06-maritime-mvp/                    # [KEEP]
-  006-layer-07-weather-mvp/                     # [KEEP]
-  007-layer-08-news-osint-mvp/                  # [KEEP]
-
   008-structure-remediation-roadmap/
     README.md                                   # [KEEP] roadmap folder guide
     spec.md                                     # [KEEP] problem / safety / success criteria
     plan.md                                     # [KEEP] phase plan
     tasks.md                                    # [KEEP] SR-001..SR-018 work packages
-    research.md                                 # [KEEP] current evidence baseline
-    graphify-findings.md                        # [KEEP] Graphify discovery findings
     repository-skeleton.md                      # [KEEP] this file — approved target structure
 ```
 
