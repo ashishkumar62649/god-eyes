@@ -1,4 +1,4 @@
-# docs/archive
+﻿# docs/archive
 
 > **Classification:** ARCHIVE
 > **Last updated:** 2026-06-16
@@ -10,13 +10,16 @@ This folder is for **old, superseded, duplicate, or historical documents** that 
 not guide current work. It is the destination for documentation cleanup, not a
 working area for active features.
 
-**Active docs are:** `docs/control/PROJECT_RULES.md`, `docs/control/LAYER_AND_DATA_CONTRACT.md`,
+**Active docs are:** `docs/control/PROJECT_CONTROL.md`,
 `docs/state/CURRENT_PROJECT_STATE.md`, `docs/state/RECENT_CONTEXT.md`, `AGENTS.md`.
 
 **Active specs workspace:** `specs/008-structure-remediation-roadmap/`
 
-**Implemented layer specs 001–007** are archived under:
-`docs/archive/2026-06-16-implemented-specs/` — see its `INDEX.md`.
+**Implemented layer specs 001â€“007** are archived under:
+`docs/archive/2026-06-16-implemented-specs/` â€” see its `INDEX.md`.
+
+**Pruned placeholder folders and Spec 008 evidence** are archived under:
+`docs/archive/2026-06-16-docs-pruned/` - see its `INDEX.md`.
 
 ---
 
@@ -53,7 +56,8 @@ working area for active features.
 
 ## Related documents
 
-- \docs/README.md\ - documentation map and the \ARCHIVE\ classification definition
-- \docs/decisions/ADR-001-documentation-system.md\ - the ADR that defines this archive folder
-- \docs/control/PROJECT_RULES.md\ - change process for control docs
-- \docs/archive/2026-06-16-implemented-specs/INDEX.md\ - implemented layer specs archive index
+- `docs/README.md` - documentation map and the `ARCHIVE` classification definition
+- `docs/decisions/ADR-001-documentation-system.md` - the ADR that defines this archive folder
+- `docs/control/PROJECT_CONTROL.md` - change process for control docs
+- `docs/archive/2026-06-16-implemented-specs/INDEX.md` - implemented layer specs archive index
+- `docs/archive/2026-06-16-docs-pruned/INDEX.md` - placeholder and Spec 008 evidence archive index

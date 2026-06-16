@@ -1,12 +1,12 @@
-# Plan — Structure Remediation Roadmap
+﻿# Plan — Structure Remediation Roadmap
 
-> **Agent:** Documentation Agent
+> **Agent:** Orchestrator Agent
 > **Lane:** Documentation / Planning
 > **Date:** 2026-06-15
-> **Source rulebook:** `docs/control/ENGINEERING_STRUCTURE_RULES.md`
+> **Source rulebook:** `docs/control/PROJECT_CONTROL.md`
 > **Source audit:** `docs/audits/ENGINEERING_STRUCTURE_COMPLIANCE_AUDIT.md`
 > **Source spec:** `spec.md` (this folder)
-> **Source research:** `research.md` (this folder)
+> **Source research:** `docs/archive/2026-06-16-docs-pruned/spec-008-evidence/research.md`
 
 This plan defines the recommended remediation order. Each phase is a
 **scoped group of work packages** (`SR-NNN` tasks in `tasks.md`). Each
@@ -39,9 +39,9 @@ refactor with no behaviour change.
 
 ### Owner / lane
 
-* **API Agent / Contract Agent** for the schema change and the API
+* **API Agent** for the schema change and the API
   implementation.
-* **Reviewer** verifies per-layer counts are correct for the layer's
+* **Orchestrator Agent** verifies per-layer counts are correct for the layer's
   tables.
 
 ### Branch naming suggestion
@@ -342,7 +342,7 @@ packages/contracts/src/
 
 ### Owner / lane
 
-* **API Agent / Contract Agent** for the contracts split.
+* **API Agent** for the contracts split.
 * **Reviewer** verifies every existing import path still resolves.
 
 ### Branch naming suggestion
@@ -459,7 +459,7 @@ order. It does not rename any folder.
 
 * The compatibility shim is in place and works.
 * The new folder name matches the layer ID in
-  `docs/control/MVP_LAYER_REGISTRY.md`.
+  `docs/control/PROJECT_CONTROL.md`.
 * All importers are updated; the only remaining reference to the old
   path is the shim.
 * Sub-`features/` subfolders (if introduced) follow the
@@ -906,5 +906,5 @@ multiple worker agents are available. The order above is the
 ---
 
 **Last updated:** 2026-06-15
-**Author:** Documentation Agent
+**Author:** Orchestrator Agent
 **Maintained by:** Orchestrator Agent

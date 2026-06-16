@@ -8404,3 +8404,93 @@ No.
 Ready for Reviewer Agent full final branch review before push/PR.
 
 ---
+
+## Documentation Structure and Terminology Audit
+
+- Work order: Direct audit request - documentation structure and terminology
+- Agent: Orchestrator Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 08:20 UTC
+
+### Summary
+
+Created a full documentation audit report covering tracked Markdown/text document files
+across the repository. The audit reviewed document placement, active-vs-archive
+structure, duplicate content, authority drift, canonical layer terminology, neutral role
+terminology, source-catalog identity declarations, and encoding/append-only-log concerns.
+
+### Files Changed
+
+- docs/audits/DOCUMENTATION_STRUCTURE_TERMINOLOGY_AUDIT_2026-06-16.md (new audit report)
+- docs/state/RECENT_CONTEXT.md (short rolling summary appended)
+- docs/state/HANDOFF_LOG.md (this entry appended)
+
+### Commands Run
+
+- Get-Content -Raw AGENTS.md
+- Get-Content -Raw docs/control/PROJECT_RULES.md
+- Get-Content -Raw docs/control/LAYER_AND_DATA_CONTRACT.md
+- Get-Content -Raw docs/state/CURRENT_PROJECT_STATE.md
+- Get-Content -Raw docs/state/RECENT_CONTEXT.md
+- Get-Content -Raw docs/README.md
+- Get-Content -Raw specs/README.md
+- rg --files for Markdown/text/document extensions
+- git status --short --branch
+- Targeted rg scans for retired authority references, stale layer IDs, role terminology, model/tool metadata, and spelling drift
+- Python scan scripts for tracked document counts, duplicate hashes, near-duplicate similarity, source-catalog metadata, and mojibake codepoints
+- git diff --check
+
+### Results
+
+- Found 271 tracked document files: 270 Markdown and 1 text file.
+- Confirmed the current documentation structure is directionally correct: active rules in docs/control, state in docs/state, audits in docs/audits, historical content in docs/archive, and active spec work in specs/008-structure-remediation-roadmap.
+- Found P1 active authority drift in PROJECT_RULES.md, CURRENT_PROJECT_STATE.md, GIT_WORKFLOW_POLICY.md, WORK_ORDER_TEMPLATE.md, and active Spec 008 files.
+- Found P1 work-order template conflict: the template still asks for model/tool metadata.
+- Found active role-name drift: Documentation Agent, Documentation Implementation Agent, Reviewer Agent, Planning Agent, Research / Documentation Agent, and Contract Agent are used in active docs but are not in the AGENTS.md neutral role table.
+- Found low-risk exact duplicate retired pointer stubs in docs/control.
+- Found Layer 06 source-catalog docs are correctly placed but should explicitly declare layer_id/source identity like Layer 07 Weather docs do.
+- Found real mojibake markers are concentrated in historical HANDOFF_LOG entries and two archived files; no broad active-doc encoding corruption was found.
+- Validation: git diff --check PASS.
+
+### Known Issues
+
+- This audit does not fix the P1/P2 findings; it documents them for follow-up cleanup.
+- Older RECENT_CONTEXT entries still contain stale role names. They were not rewritten in this audit pass.
+- HANDOFF_LOG historical encoding corruption was not rewritten because the log is append-only.
+
+### Review Status
+
+Ready for review.
+### 2026-06-16 - Documentation Reorganization and Spec Kit Alignment
+
+- Work order: Documentation reorganization requested by user after documentation structure audit
+- Agent: Orchestrator Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Summary: Arranged the active documentation set around Spec Kit flow and the consolidated rulebooks. Rewrote the active constitution, docs map, specs guide, and Spec 008 README for clearer human/agent reading. Updated stale authority references in active control/state/spec files from retired rulebooks to PROJECT_RULES.md and LAYER_AND_DATA_CONTRACT.md. Normalized active role terminology to AGENTS.md neutral roles. Added a full reorganization report at docs/audits/DOCUMENTATION_REORGANIZATION_REPORT_2026-06-16.md. Added Layer 06 maritime layer/source identity tables to the source catalog docs.
+- Files changed: .specify/memory/constitution.md; docs/README.md; specs/README.md; docs/control/PROJECT_RULES.md; docs/control/LAYER_AND_DATA_CONTRACT.md; docs/control/GIT_WORKFLOW_POLICY.md; docs/control/WORK_ORDER_TEMPLATE.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/RECENT_CONTEXT.md; docs/state/HANDOFF_LOG.md; docs/audits/DOCUMENTATION_REORGANIZATION_REPORT_2026-06-16.md; specs/008-structure-remediation-roadmap/README.md; specs/008-structure-remediation-roadmap/spec.md; specs/008-structure-remediation-roadmap/plan.md; specs/008-structure-remediation-roadmap/tasks.md; specs/008-structure-remediation-roadmap/repository-skeleton.md; packages/source-catalog/layers/layer_06_maritime/README.md; packages/source-catalog/layers/layer_06_maritime/source_decisions.md.
+- Commands run: Get-Content AGENTS.md; Get-Content docs/control/PROJECT_RULES.md; Get-Content docs/control/LAYER_AND_DATA_CONTRACT.md; Get-Content docs/state/CURRENT_PROJECT_STATE.md; Get-Content docs/state/RECENT_CONTEXT.md; Get-Content .specify/memory/constitution.md; Get-Content .specify/templates/*.md; Get-Content docs/README.md; Get-Content specs/README.md; Get-Content specs/008-structure-remediation-roadmap/*.md samples; rg --files -g "*.md"; rg terminology scans over active docs; git diff --stat; git diff --check.
+- Results: git diff --check PASS. Active terminology scan PASS with intentional source-lineage/report-mapping exceptions only. RECENT_CONTEXT.md remains within the 3-5 entry limit. No code or runtime behavior changed.
+- Known issues: Historical HANDOFF_LOG.md, archived docs, and research evidence still contain old names by design and remain search-only history. Full test suite not run because this was a documentation-only reorganization.
+- Review status: Ready for Orchestrator Agent review. Local only; not pushed.
+### 2026-06-16 - Active Documentation Tree Pruning
+
+- Work order: User-requested documentation archive cleanup after Spec Kit alignment
+- Agent: Orchestrator Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Summary: Simplified the active documentation tree by archiving placeholder-only docs/api, docs/data, and docs/work-orders folders under docs/archive/2026-06-16-docs-pruned/retired-doc-stubs. Archived bulky Spec 008 supporting evidence under docs/archive/2026-06-16-docs-pruned/spec-008-evidence, leaving specs/008-structure-remediation-roadmap with only README.md, spec.md, plan.md, tasks.md, and repository-skeleton.md. Updated active navigation docs and Spec 008 references so agents use the compact active spine and search archived evidence only when needed. Did not edit the previously generated documentation reorganization report.
+- Files changed: AGENTS.md; docs/README.md; docs/archive/README.md; docs/archive/2026-06-16-docs-pruned/INDEX.md; docs/archive/2026-06-16-docs-pruned/retired-doc-stubs/api/README.md; docs/archive/2026-06-16-docs-pruned/retired-doc-stubs/data/README.md; docs/archive/2026-06-16-docs-pruned/retired-doc-stubs/work-orders/README.md; docs/archive/2026-06-16-docs-pruned/spec-008-evidence/api-remaining-route-review.md; docs/archive/2026-06-16-docs-pruned/spec-008-evidence/documentation-architecture-compression-plan.md; docs/archive/2026-06-16-docs-pruned/spec-008-evidence/documentation-context-compression-research.md; docs/archive/2026-06-16-docs-pruned/spec-008-evidence/graphify-findings.md; docs/archive/2026-06-16-docs-pruned/spec-008-evidence/research.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/RECENT_CONTEXT.md; docs/state/HANDOFF_LOG.md; specs/README.md; specs/008-structure-remediation-roadmap/README.md; specs/008-structure-remediation-roadmap/spec.md; specs/008-structure-remediation-roadmap/plan.md; specs/008-structure-remediation-roadmap/tasks.md; specs/008-structure-remediation-roadmap/repository-skeleton.md.
+- Commands run: Get-Content AGENTS.md; Get-Content docs/control/PROJECT_RULES.md; Get-Content docs/control/LAYER_AND_DATA_CONTRACT.md; Get-Content docs/state/CURRENT_PROJECT_STATE.md; Get-Content docs/state/RECENT_CONTEXT.md; Get-ChildItem docs/specs/docs/archive; rg reference checks; git mv archive moves; git diff --check.
+- Results: git diff --check PASS. Active docs root now contains README.md plus archive, audits, control, decisions, and state. Active Spec 008 folder now contains five files. No documentation report file was edited.
+- Known issues: Archived evidence and historical files may contain stale names and old references by design. One code comment still references a historical docs/work-orders path and remains out of scope.
+- Review status: Ready for Orchestrator Agent review. Local only; not pushed.
+### 2026-06-16 - Single Project Control File Consolidation
+
+- Work order: User-approved recommendation to merge docs/control into one active control file and add Graphify guidance
+- Agent: Orchestrator Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Summary: Created docs/control/PROJECT_CONTROL.md as the single active project control file by merging engineering rules, layer registry, ownership matrix, source/data contract, Git workflow, and work-order template content. Removed all other active Markdown files from docs/control. Updated AGENTS.md, constitution, docs map, current state, specs guide, Spec 008 navigation, and archive README to reference the single control file. Added AGENTS.md guidance for agents to use Graphify for codebase, documentation, or project-content relationship questions when graphify-out/graph.json exists.
+- Files changed: AGENTS.md; .specify/memory/constitution.md; docs/README.md; docs/archive/README.md; docs/control/PROJECT_CONTROL.md; removed docs/control/DATA_LOCATION_RULES.md; removed docs/control/ENGINEERING_STRUCTURE_RULES.md; removed docs/control/GIT_WORKFLOW_POLICY.md; removed docs/control/LAYER_AND_DATA_CONTRACT.md; removed docs/control/LAYER_ARCHITECTURE.md; removed docs/control/LAYER_ID_CONVENTIONS.md; removed docs/control/LLM_OWNERSHIP_MATRIX.md; removed docs/control/MVP_LAYER_REGISTRY.md; removed docs/control/PIPELINE_HANDOFF_RULES.md; removed docs/control/PROJECT_RULES.md; removed docs/control/SOURCE_TO_FRONTEND_CONTRACT.md; removed docs/control/WORK_ORDER_TEMPLATE.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/RECENT_CONTEXT.md; docs/state/HANDOFF_LOG.md; specs/README.md; specs/008-structure-remediation-roadmap/README.md; specs/008-structure-remediation-roadmap/plan.md; specs/008-structure-remediation-roadmap/repository-skeleton.md; specs/008-structure-remediation-roadmap/spec.md; specs/008-structure-remediation-roadmap/tasks.md.
+- Commands run: Get-Content AGENTS.md; Get-Content docs/control/*.md; Get-Content .specify/memory/constitution.md; Get-Content docs/README.md; Get-Content specs/README.md; Get-Content specs/008-structure-remediation-roadmap/README.md; rg active reference scans; Get-ChildItem docs/control; git rm retired control files; git diff --check.
+- Results: git diff --check PASS. docs/control now contains only PROJECT_CONTROL.md. Active reference scans found no references to deleted control filenames outside historical/audit/archive material.
+- Known issues: Historical reports, archived evidence, and HANDOFF_LOG history still mention old control filenames by design. Full runtime tests were not run because this is documentation-only.
+- Review status: Ready for Orchestrator Agent review. Local only; not pushed.

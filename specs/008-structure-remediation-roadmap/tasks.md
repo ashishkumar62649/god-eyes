@@ -1,11 +1,11 @@
-# Tasks — Structure Remediation Roadmap
+﻿# Tasks — Structure Remediation Roadmap
 
-> **Agent:** Documentation Agent
+> **Agent:** Orchestrator Agent
 > **Lane:** Documentation / Planning
 > **Date:** 2026-06-15
 > **Source spec:** `spec.md` (this folder)
 > **Source plan:** `plan.md` (this folder)
-> **Source research:** `research.md` (this folder)
+> **Source research:** `docs/archive/2026-06-16-docs-pruned/spec-008-evidence/research.md`
 
 This file turns the 9-phase plan into **18 ordered work packages**
 (`SR-001` through `SR-018`). Each task is small enough that one PR can
@@ -36,7 +36,7 @@ For every task, the following metadata is recorded:
   for all 11 layers.
 * **Phase:** Phase 0 — Contract / Status Schema Repair.
 * **Branch name:** `api/sr-001/layer-status-response-shape`.
-* **Lane / agent owner:** API Agent / Contract Agent.
+* **Lane / agent owner:** API Agent.
 * **Files / folders allowed:**
   * `packages/contracts/src/index.ts` (and any new files in
     `packages/contracts/src/layer/registry.ts` if a layered split is
@@ -49,7 +49,7 @@ For every task, the following metadata is recorded:
   * `services/`.
   * `database/`.
   * `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter @god-eyes/contracts build` passes.
   * `pnpm --filter api build` passes.
@@ -89,7 +89,7 @@ For every task, the following metadata is recorded:
   * `packages/contracts/` (out of scope for this task).
   * `apps/web/`, `services/`, `database/`, `docs/control/`,
     `docs/state/`, `docs/audits/`, `docs/work-orders/`,
-    `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter @god-eyes/contracts build` passes.
   * `pnpm --filter api build` passes.
@@ -127,7 +127,7 @@ For every task, the following metadata is recorded:
   * `packages/contracts/`.
   * `apps/web/`, `services/`, `database/`, `docs/control/`,
     `docs/state/`, `docs/audits/`, `docs/work-orders/`,
-    `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter @god-eyes/contracts build` passes.
   * `pnpm --filter api build` passes.
@@ -156,13 +156,12 @@ For every task, the following metadata is recorded:
 * **Files / folders allowed:**
   * The branch's **handoff entry** in `docs/state/HANDOFF_LOG.md`.
   * A planning report file added at
-    `docs/work-orders/SR-004-api-remaining-route-review.md` (or
-    archived under a future cleanup batch).
+    `docs/state/SR-004-api-remaining-route-review.md` (archived after
+    the task is complete).
 * **Files / folders forbidden:**
   * The route files themselves. **No code change.**
   * `apps/web/`, `services/`, `database/`, `packages/`,
-    `docs/control/`, `docs/audits/`, `docs/archive/`, `docs/api/`,
-    `docs/data/`.
+    `docs/control/`, `docs/audits/`, `docs/archive/`.
 * **Required tests:** No code change, so no build/test is required.
   The agent should still run `git status --short --branch` and
   `git diff --check` to confirm no source change.
@@ -197,7 +196,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
   * `apps/web/src/layers/**` (out of scope; layer folders are
     Phase 4).
 * **Required tests:**
@@ -234,7 +233,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
   * `apps/web/src/layers/**` (out of scope; layer folders are
     Phase 4).
 * **Required tests:**
@@ -260,7 +259,7 @@ For every task, the following metadata is recorded:
   no type or schema change.
 * **Phase:** Phase 3 — Contracts Split.
 * **Branch name:** `api/sr-007/contracts-package-split`.
-* **Lane / agent owner:** API Agent / Contract Agent.
+* **Lane / agent owner:** API Agent.
 * **Files / folders allowed:**
   * `packages/contracts/src/index.ts` (replaced with re-exports).
   * New `packages/contracts/src/layer/*.ts` files.
@@ -269,7 +268,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `apps/web/`, `services/`, `database/`, `tests/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter @god-eyes/contracts build` passes.
   * `pnpm --filter api build` passes.
@@ -297,14 +296,13 @@ For every task, the following metadata is recorded:
 * **Lane / agent owner:** Frontend Agent (planning only).
 * **Files / folders allowed:**
   * A planning report file at
-    `docs/work-orders/SR-008-frontend-layer-folder-canonicalization.md`
-    (or archived under a future cleanup batch).
+    `docs/state/SR-008-frontend-layer-folder-canonicalization.md`
+    (archived after the task is complete).
   * The handoff entry in `docs/state/HANDOFF_LOG.md`.
 * **Files / folders forbidden:**
   * `apps/web/src/layers/**` (no rename yet).
   * `apps/api/`, `services/`, `database/`, `packages/`, `tests/`,
-    `docs/control/`, `docs/audits/`, `docs/archive/`, `docs/api/`,
-    `docs/data/`.
+    `docs/control/`, `docs/audits/`, `docs/archive/`.
 * **Required tests:** No code change. The agent runs
   `git status --short --branch` and `git diff --check` to confirm
   no source change.
@@ -342,7 +340,7 @@ For every task, the following metadata is recorded:
   * `apps/api/`, `services/`, `database/`, `packages/`, `tests/`
     (other than the test files that reference the old path),
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter web build` passes.
   * `pnpm --filter web test` passes.
@@ -378,7 +376,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter web build` passes.
   * `pnpm --filter web test` passes.
@@ -413,7 +411,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter web build` passes.
   * `pnpm --filter web test` passes.
@@ -448,7 +446,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter web build` passes.
   * `pnpm --filter web test` passes.
@@ -483,7 +481,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter web build` passes.
   * `pnpm --filter web test` passes.
@@ -518,7 +516,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `services/`, `database/`, `packages/`,
     `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
 * **Required tests:**
   * `pnpm --filter web build` passes.
   * `pnpm --filter web test` passes.
@@ -559,7 +557,7 @@ For every task, the following metadata is recorded:
     location.
   * `apps/api/`, `apps/web/`, `database/`, `packages/`, `docs/control/`,
     `docs/state/`, `docs/audits/`, `docs/work-orders/`,
-    `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/archive/`.
   * Other layers in
     `services/fetch-orchestrator/src/layers/layer_06_maritime/`,
     `layer_07_weather/`, `layer_03_earth_events/`,
@@ -600,7 +598,7 @@ For every task, the following metadata is recorded:
   * `apps/api/`, `apps/web/`, `services/`, `packages/`, `tests/`
     (other than `tests/data/**` for the pass-rate sanity check),
     `docs/control/`, `docs/audits/`, `docs/work-orders/`,
-    `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/archive/`.
 * **Required tests:**
   * `python -m pytest tests/data -q` passes (no DB change, but
     sanity check).
@@ -645,7 +643,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `apps/web/`, `services/`, `database/migrations/`,
     `packages/`, `docs/control/`, `docs/state/`, `docs/audits/`,
-    `docs/work-orders/`, `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/work-orders/`, `docs/archive/`.
   * Any source file outside the test tree. **No source code
     changes.**
 * **Required tests:**
@@ -682,7 +680,7 @@ For every task, the following metadata is recorded:
 * **Files / folders forbidden:**
   * `apps/api/`, `apps/web/`, `services/`, `database/`, `packages/`,
     `tests/`, `docs/control/`, `docs/audits/`, `docs/work-orders/`,
-    `docs/archive/`, `docs/api/`, `docs/data/`.
+    `docs/archive/`.
 * **Required tests:** No code change. The agent runs
   `git status --short --branch` and `git diff --check` to confirm
   no source change.
@@ -733,5 +731,5 @@ patterns, and shim placement match the approved target.
 ---
 
 **Last updated:** 2026-06-15
-**Author:** Documentation Agent
+**Author:** Orchestrator Agent
 **Maintained by:** Orchestrator Agent
