@@ -42,7 +42,8 @@ Always-read summary: `AGENTS.md` → this file → `docs/state/CURRENT_PROJECT_S
 These rules may not be overridden by any work order or agent decision:
 
 1. Everything must belong to a registered layer (`layer_id`).
-2. No agent modifies files outside its folder ownership (see `LAYER_AND_DATA_CONTRACT.md`).
+2. No agent modifies files outside its folder ownership (see `docs/control/LLM_OWNERSHIP_MATRIX.md`
+   and the future `docs/control/LAYER_AND_DATA_CONTRACT.md` when available).
 3. The frontend must never connect directly to the database or call external provider
    APIs directly. All data flows through the GOD EYES API.
 4. The API reads from the database. The API does not import from `apps/web/` or
@@ -111,6 +112,10 @@ Per-service folder pattern:
 | Source catalog | `packages/source-catalog/layers/{layer_id}/` |
 | DB migrations | `database/migrations/layers/{layer_id}/` |
 | DB ingestion | `database/ingestion/layers/{layer_id}/` |
+
+> **Layer ID authority:** `docs/control/MVP_LAYER_REGISTRY.md` is the authoritative
+> source for layer IDs and statuses until `docs/control/LAYER_AND_DATA_CONTRACT.md`
+> exists (planned — not yet created). Always check MVP_LAYER_REGISTRY.md for IDs.
 
 **Existing folders with legacy short names** (`aviation/`, `borders/`, `earth-events/`,
 `space/`, `maritime/`, `energy/`) must not be renamed in feature work. Rename only through
@@ -273,7 +278,104 @@ Never: `data`, `records`, `items`, `temp_table`.
 
 ---
 
-## 10. Data Location and Raw Path Rules
+## 10. Time-Series / Live-Data Rules
+
+These rules apply to all live layers (type: `live` in the layer registry).
+
+### Table design
+
+- Latest state and full observation history must be in **separate tables**. Never store
+  both current and historical state in one table.
+- High-volume history tables must include a UTC time column:
+  `observed_at`, `recorded_at`, or `fetched_at` (TIMESTAMPTZ).
+- Time-series records should include `source_id` and `source_object_id` or `entity_id`
+  to support provenance tracing.
+
+### Future high-volume candidates
+
+These live layers are candidates for specialized time-series storage as volumes grow.
+Do not implement it now; plan through a dedicated work order when volume justifies it:
+Aviation (aircraft positions), Maritime (vessel history), Weather (observations),
+Space & Satellites (position history), and similar high-frequency feeds.
+
+### Rule
+
+Do not introduce new time-series database technology without an explicit work order and
+user / decision-control layer approval.
+
+---
+
+## 11. API Transport Rules
+
+### REST (current default)
+
+REST is the default for all normal request/response patterns: layer registry, object
+listing, object detail, source/fetch-run metadata, search.
+
+### Live / streaming
+
+WebSocket is allowed for high-frequency live object streams (aviation, satellites —
+established project precedent). Do not introduce a new transport technology without a
+work order.
+
+### Large result sets
+
+Large result sets must use one or more of these strategies — never return an unbounded
+raw dump:
+
+- **Pagination:** `limit` and `offset` with a documented max limit
+- **Bounding box:** spatial filter to reduce scope to visible viewport
+- **Time window:** `from` and `to` for time-series data
+- **Async job:** initiate, poll for result, download when ready
+- **Compression / export:** return a download reference for bulk data
+
+### API quality requirements
+
+New API routes must address at design time:
+
+- Response size limits (document and enforce max limit)
+- Caching strategy (HTTP cache headers, in-memory TTL, or CDN where applicable)
+- Rate limits (where applicable)
+- Authentication and authorization (`packages/auth/` owns auth)
+- Input validation (all query params and request bodies validated)
+- Audit logging (where applicable for write or sensitive endpoints)
+
+### Technology neutrality
+
+This section names categories, not specific vendors. Technology selection is a planning
+decision in the relevant work order.
+
+---
+
+## 12. Background Worker / Job Rules
+
+### When a background job model is needed
+
+Model a script as a background job when it outgrows simple CLI execution:
+
+- Script takes longer than a few minutes, or
+- May fail partway and needs resume/retry logic, or
+- Multiple instances might run concurrently, or
+- Operations staff need visibility into run status and errors
+
+### Job state requirements
+
+A job system, when introduced, must preserve:
+
+- Job status (pending, running, completed, failed, partial)
+- Retry count
+- Source / trigger identity
+- Start time, end time, duration
+- Error details (message, traceback — no secrets in error records)
+
+### Rule
+
+Do not implement a job queue or job orchestration system without an explicit work order
+and user / decision-control layer approval.
+
+---
+
+## 13. Data Location and Raw Path Rules
 
 ### Repository tree (current)
 
@@ -328,7 +430,7 @@ Required `.gitignore` entries: `raw/`, `tmp/`, `.env`, `node_modules/`, `dist/`,
 
 ---
 
-## 11. Pipeline Handoff Rules
+## 14. Pipeline Handoff Rules
 
 ### Data flow
 
@@ -359,7 +461,7 @@ Layer 0 has no data pipeline. It is frontend-only.
 
 ---
 
-## 12. Import Boundaries
+## 15. Import Boundaries
 
 | From | May import | Must never import |
 |------|-----------|-------------------|
@@ -373,7 +475,7 @@ from `layer_01_aviation`. Shared types go in `packages/contracts/` or `packages/
 
 ---
 
-## 13. File, Function, and Component Size Limits
+## 16. File, Function, and Component Size Limits
 
 These apply to new and modified files. Existing files are grandfathered until audited.
 When modifying a file approaching a limit, note it in the commit body.
@@ -419,7 +521,7 @@ or commit body.
 
 ---
 
-## 14. Refactor Rules
+## 17. Refactor Rules
 
 Refactoring is a dedicated class of work. It must not be combined with feature work,
 bug fixes, or documentation tasks.
@@ -440,7 +542,7 @@ removing dead code; changing import paths across multiple files.
 
 ---
 
-## 15. Validation Rules
+## 18. Validation Rules
 
 Every completed task must run and record:
 
@@ -454,7 +556,7 @@ not caused by the current change.
 
 ---
 
-## 16. Reviewer Checklist
+## 19. Reviewer Checklist
 
 Every integration review must verify these items as PASS, FAIL, or NOT APPLICABLE:
 
@@ -463,10 +565,10 @@ Every integration review must verify these items as PASS, FAIL, or NOT APPLICABL
 | 1 | **File placement** — new files in correct folder per ownership rules |
 | 2 | **Folder naming** — layer folders use canonical layer IDs; feature folders are descriptive |
 | 3 | **File naming** — follows conventions in §4 |
-| 4 | **File size** — within limits in §13; justification documented if over limit |
-| 5 | **Function/component size** — within limits in §13 |
+| 4 | **File size** — within limits in §16; justification documented if over limit |
+| 5 | **Function/component size** — within limits in §16 |
 | 6 | **Single responsibility** — each file/module has one primary responsibility |
-| 7 | **Import boundaries** — §12 respected; frontend not importing backend; API not importing frontend/services |
+| 7 | **Import boundaries** — §15 respected; frontend not importing backend; API not importing frontend/services |
 | 8 | **DB/migration structure** — (when relevant) §9 followed |
 | 9 | **API transport/performance** — (when relevant) §7 followed; pagination enforced; inputs validated |
 | 10 | **Unauthorised refactor** — agent did not move/rename/restructure outside work order scope |
@@ -476,7 +578,31 @@ Every integration review must verify these items as PASS, FAIL, or NOT APPLICABL
 
 ---
 
-## 17. What Not to Do
+## 20. Exceptions / Grandfathering
+
+The following categories of existing files may violate one or more rules in this
+document. They are grandfathered until audited and repaired through a dedicated work
+order.
+
+| Category | Exception granted |
+|----------|-------------------|
+| Legacy files/folders with non-canonical names | Violate §5 naming until renamed by a refactor work order |
+| Generated files (schema dumps, auto-generated types) | May exceed line limits (§16) |
+| Historical documents and completed work order records | Append-only or immutable; not rewritten |
+| Large schema/registry/static mapping files (WMO codes, ICAO designators) | May exceed line limits with documented justification |
+| Early frontend layer folders with short names (`aviation/`, `space/`, etc.) | Violate §5 until refactored by dedicated branch (see `specs/008-structure-remediation-roadmap/`) |
+
+### Agent protocol when encountering a violation
+
+1. Note it in the commit body or handoff entry. Do not silently fix it as part of
+   unrelated work.
+2. Do not refactor it unless the current work order or spec explicitly includes that
+   refactor in its scope.
+3. Raise a separate refactor task if the violation is blocking progress.
+
+---
+
+## 21. What Not to Do
 
 - Do not edit existing migrations. They are immutable.
 - Do not write SQL with string interpolation of user input. Use parameterized queries.

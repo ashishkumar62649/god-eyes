@@ -7892,3 +7892,88 @@ files are present in PROJECT_RULES.md with identical meaning. Normalizer Locatio
 appears exactly once. Raw path pattern appears exactly once.
 
 ---
+
+
+## Phase 2 Required Fix — Complete Project Rules Consolidation
+
+- Work order: Phase 2 required fix — complete PROJECT_RULES.md
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 05:20 UTC
+
+### Summary
+
+Added four missing rule sections to `docs/control/PROJECT_RULES.md` per Reviewer
+PASS WITH REQUIRED FIXES decision. All sections from ENGINEERING_STRUCTURE_RULES.md
+are now represented. Renumbered all sections to maintain a clean §1–§21 sequence.
+Fixed two stale references to `LAYER_AND_DATA_CONTRACT.md` (not yet created).
+
+### Sections Added
+
+- §10 Time-Series / Live-Data Rules (from ESR §12): separate tables for latest/history,
+  UTC time column requirement, provenance fields, high-volume candidates, no new
+  time-series technology without work order
+- §11 API Transport Rules (from ESR §13): REST default, WebSocket for live streams,
+  large result set strategies (pagination, bounding box, time window, async job,
+  compression), API quality requirements, technology neutrality note
+- §12 Background Worker / Job Rules (from ESR §14): when jobs are needed, job state
+  requirements (status, retry count, source, time, error details), no new job
+  queue/scheduler without work order
+- §20 Exceptions / Grandfathering (from ESR §18): legacy folders, generated files,
+  historical docs, large schema files, short-name layer folders, agent protocol when
+  encountering a violation (note/don't-fix/raise separately)
+
+### LAYER_AND_DATA_CONTRACT.md References Fixed
+
+- §3 safety rule #2: now points to `LLM_OWNERSHIP_MATRIX.md` as current source;
+  LAYER_AND_DATA_CONTRACT.md noted as "planned, not yet available"
+- §5 layer ID authority: already had "planned — not yet created" note; confirmed correct
+
+### Section Renumbering
+
+Old §10–§17 became §13–§21 after inserting the three new sections (§10, §11, §12).
+All internal §-references (Reviewer Checklist, Exceptions table) updated accordingly.
+
+### Files Modified
+
+- `docs/control/PROJECT_RULES.md` (465 lines / ~24.7KB)
+- `docs/state/RECENT_CONTEXT.md` (Phase 2 entry updated to reflect required fix)
+- `docs/state/HANDOFF_LOG.md` (this entry appended)
+
+### What Did Not Change
+
+- All four source control docs — not touched
+- AGENTS.md, docs/README.md — not touched
+- No code changes, no archive/audit/spec changes
+
+### Commands Run
+
+- Get-Content PROJECT_RULES.md | Select-Object -Last 60 — read current state
+- Get-Content ENGINEERING_STRUCTURE_RULES.md | Select-Object -Skip 370 -First 280
+- Multiple strReplace operations to insert sections and renumber headings
+- git status, git diff --check, Measure-Object -Line, keyword Select-String
+- python -m pytest tests/data -q → 1159 passed
+
+### Results
+
+- git diff --check: PASS (CRLF warnings only, pre-existing)
+- data tests: 1159 passed, 15 skipped
+
+### Known Issues
+
+None. Source files (ENGINEERING_STRUCTURE_RULES.md and others) remain active until
+Phase 4 places in-place pointer stubs.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent re-check.
+
+---

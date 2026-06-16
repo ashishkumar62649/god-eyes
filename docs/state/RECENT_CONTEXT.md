@@ -58,11 +58,11 @@ receive the **complete** handoff entry after every completed task.
 - Known issues: None
 - Next: Phase 2 - create PROJECT_RULES.md consolidated engineering rulebook
 
-## 2026-06-16 - Phase 2 Consolidated Project Rules
+## 2026-06-16 - Phase 2 Required Fix: Complete Project Rules Consolidation
 
 - Agent: Documentation Implementation Agent
 - Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Created docs/control/PROJECT_RULES.md - consolidated rulebook merging ENGINEERING_STRUCTURE_RULES + DATA_LOCATION_RULES + PIPELINE_HANDOFF_RULES + LAYER_ID_CONVENTIONS (single Normalizer Location Rule copy; source files not yet retired)
+- What changed: Added Time-Series/Live-Data (§10), API Transport (§11), Background Worker (§12), and Exceptions/Grandfathering (§20) to PROJECT_RULES.md; fixed LAYER_AND_DATA_CONTRACT.md references; renumbered all sections to §1-§21
 - Validation: 1159 data tests PASS, git diff --check PASS
-- Known issues: Source files not retired yet - Phase 4 responsibility
-- Next: Reviewer Agent reviews PROJECT_RULES.md against source files before Phase 3
+- Known issues: None; source files not yet retired (Phase 4)
+- Next: Reviewer Agent re-checks PROJECT_RULES.md before Phase 3
