@@ -32,10 +32,45 @@ documents. Use the neutral role names above only.
 11. Fetchers store raw data before normalization.
 12. Real API keys must never be committed.
 13. Secrets must only appear as placeholders in `.env.example`.
-14. Every agent must update `docs/state/HANDOFF_LOG.md` after work.
+14. Every agent must update both `docs/state/HANDOFF_LOG.md` (full entry) and
+    `docs/state/RECENT_CONTEXT.md` (short summary) after completing work. Both files
+    must be updated in the same commit. One does not replace the other.
 15. Every handoff entry must include: Work order, Agent (neutral role), Branch, Summary,
     Files changed, Commands run, Results, Known issues, Review status if applicable.
     Do not record model/provider/tool product names. UTC timestamps are optional.
+16. `docs/state/RECENT_CONTEXT.md` must contain no more than 5 entries. When adding a
+    6th, remove the oldest entry from RECENT_CONTEXT.md only — never from HANDOFF_LOG.md.
+
+## Agent Reading Policy
+
+### Always read (every agent, every session)
+
+1. `AGENTS.md` — this file
+2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — master engineering rulebook
+3. `docs/state/CURRENT_PROJECT_STATE.md` — current phase and implemented layers
+4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries
+5. The task-specific spec or work order for the current task
+
+### Task-specific read (load only when relevant)
+
+- `docs/control/GIT_WORKFLOW_POLICY.md` — user/decision-control layer before push/PR;
+  workers when uncertain about commit format
+- `docs/control/MVP_LAYER_REGISTRY.md` — when the task involves layer IDs or statuses
+- Active spec files for the current feature (e.g. `specs/008-structure-remediation-roadmap/`)
+- `docs/decisions/ADR-*.md` — when making an architectural decision in the relevant area
+
+### Search-only (do not load full file into context)
+
+- `docs/state/HANDOFF_LOG.md` — search for specific session or work order history only;
+  never load the full file
+- `docs/audits/**` — search when investigating a specific health finding
+- `docs/README.md` — read when onboarding or when the doc structure itself is in question
+- Historical specs (`specs/001–007/**`) — search only if an original layer spec is needed
+
+### Never read unless explicitly instructed
+
+- `docs/archive/**` — historical only; not active instructions; cannot override active
+  control docs
 
 ## Agent-Specific Rules
 
@@ -158,7 +193,10 @@ See `docs/control/GIT_WORKFLOW_POLICY.md` for complete Git rules.
   Location Rule)
 - `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` — full source contract
 - `docs/state/CURRENT_PROJECT_STATE.md` — current phase and status
-- `docs/state/HANDOFF_LOG.md` — log of all agent work
+- `docs/state/RECENT_CONTEXT.md` — short rolling summary of the last 3–5 work sessions
+  (always read at session start; replaces mandatory full HANDOFF_LOG read)
+- `docs/state/HANDOFF_LOG.md` — full append-only log of all agent work (search-only;
+  never load the full file as mandatory reading)
 - `specs/README.md` — Spec Kit workspace guide (folder pattern, file roles, agent
   rules for spec-driven work)
 - `specs/<number>-<feature-or-layer-name>/` — spec directory for new layers

@@ -30,12 +30,14 @@ Every agent must read the following documents before starting any task:
 1. `AGENTS.md` — entry point: roles, layer registry, hard rules, workflow cycle, git rules
 2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — this document
 3. `docs/state/CURRENT_PROJECT_STATE.md` — active phase, implemented layers, next steps
-4. `docs/state/HANDOFF_LOG.md` — what was done last and what state the project is in
-5. `docs/README.md` — the documentation map; defines the classification of every
-   document under `docs/` and `specs/`
-6. Task-specific documents referenced in the work order or spec
+4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries
+5. Task-specific documents referenced in the work order or spec
 
-Do not start implementation before reading all six.
+`docs/state/HANDOFF_LOG.md` is the full append-only project history. Do not load it in
+full as part of the standard first read. Search it only when investigating a specific
+past session or work order.
+
+Do not start implementation before reading items 1–5.
 
 ---
 

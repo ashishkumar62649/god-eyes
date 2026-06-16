@@ -7717,3 +7717,82 @@ No.
 Ready for Reviewer Agent review.
 
 ---
+
+
+## Phase 1 — Documentation Context Reduction
+
+- Work order: Phase 1 — documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 04:35 UTC
+
+### Summary
+
+Implemented Phase 1 of the documentation architecture compression plan. Created
+`docs/state/RECENT_CONTEXT.md` as the new lightweight session-context file. Updated
+mandatory reading lists in AGENTS.md, docs/README.md, and
+docs/control/ENGINEERING_STRUCTURE_RULES.md to replace the full HANDOFF_LOG.md read
+with RECENT_CONTEXT.md. HANDOFF_LOG.md is preserved intact as full append-only history
+and remains the target for full handoff entries after every completed task.
+
+No code changed. No docs restructured. No specs moved. No folders removed.
+
+### Files Created
+
+- `docs/state/RECENT_CONTEXT.md` (new — rolling 3–5 session summary; 3 entries seeded
+  from last sessions in HANDOFF_LOG.md)
+
+### Files Modified
+
+- `AGENTS.md` — Hard Rule 14 amended (both HANDOFF_LOG + RECENT_CONTEXT required);
+  Hard Rule 16 added (5-entry cap for RECENT_CONTEXT); Agent Reading Policy section
+  added (4 tiers: always/task-specific/search-only/never); Key Documents updated to
+  add RECENT_CONTEXT and demote HANDOFF_LOG to search-only
+- `docs/README.md` — §2 Agent First-Read: item 4 replaced HANDOFF_LOG with
+  RECENT_CONTEXT; search-only note added for HANDOFF_LOG; §3 Reviewer First-Read:
+  item 5 parenthetical added (relevant entry only, not full file)
+- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — §2 Required First Read: replaced
+  HANDOFF_LOG with RECENT_CONTEXT at item 4; removed docs/README.md from numbered
+  list; added search-only note for HANDOFF_LOG; list reduced from 6 to 5 items
+- `docs/state/HANDOFF_LOG.md` — this entry appended (append only)
+
+### What Did Not Change
+
+- `docs/state/HANDOFF_LOG.md` history — all prior entries intact; append-only preserved
+- All code files — no changes
+- All archive, audit, spec, and other control docs — no changes
+- No folders created or removed
+
+### Commands Run
+
+- git checkout — confirmed on branch docs/fix/recent-context-and-reading-policy
+- Get-Content HANDOFF_LOG.md -Tail 300 — read last 3 sessions for RECENT_CONTEXT seeding
+- Get-Content AGENTS.md — read for targeted edits
+- Get-Content docs/README.md — read §2 and §3
+- Get-Content docs/control/ENGINEERING_STRUCTURE_RULES.md — read §2
+- git status --short --branch → 5 files changed (expected)
+- git diff --check → PASS (CRLF warnings only)
+- python -m pytest tests/data -q → see results below
+
+### Results
+
+- git diff --check: PASS (CRLF warnings only, pre-existing)
+- python -m pytest tests/data -q: 1159 passed, 15 skipped
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only — NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent review.
+
+---

@@ -32,9 +32,12 @@ If you are an agent (worker or orchestrator) starting a task, read these in orde
 1. `AGENTS.md` — entry point: roles, layer registry, hard rules, workflow, git rules
 2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — file/folder/DB/API structure rules
 3. `docs/state/CURRENT_PROJECT_STATE.md` — what phase we are in, what is implemented
-4. `docs/state/HANDOFF_LOG.md` — what was done last and what state the project is in
+4. `docs/state/RECENT_CONTEXT.md` — last 3–5 session summaries (replaces full HANDOFF_LOG read)
 5. The task-specific spec or work order referenced by the work order
 6. `docs/control/MVP_LAYER_REGISTRY.md` — layer IDs and statuses for the work scope
+
+`docs/state/HANDOFF_LOG.md` is the full append-only project history. Do not load it in
+full. Search it only when you need to investigate a specific past session or work order.
 
 ---
 
@@ -46,7 +49,8 @@ If you are reviewing a pull request or a branch:
 2. `docs/control/ENGINEERING_STRUCTURE_RULES.md` — what the change should conform to
 3. The changed files (the diff itself)
 4. The related spec / plan / tasks document
-5. `docs/state/HANDOFF_LOG.md` — what the agent reported
+5. `docs/state/HANDOFF_LOG.md` — what the agent reported (search or read the relevant
+   entry only; do not load the full file)
 
 ---
 
