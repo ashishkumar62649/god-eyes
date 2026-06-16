@@ -155,7 +155,8 @@ Use the folder that matches the scope of the work:
 3. The agent does the work within its allowed folders only.
 4. The agent runs the required build/test checks.
 5. The agent creates one local commit with the proper message format.
-6. The agent updates `docs/state/HANDOFF_LOG.md`.
+6. The agent updates `docs/state/HANDOFF_LOG.md` (full entry) and
+   `docs/state/RECENT_CONTEXT.md` (short summary).
 7. The Orchestrator Agent reviews and creates `docs/state/INTEGRATION_REVIEW_[WO].md`.
    Completed reviews are archived under `docs/archive/`.
 8. If PASS: the Orchestrator Agent pushes the branch to origin.
