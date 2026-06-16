@@ -8282,3 +8282,73 @@ No.
 Ready for Reviewer Agent review.
 
 ---
+
+## Phase 6 -- Archive Fence Hardening
+
+- Work order: Phase 6 -- documentation architecture compression
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- Date: 2026-06-16 07:05 UTC
+
+### Summary
+
+Created docs/archive/_DO_NOT_READ.md as an explicit read fence for the archive folder.
+Updated docs/archive/README.md to reference the fence, list active docs, note the
+implemented-specs archive batch, and fix the stale ENGINEERING_STRUCTURE_RULES reference.
+AGENTS.md and docs/README.md did not need changes -- both already had correct archive
+policy. specs/README.md did not need changes.
+
+### Files Created
+
+- docs/archive/_DO_NOT_READ.md (27 lines -- explicit archive read fence)
+
+### Files Modified
+
+- docs/archive/README.md (added fence reference, active doc list, implemented-specs note,
+  fixed Related Documents section -- ENGINEERING_STRUCTURE_RULES replaced with PROJECT_RULES)
+- docs/state/RECENT_CONTEXT.md (Phase 6 entry added; oldest dropped; 4 entries)
+- docs/state/HANDOFF_LOG.md (this entry appended)
+
+### AGENTS.md -- no change needed
+
+Already has: docs/archive/** in Never-read tier at Agent Reading Policy.
+
+### docs/README.md -- no change needed
+
+Already has: ARCHIVE classification row correctly marking archive as historical/superseded.
+
+### specs/README.md -- no change needed
+
+Already updated in Phase 5.
+
+### What Did Not Change
+
+- docs/control/**
+- Code files
+- Specs folders
+- docs/archive/2026-06-16-implemented-specs/** contents
+
+### Commands Run
+
+- Get-Content docs/archive/README.md
+- rg "archive" AGENTS.md docs/README.md -c
+- git status, git diff --check -> PASS
+- python -m pytest tests/data -q -> 1159 passed
+
+### Known Issues
+
+None.
+
+### Push Status
+
+Local only -- NOT pushed.
+
+### Secrets Added
+
+No.
+
+### Review Status
+
+Ready for Reviewer Agent full final branch review before push/PR.
+
+---

@@ -31,15 +31,6 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
-## 2026-06-16 - Phase 3 Review: Layer and Data Contract
-
-- Agent: Reviewer Agent
-- Branch: docs/fix/recent-context-and-reading-policy
-- What changed: Completed review of LAYER_AND_DATA_CONTRACT.md (294 lines, 15KB) against all 4 source docs. Verified all 11 layer IDs/statuses, ownership matrix, source contract fields, source families, change protocols. All commands PASS.
-- Validation: 1159 data tests PASS, git diff --check PASS, Select-String keyword checks PASS
-- Known issues: None. Source files not retired yet (Phase 4). Mandatory reading lists not yet updated (Phase 6).
-- Next: Phase 4 - retire old source control docs with in-place pointer stubs
-
 ## 2026-06-16 - Phase 4 Retire Source Control Docs
 
 - Agent: Documentation Implementation Agent
@@ -57,3 +48,12 @@ receive the **complete** handoff entry after every completed task.
 - Validation: 1159 data tests PASS, git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews Phase 5; then Phase 6 archive fence hardening
+
+## 2026-06-16 - Phase 6 Archive Fence Hardening
+
+- Agent: Documentation Implementation Agent
+- Branch: docs/fix/recent-context-and-reading-policy
+- What changed: Created docs/archive/_DO_NOT_READ.md (explicit read fence); updated docs/archive/README.md (added active-doc pointers, implemented-specs note, fence reference, fixed ESR reference)
+- Validation: 1159 data tests PASS, git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent full final review of the entire docs/fix branch before push/PR

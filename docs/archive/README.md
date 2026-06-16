@@ -1,11 +1,22 @@
 # docs/archive
 
 > **Classification:** ARCHIVE
-> **Last updated:** 2026-06-14
+> **Last updated:** 2026-06-16
+
+This folder is **historical**. Archive files are never default reading for agents.
+See `docs/archive/_DO_NOT_READ.md` for the explicit read fence.
 
 This folder is for **old, superseded, duplicate, or historical documents** that should
 not guide current work. It is the destination for documentation cleanup, not a
 working area for active features.
+
+**Active docs are:** `docs/control/PROJECT_RULES.md`, `docs/control/LAYER_AND_DATA_CONTRACT.md`,
+`docs/state/CURRENT_PROJECT_STATE.md`, `docs/state/RECENT_CONTEXT.md`, `AGENTS.md`.
+
+**Active specs workspace:** `specs/008-structure-remediation-roadmap/`
+
+**Implemented layer specs 001–007** are archived under:
+`docs/archive/2026-06-16-implemented-specs/` — see its `INDEX.md`.
 
 ---
 
@@ -42,7 +53,7 @@ working area for active features.
 
 ## Related documents
 
-- `docs/README.md` — documentation map and the `ARCHIVE` classification definition
-- `docs/decisions/ADR-001-documentation-system.md` — the ADR that defines this
-  archive folder
-- `docs/control/ENGINEERING_STRUCTURE_RULES.md` — change process for control docs
+- \docs/README.md\ - documentation map and the \ARCHIVE\ classification definition
+- \docs/decisions/ADR-001-documentation-system.md\ - the ADR that defines this archive folder
+- \docs/control/PROJECT_RULES.md\ - change process for control docs
+- \docs/archive/2026-06-16-implemented-specs/INDEX.md\ - implemented layer specs archive index
