@@ -7,9 +7,9 @@ import NearbyNavaidsSection from '../intel/NearbyNavaidsSection';
 import DataQualityCard from '../intel/DataQualityCard';
 import AirportImageSlider from '../intel/AirportImageSlider';
 import AirportLayoutOverlayToggle from '../intel/AirportLayoutOverlayToggle';
-import type { PublicProfileData, PublicProfileAttribution } from '../../layers/aviation/airports/airportPublicProfileTypes';
-import type { AirportIntelImages } from '../../layers/aviation/airports/airportIntelligenceTypes';
-import type { LayoutPhase } from '../../layers/aviation/airports/useAirportLayoutFeatures';
+import type { PublicProfileData, PublicProfileAttribution } from '../../layers/layer_01_aviation/airports/airportPublicProfileTypes';
+import type { AirportIntelImages } from '../../layers/layer_01_aviation/airports/airportIntelligenceTypes';
+import type { LayoutPhase } from '../../layers/layer_01_aviation/airports/useAirportLayoutFeatures';
 import { SourcesSection } from './SourcesSection';
 
 const dim: React.CSSProperties = { color: 'var(--shell-text-dim)', fontSize: '0.65rem' };

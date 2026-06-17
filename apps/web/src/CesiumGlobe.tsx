@@ -26,7 +26,7 @@ import { EarthquakeInfoOverlay } from './components/overlays/EarthquakeInfoOverl
 import { TokenWarningOverlay } from './components/overlays/TokenWarningOverlay';
 import { SatelliteInfoOverlay } from './components/overlays/SatelliteInfoOverlay';
 import type { AirportObject, EarthEvent, BordersBoundariesFeatureCollection, AircraftLatest, SpaceSatelliteItem, MaritimeVesselObject } from '@god-eyes/contracts';
-import type { AirportLayoutFeaturesResponse } from './layers/aviation/airports/airportLayoutTypes';
+import type { AirportLayoutFeaturesResponse } from './layers/layer_01_aviation/airports/airportLayoutTypes';
 import type { EnergyFeature } from './layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
 import EnergyInfrastructureLayer from './layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer';
 import MaritimeLayer from './layers/layer_06_maritime/MaritimeLayer';
@@ -41,7 +41,7 @@ import type { SatelliteFilters } from './layers/layer_05_space_satellites/satell
 
 import {
   fetchAllAviationCategories,
-} from './layers/aviation/airports/aviationPreloader';
+} from './layers/layer_01_aviation/airports/aviationPreloader';
 import { isPositionVisible } from './globe/cesiumVisibility';
 import {
   getAircraftAltitudeColor,
@@ -52,22 +52,22 @@ import {
   getAircraftHeadingDeg,
   headingToBillboardRotation,
   AIRCRAFT_BILLBOARD_SCALE,
-} from './layers/aviation/aircraft/aircraftMarker';
-import { RENDER_CAP } from './layers/aviation/aircraft/useLiveAircraftSocket';
-import type { SnapshotCallback } from './layers/aviation/aircraft/useLiveAircraftSocket';
+} from './layers/layer_01_aviation/aircraft/aircraftMarker';
+import { RENDER_CAP } from './layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
+import type { SnapshotCallback } from './layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
 import {
   AviationFilters,
-} from './layers/aviation/airports/aviationCategories';
+} from './layers/layer_01_aviation/airports/aviationCategories';
 import {
   createGlobalDotCollection,
   addAllDotsToCollection,
   isGlobalDot,
   getGlobalDotPosition,
   filterVisibleGlobalDots,
-} from './layers/aviation/airports/aviationGlobalRenderer';
+} from './layers/layer_01_aviation/airports/aviationGlobalRenderer';
 import {
   getAllObjects,
-} from './layers/aviation/airports/aviationObjectStore';
+} from './layers/layer_01_aviation/airports/aviationObjectStore';
 import { useFpsCounter } from './globe/useFpsCounter';
 import { setupCesiumToken } from './globe/setupCesiumToken';
 import { configureViewerScene } from './globe/configureViewerScene';

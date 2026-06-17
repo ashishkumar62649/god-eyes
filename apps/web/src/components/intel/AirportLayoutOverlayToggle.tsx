@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LayoutPhase } from '../../layers/aviation/airports/useAirportLayoutFeatures';
+import type { LayoutPhase } from '../../layers/layer_01_aviation/airports/useAirportLayoutFeatures';
 
 interface AirportLayoutOverlayToggleProps {
   layoutPhase: LayoutPhase;

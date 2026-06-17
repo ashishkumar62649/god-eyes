@@ -1,8 +1,8 @@
 import React from 'react';
 import type { AirportObject, MaritimeVesselObject } from '@god-eyes/contracts';
 import IntelSection from '../intel/IntelSection';
-import { useAirportPublicProfile } from '../../layers/aviation/airports/useAirportPublicProfile';
-import { useAirportIntelligence } from '../../layers/aviation/airports/useAirportIntelligence';
+import { useAirportPublicProfile } from '../../layers/layer_01_aviation/airports/useAirportPublicProfile';
+import { useAirportIntelligence } from '../../layers/layer_01_aviation/airports/useAirportIntelligence';
 import type { DetailPanelProps } from './detailTypes';
 import { AviationDetail } from './AviationDetail';
 import { MaritimeDetail } from './MaritimeDetail';

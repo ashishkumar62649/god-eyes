@@ -1,4 +1,212 @@
 
+### 2026-06-16T04:00:00Z — sr-009-aviation-canonical-folder
+
+- Work order: SR-009
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-009/aviation-canonical-folder
+- Base stack: SR-014 `90c3056` on top of SR-012 `ead0cfb` on top of SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-009 is the final per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-014 (energy) cleared the way, SR-009 is the last per-layer move. The aviation layer is the **highest-risk** move (35 imports across 16 files, two subfolders `aircraft/` and `airports/`, 18 nested files, Cesium `CustomDataSource` integration, WebSocket integration, REST API integration, multiple renderers, preloader, tile cache, tile loader, and a custom Cesium camera helper).
+- Goal: Rename the frontend `apps/web/src/layers/aviation/` folder to the canonical `apps/web/src/layers/layer_01_aviation/`, preserve the `aircraft/` and `airports/` subfolders and all 18 nested files, add canonical barrel + compatibility shim, and update the 35 active frontend import sites across 16 files.
+- Files changed:
+  1. `apps/web/src/layers/aviation/` → `apps/web/src/layers/layer_01_aviation/` (via `git mv`; the `aircraft/` subfolder with 2 files and the `airports/` subfolder with 16 files — all 18 files moved atomically, no content change).
+  2. `apps/web/src/layers/layer_01_aviation/index.ts` — new file, content:
+     ```ts
+     export * from './aircraft/aircraftMarker';
+     export * from './aircraft/useLiveAircraftSocket';
+     export * from './airports/airportIntelligenceTypes';
+     export * from './airports/airportLayoutTypes';
+     export * from './airports/airportPublicProfileTypes';
+     export * from './airports/aviationCategories';
+     export * from './airports/aviationPreloader';
+     export * from './airports/aviationGlobalRenderer';
+     export * from './airports/aviationObjectStore';
+     export * from './airports/useAirportIntelligence';
+     export * from './airports/useAirportLayoutFeatures';
+     export * from './airports/useAirportPublicProfile';
+     ```
+     (canonical re-export of all 12 externally-imported public modules; UTF-8 no BOM). The 6 internal-only files (`airportMarkerSprites.ts`, `aviationLayerRenderer.ts`, `aviationTileCache.ts`, `aviationTileLoader.ts`, `airportViewport.ts`, `globeCamera.ts`) are moved atomically with the folder but are not re-exported from the barrel because they are only imported by sibling files inside the layer (or have no importers at all).
+  3. `apps/web/src/layers/aviation/` — recreated as a shim folder; contains only `apps/web/src/layers/aviation/index.ts` with content `export * from '../layer_01_aviation';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — 3 import-path updates:
+     - `'./layers/aviation/airports/aviationCategories'` → `'./layers/layer_01_aviation/airports/aviationCategories'`
+     - `'./layers/aviation/airports/useAirportLayoutFeatures'` → `'./layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+     - `'./layers/aviation/aircraft/useLiveAircraftSocket'` → `'./layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  5. `apps/web/src/CesiumGlobe.tsx` — 8 import-path updates:
+     - `'./layers/aviation/airports/airportLayoutTypes'` → `'./layers/layer_01_aviation/airports/airportLayoutTypes'`
+     - `'./layers/aviation/airports/aviationPreloader'` → `'./layers/layer_01_aviation/airports/aviationPreloader'`
+     - `'./layers/aviation/aircraft/aircraftMarker'` → `'./layers/layer_01_aviation/aircraft/aircraftMarker'`
+     - `'./layers/aviation/aircraft/useLiveAircraftSocket'` (× 2: `RENDER_CAP` and `SnapshotCallback`) → `'./layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+     - `'./layers/aviation/airports/aviationCategories'` → `'./layers/layer_01_aviation/airports/aviationCategories'`
+     - `'./layers/aviation/airports/aviationGlobalRenderer'` → `'./layers/layer_01_aviation/airports/aviationGlobalRenderer'`
+     - `'./layers/aviation/airports/aviationObjectStore'` → `'./layers/layer_01_aviation/airports/aviationObjectStore'`
+  6. `apps/web/src/components/Shell.tsx` — 3 import-path updates:
+     - `'../layers/aviation/airports/aviationCategories'` → `'../layers/layer_01_aviation/airports/aviationCategories'`
+     - `'../layers/aviation/airports/useAirportLayoutFeatures'` → `'../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+     - `'../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  7. `apps/web/src/components/StatusPanel.tsx` — 1 import-path update:
+     - `'../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  8. `apps/web/src/components/detail-panel/AviationDetail.tsx` — 3 import-path updates:
+     - `'../../layers/aviation/airports/airportPublicProfileTypes'` → `'../../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+     - `'../../layers/aviation/airports/airportIntelligenceTypes'` → `'../../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+     - `'../../layers/aviation/airports/useAirportLayoutFeatures'` → `'../../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+  9. `apps/web/src/components/detail-panel/DetailPanelRoot.tsx` — 2 import-path updates:
+     - `'../../layers/aviation/airports/useAirportPublicProfile'` → `'../../layers/layer_01_aviation/airports/useAirportPublicProfile'`
+     - `'../../layers/aviation/airports/useAirportIntelligence'` → `'../../layers/layer_01_aviation/airports/useAirportIntelligence'`
+  10. `apps/web/src/components/detail-panel/SourcesSection.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/airportPublicProfileTypes'` → `'../../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+  11. `apps/web/src/components/detail-panel/detailTypes.ts` — 1 import-path update:
+      - `'../../layers/aviation/airports/useAirportLayoutFeatures'` → `'../../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+  12. `apps/web/src/components/intel/AirportImageSlider.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/airportIntelligenceTypes'` → `'../../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+  13. `apps/web/src/components/intel/AirportLayoutOverlayToggle.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/useAirportLayoutFeatures'` → `'../../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+  14. `apps/web/src/components/intel/AirportMapPopup.tsx` — 2 import-path updates:
+      - `'../../layers/aviation/airports/useAirportIntelligence'` → `'../../layers/layer_01_aviation/airports/useAirportIntelligence'`
+      - `'../../layers/aviation/airports/airportIntelligenceTypes'` → `'../../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+  15. `apps/web/src/components/intel/AirportOverview.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/aviationCategories'` → `'../../layers/layer_01_aviation/airports/aviationCategories'`
+  16. `apps/web/src/components/intel/AirportPublicProfilePanel.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/airportPublicProfileTypes'` → `'../../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+  17. `apps/web/src/components/layer-panel/AviationControls.tsx` — 2 import-path updates:
+      - `'../../layers/aviation/airports/aviationCategories'` → `'../../layers/layer_01_aviation/airports/aviationCategories'`
+      - `'../../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  18. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — 2 import-path updates:
+      - `'../../layers/aviation/airports/aviationCategories'` → `'../../layers/layer_01_aviation/airports/aviationCategories'`
+      - `'../../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  19. `apps/web/src/lib/api.ts` — 3 import-path updates:
+      - `'../layers/aviation/airports/airportPublicProfileTypes'` → `'../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+      - `'../layers/aviation/airports/airportIntelligenceTypes'` → `'../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+      - `'../layers/aviation/airports/airportLayoutTypes'` → `'../layers/layer_01_aviation/airports/airportLayoutTypes'`
+  20. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-009 Aviation Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files`) to keep the rolling window at 5 entries per the file's own update rule.
+  21. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public modules exported (12 in canonical `index.ts`):
+  1. `./aircraft/aircraftMarker` — the public marker helper module.
+  2. `./aircraft/useLiveAircraftSocket` — the public live-aircraft WebSocket hook (`useLiveAircraftSocket`, `LiveAircraftStatus`, `RENDER_CAP`, `SnapshotCallback`).
+  3. `./airports/airportIntelligenceTypes` — the public intelligence types module.
+  4. `./airports/airportLayoutTypes` — the public layout types module.
+  5. `./airports/airportPublicProfileTypes` — the public profile types module.
+  6. `./airports/aviationCategories` — the public categories module (`AviationFilters`, `DEFAULT_AVIATION_FILTERS`, `AVIATION_CATEGORIES`, `getCategoryLabel`, `getCategoryInfo`, etc.).
+  7. `./airports/aviationPreloader` — the public preloader module.
+  8. `./airports/aviationGlobalRenderer` — the public global-renderer module.
+  9. `./airports/aviationObjectStore` — the public object-store module.
+  10. `./airports/useAirportIntelligence` — the public intelligence hook.
+  11. `./airports/useAirportLayoutFeatures` — the public layout-features hook (`useAirportLayoutFeatures`, `LayoutPhase`).
+  12. `./airports/useAirportPublicProfile` — the public profile hook.
+- Internal-only files (moved atomically with the folder but NOT re-exported from the canonical barrel, because they are only imported by sibling files inside the layer or have no importers at all):
+  - `airports/airportMarkerSprites.ts` — imported by `aviationGlobalRenderer.ts` and `aviationLayerRenderer.ts` (siblings only).
+  - `airports/aviationLayerRenderer.ts` — no external or internal importers found.
+  - `airports/aviationTileCache.ts` — no importers found.
+  - `airports/aviationTileLoader.ts` — no importers found.
+  - `airports/airportViewport.ts` — no importers found.
+  - `airports/globeCamera.ts` — no importers found.
+  These files remain accessible via their direct path (e.g. `'../layers/layer_01_aviation/airports/aviationTileLoader'`) and do not need to be re-exported by the barrel.
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:23` — `layerId: 'layer_01_aviation'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/lib/useLayerRegistry.ts:28` — `description: 'Aircraft positions, airports, flight routes, details panel'`. UI description text; intentionally preserved.
+  - `apps/web/src/lib/useLayerRegistry.ts:32` — `safetyNotes: 'Public civil aviation only'`. UI safety text; intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:85` — `entry.layerId === 'layer_01_aviation'`. Already canonical; layerId comparison.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts:31` — `apiBase.replace(/^http/, 'ws') + '/ws/aviation/aircraft/live'`. WebSocket URL; runtime protocol endpoint. Intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts:86` — `layer: 'layer_01_aviation.live_aircraft'`. Layer registration string in WebSocket subscribe payload. Intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts:98-136` — message types `'aircraft.ready'`, `'aircraft.snapshot'`, `'aircraft.delta'`, `'aircraft.error'`. WebSocket protocol message types. Intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationPreloader.ts:58` — `layerId: 'layer_01_aviation'`. Already canonical; layerId field.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationPreloader.ts:59-60` — `objectType: 'airport'`, `sourceId: raw.sourceId || 'ourairports'`. Object-type and source-id strings; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationCategories.ts:129-131` — `API_CATEGORY_LARGE`, `API_CATEGORY_REGIONAL`, `API_CATEGORY_SMALL` = `'international_or_major_airport'`, `'regional_or_domestic_airport'`, `'small_airfield'`. API category enum values; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationCategories.ts:208-245` — function `getAviationDisplayCategory(airport: { category: string; typeSource: string })` and `'large_airport'`, `'medium_airport'`, `'small_airport'`, `'airport'`, `'airfield'` API category values. Runtime API value mappings; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationLayerRenderer.ts:43, 104, 143, 186, 191, 205` — `id: \`airport-${airport.id}\`` Cesium entity ID format, `item.objectType !== 'airport'` runtime object-type check, `entity.id.startsWith('airport-')` runtime string prefix check. Runtime identifiers and string prefix checks; intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:490` — `new CustomDataSource('airport-layout')`. Cesium `DataSource` runtime identifier; not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:198, 213, 246, 371-373, 381, 498-500, 559-568, 665-666, 871-1171, 1423` — React state variable names, ref names, and prop names (`aircraftCollectionRef`, `aircraftMapRef`, `aircraftCollection`, `ac`, `snapshotHandler`, `pendingSnapshotRef`, `airportFlyHeight`, `airportId`, `airport`, `allObjects`, `layoutDataSource`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:175-180` — `airportFlyHeight` function and `TARGET = 12_000` constant with comment `'// metres — whole airport visible, not city/state level'`. Source comment + constant; intentionally preserved.
+  - `apps/web/src/lib/api.ts:38` — `${API_BASE_URL}/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&limit=${limit}`. Backend API path; the API route is owned by the API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:62, 236` — `${API_BASE_URL}/api/layers/layer_01_aviation/objects`. Backend API path; intentionally preserved.
+  - `apps/web/src/lib/api.ts:88, 244, 259` — error message strings `Failed to fetch aviation objects:`, `Failed to preload aviation category:`, `Failed to fetch airport detail:`. Human-readable error text; intentionally preserved.
+  - `apps/web/src/lib/api.ts:202-203` — source comments `// Live aircraft (WO-079E). Frontend calls ONLY the GOD EYES API — never Airplanes.live directly.` and `// Stale aircraft are excluded by the API by default (includeStale not sent).`. Source comments; intentionally preserved.
+  - `apps/web/src/lib/api.ts:208` — `${API_BASE_URL}/api/aviation/aircraft/latest`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:214, 227` — error message strings `Failed to fetch live aircraft:`, `Failed to fetch aircraft detail:`. Human-readable error text; intentionally preserved.
+  - `apps/web/src/lib/api.ts:223` — `${API_BASE_URL}/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:254` — `${API_BASE_URL}/api/layers/layer_01_aviation/objects/${objectId}/detail`. Backend API path; intentionally preserved.
+  - `apps/web/src/lib/api.ts:269` — `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/public-profile`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:283` — `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/intelligence`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:325` — `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/layout-features`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:43, 47-48, 131, 237, 266, 274, 280, 322, 328` — function names, parameter names, and object-type filter values `objectType: 'airport'`, error message strings, and `airportId: string` parameter. Runtime identifiers; intentionally preserved.
+  - `apps/web/src/lib/searchProviders.ts:6, 12, 24, 28-37` — source comment `'Searches for airports using the GOD EYES aviation API.'`, JS identifiers, and `id: \`airport-${airport.id}\`` runtime ID format. Source comment + identifiers; intentionally preserved.
+  - `apps/web/src/components/layer-panel/AviationControls.tsx:27, 30, 32, 33, 41, 45-56, 77, 82, 88` — React state/prop names (`aviationLayerActive`, `setAviationLayerActive`, `aviationStats`, `aviationFilters`, `onFiltersChange`, `AviationFilters`, `AviationStats`, `AVIATION_CATEGORIES`), `'active'` CSS class, `'LOADED: '`, `'VISIBLE: '`, `'STATUS: '` UI labels, and `'Live aircraft data: Airplanes.live (non-commercial/no-SLA). Not complete global coverage.'` UI disclaimer. JS identifiers + UI text; intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:42, 89-90` — React state/prop names. JavaScript identifiers; intentionally preserved.
+  - `apps/web/src/components/layer-panel/layerPanelTypes.ts:23, 25, 26` — TypeScript interface property names. TypeScript identifiers; intentionally preserved.
+  - `apps/web/src/components/Shell.tsx:34, 98, 178` — React state/prop names (`airportDetail`, `AirportDetailResponse`). JavaScript identifiers; intentionally preserved.
+  - `apps/web/src/components/StatusPanel.tsx:4` — type import. Relative import inside the moved folder structure; intentionally preserved.
+  - `apps/web/src/components/intel/AirportImageSlider.tsx, AirportLayoutOverlayToggle.tsx, AirportMapPopup.tsx, AirportOverview.tsx, AirportPublicProfilePanel.tsx, CoordinateSourceCard.tsx` — JS identifiers and prop names (`airport`, `airportId`, `airportName`, `airport.position`, `airport.elevationFt`, `airport.municipality`, `airport.region`, `airport.country`, `airport.sourceId`, `airport.updatedAt`, `airport.iataCode`, `airport.ident`, `airport.icaoCode`, `popup.iataCode`, `popup.icaoCode`, `popup.airportName`, `intel.data.mapPopup`, `intel.data.images`, `airport-overview` CSS class). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/detail-panel/AviationDetail.tsx, DetailPanelRoot.tsx, SourcesSection.tsx, detailTypes.ts` — JS identifiers and prop names (`airport`, `airportDetail`, `airport.id`, `airport.name`, `airport.ident`, `airport.iataCode`, `airport.runways`, `airport.frequencies`, `airport.nearbyNavaIds`, `airport.sourceId`, `profilePhase`, `intelImages`, `hasIntelImages`, `imageStr`, `SYSTEM ID: ${airport.id}`, `⚠ Profile match uncertain — data may not correspond to this airport.`, `RunwaysSection`, `FrequenciesSection`, `NearbyNavaidsSection`, `DataQualityCard`). JavaScript identifiers + UI text; intentionally preserved.
+  - `apps/web/src/components/detail-panel/AviationDetail.tsx:91` — `color: '#eab308'` warning color CSS value. Not related to the folder rename. Intentionally preserved.
+  - `apps/web/src/components/intel/AirportPublicProfilePanel.tsx:233, 244` — UI text `'No public profile found for this airport.'` and `'Data may not correspond to this airport.'`. Human-readable UI text; intentionally preserved.
+  - `apps/web/src/components/overlays/AircraftInfoOverlay.tsx:4-42` — React component prop names, JSX labels (`'MIL'`, `'EMERGENCY'`, `'REG:'`, `'TYPE:'`, `'ALT:'`, `'SPEED:'`, `'ID:'`, `'OBSERVED:'`), error message strings, and `aircraft.callsign`, `aircraft.registration`, `aircraft.aircraftType`, `aircraft.altitudeBaroFt`, `aircraft.groundSpeedKt`, `aircraft.sourceObjectId`, `aircraft.observedAt`, `aircraft.isMilitary`, `aircraft.emergency`, `aircraft.trackDeg`, `aircraft.headingTrueDeg`, `aircraft.headingMagDeg` object property accesses. JavaScript identifiers + UI text; intentionally preserved.
+  - `apps/web/src/styles/shell.css:498` — `.legend-marker-airport` CSS class name. CSS class; not related to the folder rename. Intentionally preserved.
+  - `apps/web/src/layers/layer_07_weather/weatherTypes.ts:11` — comment `'from other selectable objects (airports, vessels, energy features). Marker'`. Source comment; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts:4, 9, 23, 34, 71, 110` — source comments `// SVGs live in /aircraft-icons/svg/<name>.svg (public folder, served at runtime).`, `// Full mapping loaded lazily from /aircraft-icons/icon-mapping.json.`, `// Pre-load mapping eagerly so it's ready before first aircraft arrives.`, static asset paths `/aircraft-icons/icon-mapping.json` and `/aircraft-icons/svg/${iconName}.svg`, and `(ac as any).aircraftType ?? ac.aircraftType` JS type-narrowing code. Source comments + static asset paths + JS code; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts:71` — `((ac as any).aircraftType ?? ac.aircraftType ?? '').toString().toUpperCase().trim()`. JS code; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/airportIntelligenceTypes.ts:1` — source comment `// Local frontend types for GET /api/airports/:airportId/intelligence`. Source comment + API path; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/airportLayoutTypes.ts:1` — source comment `// Local frontend types for GET /api/airports/:airportId/layout-features`. Source comment + API path; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/airportPublicProfileTypes.ts:1` — source comment `// Local frontend types for GET /api/airports/:airportId/public-profile`. Source comment + API path; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationCategories.ts:206` — source comment `// Map API airport data to a display category`. Source comment; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationGlobalRenderer.ts, aviationLayerRenderer.ts, aviationPreloader.ts, aviationTileLoader.ts, useAirportIntelligence.ts, useAirportLayoutFeatures.ts, useAirportPublicProfile.ts` — all internal sibling-file relative imports (e.g. `import { ... } from './aviationCategories'`, `import { storeObjects, getAllObjects } from './aviationObjectStore'`, `import { getCategoryDotColor } from './airportMarkerSprites'`). These are relative imports **inside** the moved folder; they continue to work after the rename because both files move together. Intentionally preserved.
+  - All 18 moved source files — content unchanged; only their tracked path moved.
+- Files intentionally not touched:
+  - All other frontend layer folders (`borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `space/` shim, `layer_05_space_satellites/`, `maritime/` shim, `layer_06_maritime/`, `energy/` shim, `layer_10_energy_infrastructure/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-010, SR-010S, SR-011, SR-012, SR-013, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/objects.ts` route file, `apps/api/src/routes/aviation/...` files, and `apps/web/src/lib/useLayerRegistry.ts` are owned by their respective agents and are intentionally not modified in SR-009; the frontend rename does not change the backend route or the layer registry.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `aviation/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+  - No deprecated markers, no legacy comments, no TODO cleanup in aviation files — the task explicitly excludes these.
+  - All 18 moved source files — content unchanged; only their tracked path moved.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `frontend/sr-009/aviation-canonical-folder` (PASS)
+  - `git log -10 --oneline` → confirmed stack `90c3056 → ead0cfb → 5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd → 364a5f8` (PASS)
+  - `Test-Path "apps/web/src/layers/aviation"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/aviation` (pre-rename) → 18 tracked files (2 in `aircraft/`, 16 in `airports/`) (PASS)
+  - `git ls-files apps/web/src/layers/layer_01_aviation` (pre-rename) → empty (PASS)
+  - `git grep -n "aviation" -- apps/web/src` (pre-rename) → classified: 35 import paths to update + many runtime strings (JS identifiers, layerId registry, WebSocket URL, `category: 'aviation'`-related strings, API path strings, error messages, source comments, UI labels) to preserve (PASS)
+  - `git grep -n "aircraft" -- apps/web/src` (pre-rename) → classified: 35 import paths to update + many runtime strings (JS identifiers, message types, static asset paths `/aircraft-icons/...`, entity-id suffixes, comment text) to preserve (PASS)
+  - `git grep -n "airport" -- apps/web/src` (pre-rename) → classified: 35 import paths to update + many runtime strings (JS identifiers, entity-id format `airport-${airport.id}`, API path strings `/api/airports/...`, error message text, object-type filter `objectType: 'airport'`, CSS class `legend-marker-airport`, comment text) to preserve (PASS)
+  - `git grep -n "layers/aviation" -- apps packages tests` (pre-rename) → 35 matches in `apps/web/src/**` (16 files) (PASS)
+  - `git grep -n "airportMarkerSprites|airportViewport|aviationLayerRenderer|aviationTileCache|aviationTileLoader|globeCamera" -- apps packages tests` → only `airportMarkerSprites` matches (2 internal-only imports from `aviationGlobalRenderer.ts` and `aviationLayerRenderer.ts`); the other 5 files have no importers (PASS)
+  - `git grep -n "^export default" -- apps/web/src/layers/aviation/` → no output; all exports are named (PASS)
+  - `git mv apps/web/src/layers/aviation apps/web/src/layers/layer_01_aviation` → succeeded; `aircraft/` and `airports/` subfolders preserved; all 18 files moved atomically (PASS)
+  - Post-rename `git ls-files` shows all 18 files now under `apps/web/src/layers/layer_01_aviation/aircraft/` and `apps/web/src/layers/layer_01_aviation/airports/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` (12 exports) and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 16 import files → 16 files updated, 35 import-path occurrences replaced (PASS)
+  - `git grep -n "layers/aviation" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_01_aviation" -- apps packages tests` → 35 active import sites updated + pre-existing canonical references in `apps/api/tests/...` (API test paths), `packages/contracts/src/index.ts:11`, `packages/source-catalog/layers/layer_01_aviation/...`, and `tests/data/layer_01_aviation/...` (PASS)
+  - `git grep -n "aviation" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, layerId registry values, WebSocket URL, CustomDataSource, message types, API path strings, error messages, UI labels, comments); no active folder-path imports (PASS)
+  - `git grep -n "aircraft" -- apps/web/src` (post-import-update) → many matches, all runtime strings; no active folder-path imports (PASS)
+  - `git grep -n "airport" -- apps/web/src` (post-import-update) → many matches, all runtime strings; no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts"` → `True` (PASS, the exported public hook exists in the canonical folder)
+  - `Test-Path "apps/web/src/layers/aviation/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/aviation` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_01_aviation` → 18 nested source files + `index.ts` (PASS, `aircraft/` and `airports/` subfolders preserved)
+  - For each of the 18 moved files: `git diff HEAD~1:apps/web/src/layers/aviation/<file> apps/web/src/layers/layer_01_aviation/<file>` → no content diff (PASS, all moves are R100 renames)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-012, SR-013, SR-014, and now this SR-009 handoff entry. No regression is introduced.
+  - The `apps/api/src/routes/objects.ts` route file, `apps/api/src/routes/aviation/...` files, `apps/web/src/lib/useLayerRegistry.ts`, and `apps/web/src/lib/api.ts` (the API path strings) are intentionally not modified beyond the import-path update. The frontend rename does not change the backend route or the layer registry.
+  - The runtime strings preserved above (JS identifiers, layerId registry values, WebSocket URL, layer registration string, message types, API path strings, `new CustomDataSource('airport-layout')` Cesium data-source name, entity-id format `airport-${airport.id}`, object-type filter `objectType: 'airport'`, error message text, UI labels, UI disclaimer text, source comments, static asset paths `/aircraft-icons/...`, CSS class `legend-marker-airport`, internal sibling-file relative imports) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `aviation/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-009.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-014 local commit (`frontend/sr-014/energy-canonical-folder`, commit `90c3056`), the SR-012 local commit (`frontend/sr-012/space-canonical-folder`, commit `ead0cfb`), the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-009 before any integration or PR decision. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, SR-013, SR-012, SR-014, and SR-009 to remote and open PRs. After SR-009 is reviewed, the recommended next step is to decide the integration/full-validation step (run `python -m pytest tests/data -q` against a clean tree, run the full test suite, etc.) before any API or PR work. Per Spec 008, this completes Phase 4 (Frontend Layer Folder Canonicalization).
+
+---
+
 ### 2026-06-16T03:30:00Z — sr-014-energy-canonical-folder
 
 - Work order: SR-014

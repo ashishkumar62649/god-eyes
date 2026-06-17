@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-009 Aviation Canonicalization
+
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-009/aviation-canonical-folder
+- What changed: Renamed the frontend aviation layer folder to `layer_01_aviation` via `git mv`; preserved the `aircraft/` subfolder (2 files) and `airports/` subfolder (16 files) with all 18 nested files atomic-moved with no content change; added canonical `index.ts` re-exporting all 12 externally-imported public modules via `export *` (no default exports in the folder); recreated the `aviation/` shim folder with `index.ts` re-exporting from the canonical path; updated the 35 active frontend import sites across 16 files (`App.tsx` × 3, `CesiumGlobe.tsx` × 8, `Shell.tsx` × 3, `StatusPanel.tsx`, `AviationDetail.tsx` × 3, `DetailPanelRoot.tsx` × 2, `SourcesSection.tsx`, `detailTypes.ts`, `AirportImageSlider.tsx`, `AirportLayoutOverlayToggle.tsx`, `AirportMapPopup.tsx` × 2, `AirportOverview.tsx`, `AirportPublicProfilePanel.tsx`, `AviationControls.tsx` × 2, `layerPanelTypes.ts` × 2, `lib/api.ts` × 3). Runtime strings preserved as intentional: `layerId: 'layer_01_aviation'` registry value (already canonical), WebSocket URL `/ws/aviation/aircraft/live`, layer registration `'layer_01_aviation.live_aircraft'`, message types (`aircraft.ready/snapshot/delta/error`), API paths `/api/aviation/aircraft/...`, `/api/airports/...`, `/api/layers/layer_01_aviation/...`, `new CustomDataSource('airport-layout')` Cesium data source name, entity id format `airport-${airport.id}`, error messages, UI disclaimer text, source comments, CSS class `legend-marker-airport`, `/aircraft-icons/...` static asset paths, and internal React state/prop names like `aviationLayerActive`/`aviationStats`/`aviationFilters`/`airportCollection`/`airportMap` (JS identifiers, not file paths).
+- Validation: old `layers/aviation` import grep PASS (no output); canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
+- Known issues: None
+- Next: Reviewer Agent reviews SR-009; do not PR yet unless user explicitly decides; recommended next task after SR-009 review is to decide integration/full validation step before API or PR.
+
 ## 2026-06-16 - SR-014 Energy Canonicalization
 
 - Agent: Frontend Structure Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: old `layers/earth-events` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews SR-011; do not PR yet unless user explicitly decides; recommended next task after SR-011 review is SR-013 maritime canonicalization.
-
-## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files
-
-- Agent: Structure Cleanup Agent
-- Branch: chore/sr-021-retry-remove-redundant-gitkeep
-- What changed: Removed exactly 7 redundant .gitkeep placeholder files from non-empty frontend folders: `apps/web/src/layers/.gitkeep`, `aviation/.gitkeep`, `aviation/aircraft/.gitkeep`, `aviation/airports/.gitkeep`, `earth-events/.gitkeep`, `layer_02_borders_boundaries/.gitkeep`, `globe/.gitkeep`. This retry was run after SR-010S created the canonical borders folder, so the previous blocker (canonical folder missing) is resolved.
-- Validation: target gitkeep files no longer tracked; affected folders still contain tracked content; borders shim preserved; canonical export preserved; conflict-marker grep PASS; forbidden-area check PASS; source-code-change check PASS; git diff --check PASS
-- Known issues: None
-- Next: User / decision-control layer reviews local SR-021 commit and decides whether to push/open PR; recommended next task after SR-021 review is SR-011 earth-events canonicalization (lowest-risk per-layer move).

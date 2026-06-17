@@ -1,6 +1,6 @@
-import { AviationFilters, AVIATION_CATEGORIES } from '../../layers/aviation/airports/aviationCategories';
+import { AviationFilters, AVIATION_CATEGORIES } from '../../layers/layer_01_aviation/airports/aviationCategories';
 import type { AviationStats } from './layerPanelTypes';
-import type { LiveAircraftStatus } from '../../layers/aviation/aircraft/useLiveAircraftSocket';
+import type { LiveAircraftStatus } from '../../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
 
 const FILTER_KEYS: (keyof AviationFilters)[] = [
   'major', 'regional', 'local', 'heliport', 'seaplane', 'balloonport', 'unknown', 'closed',
