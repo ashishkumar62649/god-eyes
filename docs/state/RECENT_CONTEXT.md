@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-17 - API-POLICY-001 Public API Naming Policy
+
+- Agent: API Policy Documentation Agent
+- Branch: docs/api-policy-001-public-api-naming
+- What changed: Recorded the public API endpoint naming policy in `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` (slug map: `layer_07_weather` → `weather`, `layer_08_news_osint` → `news`, `layer_10_energy_infrastructure` → `energy`, etc.); updated `tasks.md` and `plan.md` to mark the "API endpoint path policy decision" entry as Decided instead of Blocked / Needs decision (implementation remains Pending, sequenced as API-IMP-001 → API-URL-001 → WEB-API-001 → API-URL-002 → API-SIZE-001 in the policy doc). Internal layer IDs remain in contracts, registry, internal code, tests, and the database.
+- Validation: branch and working tree clean (PASS); HEAD = `5bcb089`; only the 5 allowed files in `git diff --name-status` (new policy doc + tasks.md + plan.md + RECENT_CONTEXT + HANDOFF_LOG); `git diff --check` PASS; conflict-marker grep PASS; forbidden change check PASS (no apps/, services/, database/, packages/, tests/, docs/archive/, docs/control/, CURRENT_PROJECT_STATE, .specify/, .github/, or lockfiles); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (526/526 tests).
+- Known issues: None
+- Next: Reviewer Agent reviews API-POLICY-001; do not PR yet unless user explicitly decides; after API-POLICY-001 review, the next implementation work order is API-IMP-001 (entrypoint import normalization + pure shim removal) or API-URL-001 (clean slug endpoint aliases), per user / decision-control layer direction.
+
 ## 2026-06-16 - SR-016 Frontend Closure Docs Alignment
 
 - Agent: Documentation Alignment Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: old `layers/energy` import grep PASS (no output); canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews SR-014; do not PR yet unless user explicitly decides; recommended next task after SR-014 review is SR-009 aviation canonicalization (highest-risk per-layer move, do last).
-
-## 2026-06-16 - SR-012 Space Canonicalization
-
-- Agent: Frontend Structure Agent
-- Branch: frontend/sr-012/space-canonical-folder
-- What changed: Renamed the frontend space layer folder to `layer_05_space_satellites` via `git mv`; preserved the `satellites/` subfolder with all 4 nested files; added canonical `index.ts` re-exporting all 4 public modules; recreated the `space/` shim folder with `index.ts` re-exporting from the canonical path; updated the 16 active frontend import sites across 7 files. Runtime strings preserved as intentional: `layer_05_space_satellites` layerId registry values (already canonical), `/ws/space/satellites/live` WebSocket URL, `new CustomDataSource('space-satellites')` Cesium data source name, message types (`space.satellites.subscribe`, `space.satellites.snapshot`, `space.satellites.error`), source filter values (`celestrak`, `space-track`), CSS `justify-content: space-between`, font name `'JetBrains Mono'`, and internal React state/prop names like `spaceSatellitesLayerActive` (JS identifiers, not file paths).
-- Validation: old `layers/space` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests); conflict-marker grep PASS; git diff --check PASS
-- Known issues: None
-- Next: Reviewer Agent reviews SR-012; do not PR yet unless user explicitly decides; recommended next task after SR-012 review is SR-014 energy canonicalization.

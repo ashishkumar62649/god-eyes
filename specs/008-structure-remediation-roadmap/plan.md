@@ -73,13 +73,19 @@ at the top of `tasks.md`.
 
 ### Needs decision (snapshot)
 
-* **API endpoint path policy** — final decision on whether legacy
-  non-canonical endpoint paths are kept as compatibility aliases
-  after all canonicalization work is complete. **Blocked** until
-  a user / Orchestrator decision is made.
 * **Missing package ownership row in `PROJECT_CONTROL.md` Part 2
-  §8** — at least one row whose owner is undecided. **Blocked**
+  8** - at least one row whose owner is undecided. **Blocked**
   until a user / Orchestrator decision is made.
+* **API endpoint path policy** - **Decided** by API-POLICY-001 on
+  branch `docs/api-policy-001-public-api-naming` (parent
+  `5bcb089`). The full decision is recorded at
+  `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
+  Public API URLs use clean readable slugs; internal layer-number
+  IDs are not exposed in public URLs; existing paths remain
+  working until migration; implementation is sequenced as
+  `API-IMP-001` -> `API-URL-001` -> `WEB-API-001` -> `API-URL-002` ->
+  `API-SIZE-001`. **Implementation status remains Pending**; the
+  decision itself is no longer blocked.
 
 ### Planned later (snapshot)
 
@@ -978,19 +984,24 @@ These apply to every phase above:
 
 The recommended **execution order** for any remaining work is:
 
-1. **SR-016 docs closure alignment** — this branch; pending
-   reviewer review.
-2. **API route file-shape normalization** — final review pass for
+1. **SR-016 docs closure alignment** — pending reviewer review on
+   branch `docs/sr-016/frontend-closure-alignment`.
+2. **API endpoint path policy** — **Decided** by API-POLICY-001 on
+   branch `docs/api-policy-001-public-api-naming` (parent
+   `5bcb089`). The decision is recorded at
+   `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
+   Public API URLs use clean readable slugs; internal layer-number
+   IDs are not exposed in public URLs. Existing paths remain
+   working until migration. Implementation is sequenced in the
+   policy doc (Section 10).
+3. **API route file-shape normalization** — final review pass for
    consistency across the five split routes.
-3. **`TODO` / deprecated marker cleanup** — sweep in renamed
+4. **`TODO` / deprecated marker cleanup** — sweep in renamed
    folders and their canonical `index.ts` re-export modules.
-4. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
+5. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
    plan a split before any further renderer-layer canonicalization.
-5. **Missing package ownership row decision** — final decision
+6. **Missing package ownership row decision** — final decision
    on the undecided `PROJECT_CONTROL.md` Part 2 §8 ownership row.
-6. **API endpoint path policy** — final decision on whether
-   legacy non-canonical endpoint paths are kept as compatibility
-   aliases after all canonicalization work is complete.
 
 This list is the **current remaining-work queue** after the
 frontend reconstruction is closed. The historical execution order

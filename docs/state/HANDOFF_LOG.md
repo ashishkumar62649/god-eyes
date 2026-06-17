@@ -1,5 +1,59 @@
 
-### 2026-06-16T06:00:00Z — sr-016-frontend-closure-alignment
+### 2026-06-17T00:00:00Z — api-policy-001-public-api-naming
+
+- Work order: API-POLICY-001
+- Agent: API Policy Documentation Agent
+- Branch: `docs/api-policy-001-public-api-naming`
+- Parent: `5bcb089 docs(spec): close frontend reconstruction status`
+- Reviewer decision: PENDING (agent-only local docs-only handoff; no source code changes; no endpoint changes)
+- Reason: The API audit (API-001) and the API planning report (API-PLAN-001) confirmed that the API works and tests pass, but the public endpoint URL surface mixes clean domain paths, `/api/layers/<layerId>/...` paths that expose internal IDs, legacy `/api/<domain>/...` paths, and airport-keyed `/api/airports/:airportId/...` paths. The user / decision-control layer has now made the naming direction clear: public API URLs must use clean readable slugs, not internal layer-number IDs. This work order records that decision as a binding policy **before** any endpoint implementation begins. It is documentation / policy only. No endpoint path, response shape, or source file is changed.
+- Goal: Document the public API endpoint naming policy. Mark the "API endpoint path policy decision" entry in `tasks.md` and `plan.md` as Decided (implementation remains Pending). Sequence the implementation work for future work orders.
+- Files updated (5):
+  1. `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` — **created**. Contains the slug map (e.g. `layer_07_weather` → `weather`, `layer_08_news_osint` → `news`, `layer_10_energy_infrastructure` → `energy`, `layer_01_aviation` → `aviation`, `layer_02_borders_boundaries` → `borders-boundaries`, `layer_03_earth_events` → `earth-events`, `layer_05_space_satellites` → `space`, `layer_06_maritime` → `maritime`), the preferred future public URL shape (e.g. `GET /api/layers/aviation/aircraft/latest`, `GET /api/layers/weather/current`, `GET /api/layers/news/items`, `GET /api/layers/energy/infrastructure`), the families that stay separate (`/api/airports/:airportId/...`, `/ws/aviation/aircraft/live`, `/ws/space/satellites/live`, `/api/health`, `/api/layers` registry endpoints), the transitional state, the compatibility policy (no endpoint removal in the same work order that introduces a replacement; old paths stay as compatibility aliases until frontend migration and real runtime validation), the API folder naming policy (use domain names like `weather/`, `news/`, `maritime/`, `energy/infrastructure/`, not `layer_07_weather/` etc.), the shim policy (remove pure internal re-export shims when their importers move; do not delete mixed-role files like `apps/api/src/routes/space/satellites.ts` as if they were shims), the file-size policy (split only on responsibility mixing, not on line count), the API boundary policy (API work is not fetcher / normalizer / ingestion work; the lanes stay separate), and the migration sequence (`API-POLICY-001` → `API-IMP-001` → `API-URL-001` → `WEB-API-001` → `API-URL-002` → `API-SIZE-001`).
+  2. `specs/008-structure-remediation-roadmap/tasks.md` — in the auxiliary work items list, the entry "API endpoint path policy decision (legacy vs canonical paths) — **Blocked / Needs decision**" was updated to "**Decided** by API-POLICY-001" with a pointer to the new policy doc and the migration sequence. In the "Remaining recommended order" list, item 6 (API endpoint path policy) was updated from "final decision needed on whether legacy non-canonical endpoint paths are kept as compatibility aliases" to "Decided by API-POLICY-001" with the same pointer.
+  3. `specs/008-structure-remediation-roadmap/plan.md` — in the "Needs decision (snapshot)" section, the API endpoint path policy line was updated from "Blocked until a user / Orchestrator decision is made" to "Decided by API-POLICY-001 (commit on branch `docs/api-policy-001-public-api-naming`, parent `5bcb089`)" with a summary of the decision. In the recommended execution order list, item 6 was updated to "Decided by API-POLICY-001" with the policy doc pointer, and item 1 was clarified as "pending reviewer review on branch `docs/sr-016/frontend-closure-alignment`".
+  4. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-17 - API-POLICY-001 Public API Naming Policy` and removed the oldest entry (`## 2026-06-16 - SR-012 Space Canonicalization`) to keep the rolling window at 5 entries. `HANDOFF_LOG.md` is not affected by the rolling-window rule and remains append-only.
+  5. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only).
+- Decision summary (full text in the policy doc):
+  * Public API URLs use clean readable domain slugs (`aviation`, `weather`, `news`, `maritime`, `energy`, `space`, `borders-boundaries`, `earth-events`).
+  * Public API URLs do **not** expose internal layer-number IDs (`layer_07_weather`, etc.).
+  * Internal layer IDs continue to exist in contracts, the layer registry, internal TypeScript constants, tests, log messages, and database records.
+  * Existing paths remain working during migration; new clean slug aliases are added before old paths are removed.
+  * Frontend migration is a separate coordinated work order (`WEB-API-001`).
+- API boundary summary:
+  * `apps/api/src/` may not fetch external source data, normalize raw payloads, or run scheduled ingestion.
+  * `apps/api/src/` may read database records and return responses.
+  * `apps/api/src/` may record a fetch-run request/status but must not perform the external fetch.
+  * Fetching belongs in `services/fetch-orchestrator/`; normalization belongs in `services/normalizer/`; ingestion belongs in `database/ingestion/`.
+- Shim policy summary:
+  * Pure internal re-export shims are removed when their importers move.
+  * Mixed-role files (e.g. `apps/api/src/routes/space/satellites.ts`, which holds both a REST re-export and a WebSocket broadcaster) are **not** shims and must not be deleted as such.
+  * Shim removals are small, reviewed work orders that do not change endpoint behavior, response shape, registration order, or path.
+- Migration sequence: `API-POLICY-001` (this) → `API-IMP-001` (entrypoint import normalization + pure shim removal) → `API-URL-001` (clean slug aliases alongside old paths) → `WEB-API-001` (frontend migration to clean URLs) → `API-URL-002` (remove or formally keep old aliases after real runtime validation) → `API-SIZE-001` (split only on responsibility mixing). The fetcher / normalizer canonical source structure (Spec 008 SR-015) and the database migration documentation cleanup (Spec 008 SR-016) are independent lanes and remain Planned later.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `docs/api-policy-001-public-api-naming` (PASS)
+  - `git branch --show-current` → `docs/api-policy-001-public-api-naming` (PASS)
+  - `git log -14 --oneline` → HEAD = `5bcb089 docs(spec): close frontend reconstruction status` (PASS)
+  - `git grep -n -E "/api/(layers|aviation|borders|earth-events|space|energy|airports|maritime|weather|news)" -- apps/api apps/web` → confirms current mixed state: legacy domain paths, `/api/layers/<layerId>/...` paths, airport-keyed paths, and WebSocket paths all exist; the policy is informed by this current state (PASS, classified)
+  - `git grep -nE "layer_0[1235678]_aviation|layer_10_energy_infrastructure" -- apps/api` → confirms internal IDs remain in `apps/api/src/routes/layers.ts` `LAYER_REGISTRY` and as `LAYER_ID` constants in `weather/index.ts`, `news/index.ts`, `maritime/{index,mapper,repository}.ts`, `energy/infrastructure/index.ts` (PASS, classified — all internal; no public path strings use these IDs)
+  - `Test-Path -LiteralPath "specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md"` (pre-edit) → `False` (PASS, file was created)
+  - `git diff --name-status` → only the 5 expected files (1 added, 4 modified) (PASS)
+  - `git diff --stat` → confirms small docs-only scope (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr` for forbidden areas/lockfiles → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `pnpm --filter api build` → succeeded (PASS)
+  - `pnpm --filter api test` → succeeded (PASS, 18 test files, 526 tests)
+- Known issues / caveats:
+  - **Implementation is not complete.** The decision is complete; the migration is sequenced in the policy doc but has not started. Any implementation work order that adds a clean slug endpoint must follow the compatibility policy in Section 5 of the policy doc (keep the old path working as an alias until `WEB-API-001` lands and real runtime validation confirms parity).
+  - **Naming conflict between spec and active work is not relevant here.** The Spec 008 SR-015 / SR-016 backend work packages (fetcher / normalizer canonical source structure and database migration documentation cleanup) are still **Planned later** and unrelated to this policy. The active `frontend/sr-015/final-layer-shape-cleanup` and `docs/sr-016/frontend-closure-alignment` work items are also unrelated. API-POLICY-001 is a new work order in the API documentation lane.
+  - **`PROJECT_CONTROL.md` Part 2 §8 ownership row decision is still Blocked / Needs decision.** This policy does not resolve that decision. The migration sequence in Section 10 references the API Agent lane but does not pre-assign per-task ownership beyond what `PROJECT_CONTROL.md` already says.
+  - **No source code was changed.** No endpoint was added, removed, or renamed. No shim was removed. No fetcher, normalizer, or ingestion code was touched.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of `5bcb089`.
+- Next step: Reviewer Agent should review API-POLICY-001. The user / decision-control layer should decide whether to push the branch and open a PR. After API-POLICY-001 is approved, the next implementation work order is `API-IMP-001` (entrypoint import normalization + pure shim removal) or `API-URL-001` (clean slug endpoint aliases), per user / decision-control layer direction. Do not start either implementation work order until the user explicitly approves it.
+
+---
+
 
 - Work order: SR-016
 - Agent: Documentation Alignment Agent

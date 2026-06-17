@@ -107,7 +107,7 @@ not delete them.
   Frontend Phase 4 is closed, so this auxiliary item is complete
   from a frontend perspective.
 * API route file-shape normalization (final review pass) — **Pending**.
-* API endpoint path policy decision (legacy vs canonical paths) — **Blocked / Needs decision**.
+* API endpoint path policy decision (legacy vs canonical paths) — **Decided** by API-POLICY-001 (commit on branch `docs/api-policy-001-public-api-naming`, parent `5bcb089`); the decision is recorded in the new file `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` (slug map, preferred future URL shape, compatibility policy, API folder naming policy, shim policy, file-size policy, API boundary policy, migration sequence). **Implementation remains Pending** and is sequenced as `API-IMP-001` (entrypoint import normalization + pure shim removal) → `API-URL-001` (clean slug aliases alongside old paths) → `WEB-API-001` (frontend migration) → `API-URL-002` (remove or formally keep old aliases after real runtime validation) → `API-SIZE-001` (split only on responsibility mixing).
 * `TODO` / deprecated marker cleanup in renamed layer folders — **Pending**.
 * `CesiumGlobe` split planning — **Planned later**.
 * Missing package ownership row decision in `PROJECT_CONTROL.md` Part 2 §8 — **Blocked / Needs decision**.
@@ -134,9 +134,16 @@ The remaining open work items are documented above:
    Part 2 §8 ownership matrix has at least one row whose owner is
    undecided; needs a user / Orchestrator decision before any new
    work order references it.
-6. **API endpoint path policy** — final decision needed on whether
-   legacy non-canonical endpoint paths are kept as compatibility
-   aliases after all canonicalization work is complete.
+6. **API endpoint path policy** — **Decided** by API-POLICY-001
+   on branch `docs/api-policy-001-public-api-naming` (parent
+   `5bcb089`). The decision is recorded at
+   `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
+   Public API URLs use clean readable slugs (`aviation`, `weather`,
+   `energy`, etc.); internal layer-number IDs are not exposed in
+   public URLs. Internal IDs continue to exist in contracts, the
+   layer registry, and internal code. Existing paths remain
+   working until migration. Implementation is sequenced in the
+   policy doc (Section 10).
 
 > The order above is a recommendation. It is intentionally
 > **policy / decision / cleanup items grouped together** since
