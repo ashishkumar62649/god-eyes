@@ -46,7 +46,102 @@
 - Push/PR/merge status: not performed by agent. Branch is local only.
 - Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
 
-### 2026-06-17T03:00:00Z — api-url-002-remaining-slug-aliases
+### 2026-06-17T04:00:00Z — web-api-002-remaining-clean-url-callers
+
+- Work order: WEB-API-002
+- Agent: Web/API Migration Agent
+- Branch: `web/web-api-002-remaining-clean-url-callers`
+- Parent: `8002bcf feat(api): add remaining layer slug route aliases` (API-URL-002)
+- Reviewer decision: PENDING (agent-only local handoff; no apps/api/services/database/packages/specs changes)
+- Reason: API-URL-002 added clean public slug aliases for aviation, borders-boundaries, earth-events, space, maritime, and energy. WEB-API-002 completes the frontend half of the migration loop for these 6 endpoint groups, matching the pattern proven by WEB-API-001 for Weather and News. The frontend has no Space REST caller (only a WebSocket broadcaster, which is intentionally not aliased and is preserved unchanged). Aviation `/api/layers/layer_01_aviation/objects` paths remain unchanged because no clean alias was added for that endpoint in API-URL-002.
+- Goal: Migrate the frontend REST API callers for aviation, borders-boundaries, earth-events, space, maritime, and energy to the clean public slug URLs added in API-URL-002. Preserve internal layer IDs for folder identity, UI registration, registry keys, and data-shape fields. Do not touch WebSocket paths. Do not modify backend code. Do not remove old backend paths.
+- Files updated (4):
+  1. `apps/web/src/lib/api.ts` — Updated 4 functions to use clean slug URLs:
+     - `fetchEarthEventsLatest`: `/api/earth-events/latest` → `/api/layers/earth-events/latest`
+     - `fetchBordersBoundariesCountries`: `/api/borders-boundaries/countries` → `/api/layers/borders-boundaries/countries`
+     - `fetchLiveAircraft`: `/api/aviation/aircraft/latest` → `/api/layers/aviation/aircraft/latest`
+     - `fetchAircraftDetail`: `/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}` → `/api/layers/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`
+     No other functions in `lib/api.ts` were modified. The aviation `/api/layers/layer_01_aviation/objects` callers (`fetchAirports`, `fetchAviationLayerObjects`, `fetchAviationPreload`, `fetchAirportDetail`) are intentionally NOT modified — no clean alias was added for those paths in API-URL-002.
+  2. `apps/web/src/layers/layer_06_maritime/maritimeApi.ts` — Added module-local `const MARITIME_PUBLIC_SLUG = 'maritime';` and changed 3 URL strings:
+     - `fetchMaritimeObjects`: `/api/layers/layer_06_maritime/objects` → `/api/layers/${MARITIME_PUBLIC_SLUG}/objects`
+     - `fetchVesselDetail`: `/api/layers/layer_06_maritime/objects/${mmsi}` → `/api/layers/${MARITIME_PUBLIC_SLUG}/objects/${mmsi}`
+     - `fetchMaritimeStats`: `/api/layers/layer_06_maritime/stats` → `/api/layers/${MARITIME_PUBLIC_SLUG}/stats`
+     No other maritime files (validation, mapper, types, etc.) were modified. Internal `layer_06_maritime` references in registry keys, data fields, and folder names are preserved unchanged.
+  3. `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` — Added module-local `const ENERGY_PUBLIC_SLUG = 'energy';` and changed 1 URL string:
+     - `useEnergyInfrastructure` (inside `fetchData`): `/api/energy/infrastructure` → `/api/layers/${ENERGY_PUBLIC_SLUG}/infrastructure`
+     No other energy files modified. Internal `layer_10_energy_infrastructure` references preserved unchanged.
+  4. `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts` — Updated 3 exact-URL assertions at lines 55, 84, 118 from `/api/layers/layer_06_maritime/objects...` to `/api/layers/maritime/objects...`. All other 8 pre-existing tests unchanged. No test was weakened or removed.
+- Caller URLs changed by group:
+  - **Aviation (2):**
+    - `fetchLiveAircraft` URL: `/api/aviation/aircraft/latest` → `/api/layers/aviation/aircraft/latest`
+    - `fetchAircraftDetail` URL template: `/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}` → `/api/layers/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`
+  - **Borders-boundaries (1):**
+    - `fetchBordersBoundariesCountries` URL: `/api/borders-boundaries/countries` → `/api/layers/borders-boundaries/countries`
+  - **Earth-events (1):**
+    - `fetchEarthEventsLatest` URL: `/api/earth-events/latest` → `/api/layers/earth-events/latest`
+  - **Space (0):** No frontend REST caller exists for Space. The frontend only uses `useSpaceSatellitesSocket.ts` for the WebSocket `/ws/space/satellites/live` path, which is intentionally NOT aliased and is preserved unchanged.
+  - **Maritime (3):**
+    - `fetchMaritimeObjects` URL: `/api/layers/layer_06_maritime/objects` → `/api/layers/maritime/objects`
+    - `fetchVesselDetail` URL template: `/api/layers/layer_06_maritime/objects/${mmsi}` → `/api/layers/maritime/objects/${mmsi}`
+    - `fetchMaritimeStats` URL: `/api/layers/layer_06_maritime/stats` → `/api/layers/maritime/stats`
+    - The 4th maritime alias added in API-URL-002 (`/api/layers/maritime/vessels/:mmsi/positions`) has no frontend caller and therefore no migration.
+  - **Energy (1):**
+    - `useEnergyInfrastructure` URL: `/api/energy/infrastructure` → `/api/layers/energy/infrastructure`
+    - The 3 other energy aliases added in API-URL-002 (categories, sources, :featureId) have no frontend caller and therefore no migration.
+- Internal layer IDs preserved: yes. `WEATHER_LAYER_ID`, `NEWS_LAYER_ID`, `MARITIME_PUBLIC_SLUG` / maritime's folder identity (`layer_06_maritime`), `ENERGY_PUBLIC_SLUG` / energy's folder identity (`layer_10_energy_infrastructure`), and all 104 internal layer ID references across the frontend are unchanged.
+- Backend route changes: none. `git diff -- apps/api` → 0 lines.
+- Old backend paths removed: none. All 11 old paths from API-URL-002 are still registered by the backend.
+- Response shapes changed: none. Backend unchanged.
+- WebSocket paths changed: no. `/ws/aviation/aircraft/live` and `/ws/space/satellites/live` are unchanged in `useLiveAircraftSocket.ts` and `useSpaceSatellitesSocket.ts` respectively.
+- Frontend tests changed: yes (only `maritime.test.ts`; 3 URL assertions updated).
+- Fetcher / normalizer / ingestion touched: no.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `web/web-api-002-remaining-clean-url-callers` (PASS)
+  - `git branch --show-current` → `web/web-api-002-remaining-clean-url-callers` (PASS)
+  - `git log -19 --oneline` → HEAD = `8002bcf feat(api): add remaining layer slug route aliases` (PASS)
+  - Pre-edit caller inventory:
+    - `apps/web/src/lib/api.ts` → 4 legacy paths to migrate: `/api/earth-events/latest`, `/api/borders-boundaries/countries`, `/api/aviation/aircraft/latest`, `/api/aviation/aircraft/...`
+    - `apps/web/src/layers/layer_06_maritime/maritimeApi.ts` → 3 legacy paths: `/api/layers/layer_06_maritime/objects`, `/api/layers/layer_06_maritime/objects/...`, `/api/layers/layer_06_maritime/stats`
+    - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` → 1 legacy path: `/api/energy/infrastructure`
+    - `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts` → 3 URL assertions at lines 55, 84, 118
+  - Post-edit route URL verification:
+    - `git grep /api/aviation/aircraft|/api/borders-boundaries/countries|/api/earth-events/latest|/api/space/satellites|/api/layers/layer_06_maritime|/api/energy/infrastructure -- apps/web/src` → 0 lines (PASS, no active REST request paths use the old routes)
+    - `git grep /api/layers/aviation|/api/layers/borders-boundaries|/api/layers/earth-events|/api/layers/space|/api/layers/maritime|/api/layers/energy -- apps/web/src` → 7 matches (PASS: 4 in `lib/api.ts`, 3 in `maritime.test.ts`)
+    - `git grep /ws/aviation|/ws/space|/ws/ -- apps/web/src` → 2 matches (PASS: WebSocket paths unchanged)
+  - `git diff -- apps/api` → 0 lines (PASS, backend untouched)
+  - `git diff -- apps/web/src/layers/layer_07_weather apps/web/src/layers/layer_08_news_osint` → 0 lines (PASS, Weather/News folders untouched)
+  - `git diff -- services` → 0 lines (PASS)
+  - `git diff -- database` → 0 lines (PASS)
+  - `git diff -- packages` → 0 lines (PASS)
+  - `git diff -- specs` → 0 lines (PASS)
+  - `git diff -- docs/control` → 0 lines (PASS)
+  - `git diff -- docs/state/CURRENT_PROJECT_STATE.md` → 0 lines (PASS)
+  - `git diff --name-status` → exactly 4 files (2 source + 1 test + 1 lib/api.ts); docs added at staging (PASS)
+  - `git diff --stat` → 4 files changed, small focused diff (PASS)
+  - `git diff --check` → no output (PASS)
+  - Forbidden change check (`git diff --name-only | findstr` against `apps/api/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/web; npx tsc --noEmit` → exit 0 (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) — count unchanged from before (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS)
+  - `cd apps/api; npx vitest run` (= `pnpm --filter api test`) → 18 files passed (18), 560 tests passed (560) — unchanged (PASS)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (no frontend source change beyond URL constants; running web build would emit `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the working tree per the API-IMP-001 / API-POLICY-001 / API-URL-001 / WEB-API-001 / API-URL-002 baseline)
+  - `python -m pytest tests/data -q` → SKIPPED on dirty docs (would fail the pre-existing scope-guard tests per the API-001 / API-PLAN-001 baseline). Classified as non-blocking per task instructions.
+- Known issues / caveats:
+  - **Space has no frontend REST caller.** The Space layer is consumed in the frontend only via the WebSocket broadcaster `/ws/space/satellites/live`. The 3 clean REST aliases added by API-URL-002 for Space (`/api/layers/space/satellites`, `/api/layers/space/satellites/categories`, `/api/layers/space/satellites/:satelliteId`) therefore have no frontend consumer to migrate. The Space WebSocket is preserved unchanged. A future frontend feature that calls Space REST endpoints will use the clean slugs.
+  - **Maritime vessels/:mmsi/positions and energy categories/sources/:featureId have no frontend caller.** API-URL-002 added 4 maritime aliases and 4 energy aliases; only 3 maritime paths and 1 energy path have frontend consumers today. The remaining aliases are available for future use.
+  - **Aviation `/api/layers/layer_01_aviation/objects` paths left as-is.** API-URL-002 did not add a clean alias for the aviation objects endpoint. The frontend's `fetchAirports`, `fetchAviationLayerObjects`, `fetchAviationPreload`, and `fetchAirportDetail` continue to use `/api/layers/layer_01_aviation/objects/...`. A future work order could add a clean alias for that endpoint if desired.
+  - **`public-profile/service.ts:122` TODO marker is unchanged.** This is a future-integration placeholder, not actual fetcher code. The API boundary stays clean.
+  - **No real backend runtime validation was performed by this agent.** Frontend tests use mocked `fetch()` results. The end-to-end migration loop will only be proven end-to-end when the user / decision-control layer runs the dev server and exercises the frontend against the live API.
+  - **Old backend paths remain registered** as compatibility aliases per API-URL-002. The next decision is whether to remove them (`API-URL-003`) or formally keep them as compatibility paths (`API-COMPAT-001`).
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of API-URL-002 (`8002bcf`).
+- Next step: Reviewer Agent should review WEB-API-002. The user / decision-control layer should decide whether to push the branch and open a PR. After WEB-API-002 is approved, the next decision is the old-path policy:
+  - **API-URL-003** — remove old compatibility paths (the legacy layer-ID / domain URLs) once frontend migration is confirmed; or
+  - **API-COMPAT-001** — formally keep old paths as compatibility aliases for now.
+  Do not start either work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
 
 - Work order: API-URL-002
 - Agent: API Implementation Agent

@@ -34,14 +34,14 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
-## 2026-06-17 - API-IMP-001 API Import Cleanup and Pure Shim Removal
+## 2026-06-17 - WEB-API-002 Remaining Clean URL Migration
 
-- Agent: API Implementation Agent
-- Branch: api/api-imp-001-import-shim-cleanup
-- What changed: Updated `apps/api/src/index.ts` to import pure folder route entrypoints directly (`./routes/weather/index.js`, `./routes/news/index.js`, `./routes/maritime/index.js`, `./routes/energy/infrastructure/index.js`); deleted 4 redundant pure internal re-export shim files (`weather.ts`, `news.ts`, `maritime.ts`, `energy/infrastructure.ts`); updated 4 test files that imported the deleted shim paths to import from folder indexes instead. Did not touch endpoint paths, response shapes, frontend callers, `objects.ts`, `space/satellites.ts`, fetchers, normalizers, or ingestion.
-- Validation: branch clean (PASS); `git diff --name-status` shows 5M + 4D (PASS); `git diff --check` PASS; conflict-marker grep PASS; forbidden change check PASS; endpoint path diff check PASS (no `/api/` or `/ws/` string changes); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (526/526 tests); `pnpm --filter web test` PASS (64 tests).
+- Agent: Web/API Migration Agent
+- Branch: web/web-api-002-remaining-clean-url-callers
+- What changed: Migrated remaining frontend REST API callers to clean public slug URLs added in API-URL-002. 6 frontend caller paths updated: `fetchEarthEventsLatest`, `fetchBordersBoundariesCountries`, `fetchLiveAircraft`, `fetchAircraftDetail` in `apps/web/src/lib/api.ts` (4 paths); `fetchMaritimeObjects`, `fetchVesselDetail`, `fetchMaritimeStats` in `apps/web/src/layers/layer_06_maritime/maritimeApi.ts` (3 paths); `useEnergyInfrastructure` in `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` (1 path). Each caller file introduced a local `*_PUBLIC_SLUG` constant matching the Weather/News pattern. Maritime test `maritime.test.ts` had 3 URL assertions updated to the clean slugs. Internal layer IDs preserved unchanged for folder identity, UI registration, registry keys, and data-shape fields. Space has no frontend REST caller (only WebSocket via `useSpaceSatellitesSocket.ts`, intentionally NOT touched). Aviation `/api/layers/layer_01_aviation/objects` paths left as-is (no clean alias was added in API-URL-002 for that endpoint; the work order scoped to the aircraft endpoints only). WebSocket paths unchanged. Backend route files not touched.
+- Validation: web test suite 64/64 PASS (3 files, unchanged count); web tsc --noEmit exit 0; API build exit 0; full API test suite 560/560 PASS; backend diff 0 lines; services/database/packages/specs/docs/control/CURRENT_PROJECT_STATE diffs 0 lines; Weather/News folders diff 0 lines; WebSocket paths unchanged; old frontend REST paths gone from apps/web/src; clean slug paths present.
 - Known issues: None
-- Next: Reviewer Agent reviews API-IMP-001; do not PR yet unless user explicitly decides; after approval, next implementation should be API-URL-001 (clean slug endpoint aliases) or API-IMP-002 (objects shim audit), per user direction.
+- Next: Reviewer Agent reviews WEB-API-002; do not PR yet unless user explicitly decides; after WEB-API-002 review, the next decision is the old-path policy: API-URL-003 (remove old compatibility paths after full frontend migration) or API-COMPAT-001 (formally keep old paths as compatibility aliases for now), per user / decision-control layer direction.
 
 ## 2026-06-17 - API-URL-002 Remaining Layer Slug Aliases
 
