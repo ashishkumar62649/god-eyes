@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { energyInfrastructureRoutes } from '../src/routes/energy/infrastructure.js';
+import { energyInfrastructureRoutes } from '../src/routes/energy/infrastructure/index.js';
 import { query } from '../src/lib/db.js';
 
 const MOCK_FEATURES = [

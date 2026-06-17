@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { maritimeRoutes } from '../src/routes/maritime.js';
+import { maritimeRoutes } from '../src/routes/maritime/index.js';
 import { query } from '../src/lib/db.js';
 
 const NOW = new Date('2026-06-09T12:05:00.000Z');
@@ -618,7 +618,7 @@ describe('Maritime API', () => {
   // 24. No frontend imports
   it('24. No frontend imports in maritime route (only db + contracts)', async () => {
     const fs = await import('fs');
-    const source = fs.readFileSync('src/routes/maritime.ts', 'utf-8');
+    const source = fs.readFileSync('src/routes/maritime/index.ts', 'utf-8');
     expect(source).not.toContain('frontend');
     expect(source).not.toContain('components');
     expect(source).not.toContain('React');

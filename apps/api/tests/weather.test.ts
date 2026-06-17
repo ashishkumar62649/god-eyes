@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { weatherRoutes } from '../src/routes/weather.js';
+import { weatherRoutes } from '../src/routes/weather/index.js';
 import { query } from '../src/lib/db.js';
 
 const NOW = new Date('2026-06-10T12:00:00.000Z');
@@ -783,7 +783,7 @@ describe('Weather API', () => {
   // 34. No frontend imports
   it('34. No frontend imports in weather route', async () => {
     const fs = await import('fs');
-    const source = fs.readFileSync('src/routes/weather.ts', 'utf-8');
+    const source = fs.readFileSync('src/routes/weather/index.ts', 'utf-8');
     expect(source).not.toContain('frontend');
     expect(source).not.toContain('components');
     expect(source).not.toContain('React');

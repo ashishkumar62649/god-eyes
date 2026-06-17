@@ -1,4 +1,51 @@
 
+### 2026-06-17T00:00:00Z — api-imp-001-import-shim-cleanup
+
+- Work order: API-IMP-001
+- Agent: API Implementation Agent
+- Branch: `api/api-imp-001-import-shim-cleanup`
+- Parent: `a632a95 docs(api): record public endpoint naming policy`
+- Reviewer decision: PENDING
+- Reason: API-POLICY-001 is approved. The pure internal route re-export shims that existed only to support old `apps/api/src/index.ts` imports are no longer needed now that imports point directly to folder route entrypoints. Removing them eliminates dead code and simplifies the codebase. This is the first implementation step in the API-POLICY-001 migration sequence.
+- Goal: Update `apps/api/src/index.ts` to import pure folder route entrypoints directly and delete the redundant pure internal shim files. Preserve runtime behavior, endpoint paths, response shapes, and frontend callers.
+- Files changed (9):
+  1. `apps/api/src/index.ts` — updated 4 import paths from shim files to folder indexes: `./routes/energy/infrastructure.js` → `./routes/energy/infrastructure/index.js`, `./routes/maritime.js` → `./routes/maritime/index.js`, `./routes/weather.js` → `./routes/weather/index.js`, `./routes/news.js` → `./routes/news/index.js`.
+  2. `apps/api/src/routes/weather.ts` — **deleted** (pure re-export shim: comment + `export { weatherRoutes } from './weather/index.js'`).
+  3. `apps/api/src/routes/news.ts` — **deleted** (pure re-export shim: comment + `export { newsRoutes } from './news/index.js'`).
+  4. `apps/api/src/routes/maritime.ts` — **deleted** (pure re-export shim: comment + `export { maritimeRoutes } from './maritime/index.js'`).
+  5. `apps/api/src/routes/energy/infrastructure.ts` — **deleted** (pure re-export shim: comment + `export { energyInfrastructureRoutes } from './infrastructure/index.js'`).
+  6. `apps/api/tests/weather.test.ts` — updated import from `../src/routes/weather.js` to `../src/routes/weather/index.js`; updated `fs.readFileSync` path from `src/routes/weather.ts` to `src/routes/weather/index.ts`.
+  7. `apps/api/tests/layer_08_news_osint.test.ts` — updated import from `../src/routes/news.js` to `../src/routes/news/index.js`; updated `fs.readFileSync` path from `src/routes/news.ts` to `src/routes/news/index.ts`.
+  8. `apps/api/tests/maritime.test.ts` — updated import from `../src/routes/maritime.js` to `../src/routes/maritime/index.js`; updated `fs.readFileSync` path from `src/routes/maritime.ts` to `src/routes/maritime/index.ts`.
+  9. `apps/api/tests/energy-infrastructure.test.ts` — updated import from `../src/routes/energy/infrastructure.js` to `../src/routes/energy/infrastructure/index.js`.
+- Shim classification:
+  * `weather.ts` — pure shim (comment + single re-export). Deleted.
+  * `news.ts` — pure shim (comment + single re-export). Deleted.
+  * `maritime.ts` — pure shim (comment + single re-export). Deleted.
+  * `energy/infrastructure.ts` — pure shim (comment + single re-export). Deleted.
+  * `space/satellites.ts` — mixed-role (re-export + 118-line WebSocket broadcaster). **Not touched.**
+  * `objects.ts` — multi-export (7 exports including types). **Not touched.**
+- Endpoint path status: unchanged. No `/api/` or `/ws/` string literals were modified.
+- Response shapes changed: no.
+- Frontend callers changed: no.
+- Fetcher/normalizer/ingestion touched: no.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `api/api-imp-001-import-shim-cleanup` (PASS)
+  - `git branch --show-current` → `api/api-imp-001-import-shim-cleanup` (PASS)
+  - `git log -15 --oneline` → HEAD = `a632a95 docs(api): record public endpoint naming policy` (PASS)
+  - `git diff --name-status` → 5M + 4D: index.ts, 4 test files modified; 4 shim files deleted (PASS)
+  - `git diff --stat` → 11 insertions, 21 deletions across 9 files (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr` for forbidden areas → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)"` → no output (PASS)
+  - `git diff -- apps/api/src | Select-String "/api/|/ws/"` → no output (no endpoint path changes) (PASS)
+  - `pnpm --filter api build` → succeeded (PASS)
+  - `pnpm --filter api test` → succeeded (PASS, 18 test files, 526 tests)
+  - `pnpm --filter web test` → succeeded (PASS, 3 test files, 64 tests)
+- Known issues / caveats: None.
+- Push/PR/merge status: not performed by agent. Branch is local only.
+- Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
+
 ### 2026-06-17T00:00:00Z — api-policy-001-public-api-naming
 
 - Work order: API-POLICY-001

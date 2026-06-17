@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { newsRoutes } from '../src/routes/news.js';
+import { newsRoutes } from '../src/routes/news/index.js';
 import { query } from '../src/lib/db.js';
 
 const LAYER_ID = 'layer_08_news_osint';
@@ -695,7 +695,7 @@ describe('Layer 08 News & OSINT API', () => {
   // 27. No frontend/scheduler/source scope leaks
   it('27. No frontend imports in news route', async () => {
     const fs = await import('fs');
-    const source = fs.readFileSync('src/routes/news.ts', 'utf-8');
+    const source = fs.readFileSync('src/routes/news/index.ts', 'utf-8');
     expect(source).not.toContain('frontend');
     expect(source).not.toContain('components');
     expect(source).not.toContain('React');

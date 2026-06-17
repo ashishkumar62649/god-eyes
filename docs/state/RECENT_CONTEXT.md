@@ -1,7 +1,7 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 This file is the short rolling context for agents.
 
@@ -33,6 +33,15 @@ receive the **complete** handoff entry after every completed task.
 ```
 
 ---
+
+## 2026-06-17 - API-IMP-001 API Import Cleanup and Pure Shim Removal
+
+- Agent: API Implementation Agent
+- Branch: api/api-imp-001-import-shim-cleanup
+- What changed: Updated `apps/api/src/index.ts` to import pure folder route entrypoints directly (`./routes/weather/index.js`, `./routes/news/index.js`, `./routes/maritime/index.js`, `./routes/energy/infrastructure/index.js`); deleted 4 redundant pure internal re-export shim files (`weather.ts`, `news.ts`, `maritime.ts`, `energy/infrastructure.ts`); updated 4 test files that imported the deleted shim paths to import from folder indexes instead. Did not touch endpoint paths, response shapes, frontend callers, `objects.ts`, `space/satellites.ts`, fetchers, normalizers, or ingestion.
+- Validation: branch clean (PASS); `git diff --name-status` shows 5M + 4D (PASS); `git diff --check` PASS; conflict-marker grep PASS; forbidden change check PASS; endpoint path diff check PASS (no `/api/` or `/ws/` string changes); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (526/526 tests); `pnpm --filter web test` PASS (64 tests).
+- Known issues: None
+- Next: Reviewer Agent reviews API-IMP-001; do not PR yet unless user explicitly decides; after approval, next implementation should be API-URL-001 (clean slug endpoint aliases) or API-IMP-002 (objects shim audit), per user direction.
 
 ## 2026-06-17 - API-POLICY-001 Public API Naming Policy
 
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: old `layers/aviation` import grep PASS (no output); canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews SR-009; do not PR yet unless user explicitly decides; recommended next task after SR-009 review is to decide integration/full validation step before API or PR.
-
-## 2026-06-16 - SR-014 Energy Canonicalization
-
-- Agent: Frontend Structure Agent
-- Branch: frontend/sr-014/energy-canonical-folder
-- What changed: Renamed the frontend energy layer folder to `layer_10_energy_infrastructure` via `git mv`; preserved the `infrastructure/` subfolder with all 4 nested files (`EnergyInfrastructureLayer.tsx`, `energyInfrastructureApi.ts`, `energyInfrastructureTypes.ts`, `useEnergyInfrastructure.ts`); added canonical `index.ts` re-exporting all 4 public modules (named exports via `export *` and the `EnergyInfrastructureLayer` default export via `export { default as ... }`); recreated the `energy/` shim folder with `index.ts` re-exporting from the canonical path; updated the 10 active frontend import sites across 7 files (`App.tsx` × 2, `CesiumGlobe.tsx` × 2, `Shell.tsx` × 2, `EnergyDetail.tsx`, `detailTypes.ts`, `EnergyControls.tsx`, `layerPanelTypes.ts`). Runtime strings preserved as intentional: `layerId: 'layer_10_energy_infrastructure'` registry value (already canonical), `category: 'infrastructure'`, `new CustomDataSource('energy-infrastructure')` Cesium data source name, `entity.id.startsWith('energy-')` runtime prefix check, `/api/energy/infrastructure` API path, error messages (`Failed to fetch energy infrastructure`), and internal React state/prop names like `energyInfrastructureLayerActive`/`energyInfrastructureFilters`/`energyInfrastructureData`/`energyInfrastructureFeatures` (JS identifiers, not file paths).
-- Validation: old `layers/energy` import grep PASS (no output); canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
-- Known issues: None
-- Next: Reviewer Agent reviews SR-014; do not PR yet unless user explicitly decides; recommended next task after SR-014 review is SR-009 aviation canonicalization (highest-risk per-layer move, do last).
