@@ -1,5 +1,5 @@
-import { SatelliteFilters, SAFE_RENDER_CAP } from '../../layers/space/satellites/satelliteFilters';
-import type { SpaceSatellitesStatus } from '../../layers/space/satellites/satelliteTypes';
+import { SatelliteFilters, SAFE_RENDER_CAP } from '../../layers/layer_05_space_satellites/satellites/satelliteFilters';
+import type { SpaceSatellitesStatus } from '../../layers/layer_05_space_satellites/satellites/satelliteTypes';
 
 function spaceSatellitesStatusText(active: boolean, status: SpaceSatellitesStatus): string {
   if (!active) return 'READY — CLICK TO ACTIVATE';

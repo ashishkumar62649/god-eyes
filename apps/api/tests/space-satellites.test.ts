@@ -641,6 +641,92 @@ describe('Space Satellites API', () => {
     const body = JSON.parse(response.body);
     expect(body.metadata.activeFilters).toBeUndefined();
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-002 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/space/satellites/... path. The old paths are preserved
+  // and continue to work; the new paths are aliases only. The
+  // /ws/space/satellites/live WebSocket path is intentionally NOT
+  // aliased and is registered separately in apps/api/src/index.ts.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/space/satellites returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/space/satellites',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SATELLITES);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.satellites.length).toBe(legacyBody.satellites.length);
+    expect(newPathBody.metadata.layerId).toBe(legacyBody.metadata.layerId);
+  });
+
+  it('alias.2 GET /api/layers/space/satellites/categories returns the categories endpoint', async () => {
+    // Match the mock sequence used by existing test 14 (4 sequential query() calls
+    // inside getCategories / getSatelliteCategories).
+    vi.mocked(query)
+      .mockResolvedValueOnce(MOCK_CATEGORIES)
+      .mockResolvedValueOnce(MOCK_OBJECT_TYPES)
+      .mockResolvedValueOnce(MOCK_ORBIT_CLASSES)
+      .mockResolvedValueOnce(MOCK_TOTALS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/space/satellites/categories',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.layerId).toBe('layer_05_space_satellites');
+    expect(body.categories).toBeDefined();
+    expect(body.totalCount).toBe(27000);
+  });
+
+  it('alias.3 GET /api/layers/space/satellites/:satelliteId returns same shape as the legacy detail path', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_SATELLITES[0]]);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/space/satellites/550e8400-e29b-41d4-a716-446655440001',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce([MOCK_SATELLITES[0]]);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/space/satellites/550e8400-e29b-41d4-a716-446655440001',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.satellite.satelliteId).toBe('550e8400-e29b-41d4-a716-446655440001');
+  });
+
+  it('alias.4 The new clean Space path does not create a duplicated /api/layers/space/space/... path', async () => {
+    // Negative test: a duplicated /api/layers/space/space/<verb> path must
+    // NOT exist (would 404). This guards the slug rule from accidental
+    // duplication.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/space/space/satellites',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });
 
 describe('Space Satellites Broadcaster', () => {

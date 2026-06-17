@@ -1,11 +1,18 @@
 import type { WeatherListResponse } from '@god-eyes/contracts';
-import { WEATHER_LAYER_ID } from './weatherTypes';
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:4000';
 
+/**
+ * Public slug used in API URLs for the Weather layer (per API-POLICY-001).
+ * The internal layer ID `WEATHER_LAYER_ID` is preserved for folder identity,
+ * UI registration, and registry keys — it is intentionally not used in the
+ * public API URL.
+ */
+const WEATHER_PUBLIC_SLUG = 'weather';
+
 /** GOD EYES API path for current weather observations (MVP). */
-export const WEATHER_CURRENT_PATH = `/api/layers/${WEATHER_LAYER_ID}/weather/current`;
+export const WEATHER_CURRENT_PATH = `/api/layers/${WEATHER_PUBLIC_SLUG}/current`;
 
 export interface WeatherCurrentParams {
   /** Bounding box: minLon,minLat,maxLon,maxLat */

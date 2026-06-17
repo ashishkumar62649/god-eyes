@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PublicProfileAttribution } from '../../layers/aviation/airports/airportPublicProfileTypes';
+import type { PublicProfileAttribution } from '../../layers/layer_01_aviation/airports/airportPublicProfileTypes';
 
 const dim: React.CSSProperties = { color: 'var(--shell-text-dim)', fontSize: '0.65rem' };
 const accentLink: React.CSSProperties = { color: 'var(--shell-accent)', textDecoration: 'none' };

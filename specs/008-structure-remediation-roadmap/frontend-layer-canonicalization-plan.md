@@ -1,46 +1,67 @@
 # Frontend Layer Folder Canonicalization Plan
 
 Classification: SPEC_WORKSPACE
-Status: Planning
+Status: **Completed** (post-SR-016 docs closure)
 Owner: Documentation Planning Agent
 Branch: plan/frontend-layer-canonicalization
 Date: 2026-06-16
+
+> **Completion banner.** This plan was implemented end to end. The
+> per-layer renames were completed by **SR-010, SR-010S, SR-011,
+> SR-013, SR-012, SR-014, and SR-009**, and the temporary old-name
+> shim folders plus the missing Weather/News `index.ts` files were
+> finalized by the frontend shape cleanup on branch
+> `frontend/sr-015/final-layer-shape-cleanup` (commit `09bfc27`).
+> The detailed planning content below is preserved as the audit
+> trail. The "Current Frontend Layer Folders" and "Target Canonical
+> Folders" tables now show the final state, with old folders
+> marked as **Removed** and new folders marked as **Active** rather
+> than **Rename needed**. Validation passed: `pnpm --filter web
+> build`, `pnpm --filter web test`, `pnpm --filter api build`,
+> `pnpm --filter api test`, and `python -m pytest tests/data -q`
+> on a clean tree. The user reported real backend and database
+> runtime validation passed after the frontend closure cleanup. No
+> push, PR, merge, or branch deletion has been performed.
 
 ## Purpose
 
 This planning document defines the implementation strategy for canonicalizing frontend layer folder names under `apps/web/src/layers/`. The goal is to rename grandfathered short-name folders to match the canonical `layer_id` pattern defined in `docs/control/PROJECT_CONTROL.md`.
 
-## Current Frontend Layer Folders
+## Current Frontend Layer Folders (final state)
 
-The following directories exist under `apps/web/src/layers/`:
+The following directories exist under `apps/web/src/layers/` (final
+state after the frontend shape cleanup):
 
 | Current Folder | Contents | Canonical Target |
 |----------------|----------|------------------|
-| `aviation/` | `aircraft/`, `airports/`, `.gitkeep` | `layer_01_aviation` |
-| `borders/` | `useBordersBoundaries.ts`, `.gitkeep` | `layer_02_borders_boundaries` |
-| `earth-events/` | `useEarthEvents.ts`, `.gitkeep` | `layer_03_earth_events` |
-| `space/` | `satellites/` | `layer_05_space_satellites` |
-| `maritime/` | `maritimeApi.ts`, `MaritimeLayer.tsx`, `useMaritime.ts`, `vesselMarker.ts`, `__tests__/` | `layer_06_maritime` |
-| `energy/` | `infrastructure/` | `layer_10_energy_infrastructure` |
-| `layer_07_weather/` | Already canonical | No change |
-| `layer_08_news_osint/` | Already canonical | No change |
+| `layer_01_aviation/` | `aircraft/`, `airports/`, `index.ts` | **Active** (was `aviation/`) |
+| `layer_02_borders_boundaries/` | `useBordersBoundaries.ts`, `index.ts` | **Active** (was `borders/`) |
+| `layer_03_earth_events/` | `useEarthEvents.ts`, `index.ts` | **Active** (was `earth-events/`) |
+| `layer_05_space_satellites/` | `satellites/`, `index.ts` | **Active** (was `space/`) |
+| `layer_06_maritime/` | `maritimeApi.ts`, `MaritimeLayer.tsx`, `useMaritime.ts`, `vesselMarker.ts`, `__tests__/`, `index.ts` | **Active** (was `maritime/`) |
+| `layer_07_weather/` | `useWeather.ts`, `weatherTypes.ts`, `weatherDetail.ts`, `weatherMarker.ts`, `weatherApi.ts`, `WeatherLayer.tsx`, `__tests__/`, `index.ts` | **Active** (already canonical; `index.ts` added in the frontend shape cleanup) |
+| `layer_08_news_osint/` | `useNews.ts`, `newsTypes.ts`, `newsDetail.ts`, `newsMarker.ts`, `newsApi.ts`, `NewsLayer.tsx`, `__tests__/`, `index.ts` | **Active** (already canonical; `index.ts` added in the frontend shape cleanup) |
+| `layer_10_energy_infrastructure/` | `infrastructure/`, `index.ts` | **Active** (was `energy/`) |
+| `aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/` | — | **Removed** in the frontend shape cleanup |
+| `layer_04_public_military_security/`, `layer_09_user_shapes/` | — | **Intentionally not created** (future inactive layers; created only when implementation starts) |
 
-## Target Canonical Folders
+## Target Canonical Folders (final state)
 
 | Current | Target | Status |
 |---------|--------|--------|
-| `aviation/` | `layer_01_aviation/` | Rename needed |
-| `borders/` | `layer_02_borders_boundaries/` | Rename needed |
-| `earth-events/` | `layer_03_earth_events/` | Rename needed |
-| `space/` | `layer_05_space_satellites/` | Rename needed |
-| `maritime/` | `layer_06_maritime/` | Rename needed |
-| `energy/` | `layer_10_energy_infrastructure/` | Rename needed |
-| `layer_07_weather/` | `layer_07_weather/` | Already canonical |
-| `layer_08_news_osint/` | `layer_08_news_osint/` | Already canonical |
+| `aviation/` | `layer_01_aviation/` | **Done** (renamed in SR-009) |
+| `borders/` | `layer_02_borders_boundaries/` | **Done** (renamed in SR-010/SR-010S) |
+| `earth-events/` | `layer_03_earth_events/` | **Done** (renamed in SR-011) |
+| `space/` | `layer_05_space_satellites/` | **Done** (renamed in SR-012) |
+| `maritime/` | `layer_06_maritime/` | **Done** (renamed in SR-013) |
+| `energy/` | `layer_10_energy_infrastructure/` | **Done** (renamed in SR-014) |
+| `layer_07_weather/` | `layer_07_weather/` | **Active** (already canonical; `index.ts` added in shape cleanup) |
+| `layer_08_news_osint/` | `layer_08_news_osint/` | **Active** (already canonical; `index.ts` added in shape cleanup) |
+| Old shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) | — | **Removed** in the frontend shape cleanup |
 
-**Not in scope:**
-- `layer_04_public_military_security` (coming_soon)
-- `layer_09_user_shapes` (coming_soon)
+**Out of scope (confirmed final):**
+- `layer_04_public_military_security` (coming_soon; not created)
+- `layer_09_user_shapes` (coming_soon; not created)
 
 ## Import Impact Analysis
 

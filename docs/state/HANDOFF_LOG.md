@@ -1,4 +1,1575 @@
 
+### 2026-06-17T00:00:00Z — api-imp-001-import-shim-cleanup
+
+- Work order: API-IMP-001
+- Agent: API Implementation Agent
+- Branch: `api/api-imp-001-import-shim-cleanup`
+- Parent: `a632a95 docs(api): record public endpoint naming policy`
+- Reviewer decision: PENDING
+- Reason: API-POLICY-001 is approved. The pure internal route re-export shims that existed only to support old `apps/api/src/index.ts` imports are no longer needed now that imports point directly to folder route entrypoints. Removing them eliminates dead code and simplifies the codebase. This is the first implementation step in the API-POLICY-001 migration sequence.
+- Goal: Update `apps/api/src/index.ts` to import pure folder route entrypoints directly and delete the redundant pure internal shim files. Preserve runtime behavior, endpoint paths, response shapes, and frontend callers.
+- Files changed (9):
+  1. `apps/api/src/index.ts` — updated 4 import paths from shim files to folder indexes: `./routes/energy/infrastructure.js` → `./routes/energy/infrastructure/index.js`, `./routes/maritime.js` → `./routes/maritime/index.js`, `./routes/weather.js` → `./routes/weather/index.js`, `./routes/news.js` → `./routes/news/index.js`.
+  2. `apps/api/src/routes/weather.ts` — **deleted** (pure re-export shim: comment + `export { weatherRoutes } from './weather/index.js'`).
+  3. `apps/api/src/routes/news.ts` — **deleted** (pure re-export shim: comment + `export { newsRoutes } from './news/index.js'`).
+  4. `apps/api/src/routes/maritime.ts` — **deleted** (pure re-export shim: comment + `export { maritimeRoutes } from './maritime/index.js'`).
+  5. `apps/api/src/routes/energy/infrastructure.ts` — **deleted** (pure re-export shim: comment + `export { energyInfrastructureRoutes } from './infrastructure/index.js'`).
+  6. `apps/api/tests/weather.test.ts` — updated import from `../src/routes/weather.js` to `../src/routes/weather/index.js`; updated `fs.readFileSync` path from `src/routes/weather.ts` to `src/routes/weather/index.ts`.
+  7. `apps/api/tests/layer_08_news_osint.test.ts` — updated import from `../src/routes/news.js` to `../src/routes/news/index.js`; updated `fs.readFileSync` path from `src/routes/news.ts` to `src/routes/news/index.ts`.
+  8. `apps/api/tests/maritime.test.ts` — updated import from `../src/routes/maritime.js` to `../src/routes/maritime/index.js`; updated `fs.readFileSync` path from `src/routes/maritime.ts` to `src/routes/maritime/index.ts`.
+  9. `apps/api/tests/energy-infrastructure.test.ts` — updated import from `../src/routes/energy/infrastructure.js` to `../src/routes/energy/infrastructure/index.js`.
+- Shim classification:
+  * `weather.ts` — pure shim (comment + single re-export). Deleted.
+  * `news.ts` — pure shim (comment + single re-export). Deleted.
+  * `maritime.ts` — pure shim (comment + single re-export). Deleted.
+  * `energy/infrastructure.ts` — pure shim (comment + single re-export). Deleted.
+  * `space/satellites.ts` — mixed-role (re-export + 118-line WebSocket broadcaster). **Not touched.**
+  * `objects.ts` — multi-export (7 exports including types). **Not touched.**
+- Endpoint path status: unchanged. No `/api/` or `/ws/` string literals were modified.
+- Response shapes changed: no.
+- Frontend callers changed: no.
+- Fetcher/normalizer/ingestion touched: no.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `api/api-imp-001-import-shim-cleanup` (PASS)
+  - `git branch --show-current` → `api/api-imp-001-import-shim-cleanup` (PASS)
+  - `git log -15 --oneline` → HEAD = `a632a95 docs(api): record public endpoint naming policy` (PASS)
+  - `git diff --name-status` → 5M + 4D: index.ts, 4 test files modified; 4 shim files deleted (PASS)
+  - `git diff --stat` → 11 insertions, 21 deletions across 9 files (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr` for forbidden areas → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)"` → no output (PASS)
+  - `git diff -- apps/api/src | Select-String "/api/|/ws/"` → no output (no endpoint path changes) (PASS)
+  - `pnpm --filter api build` → succeeded (PASS)
+  - `pnpm --filter api test` → succeeded (PASS, 18 test files, 526 tests)
+  - `pnpm --filter web test` → succeeded (PASS, 3 test files, 64 tests)
+- Known issues / caveats: None.
+- Push/PR/merge status: not performed by agent. Branch is local only.
+- Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
+
+### 2026-06-17T05:00:00Z — api-compat-001-keep-old-paths
+
+- Work order: API-COMPAT-001
+- Agent: Documentation / API Policy Agent
+- Branch: `docs/api-compat-001-keep-old-paths`
+- Parent: `94d3895 refactor(web): use clean remaining layer api urls` (WEB-API-002)
+- Reviewer decision: PENDING (agent-only local handoff; no source code changes; docs / policy only)
+- Reason: The clean public API migration is complete (API-POLICY-001 → API-IMP-001 → API-URL-001 → WEB-API-001 → API-URL-002 → WEB-API-002). The user / decision-control layer has now made the compatibility decision explicit: **keep old paths as compatibility aliases for now**. This work order locks that decision into the active policy and roadmap docs. No source code is changed.
+- Decision recorded: **Keep old API paths as compatibility aliases for now.**
+  - **Clean slug URLs are the official public API.** New frontend code, new API documentation, and any future work order must use the clean slug pattern: `/api/layers/<slug>/<resource>` (e.g. `/api/layers/aviation/aircraft/latest`, `/api/layers/weather/current`, `/api/layers/news/items`, `/api/layers/maritime/objects`).
+  - **Old layer-ID / legacy paths remain supported compatibility aliases** for now. They are registered by the backend and return the same response shape as their clean slug equivalents. They are not preferred. They are kept so any third-party caller, test fixture, or leftover frontend code that still references them continues to work without breakage.
+  - **Old path removal is deferred.** `API-URL-003` (old-path removal) is **Deferred (not selected)** and may only be opened under a future explicit user / decision-control decision.
+  - **Frontend callers must keep using clean slug URLs.** WEB-API-001 and WEB-API-002 have already migrated the frontend's active callers. New frontend code added after this decision must use the clean slug pattern; old compatibility aliases must not be added to any new frontend caller.
+  - **API documentation must present clean slug URLs first.** Compatibility aliases may be mentioned only as a brief note in a "compatibility" section, not as a recommended path.
+  - **Until the user issues a removal decision, tests may continue to assert compatibility.** Backend alias tests (added in API-URL-001 and API-URL-002 under the `alias.N` naming pattern) are valid until the alias is removed. New tests for clean slug endpoints should prefer asserting the clean slug path.
+  - **Approved public slugs (from policy Section 2):** `aviation`, `borders-boundaries`, `earth-events`, `weather`, `news`, `space`, `maritime`, `energy`.
+- Files updated (5):
+  1. `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` — Added a new section **5.1 "Compatibility Alias Decision (locked by API-COMPAT-001)"** immediately after Section 5. The new section documents the locked decision (clean slugs are official; old paths remain as compatibility aliases; old path removal is deferred; `API-URL-003` is deferred). The section lists the compatibility alias examples and the approved slug map. The section's status header cites the work order, branch, and parent commit. Updated the doc footer to record the new "Last updated" date and a note that the doc was originally authored by API-POLICY-001. Existing Sections 1–10, 11, 12 are unchanged.
+  2. `specs/008-structure-remediation-roadmap/tasks.md` — Updated the auxiliary work items entry "API endpoint path policy decision (legacy vs canonical paths)" to list each migration step in the sequence with its status (API-IMP-001 Done, API-URL-001 Done, WEB-API-001 Done, API-URL-002 Done, WEB-API-002 Done, API-COMPAT-001 Done / selected: keep, API-URL-003 Deferred (not selected)). Updated item 6 of the "Remaining recommended order" section to show the same status list. No other work items changed. The legend, the SR-NNN status table, the "Frontend shape cleanup (SR-015 branch)" section, the "SR-016 docs closure alignment" note, and the "Done" caveats section are unchanged.
+  3. `specs/008-structure-remediation-roadmap/plan.md` — Updated the "Needs decision (snapshot)" entry for the API endpoint path policy to say all sequenced work is complete, the user / decision-control layer chose compatibility retention, and `API-URL-003` is deferred. Updated item 2 of the "Recommended execution order" to list the same status sequence. The cross-task summary table, the phase descriptions, the original safe-default 11-step order, and the closing sections are unchanged.
+  4. `docs/state/RECENT_CONTEXT.md` — Added a new top entry `## 2026-06-17 - API-COMPAT-001 Keep Old Paths as Compatibility Aliases` with Agent, Branch, What changed (locked compatibility retention; clean slugs official; old paths remain; no source code; no endpoint removals; no frontend caller changes), Validation (branch clean; diff scope 5 files; diff --check clean; conflict-marker grep clean; forbidden change check clean; pnpm --filter api build PASS; pnpm --filter api test PASS; pnpm --filter web test PASS), Known issues (None), Next (reviewer; do not PR until user decides; recommend PR/merge timing for full stack or another cleanup lane next). Removed the oldest entry (`## 2026-06-17 - API-POLICY-001 Public API Naming Policy`) to keep the rolling window at 5 entries. `HANDOFF_LOG.md` was not affected by the rolling-window rule and remains append-only.
+  5. `docs/state/HANDOFF_LOG.md` — Appended this full handoff entry at the top (append-only).
+- Source code changes: none. `apps/api/`, `apps/web/`, `services/`, `database/`, `packages/`, `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` was edited as the active policy doc, no implementation code was changed. `tests/` were not modified.
+- Endpoint removals: none. All 11 legacy paths from API-URL-001 and API-URL-002 remain registered as compatibility aliases.
+- Frontend caller changes: none.
+- Tests changed: none.
+- Fetcher / normalizer / ingestion touched: no.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `docs/api-compat-001-keep-old-paths` (PASS)
+  - `git branch --show-current` → `docs/api-compat-001-keep-old-paths` (PASS)
+  - `git log -20 --oneline` → HEAD = `94d3895 refactor(web): use clean remaining layer api urls` (PASS)
+  - `git diff --name-status` → exactly 5 files (3 specs + 2 state docs) (PASS)
+  - `git diff --stat` → 5 files changed, small docs-only diff (PASS)
+  - `git diff --check` → no output (PASS)
+  - Forbidden change check (`git diff --name-only | findstr` against `apps/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS, backend unchanged but verified)
+  - `cd apps/api; npx vitest run` (= `pnpm --filter api test`) → 18 files passed (18), 560 tests passed (560) — unchanged (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) — unchanged (PASS)
+  - `python -m pytest tests/data -q` → SKIPPED on dirty docs (would fail the pre-existing scope-guard tests per the API-001 / API-PLAN-001 baseline). Classified as non-blocking per task instructions.
+- Known issues / caveats:
+  - **Policy doc Section 5.1 is a new section, not a replacement.** Section 5 "Compatibility Policy" remains the technical rule set. Section 5.1 records the user-level decision that the technical rules implement: keep. Future removal work orders (e.g. `API-URL-003`) will close Section 5.1 and remove the documented compatibility aliases.
+  - **The rolled-out migration sequence is now complete in the policy doc** (Section 10 implied final state). The sequence remains in the policy as a historical record. Future work orders that close the migration loop would either re-open Section 5.1 (e.g. for a 410 Gone policy) or re-write Section 5.1 to say "removed".
+  - **The new Section 5.1 lists non-exhaustive compatibility alias examples.** The exhaustive list is the union of the legacy paths that existed before API-URL-001 and API-URL-002, plus their clean slug aliases added in those work orders. The Section 5.1 text marks the list as non-exhaustive so future backend changes are not constrained by a frozen enumeration.
+  - **The aviation `/api/layers/layer_01_aviation/objects` paths remain on the legacy internal layer-ID form** because no clean alias was added in API-URL-002 for that endpoint. They are listed in Section 5.1 as a compatibility alias. A future work order could add a clean alias for that endpoint and migrate the frontend if the user wishes.
+  - **No real backend runtime validation was performed by this agent.** This is a docs / policy lock. The end-to-end validation was completed by API-URL-002 (560/560 API tests) and WEB-API-002 (64/64 web tests).
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of WEB-API-002 (`94d3895`).
+- Next step: Reviewer Agent should review API-COMPAT-001. The user / decision-control layer should decide whether to push the branch and open a PR. After API-COMPAT-001 is approved, the next decision is PR/merge timing for the full stack (decide whether to push all stacked branches and open a single PR for the completed work package, or handle them in another order). Alternatively, the user may direct the next cleanup lane (e.g. `API-SIZE-001` for large file responsibility review, the `CesiumGlobe` split planning, or the missing package ownership row decision). Do not start any further work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
+
+- Work order: WEB-API-002
+- Agent: Web/API Migration Agent
+- Branch: `web/web-api-002-remaining-clean-url-callers`
+- Parent: `8002bcf feat(api): add remaining layer slug route aliases` (API-URL-002)
+- Reviewer decision: PENDING (agent-only local handoff; no apps/api/services/database/packages/specs changes)
+- Reason: API-URL-002 added clean public slug aliases for aviation, borders-boundaries, earth-events, space, maritime, and energy. WEB-API-002 completes the frontend half of the migration loop for these 6 endpoint groups, matching the pattern proven by WEB-API-001 for Weather and News. The frontend has no Space REST caller (only a WebSocket broadcaster, which is intentionally not aliased and is preserved unchanged). Aviation `/api/layers/layer_01_aviation/objects` paths remain unchanged because no clean alias was added for that endpoint in API-URL-002.
+- Goal: Migrate the frontend REST API callers for aviation, borders-boundaries, earth-events, space, maritime, and energy to the clean public slug URLs added in API-URL-002. Preserve internal layer IDs for folder identity, UI registration, registry keys, and data-shape fields. Do not touch WebSocket paths. Do not modify backend code. Do not remove old backend paths.
+- Files updated (4):
+  1. `apps/web/src/lib/api.ts` — Updated 4 functions to use clean slug URLs:
+     - `fetchEarthEventsLatest`: `/api/earth-events/latest` → `/api/layers/earth-events/latest`
+     - `fetchBordersBoundariesCountries`: `/api/borders-boundaries/countries` → `/api/layers/borders-boundaries/countries`
+     - `fetchLiveAircraft`: `/api/aviation/aircraft/latest` → `/api/layers/aviation/aircraft/latest`
+     - `fetchAircraftDetail`: `/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}` → `/api/layers/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`
+     No other functions in `lib/api.ts` were modified. The aviation `/api/layers/layer_01_aviation/objects` callers (`fetchAirports`, `fetchAviationLayerObjects`, `fetchAviationPreload`, `fetchAirportDetail`) are intentionally NOT modified — no clean alias was added for those paths in API-URL-002.
+  2. `apps/web/src/layers/layer_06_maritime/maritimeApi.ts` — Added module-local `const MARITIME_PUBLIC_SLUG = 'maritime';` and changed 3 URL strings:
+     - `fetchMaritimeObjects`: `/api/layers/layer_06_maritime/objects` → `/api/layers/${MARITIME_PUBLIC_SLUG}/objects`
+     - `fetchVesselDetail`: `/api/layers/layer_06_maritime/objects/${mmsi}` → `/api/layers/${MARITIME_PUBLIC_SLUG}/objects/${mmsi}`
+     - `fetchMaritimeStats`: `/api/layers/layer_06_maritime/stats` → `/api/layers/${MARITIME_PUBLIC_SLUG}/stats`
+     No other maritime files (validation, mapper, types, etc.) were modified. Internal `layer_06_maritime` references in registry keys, data fields, and folder names are preserved unchanged.
+  3. `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` — Added module-local `const ENERGY_PUBLIC_SLUG = 'energy';` and changed 1 URL string:
+     - `useEnergyInfrastructure` (inside `fetchData`): `/api/energy/infrastructure` → `/api/layers/${ENERGY_PUBLIC_SLUG}/infrastructure`
+     No other energy files modified. Internal `layer_10_energy_infrastructure` references preserved unchanged.
+  4. `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts` — Updated 3 exact-URL assertions at lines 55, 84, 118 from `/api/layers/layer_06_maritime/objects...` to `/api/layers/maritime/objects...`. All other 8 pre-existing tests unchanged. No test was weakened or removed.
+- Caller URLs changed by group:
+  - **Aviation (2):**
+    - `fetchLiveAircraft` URL: `/api/aviation/aircraft/latest` → `/api/layers/aviation/aircraft/latest`
+    - `fetchAircraftDetail` URL template: `/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}` → `/api/layers/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`
+  - **Borders-boundaries (1):**
+    - `fetchBordersBoundariesCountries` URL: `/api/borders-boundaries/countries` → `/api/layers/borders-boundaries/countries`
+  - **Earth-events (1):**
+    - `fetchEarthEventsLatest` URL: `/api/earth-events/latest` → `/api/layers/earth-events/latest`
+  - **Space (0):** No frontend REST caller exists for Space. The frontend only uses `useSpaceSatellitesSocket.ts` for the WebSocket `/ws/space/satellites/live` path, which is intentionally NOT aliased and is preserved unchanged.
+  - **Maritime (3):**
+    - `fetchMaritimeObjects` URL: `/api/layers/layer_06_maritime/objects` → `/api/layers/maritime/objects`
+    - `fetchVesselDetail` URL template: `/api/layers/layer_06_maritime/objects/${mmsi}` → `/api/layers/maritime/objects/${mmsi}`
+    - `fetchMaritimeStats` URL: `/api/layers/layer_06_maritime/stats` → `/api/layers/maritime/stats`
+    - The 4th maritime alias added in API-URL-002 (`/api/layers/maritime/vessels/:mmsi/positions`) has no frontend caller and therefore no migration.
+  - **Energy (1):**
+    - `useEnergyInfrastructure` URL: `/api/energy/infrastructure` → `/api/layers/energy/infrastructure`
+    - The 3 other energy aliases added in API-URL-002 (categories, sources, :featureId) have no frontend caller and therefore no migration.
+- Internal layer IDs preserved: yes. `WEATHER_LAYER_ID`, `NEWS_LAYER_ID`, `MARITIME_PUBLIC_SLUG` / maritime's folder identity (`layer_06_maritime`), `ENERGY_PUBLIC_SLUG` / energy's folder identity (`layer_10_energy_infrastructure`), and all 104 internal layer ID references across the frontend are unchanged.
+- Backend route changes: none. `git diff -- apps/api` → 0 lines.
+- Old backend paths removed: none. All 11 old paths from API-URL-002 are still registered by the backend.
+- Response shapes changed: none. Backend unchanged.
+- WebSocket paths changed: no. `/ws/aviation/aircraft/live` and `/ws/space/satellites/live` are unchanged in `useLiveAircraftSocket.ts` and `useSpaceSatellitesSocket.ts` respectively.
+- Frontend tests changed: yes (only `maritime.test.ts`; 3 URL assertions updated).
+- Fetcher / normalizer / ingestion touched: no.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `web/web-api-002-remaining-clean-url-callers` (PASS)
+  - `git branch --show-current` → `web/web-api-002-remaining-clean-url-callers` (PASS)
+  - `git log -19 --oneline` → HEAD = `8002bcf feat(api): add remaining layer slug route aliases` (PASS)
+  - Pre-edit caller inventory:
+    - `apps/web/src/lib/api.ts` → 4 legacy paths to migrate: `/api/earth-events/latest`, `/api/borders-boundaries/countries`, `/api/aviation/aircraft/latest`, `/api/aviation/aircraft/...`
+    - `apps/web/src/layers/layer_06_maritime/maritimeApi.ts` → 3 legacy paths: `/api/layers/layer_06_maritime/objects`, `/api/layers/layer_06_maritime/objects/...`, `/api/layers/layer_06_maritime/stats`
+    - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` → 1 legacy path: `/api/energy/infrastructure`
+    - `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts` → 3 URL assertions at lines 55, 84, 118
+  - Post-edit route URL verification:
+    - `git grep /api/aviation/aircraft|/api/borders-boundaries/countries|/api/earth-events/latest|/api/space/satellites|/api/layers/layer_06_maritime|/api/energy/infrastructure -- apps/web/src` → 0 lines (PASS, no active REST request paths use the old routes)
+    - `git grep /api/layers/aviation|/api/layers/borders-boundaries|/api/layers/earth-events|/api/layers/space|/api/layers/maritime|/api/layers/energy -- apps/web/src` → 7 matches (PASS: 4 in `lib/api.ts`, 3 in `maritime.test.ts`)
+    - `git grep /ws/aviation|/ws/space|/ws/ -- apps/web/src` → 2 matches (PASS: WebSocket paths unchanged)
+  - `git diff -- apps/api` → 0 lines (PASS, backend untouched)
+  - `git diff -- apps/web/src/layers/layer_07_weather apps/web/src/layers/layer_08_news_osint` → 0 lines (PASS, Weather/News folders untouched)
+  - `git diff -- services` → 0 lines (PASS)
+  - `git diff -- database` → 0 lines (PASS)
+  - `git diff -- packages` → 0 lines (PASS)
+  - `git diff -- specs` → 0 lines (PASS)
+  - `git diff -- docs/control` → 0 lines (PASS)
+  - `git diff -- docs/state/CURRENT_PROJECT_STATE.md` → 0 lines (PASS)
+  - `git diff --name-status` → exactly 4 files (2 source + 1 test + 1 lib/api.ts); docs added at staging (PASS)
+  - `git diff --stat` → 4 files changed, small focused diff (PASS)
+  - `git diff --check` → no output (PASS)
+  - Forbidden change check (`git diff --name-only | findstr` against `apps/api/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/web; npx tsc --noEmit` → exit 0 (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) — count unchanged from before (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS)
+  - `cd apps/api; npx vitest run` (= `pnpm --filter api test`) → 18 files passed (18), 560 tests passed (560) — unchanged (PASS)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (no frontend source change beyond URL constants; running web build would emit `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the working tree per the API-IMP-001 / API-POLICY-001 / API-URL-001 / WEB-API-001 / API-URL-002 baseline)
+  - `python -m pytest tests/data -q` → SKIPPED on dirty docs (would fail the pre-existing scope-guard tests per the API-001 / API-PLAN-001 baseline). Classified as non-blocking per task instructions.
+- Known issues / caveats:
+  - **Space has no frontend REST caller.** The Space layer is consumed in the frontend only via the WebSocket broadcaster `/ws/space/satellites/live`. The 3 clean REST aliases added by API-URL-002 for Space (`/api/layers/space/satellites`, `/api/layers/space/satellites/categories`, `/api/layers/space/satellites/:satelliteId`) therefore have no frontend consumer to migrate. The Space WebSocket is preserved unchanged. A future frontend feature that calls Space REST endpoints will use the clean slugs.
+  - **Maritime vessels/:mmsi/positions and energy categories/sources/:featureId have no frontend caller.** API-URL-002 added 4 maritime aliases and 4 energy aliases; only 3 maritime paths and 1 energy path have frontend consumers today. The remaining aliases are available for future use.
+  - **Aviation `/api/layers/layer_01_aviation/objects` paths left as-is.** API-URL-002 did not add a clean alias for the aviation objects endpoint. The frontend's `fetchAirports`, `fetchAviationLayerObjects`, `fetchAviationPreload`, and `fetchAirportDetail` continue to use `/api/layers/layer_01_aviation/objects/...`. A future work order could add a clean alias for that endpoint if desired.
+  - **`public-profile/service.ts:122` TODO marker is unchanged.** This is a future-integration placeholder, not actual fetcher code. The API boundary stays clean.
+  - **No real backend runtime validation was performed by this agent.** Frontend tests use mocked `fetch()` results. The end-to-end migration loop will only be proven end-to-end when the user / decision-control layer runs the dev server and exercises the frontend against the live API.
+  - **Old backend paths remain registered** as compatibility aliases per API-URL-002. The next decision is whether to remove them (`API-URL-003`) or formally keep them as compatibility paths (`API-COMPAT-001`).
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of API-URL-002 (`8002bcf`).
+- Next step: Reviewer Agent should review WEB-API-002. The user / decision-control layer should decide whether to push the branch and open a PR. After WEB-API-002 is approved, the next decision is the old-path policy:
+  - **API-URL-003** — remove old compatibility paths (the legacy layer-ID / domain URLs) once frontend migration is confirmed; or
+  - **API-COMPAT-001** — formally keep old paths as compatibility aliases for now.
+  Do not start either work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
+
+- Work order: API-URL-002
+- Agent: API Implementation Agent
+- Branch: `api/api-url-002-remaining-slug-aliases`
+- Parent: `e85aea9 refactor(web): use clean weather and news api urls` (WEB-API-001)
+- Reviewer decision: PENDING (agent-only local handoff; no fetcher/normalizer/ingestion/web/services/database/packages/specs changes)
+- Reason: API-POLICY-001 was approved and recorded the public API endpoint naming policy. API-URL-001 added clean slug aliases for Weather and News (which WEB-API-001 then proved the migration loop on). API-URL-002 continues the implementation by adding clean slug aliases for the remaining 6 endpoint groups: aviation, borders-boundaries, earth-events, space, maritime, energy. All old layer-ID / domain paths remain registered and continue to work. The frontend is intentionally NOT migrated in this work order; that is a separate WEB-API-002 work order after API-URL-002 is reviewed.
+- Goal: Add clean public slug endpoint aliases for the remaining 6 endpoint groups while preserving the existing legacy paths. No response shape changes. No frontend callers changed. No fetcher / normalizer / ingestion touched.
+- Files updated (12):
+  1. `apps/api/src/routes/aviation-aircraft.ts` — Refactored from inline arrow handler bodies into 2 named const arrow functions (`latestHandler`, `detailHandler`) registered under both the legacy `/api/aviation/aircraft/<verb>` paths and the new clean slug paths `/api/layers/aviation/aircraft/<verb>`. Added module-level `const LAYER_ID = 'layer_01_aviation';` and `const PUBLIC_SLUG = 'aviation';`. No service / repository / mapper / validation / types files were modified.
+  2. `apps/api/src/routes/borders-boundaries.ts` — Refactored to a single named const arrow handler (`countriesHandler`) registered under both `/api/borders-boundaries/countries` and `/api/layers/borders-boundaries/countries`. Added `LAYER_ID = 'layer_02_borders_boundaries'` and `PUBLIC_SLUG = 'borders-boundaries'`. No support files touched.
+  3. `apps/api/src/routes/earth-events.ts` — Refactored to a single named const arrow handler (`latestHandler`) registered under both `/api/earth-events/latest` and `/api/layers/earth-events/latest`. Added `LAYER_ID = 'layer_03_earth_events'` and `PUBLIC_SLUG = 'earth-events'`. No support files touched.
+  4. `apps/api/src/routes/space/satellites/index.ts` — Refactored 3 REST handlers (`listHandler`, `categoriesHandler`, `detailHandler`) registered under both the legacy domain paths (`/api/space/satellites`, `/api/space/satellites/categories`, `/api/space/satellites/:satelliteId`) and the new clean slug paths (`/api/layers/space/satellites`, `/api/layers/space/satellites/categories`, `/api/layers/space/satellites/:satelliteId`). Added `const PUBLIC_SLUG = 'space';`. The WebSocket broadcaster in `apps/api/src/routes/space/satellites.ts` was intentionally NOT touched (per Spec 008 SR-005C and the work order). No service / repository / mapper / validation / types files were modified.
+  5. `apps/api/src/routes/maritime/index.ts` — Refactored 4 handlers (`listHandler`, `detailHandler`, `statsHandler`, `positionsHandler`) registered under both the legacy `/api/layers/layer_06_maritime/<verb>` paths and the new clean slug paths `/api/layers/maritime/<verb>`. Added `const PUBLIC_SLUG = 'maritime';`. The internal `LAYER_ID = 'layer_06_maritime'` is preserved for `meta.layerId` and for the `objects/:objectId` URL param validation. No service / validation / mapper / types files were modified.
+  6. `apps/api/src/routes/energy/infrastructure/index.ts` — Refactored 4 handlers (`listHandler`, `categoriesHandler`, `sourcesHandler`, `detailHandler`) registered under both the legacy `/api/energy/infrastructure/<verb>` paths and the new clean slug paths `/api/layers/energy/infrastructure/<verb>`. Added `const PUBLIC_SLUG = 'energy';`. The internal `LAYER_ID = 'layer_10_energy_infrastructure'` is preserved for `meta.layerId` responses. No service / validation / mapper / types files were modified.
+  7-12. Per-group test files (`aviation-aircraft.test.ts`, `borders-boundaries.test.ts`, `earth-events.test.ts`, `space-satellites.test.ts`, `maritime.test.ts`, `energy-infrastructure.test.ts`) — added a total of 21 new alias tests inside the existing `describe(...)` blocks: (a) at least one `alias.N` parity test per group that compares the new clean slug path response shape to the legacy path response shape; (b) at least one `alias.N` per-alias test for every new clean slug alias added; (c) one negative `alias.N` test per group confirming the bad duplicate `/api/layers/<slug>/<slug>/...` path returns 404 (slug-rule guard). All pre-existing tests unchanged. No test was weakened or removed.
+- Aliases added by group (12 in total):
+  - **Aviation (2):**
+    - `GET /api/layers/aviation/aircraft/latest` (alias for `/api/aviation/aircraft/latest`)
+    - `GET /api/layers/aviation/aircraft/:sourceObjectId` (alias for `/api/aviation/aircraft/:sourceObjectId`)
+  - **Borders-boundaries (1):**
+    - `GET /api/layers/borders-boundaries/countries` (alias for `/api/borders-boundaries/countries`)
+  - **Earth-events (1):**
+    - `GET /api/layers/earth-events/latest` (alias for `/api/earth-events/latest`)
+  - **Space (3):**
+    - `GET /api/layers/space/satellites` (alias for `/api/space/satellites`)
+    - `GET /api/layers/space/satellites/categories` (alias for `/api/space/satellites/categories`)
+    - `GET /api/layers/space/satellites/:satelliteId` (alias for `/api/space/satellites/:satelliteId`)
+  - **Maritime (4):**
+    - `GET /api/layers/maritime/objects` (alias for `/api/layers/layer_06_maritime/objects`)
+    - `GET /api/layers/maritime/objects/:objectId` (alias for `/api/layers/layer_06_maritime/objects/:objectId`)
+    - `GET /api/layers/maritime/stats` (alias for `/api/layers/layer_06_maritime/stats`)
+    - `GET /api/layers/maritime/vessels/:mmsi/positions` (alias for `/api/layers/layer_06_maritime/vessels/:mmsi/positions`)
+  - **Energy (1, plus 3 existing categories / sources / detail):**
+    - `GET /api/layers/energy/infrastructure` (alias for `/api/energy/infrastructure`)
+    - `GET /api/layers/energy/infrastructure/categories` (alias for `/api/energy/infrastructure/categories`)
+    - `GET /api/layers/energy/infrastructure/sources` (alias for `/api/energy/infrastructure/sources`)
+    - `GET /api/layers/energy/infrastructure/:featureId` (alias for `/api/energy/infrastructure/:featureId`)
+- Old paths preserved: yes. All 11 legacy paths are still registered and all pre-existing tests for them still pass.
+- Endpoint removals: none.
+- Response shapes changed: no. `meta.layerId` continues to use the internal layer ID per API-POLICY-001 (e.g. `layer_02_borders_boundaries` for borders, `layer_10_energy_infrastructure` for energy, etc.). Each `alias.1` parity test asserts identical top-level shape between the legacy and new paths.
+- Frontend callers changed: no. `apps/web/**` not touched.
+- Fetcher / normalizer / ingestion touched: no.
+- Aviation / borders / earth-events / space / maritime / energy support files (service / validation / mapper / types / repository) touched: no. The 6 route index.ts files were modified in-place using the same pattern as API-URL-001.
+- WebSocket paths touched: no. `/ws/aviation/aircraft/live` and `/ws/space/satellites/live` remain unchanged. `apps/api/src/routes/live-aircraft.ts` and the WebSocket portion of `apps/api/src/routes/space/satellites.ts` were intentionally not modified in this work order.
+- `/api/airports/...` paths touched: no.
+- Weather / News alias paths touched: no. `apps/api/src/routes/weather/index.ts` and `apps/api/src/routes/news/index.ts` were not modified.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `api/api-url-002-remaining-slug-aliases` (PASS)
+  - `git branch --show-current` → `api/api-url-002-remaining-slug-aliases` (PASS)
+  - `git log -18 --oneline` → HEAD = `e85aea9 refactor(web): use clean weather and news api urls` (PASS)
+  - Pre-edit route inventory:
+    - `apps/api/src/routes/aviation-aircraft.ts` → 2 fastify.get registrations (legacy domain paths)
+    - `apps/api/src/routes/borders-boundaries.ts` → 1 fastify.get registration (legacy domain path)
+    - `apps/api/src/routes/earth-events.ts` → 1 fastify.get registration (legacy domain path)
+    - `apps/api/src/routes/space/satellites/index.ts` → 3 fastify.get registrations (legacy domain paths); WebSocket in `space/satellites.ts` (untouched)
+    - `apps/api/src/routes/maritime/index.ts` → 4 fastify.get registrations (legacy `/api/layers/layer_06_maritime/...` paths)
+    - `apps/api/src/routes/energy/infrastructure/index.ts` → 4 fastify.get registrations (legacy domain paths)
+  - Post-edit route registration counts (alias additions beside legacy):
+    - `aviation-aircraft.ts` → 4 fastify.get registrations (2 old + 2 new)
+    - `borders-boundaries.ts` → 2 fastify.get registrations (1 old + 1 new)
+    - `earth-events.ts` → 2 fastify.get registrations (1 old + 1 new)
+    - `space/satellites/index.ts` → 6 fastify.get registrations (3 old + 3 new); WebSocket in `space/satellites.ts` unchanged
+    - `maritime/index.ts` → 8 fastify.get registrations (4 old + 4 new)
+    - `energy/infrastructure/index.ts` → 8 fastify.get registrations (4 old + 4 new)
+  - `git grep /api/layers/<slug>/<slug>` (bad duplicate paths) → only test-file references for negative assertions; no route registration produces them (PASS)
+  - `git grep /ws/` against `apps/api/src` → unchanged (2 `index.ts` matches for upgrade dispatcher log lines + 1 each in `live-aircraft.ts` and `space/satellites.ts` for upgrade handler; no `ws` path added, removed, or renamed) (PASS)
+  - `git diff -- apps/web services database packages specs docs/control` → 0 lines (PASS; all other lanes untouched)
+  - `git diff --name-status` → exactly 12 files (6 source routes + 6 tests); docs added at staging (PASS)
+  - `git diff --stat` → 12 files changed, 752 insertions, 437 deletions (PASS)
+  - `git diff --check` → no output (PASS)
+  - Forbidden change check (`git diff --name-only | findstr` against `apps/web/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS)
+  - `cd apps/api; npx vitest run` (full API suite) → 18 files passed (18), 560 tests passed (560) — was 539; +21 alias tests (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) — unchanged (PASS)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (no frontend source change; running web build would emit `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the working tree per the API-IMP-001 / API-POLICY-001 / API-URL-001 / WEB-API-001 baseline)
+  - `python -m pytest tests/data -q` → SKIPPED on dirty docs (would fail the pre-existing scope-guard tests per the API-001 / API-PLAN-001 / API-URL-001 / WEB-API-001 baseline). Classified as non-blocking per task instructions. The diff does not touch any code path that would affect the Python data test suite.
+- Known issues / caveats:
+  - **Aviation folder test overlap.** `apps/api/tests/objects.test.ts`, `preload.test.ts`, `production-hardening.test.ts`, `smoke.test.ts` use the URL pattern `/api/layers/layer_01_aviation/objects` (with internal layer ID). These paths are registered by `apps/api/src/routes/objects/index.ts`, not by `apps/api/src/routes/aviation-aircraft.ts`. The aviation-aircraft work in this order does not affect them. Future work to add clean slug aliases for the objects route is out of scope and must be a separate work order.
+  - **Maritime has 4 legacy paths.** All 4 are registered (objects list, objects detail, stats, vessels positions). All 4 received clean slug aliases.
+  - **Space has 3 REST legacy paths.** All 3 received clean slug aliases. The `/categories` subpath is registered before `/:satelliteId` to avoid param capture. WebSocket is intentionally NOT aliased.
+  - **Energy has 4 legacy paths.** All 4 received clean slug aliases (list, categories, sources, detail). The `/categories` and `/sources` subpaths are registered before `/:featureId` to avoid param capture.
+  - **Frontend migration is intentionally NOT in this work order.** WEB-API-002 is the next work order per the policy doc migration sequence (Section 10). The 6 frontend API-caller files (in `apps/web/src/lib/api.ts` and the per-layer `useXxx.ts` hook files) will be migrated using the same `WEATHER_PUBLIC_SLUG` / `NEWS_PUBLIC_SLUG` pattern proven by WEB-API-001.
+  - **`public-profile/service.ts:122` TODO marker is unchanged.** This is a future-integration placeholder, not actual fetcher code. The API boundary stays clean.
+  - **No real backend runtime validation was performed by this agent.** Frontend and API tests use mocked `fetch()` / `query()` results. The end-to-end migration loop will only be proven end-to-end when the user / decision-control layer runs the dev server and exercises the frontend against the live API.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of WEB-API-001 (`e85aea9`).
+- Next step: Reviewer Agent should review API-URL-002. The user / decision-control layer should decide whether to push the branch and open a PR. After API-URL-002 is approved, the next implementation work order is `WEB-API-002` (frontend migration of aviation, borders-boundaries, earth-events, space, maritime, energy frontend callers to the clean slugs added in this work order). Do not start WEB-API-002 until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
+
+- Work order: WEB-API-001
+- Agent: Web/API Migration Agent
+- Branch: `web/web-api-001-weather-news-clean-url-callers`
+- Parent: `5876014 feat(api): add weather and news slug route aliases` (API-URL-001)
+- Reviewer decision: PENDING (agent-only local handoff; frontend caller migration only; no backend / services / database / packages / specs changes)
+- Reason: API-URL-001 added clean public slug endpoint aliases for Weather and News while preserving the old layer-ID compatibility paths. This work order proves the end-to-end migration loop: frontend callers move to the clean slug URLs, backend keeps serving both old and new, frontend tests pass, no other endpoint group is touched. The frontend had only two API-caller files (Weather and News); both were migrated in this single small work order. Aviation / borders / earth-events / space / maritime / energy frontend callers are intentionally out of scope and are not migrated in this work order.
+- Goal: Migrate the Weather and News frontend API request paths to the clean public slugs (`/api/layers/weather/...` and `/api/layers/news/...`) without changing internal layer IDs, response parsing, data types, exported function names, or any other frontend code. Backend must not be touched. Old backend paths must remain available.
+- Files updated (4):
+  1. `apps/web/src/layers/layer_07_weather/weatherApi.ts` — Removed `import { WEATHER_LAYER_ID } from './weatherTypes';`. Added module-local `const WEATHER_PUBLIC_SLUG = 'weather';` with a doc comment explaining the boundary between the internal layer ID (folder / UI / registry) and the public slug (URL). Changed `WEATHER_CURRENT_PATH` from `\`/api/layers/${WEATHER_LAYER_ID}/weather/current\`` to `\`/api/layers/${WEATHER_PUBLIC_SLUG}/current\``. Net runtime URL: `GET /api/layers/weather/current`. No other changes (no response parsing, no data types, no exported function names, no fetch call shape, no error handling).
+  2. `apps/web/src/layers/layer_08_news_osint/newsApi.ts` — Removed `import { NEWS_LAYER_ID } from './newsTypes';`. Added module-local `const NEWS_PUBLIC_SLUG = 'news';` with the same boundary comment. Changed `BASE` from `\`/api/layers/${NEWS_LAYER_ID}/news\`` to `\`/api/layers/${NEWS_PUBLIC_SLUG}\``. The 5 derived path constants (`NEWS_ITEMS_PATH`, `NEWS_MARKERS_PATH`, `NEWS_STATS_PATH`, `NEWS_SOURCES_PATH`, `NEWS_FETCH_RUNS_PATH`) now resolve to clean slug URLs. Net runtime URLs: `GET /api/layers/news/{items,markers,stats,sources,fetch-runs}`. No other changes.
+  3. `apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts` — Updated 2 exact-URL assertions at lines 112 and 113 from `/api/layers/layer_07_weather/weather/current` to `/api/layers/weather/current`. All other 21 weather tests were left unchanged. The non-URL assertions that reference `WEATHER_LAYER_ID` (line 52 for mock data `layer_id` field) were preserved — `WEATHER_LAYER_ID` remains the internal layer ID for data shape, registry, and folder identity.
+  4. `apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts` — Updated 1 exact-URL assertion at line 101 from `\`/api/layers/${NEWS_LAYER_ID}/news/items\`` to `/api/layers/news/items`. All other 29 news tests were left unchanged. The non-URL assertions that reference `NEWS_LAYER_ID` (mock data `layer_id` fields and the explicit `expect(NEWS_LAYER_ID).toBe('layer_08_news_osint')` identity test) were preserved — `NEWS_LAYER_ID` remains the internal layer ID.
+- Weather caller migration summary:
+  - `WEATHER_CURRENT_PATH`: `/api/layers/layer_07_weather/weather/current` → `/api/layers/weather/current`
+  - Test assertion `expect(WEATHER_CURRENT_PATH).toBe(...)`: updated to match the new value
+  - Test assertion `expect(calledUrl).toContain(...)`: updated to match the new value
+- News caller migration summary:
+  - `BASE = /api/layers/layer_08_news_osint/news` → `BASE = /api/layers/news`
+  - All 5 derived path constants resolve to the clean slug URL via `BASE`
+  - Test assertion `expect(url).toContain(\`/api/layers/${NEWS_LAYER_ID}/news/items\`)`: updated to hardcoded `/api/layers/news/items` (the prior template literal was redundant with `expect(url).toContain(NEWS_ITEMS_PATH)` already on the prior line, so the hardcoded assertion is no weaker)
+- Backend route changes: none (`git diff -- apps/api` → 0 lines)
+- Old backend paths removed: none (the backend still registers both `/api/layers/layer_07_weather/weather/*` and `/api/layers/weather/*`; the frontend simply now uses the clean path)
+- Response shapes changed: none (backend unchanged; mock test data unchanged)
+- Internal layer IDs removed from UI/registry metadata: no (`WEATHER_LAYER_ID` and `NEWS_LAYER_ID` are still exported and still used for folder identity, import paths, registry entries, mock `layer_id` data fields, and the explicit identity test `expect(NEWS_LAYER_ID).toBe('layer_08_news_osint')`)
+- Unrelated frontend endpoint groups changed: no (aviation / borders / earth-events / space / maritime / energy callers and the `/api/airports/...` and `/ws/...` paths are untouched; `apps/web/src/lib/api.ts` does not contain any Weather or News URL construction so it was not modified)
+- Fetcher / normalizer / ingestion touched: no
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `web/web-api-001-weather-news-clean-url-callers` (PASS)
+  - `git branch --show-current` → `web/web-api-001-weather-news-clean-url-callers` (PASS)
+  - `git log -17 --oneline` → HEAD = `5876014 feat(api): add weather and news slug route aliases` (PASS)
+  - `git grep -nE "/api/layers/layer_07_weather/weather|/api/layers/layer_08_news_osint/news"` against `apps/web/src` → 0 lines (PASS; no remaining old request paths in frontend src)
+  - `git grep -n "WEATHER_PUBLIC_SLUG"` against `apps/web/src` → 2 references in `weatherApi.ts` (the constant declaration and the `WEATHER_CURRENT_PATH` template literal) (PASS)
+  - `git grep -n "NEWS_PUBLIC_SLUG"` against `apps/web/src` → 2 references in `newsApi.ts` (the constant declaration and the `BASE` template literal) (PASS)
+  - `git diff -- apps/api` → 0 lines (PASS; backend untouched)
+  - `git diff --name-only | findstr` against forbidden patterns (`apps/api/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → 0 output (PASS)
+  - `git diff --name-status` → 4 files (2 source + 2 test) (PASS)
+  - `git diff --stat` → 4 files changed, 21 insertions, 7 deletions (small focused diff) (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/web; npx tsc --noEmit` (TypeScript type-check only, no build artifacts) → exit 0 (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) (PASS; no test weakened or removed)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS; backend unchanged but verified)
+  - `cd apps/api; npx vitest run` (= `pnpm --filter api test`) → 18 files passed (18), 539 tests passed (539) (PASS; backend test suite still green)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (no frontend source change beyond URL string constants; running web build would emit `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the working tree per API-PLAN-001 / API-POLICY-001 / API-URL-001 baseline)
+  - `python -m pytest tests/data -q` → SKIPPED (no fetcher / normalizer / ingestion / database change; the dirty-docs scope-guard tests are pre-existing dirty-tree artifacts and not in scope)
+- Known issues / caveats:
+  - **`public-profile/service.ts:122` TODO marker remains unchanged.** This is a future-integration placeholder, not actual fetcher code. The API boundary stays clean.
+  - **Aviation / borders / earth-events / space / maritime / energy callers were intentionally NOT migrated in this work order.** They will be addressed in a separate work order after API-URL-002 adds clean slug aliases for those layers. Per user / decision-control layer direction, this work order proves the migration loop on Weather and News first; the same pattern can then be applied to the remaining endpoint groups in API-URL-002 / WEB-API-002.
+  - **No real backend runtime validation was performed by this agent.** Frontend tests use mocked `fetch()` calls (no live API). The end-to-end migration loop will only be proven end-to-end when the user / decision-control layer runs the dev server and exercises the frontend against the live API. The frontend test suite confirms that the new clean URLs are produced by the frontend and that the test mocks resolve them.
+  - **`apps/web/src/lib/api.ts` was inspected and confirmed not to contain any Weather or News URL construction.** No change was needed there.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of API-URL-001 (`5876014`).
+- Next step: Reviewer Agent should review WEB-API-001. The user / decision-control layer should decide whether to push the branch and open a PR. After WEB-API-001 is approved, the next implementation work order is `API-URL-002` (clean slug endpoint aliases for the remaining 6 endpoint groups: aviation, borders-boundaries, earth-events, space, maritime, energy) followed by `WEB-API-002` (frontend migration of those groups), per the migration sequence in `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` Section 10. Do not start either implementation work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
+
+- Work order: API-URL-001
+- Agent: API Implementation Agent
+- Branch: `api/api-url-001-weather-news-slug-aliases`
+- Parent: `f9763d2 refactor(api): remove pure route shim imports` (API-IMP-001)
+- Reviewer decision: PENDING (agent-only local handoff; no fetcher/normalizer/ingestion/web/services/database/packages changes)
+- Reason: API-POLICY-001 was approved and recorded the public API endpoint naming policy. The user / decision-control layer directed implementation to begin with the first two endpoint groups (Weather and News) using the handler-extraction alias pattern (one handler body, two registrations). API-IMP-001 had already cleaned the import base; this work order builds the first clean public slug aliases without removing the existing layer-ID paths. The aviation / borders / earth-events / space / maritime / energy endpoint groups are intentionally deferred to API-URL-002 in a later work order.
+- Goal: Add the first batch of clean public slug endpoint aliases (Weather + News) without removing any old path, without changing any response shape, and without changing any frontend caller. All old `/api/layers/layer_07_weather/weather/...` and `/api/layers/layer_08_news_osint/news/...` paths continue to work and return the same response shape.
+- Files updated (4):
+  1. `apps/api/src/routes/weather/index.ts` — refactored from inline arrow handler bodies into named const arrow functions (`latestHandler`, `currentHandler`, `hourlyHandler`, `nearbyHandler`, `sourcesHandler`, `fetchRunsHandler`) defined inside `weatherRoutes(...)`, then each function registered under both the legacy path and the new clean path (12 `fastify.get` calls total: 6 old + 6 new). Added module-level `const PUBLIC_SLUG = 'weather';` for the new path strings. Added a header comment listing the 6 new clean aliases and noting that old paths are preserved. The internal `const LAYER_ID = 'layer_07_weather';` is preserved and continues to be used in `meta.layer_id` responses per API-POLICY-001. No service / repository / mapper / validation / types files were modified.
+  2. `apps/api/src/routes/news/index.ts` — same refactor pattern: 5 named const arrow handlers (`itemsHandler`, `markersHandler`, `sourcesHandler`, `fetchRunsHandler`, `statsHandler`) registered under both the legacy path and the new clean path (10 `fastify.get` calls total: 5 old + 5 new). Added `const PUBLIC_SLUG = 'news';`. Added a header comment listing the 5 new clean aliases. The internal `LAYER_ID = 'layer_08_news_osint'` is preserved for `meta.layer_id`. No support files were modified.
+  3. `apps/api/tests/weather.test.ts` — added 7 new alias tests inside the existing `describe('Weather API', ...)` block, right before its closing `});`: `alias.1` parity test (verifies `/api/layers/weather/latest` returns the same top-level shape and same `meta.layer_id` as the legacy path); `alias.2` current; `alias.3` hourly; `alias.4` nearby; `alias.5` sources; `alias.6` fetch-runs; `alias.7` negative test confirming the bad duplicate `/api/layers/weather/weather/latest` returns 404 (slug rule guard). All 51 pre-existing tests still pass unchanged. No test was weakened or removed.
+  4. `apps/api/tests/layer_08_news_osint.test.ts` — added 6 new alias tests in the same style: `alias.1` parity test (verifies `/api/layers/news/items` shape and `meta.layer_id` matches the legacy path); `alias.2` markers; `alias.3` sources (uses existing `MOCK_SOURCE` to satisfy Zod parse); `alias.4` fetch-runs (uses existing `MOCK_FETCH_RUN`); `alias.5` stats (uses the same multi-mock sequence as the existing test 20 so the Zod parse succeeds); `alias.6` negative test confirming the bad duplicate `/api/layers/news/news/items` returns 404. All 60 pre-existing tests still pass unchanged.
+- Weather clean aliases added (6):
+  - `GET /api/layers/weather/latest` (alias for `/api/layers/layer_07_weather/weather/latest`)
+  - `GET /api/layers/weather/current` (alias for `/api/layers/layer_07_weather/weather/current`)
+  - `GET /api/layers/weather/hourly` (alias for `/api/layers/layer_07_weather/weather/hourly`)
+  - `GET /api/layers/weather/nearby` (alias for `/api/layers/layer_07_weather/weather/nearby`)
+  - `GET /api/layers/weather/sources` (alias for `/api/layers/layer_07_weather/weather/sources`)
+  - `GET /api/layers/weather/fetch-runs` (alias for `/api/layers/layer_07_weather/weather/fetch-runs`)
+- News clean aliases added (5):
+  - `GET /api/layers/news/items` (alias for `/api/layers/layer_08_news_osint/news/items`)
+  - `GET /api/layers/news/markers` (alias for `/api/layers/layer_08_news_osint/news/markers`)
+  - `GET /api/layers/news/sources` (alias for `/api/layers/layer_08_news_osint/news/sources`)
+  - `GET /api/layers/news/fetch-runs` (alias for `/api/layers/layer_08_news_osint/news/fetch-runs`)
+  - `GET /api/layers/news/stats` (alias for `/api/layers/layer_08_news_osint/news/stats`)
+- Old paths preserved: yes (all 11 old layer-ID paths still registered, return the same shape, all existing tests for old paths still pass).
+- Endpoint removals: none.
+- Response shapes changed: no (`meta.layer_id` continues to use the internal layer ID per API-POLICY-001; the alias.1 / alias.1 parity tests assert identical top-level shape between old and new paths).
+- Frontend callers changed: no (`apps/web/**` not touched).
+- Fetcher / normalizer / ingestion touched: no.
+- Aviation / borders / earth-events / space / maritime / energy route files touched: no (intentionally out of scope; deferred to API-URL-002 in a later work order).
+- `/api/airports/...` and `/ws/...` paths touched: no.
+- `apps/api/src/routes/objects.ts`, `apps/api/src/routes/space/satellites.ts`, and all support files (service.ts, validation.ts, types.ts, mapper.ts, repository.ts) for weather / news: not touched.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `api/api-url-001-weather-news-slug-aliases` (PASS)
+  - `git branch --show-current` → `api/api-url-001-weather-news-slug-aliases` (PASS)
+  - `git log -16 --oneline` → HEAD = `f9763d2 refactor(api): remove pure route shim imports` (PASS)
+  - `git grep -nE "fastify\.get"` against `apps/api/src/routes/weather/index.ts` → exactly 12 registrations (6 old + 6 new) (PASS)
+  - `git grep -nE "fastify\.get"` against `apps/api/src/routes/news/index.ts` → exactly 10 registrations (5 old + 5 new) (PASS)
+  - `git grep -nE "/api/layers/weather/weather"` against `apps/api` → only test-file references (the negative alias.7 test and its comment); no route registration (PASS)
+  - `git grep -nE "/api/layers/news/news"` against `apps/api` → only test-file references (the negative alias.6 test and its comment); no route registration (PASS)
+  - `git diff -- apps/api/src/routes/{aviation-aircraft,borders-boundaries,earth-events}.ts apps/api/src/routes/{maritime,space,energy,airport-intelligence,airport-layout-features,public-profile,objects}.ts apps/api/src/routes/{live-aircraft,health,layers}.ts` → 0 lines (PASS, scope guard)
+  - `git diff --name-status` → only the 4 allowed files (2 modified source, 2 modified test) (PASS)
+  - `git diff --stat` → 4 files changed, 625 insertions, 362 deletions (PASS; bulk is the handler-extraction refactor inside the two route files)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr` against forbidden patterns (`apps/web/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS)
+  - `cd apps/api; npx vitest run tests/weather.test.ts tests/layer_08_news_osint.test.ts` → 2 files passed (2), 124 tests passed (124): 51 + 7 alias in weather, 60 + 6 alias in news (PASS)
+  - `cd apps/api; npx vitest run` (full API suite) → 18 files passed (18), 539 tests passed (539) — was 526 before; the 13 new alias tests account for the delta (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) (PASS; web build was intentionally skipped to avoid emitting `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the tree)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (docs + endpoint alias diff does not touch frontend code; running web build would emit `vite.config.{d.ts,js}` build artifacts that would dirty the working tree per the API-PLAN-001 experience)
+  - `python -m pytest tests/data -q` → SKIPPED (the diff is not a code change to fetcher / normalizer / ingestion / database. The scope-guard tests would fail on a dirty tree per API-001 / API-PLAN-001 baseline; classified as non-blocking per task instructions)
+- Known issues / caveats:
+  - **No real database runtime validation was performed by this agent.** Only Fastify inject-based tests with mocked `query()` results. The parity test (`alias.1`) confirms that the same handler is called by both old and new paths with the same input, so the response shape is identical by construction.
+  - **`meta.layer_id` is intentionally unchanged.** Per API-POLICY-001, the public API URL surface and the internal layer registry are separate concerns. The internal layer ID continues to appear in response metadata for both old and new paths.
+  - **`API-URL-001` is the first batch only.** Aviation / borders / earth-events / space / maritime / energy endpoint groups are intentionally not addressed in this work order. They are deferred to `API-URL-002` in a later work order per the migration sequence in `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` Section 10.
+  - **Frontend migration is a separate work order (`WEB-API-001`).** Frontend consumers in `apps/web/src/lib/api.ts` and the per-layer `*Api.ts` files were not changed in this work order. They will be migrated in a coordinated work order after `API-URL-002` (or earlier per user direction).
+  - **`public-profile/service.ts:122` TODO marker is unchanged.** The placeholder remains a comment marking a future fetcher integration point, not actual fetcher code. The API boundary remains clean.
+  - **Object route (`apps/api/src/routes/objects/`) was not touched.** It already uses `/api/layers/<layerId>/...` canonical path semantics with internal layer IDs and is out of scope for API-URL-001.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of API-IMP-001 (`f9763d2`) and API-POLICY-001 (`a632a95`).
+- Next step: Reviewer Agent should review API-URL-001. The user / decision-control layer should decide whether to push the branch and open a PR. After API-URL-001 is approved, the next implementation work order is `API-URL-002` (aviation / borders / earth-events / space / maritime / energy clean aliases), or `WEB-API-001` (frontend migration of Weather and News consumers to the new clean slugs), per user / decision-control layer direction. Do not start either implementation work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
+
+- Work order: API-POLICY-001
+- Agent: API Policy Documentation Agent
+- Branch: `docs/api-policy-001-public-api-naming`
+- Parent: `5bcb089 docs(spec): close frontend reconstruction status`
+- Reviewer decision: PENDING (agent-only local docs-only handoff; no source code changes; no endpoint changes)
+- Reason: The API audit (API-001) and the API planning report (API-PLAN-001) confirmed that the API works and tests pass, but the public endpoint URL surface mixes clean domain paths, `/api/layers/<layerId>/...` paths that expose internal IDs, legacy `/api/<domain>/...` paths, and airport-keyed `/api/airports/:airportId/...` paths. The user / decision-control layer has now made the naming direction clear: public API URLs must use clean readable slugs, not internal layer-number IDs. This work order records that decision as a binding policy **before** any endpoint implementation begins. It is documentation / policy only. No endpoint path, response shape, or source file is changed.
+- Goal: Document the public API endpoint naming policy. Mark the "API endpoint path policy decision" entry in `tasks.md` and `plan.md` as Decided (implementation remains Pending). Sequence the implementation work for future work orders.
+- Files updated (5):
+  1. `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` — **created**. Contains the slug map (e.g. `layer_07_weather` → `weather`, `layer_08_news_osint` → `news`, `layer_10_energy_infrastructure` → `energy`, `layer_01_aviation` → `aviation`, `layer_02_borders_boundaries` → `borders-boundaries`, `layer_03_earth_events` → `earth-events`, `layer_05_space_satellites` → `space`, `layer_06_maritime` → `maritime`), the preferred future public URL shape (e.g. `GET /api/layers/aviation/aircraft/latest`, `GET /api/layers/weather/current`, `GET /api/layers/news/items`, `GET /api/layers/energy/infrastructure`), the families that stay separate (`/api/airports/:airportId/...`, `/ws/aviation/aircraft/live`, `/ws/space/satellites/live`, `/api/health`, `/api/layers` registry endpoints), the transitional state, the compatibility policy (no endpoint removal in the same work order that introduces a replacement; old paths stay as compatibility aliases until frontend migration and real runtime validation), the API folder naming policy (use domain names like `weather/`, `news/`, `maritime/`, `energy/infrastructure/`, not `layer_07_weather/` etc.), the shim policy (remove pure internal re-export shims when their importers move; do not delete mixed-role files like `apps/api/src/routes/space/satellites.ts` as if they were shims), the file-size policy (split only on responsibility mixing, not on line count), the API boundary policy (API work is not fetcher / normalizer / ingestion work; the lanes stay separate), and the migration sequence (`API-POLICY-001` → `API-IMP-001` → `API-URL-001` → `WEB-API-001` → `API-URL-002` → `API-SIZE-001`).
+  2. `specs/008-structure-remediation-roadmap/tasks.md` — in the auxiliary work items list, the entry "API endpoint path policy decision (legacy vs canonical paths) — **Blocked / Needs decision**" was updated to "**Decided** by API-POLICY-001" with a pointer to the new policy doc and the migration sequence. In the "Remaining recommended order" list, item 6 (API endpoint path policy) was updated from "final decision needed on whether legacy non-canonical endpoint paths are kept as compatibility aliases" to "Decided by API-POLICY-001" with the same pointer.
+  3. `specs/008-structure-remediation-roadmap/plan.md` — in the "Needs decision (snapshot)" section, the API endpoint path policy line was updated from "Blocked until a user / Orchestrator decision is made" to "Decided by API-POLICY-001 (commit on branch `docs/api-policy-001-public-api-naming`, parent `5bcb089`)" with a summary of the decision. In the recommended execution order list, item 6 was updated to "Decided by API-POLICY-001" with the policy doc pointer, and item 1 was clarified as "pending reviewer review on branch `docs/sr-016/frontend-closure-alignment`".
+  4. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-17 - API-POLICY-001 Public API Naming Policy` and removed the oldest entry (`## 2026-06-16 - SR-012 Space Canonicalization`) to keep the rolling window at 5 entries. `HANDOFF_LOG.md` is not affected by the rolling-window rule and remains append-only.
+  5. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only).
+- Decision summary (full text in the policy doc):
+  * Public API URLs use clean readable domain slugs (`aviation`, `weather`, `news`, `maritime`, `energy`, `space`, `borders-boundaries`, `earth-events`).
+  * Public API URLs do **not** expose internal layer-number IDs (`layer_07_weather`, etc.).
+  * Internal layer IDs continue to exist in contracts, the layer registry, internal TypeScript constants, tests, log messages, and database records.
+  * Existing paths remain working during migration; new clean slug aliases are added before old paths are removed.
+  * Frontend migration is a separate coordinated work order (`WEB-API-001`).
+- API boundary summary:
+  * `apps/api/src/` may not fetch external source data, normalize raw payloads, or run scheduled ingestion.
+  * `apps/api/src/` may read database records and return responses.
+  * `apps/api/src/` may record a fetch-run request/status but must not perform the external fetch.
+  * Fetching belongs in `services/fetch-orchestrator/`; normalization belongs in `services/normalizer/`; ingestion belongs in `database/ingestion/`.
+- Shim policy summary:
+  * Pure internal re-export shims are removed when their importers move.
+  * Mixed-role files (e.g. `apps/api/src/routes/space/satellites.ts`, which holds both a REST re-export and a WebSocket broadcaster) are **not** shims and must not be deleted as such.
+  * Shim removals are small, reviewed work orders that do not change endpoint behavior, response shape, registration order, or path.
+- Migration sequence: `API-POLICY-001` (this) → `API-IMP-001` (entrypoint import normalization + pure shim removal) → `API-URL-001` (clean slug aliases alongside old paths) → `WEB-API-001` (frontend migration to clean URLs) → `API-URL-002` (remove or formally keep old aliases after real runtime validation) → `API-SIZE-001` (split only on responsibility mixing). The fetcher / normalizer canonical source structure (Spec 008 SR-015) and the database migration documentation cleanup (Spec 008 SR-016) are independent lanes and remain Planned later.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `docs/api-policy-001-public-api-naming` (PASS)
+  - `git branch --show-current` → `docs/api-policy-001-public-api-naming` (PASS)
+  - `git log -14 --oneline` → HEAD = `5bcb089 docs(spec): close frontend reconstruction status` (PASS)
+  - `git grep -n -E "/api/(layers|aviation|borders|earth-events|space|energy|airports|maritime|weather|news)" -- apps/api apps/web` → confirms current mixed state: legacy domain paths, `/api/layers/<layerId>/...` paths, airport-keyed paths, and WebSocket paths all exist; the policy is informed by this current state (PASS, classified)
+  - `git grep -nE "layer_0[1235678]_aviation|layer_10_energy_infrastructure" -- apps/api` → confirms internal IDs remain in `apps/api/src/routes/layers.ts` `LAYER_REGISTRY` and as `LAYER_ID` constants in `weather/index.ts`, `news/index.ts`, `maritime/{index,mapper,repository}.ts`, `energy/infrastructure/index.ts` (PASS, classified — all internal; no public path strings use these IDs)
+  - `Test-Path -LiteralPath "specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md"` (pre-edit) → `False` (PASS, file was created)
+  - `git diff --name-status` → only the 5 expected files (1 added, 4 modified) (PASS)
+  - `git diff --stat` → confirms small docs-only scope (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr` for forbidden areas/lockfiles → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `pnpm --filter api build` → succeeded (PASS)
+  - `pnpm --filter api test` → succeeded (PASS, 18 test files, 526 tests)
+- Known issues / caveats:
+  - **Implementation is not complete.** The decision is complete; the migration is sequenced in the policy doc but has not started. Any implementation work order that adds a clean slug endpoint must follow the compatibility policy in Section 5 of the policy doc (keep the old path working as an alias until `WEB-API-001` lands and real runtime validation confirms parity).
+  - **Naming conflict between spec and active work is not relevant here.** The Spec 008 SR-015 / SR-016 backend work packages (fetcher / normalizer canonical source structure and database migration documentation cleanup) are still **Planned later** and unrelated to this policy. The active `frontend/sr-015/final-layer-shape-cleanup` and `docs/sr-016/frontend-closure-alignment` work items are also unrelated. API-POLICY-001 is a new work order in the API documentation lane.
+  - **`PROJECT_CONTROL.md` Part 2 §8 ownership row decision is still Blocked / Needs decision.** This policy does not resolve that decision. The migration sequence in Section 10 references the API Agent lane but does not pre-assign per-task ownership beyond what `PROJECT_CONTROL.md` already says.
+  - **No source code was changed.** No endpoint was added, removed, or renamed. No shim was removed. No fetcher, normalizer, or ingestion code was touched.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of `5bcb089`.
+- Next step: Reviewer Agent should review API-POLICY-001. The user / decision-control layer should decide whether to push the branch and open a PR. After API-POLICY-001 is approved, the next implementation work order is `API-IMP-001` (entrypoint import normalization + pure shim removal) or `API-URL-001` (clean slug endpoint aliases), per user / decision-control layer direction. Do not start either implementation work order until the user explicitly approves it.
+
+---
+
+
+- Work order: SR-016
+- Agent: Documentation Alignment Agent
+- Branch: docs/sr-016/frontend-closure-alignment
+- Parent: SR-015 `09bfc27` (frontend shape cleanup) on the correction stack
+- Reviewer decision: PENDING (agent-only local docs-only handoff; no docs/control or code changes)
+- Reason: The frontend reconstruction is complete through SR-015, but the closure audit found stale Spec 008 workspace docs that still described completed frontend tasks as pending. SR-016 updates the stale active/spec documentation so the docs match the actual completed frontend work. This is a clarity task — it does not make the program or docs more confusing and does not rewrite history; it clearly marks the current final status.
+- Goal: Update `specs/008-structure-remediation-roadmap/README.md`, `tasks.md`, `plan.md`, `frontend-layer-canonicalization-plan.md`, and `frontend-layer-canonicalization-plan-report.md` so they reflect the completed frontend reconstruction through SR-015. Add a short top entry to `docs/state/RECENT_CONTEXT.md` and a full entry to `docs/state/HANDOFF_LOG.md` (this entry) for SR-016.
+- Files updated (7):
+  1. `specs/008-structure-remediation-roadmap/README.md` — updated status line, status banner, "Status After Phase 6" body, "Purpose" body, and "Spec Kit Position" body so they reflect completed Phase 4 and list the 8 active canonical folders.
+  2. `specs/008-structure-remediation-roadmap/tasks.md` — updated the top "Status as of 2026-06-16" section header, status legend, work package status table, auxiliary work items, remaining recommended order, and "Done caveats". SR-009, SR-010, SR-010S, SR-011, SR-013, SR-012, SR-014, and the redundant `.gitkeep` cleanup are now marked Done. The frontend shape cleanup and SR-016 docs closure alignment are recorded as separate notes with explicit branch/commit references and naming-conflict disclaimers because they reused SR-015 / SR-016 work-order IDs that are otherwise defined in the spec table for different work packages.
+  3. `specs/008-structure-remediation-roadmap/plan.md` — updated "Status as of 2026-06-16" header, completed-work snapshot (Phase 4 is now Done), remaining-work snapshot, planned-later snapshot (with naming notes for SR-015 / SR-016), and the recommended execution order (mechanical frontend renames removed; only policy/decision/cleanup items remain).
+  4. `specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md` — changed status from `Planning` to `Completed (post-SR-016 docs closure)`, added a completion banner at the top with validation and runtime-wording summary, and updated the "Current Frontend Layer Folders" and "Target Canonical Folders" tables to show the final state (old folders marked Removed, new folders marked Active rather than Rename needed, L4/L9 marked intentionally not created).
+  5. `specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan-report.md` — added a clear "Superseded / Completion addendum" at the top so the file is not read as current truth. The pre-implementation snapshot content below is preserved unchanged as the audit trail.
+  6. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-016 Frontend Closure Docs Alignment` and removed the oldest entry (`## 2026-06-16 - SR-013 Maritime Canonicalization`) to keep the rolling window at 5 entries.
+  7. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only).
+- Frontend status: closed from code/structure perspective as of the frontend shape cleanup commit `09bfc27`. Final `apps/web/src/layers/` shape contains exactly the 8 active canonical folders (`layer_01_aviation/`, `layer_02_borders_boundaries/`, `layer_03_earth_events/`, `layer_05_space_satellites/`, `layer_06_maritime/`, `layer_07_weather/`, `layer_08_news_osint/`, `layer_10_energy_infrastructure/`). All 8 have a public `index.ts`. Old shim folders removed. L4/L9 intentionally not created.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `docs/sr-016/frontend-closure-alignment` (PASS)
+  - `git log -13 --oneline` → confirmed stack ending with `09bfc27 refactor(web): finalize canonical layer folder shape` (PASS)
+  - `Get-ChildItem apps/web/src/layers -Directory` → 8 canonical folders, 0 old folders (PASS)
+  - `Test-Path` for 6 old folder paths → all `False` (PASS)
+  - `Test-Path` for `layer_04_public_military_security/` and `layer_09_user_shapes/` → both `False` (PASS)
+  - `Test-Path` for all 8 canonical `index.ts` → all `True` (PASS)
+  - `git grep` for 6 old import paths → all 0 lines (PASS)
+  - Pre-edit stale wording search (14 patterns including `pending`, `Rename needed`, `Phase 4.*pending`, `Status: Planning`) → matched 14 stale locations across the 5 spec files (PASS, classified)
+  - Post-edit stale wording search → all matches are in clearly labeled historical/superseded contexts (completion banner references and historical audit trail) (PASS)
+  - `git diff --name-status` → only the 7 expected doc files (PASS)
+  - `git diff --stat` → confirms small docs-only scope (PASS)
+  - `git diff --check` → no output (PASS, after trimming trailing blank line)
+  - `git diff --name-only | findstr` for forbidden areas/lockfiles → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules transformed)
+  - `pnpm --filter web test` → succeeded (PASS, 3 test files, 64 tests)
+  - `pnpm --filter api build` → succeeded (PASS)
+  - `pnpm --filter api test` → succeeded (PASS)
+- Runtime validation: user reported real backend and database runtime validation passed after the frontend closure cleanup. This wording is recorded carefully — the Documentation Alignment Agent did not personally run the real database runtime test.
+- Known issues / caveats:
+  - **Naming conflict between spec and active work.** The spec table at `tasks.md` line ~30 defines `SR-015` as the backend "Fetcher / normalizer canonical source structure" work package (still **Planned later**) and `SR-016` as the backend "Database migration documentation cleanup" work package (still **Planned later**). The active frontend closure work reused the SR-015 branch name (`frontend/sr-015/final-layer-shape-cleanup`) and the active docs closure work reused the SR-016 work-order ID (`docs/sr-016/frontend-closure-alignment`). Both are explicitly noted in `tasks.md` and `plan.md` as separate entries to avoid future confusion.
+  - **`python -m pytest tests/data -q` run after commit on a clean tree** is recommended for the final full-validation pass; the closure audit confirmed it passed on a clean tree prior to this docs-only branch. The docs-only diff does not touch any code paths that would affect the data test suite.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-015 local commit (`frontend/sr-015/final-layer-shape-cleanup`, commit `09bfc27`).
+- Next step: Reviewer Agent should review SR-016. The user / decision-control layer should decide whether to push the full stacked branch and open PRs. After SR-016 is approved, the frontend reconstruction can be closed cleanly from a docs perspective. The user should then decide the next area: API cleanup, integration/full validation package, or PR package planning.
+
+---
+
+### 2026-06-16T05:00:00Z — sr-015-final-layer-shape-cleanup
+
+- Work order: SR-015
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-015/final-layer-shape-cleanup
+- Base stack: SR-009 `6231b1f` on top of SR-014 `90c3056` on top of SR-012 `ead0cfb` on top of SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-015 is a frontend structure clarity pass after the per-layer rename batch (SR-009..SR-014). The rename batch intentionally created temporary compatibility shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) so old import paths could continue to resolve during migration. After the SR-009 reviewer verified all 6 shim folders were index-only and the user manually smoke-tested the website and backend with everything working, the shims are no longer needed and only add visual clutter. This task removes them and standardizes the active canonical layer folder shape. It also adds the missing public `index.ts` files for the two already-canonical folders (`layer_07_weather/` and `layer_08_news_osint/`) that were never given an index during the rename batch.
+- Goal: Make `apps/web/src/layers/` clean and understandable. Remove the 6 temporary old-name shim folders completely. Add the missing public `index.ts` files for the 2 already-canonical folders. Do not create L4/L9 future-inactive folders.
+- Files deleted (6):
+  1. `apps/web/src/layers/aviation/index.ts` — old aviation shim, content `export * from '../layer_01_aviation';`
+  2. `apps/web/src/layers/borders/index.ts` — old borders shim, content `export * from '../layer_02_borders_boundaries';`
+  3. `apps/web/src/layers/earth-events/index.ts` — old earth-events shim, content `export * from '../layer_03_earth_events';`
+  4. `apps/web/src/layers/space/index.ts` — old space shim, content `export * from '../layer_05_space_satellites';`
+  5. `apps/web/src/layers/maritime/index.ts` — old maritime shim, content `export * from '../layer_06_maritime';`
+  6. `apps/web/src/layers/energy/index.ts` — old energy shim, content `export * from '../layer_10_energy_infrastructure';`
+  Each of these shim folders contained exactly one tracked file (the `index.ts`) and zero active import references (verified by `git grep` returning 0 lines for all 6 old paths across `apps packages tests` before deletion). The empty shim folders were removed from disk after `git rm` via `Remove-Item -Recurse -Force`.
+- Files added (2):
+  1. `apps/web/src/layers/layer_07_weather/index.ts` — new public index for the already-canonical Weather layer. Content (UTF-8 no BOM):
+     ```ts
+     export * from './useWeather';
+     export * from './weatherTypes';
+     export * from './weatherDetail';
+     export * from './weatherMarker';
+     export * from './weatherApi';
+     export { default as WeatherLayer } from './WeatherLayer';
+     ```
+     (5 named-export re-exports via `export *` + 1 default-export re-export via `export { default as ... }` because `export *` does not re-export default exports; the `__tests__/weather.test.ts` test file is intentionally NOT re-exported.)
+  2. `apps/web/src/layers/layer_08_news_osint/index.ts` — new public index for the already-canonical News/OSINT layer. Content (UTF-8 no BOM):
+     ```ts
+     export * from './useNews';
+     export * from './newsTypes';
+     export * from './newsDetail';
+     export * from './newsMarker';
+     export * from './newsApi';
+     export { default as NewsLayer } from './NewsLayer';
+     ```
+     (5 named-export re-exports via `export *` + 1 default-export re-export via `export { default as ... }`; the `__tests__/news.test.ts` test file is intentionally NOT re-exported.)
+- Weather public modules exported (6):
+  1. `./useWeather` — the public hook (`useWeather`, `UseWeatherResult`).
+  2. `./weatherTypes` — the public types module (`WeatherRenderItem`, `WEATHER_LAYER_ID`, `WEATHER_ATTRIBUTION`, `mapObservationToRenderItem`, `mapObservationsToRenderItems`).
+  3. `./weatherDetail` — the public detail/formatter module (`degreesToCardinal`, `formatMeasurement`, `formatWindDirection`, `formatTimestamp`, `formatCondition`).
+  4. `./weatherMarker` — the public marker module (`TemperatureBucket`, `getTemperatureBucket`, `TEMPERATURE_BUCKET_COLORS`, `TEMPERATURE_BUCKET_LABELS`, `TEMPERATURE_LEGEND`, `getTemperatureColor`, `getWeatherMarkerImage`, `WEATHER_BILLBOARD_SCALE`).
+  5. `./weatherApi` — the public API module (`WEATHER_CURRENT_PATH`, `WeatherCurrentParams`, `fetchCurrentWeather`).
+  6. `./WeatherLayer` — the public layer component (default export; re-exported as `WeatherLayer` named export).
+- News/OSINT public modules exported (6):
+  1. `./useNews` — the public hook (`useNews`, `UseNewsResult`).
+  2. `./newsTypes` — the public types module (`NewsItem`, `NewsMarkerItem`, `NewsStatsResponse`, `NewsSourceItem`, `NewsFetchRunItem`, `NewsRenderMarker`, `NewsFilterState`, `DEFAULT_NEWS_FILTERS`, `NEWS_SEVERITY_LEVELS`, `NEWS_SEVERITY_COLORS`, `NEWS_LAYER_ID`, `NEWS_ATTRIBUTION`, `mapMarkerToRenderItem`, `mapMarkersToRenderItems`, `mapNewsItemToRenderItem`).
+  3. `./newsDetail` — the public detail/formatter module (`formatNewsTimestamp`, `formatNewsSeverity`, `formatNewsCountry`, `orDash`).
+  4. `./newsMarker` — the public marker module (`NEWS_BILLBOARD_SCALE`, `getNewsMarkerColor`, `getNewsMarkerImage`).
+  5. `./newsApi` — the public API module (`NEWS_ITEMS_PATH`, `NEWS_MARKERS_PATH`, `NEWS_STATS_PATH`, `NEWS_SOURCES_PATH`, `NEWS_FETCH_RUNS_PATH`, `NewsItemsParams`, `NewsMarkersParams`, `fetchNewsItems`, `fetchNewsMarkers`, `fetchNewsStats`, `fetchNewsSources`, `fetchNewsFetchRuns`).
+  6. `./NewsLayer` — the public layer component (default export; re-exported as `NewsLayer` named export).
+- Final layer folder structure (`apps/web/src/layers/`):
+  ```
+  layer_01_aviation/                 (19 files: 18 source + index.ts)
+  layer_02_borders_boundaries/       (2 files: useBordersBoundaries.ts + index.ts)
+  layer_03_earth_events/             (2 files: useEarthEvents.ts + index.ts)
+  layer_05_space_satellites/         (5 files: 4 source + index.ts)
+  layer_06_maritime/                 (6 files: 5 source + index.ts)
+  layer_07_weather/                  (8 files: 7 source + index.ts [NEW])
+  layer_08_news_osint/               (8 files: 7 source + index.ts [NEW])
+  layer_10_energy_infrastructure/    (5 files: 4 source + index.ts)
+  ```
+  Old plain-name folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) are completely removed from disk and from the index.
+- L4/L9 not created: `apps/web/src/layers/layer_04_public_military_security/` and `apps/web/src/layers/layer_09_user_shapes/` were intentionally NOT created. Both layers remain `coming_soon` per the layer registry and should not have folders until implementation starts.
+- Files intentionally not touched:
+  - `apps/api/**` — out of scope; SR-015 is frontend-only.
+  - `packages/**` — out of scope.
+  - `services/**` — out of scope.
+  - `database/**` — out of scope.
+  - `tests/data/**` — out of scope.
+  - `docs/archive/**` — out of scope.
+  - `docs/control/**` — out of scope.
+  - `specs/**` — out of scope.
+  - `.specify/**` — out of scope.
+  - `.github/**` — out of scope.
+  - Lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`) — out of scope.
+  - `.env` files — out of scope.
+  - All 8 canonical layer source files — only the 2 new `index.ts` files were added; no source logic was changed.
+  - `App.tsx`, `CesiumGlobe.tsx`, `lib/api.ts` — out of scope (forbidden by the task).
+  - All component files — out of scope.
+  - No active import paths were updated; the existing imports from `apps/web/src/...` continue to use the per-file paths (e.g. `'./layers/layer_07_weather/useWeather'`), and the new `index.ts` files are available for future use.
+  - No runtime strings were changed.
+  - No `.gitkeep` files were removed (none existed in the 6 old shim folders; they were removed during SR-021).
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `frontend/sr-015/final-layer-shape-cleanup` (PASS)
+  - `git log -11 --oneline` → confirmed stack `6231b1f → 90c3056 → ead0cfb → 5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd → 364a5f8` (PASS)
+  - Pre-delete `git ls-files apps/web/src/layers/aviation` → `apps/web/src/layers/aviation/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/borders` → `apps/web/src/layers/borders/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/earth-events` → `apps/web/src/layers/earth-events/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/space` → `apps/web/src/layers/space/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/maritime` → `apps/web/src/layers/maritime/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/energy` → `apps/web/src/layers/energy/index.ts` only (PASS, index-only)
+  - Pre-delete `git grep -n "layers/aviation" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/borders" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/earth-events" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/space" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/maritime" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/energy" -- apps packages tests` → 0 lines (PASS)
+  - Canonical folder file listing → all 8 canonical folders contain real source files (PASS)
+  - Pre-create `Test-Path "apps/web/src/layers/layer_07_weather/index.ts"` → `False` (PASS, did not exist)
+  - Pre-create `Test-Path "apps/web/src/layers/layer_08_news_osint/index.ts"` → `False` (PASS, did not exist)
+  - Weather exports inspection → 5 named-export modules + 1 default-export module identified (PASS)
+  - News/OSINT exports inspection → 5 named-export modules + 1 default-export module identified (PASS)
+  - `git rm` of 6 old shim index.ts files → succeeded (PASS)
+  - `Remove-Item` of 6 empty old shim folders → all removed (PASS, `Test-Path` returns `False` for all 6)
+  - `WriteAllText` to create Weather and News/OSINT canonical `index.ts` files → both files created with UTF-8 no BOM (PASS)
+  - Final layers directory listing → 8 canonical folders only, 0 old folders (PASS)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, L4 not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, L9 not created)
+  - All 8 canonical `index.ts` existence checks → all `True` (PASS)
+  - Weather `index.ts` content check → 5 `export *` lines + 1 `export { default as WeatherLayer }` line; no test re-exports (PASS)
+  - News/OSINT `index.ts` content check → 5 `export *` lines + 1 `export { default as NewsLayer }` line; no test re-exports (PASS)
+  - `git diff --name-status` → only the expected paths (6 D + 2 A + 2 M) (PASS)
+  - `git diff --stat` → confirms scope is small (10 files, 22 insertions, 8 deletions) (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr /R "^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^docs/archive/ ^docs/control/ ^specs/ ^.specify/ ^.github/ ^.env pnpm-lock.yaml package-lock.json yarn.lock"` → no output (PASS, no forbidden areas or lockfiles)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules transformed, ~900ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 test files, 64 tests)
+  - `git diff --cached --name-status` → 10 expected paths: 6 D + 2 A + 2 M (PASS)
+  - `git diff --cached --stat` → confirms scope is exactly 10 files (PASS)
+  - `git diff --cached --check` → no output (PASS)
+  - `git log -1 --oneline` (post-commit) → `e2d4f8b refactor(web): finalize canonical layer folder shape` (PASS)
+  - `git log --oneline -12` (post-commit) → stack confirmed (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-012, SR-013, SR-014, SR-009, and now this SR-015 handoff entry as a validation caveat. The task explicitly says to run it later during clean integration/full validation. No regression is introduced.
+  - The `apps/web/src/...` files continue to import from the per-file paths (e.g. `'./layers/layer_07_weather/useWeather'`). The new `index.ts` files are available for future consolidation but are not used by any current import. This is intentional per the task's "Do not change existing imports just to use the new index files" rule.
+  - `apps/web/src/lib/api.ts`, `apps/web/src/components/SearchCommand.tsx`, and a few other files contain source comments with words like "energy", "maritime", "aviation" (e.g. `'aviation objects'`, `Failed to fetch aviation objects:`, `Failed to fetch live aircraft:`, `Failed to fetch energy infrastructure:`). These are runtime error message strings and source comments; they are not import paths and were intentionally not changed.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-009 local commit (`frontend/sr-009/aviation-canonical-folder`, commit `6231b1f`), the SR-014 local commit (`frontend/sr-014/energy-canonical-folder`, commit `90c3056`), the SR-012 local commit (`frontend/sr-012/space-canonical-folder`, commit `ead0cfb`), the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-015 before docs closure alignment. The user / decision-control layer should decide whether to push the full stacked branch (SR-019 → SR-020 → SR-010S → SR-021 → SR-011 → SR-013 → SR-012 → SR-014 → SR-009 → SR-015) to remote and open PRs. After SR-015 is reviewed, the recommended next steps are: (1) run the website/backend smoke test again to confirm the new Weather/News index files do not break anything, (2) run the full integration validation (including `python -m pytest tests/data -q` on a clean tree), (3) perform docs closure alignment (Spec 008 status update, project state refresh).
+
+---
+
+### 2026-06-16T04:00:00Z — sr-009-aviation-canonical-folder
+
+- Work order: SR-009
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-009/aviation-canonical-folder
+- Base stack: SR-014 `90c3056` on top of SR-012 `ead0cfb` on top of SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-009 is the final per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-014 (energy) cleared the way, SR-009 is the last per-layer move. The aviation layer is the **highest-risk** move (35 imports across 16 files, two subfolders `aircraft/` and `airports/`, 18 nested files, Cesium `CustomDataSource` integration, WebSocket integration, REST API integration, multiple renderers, preloader, tile cache, tile loader, and a custom Cesium camera helper).
+- Goal: Rename the frontend `apps/web/src/layers/aviation/` folder to the canonical `apps/web/src/layers/layer_01_aviation/`, preserve the `aircraft/` and `airports/` subfolders and all 18 nested files, add canonical barrel + compatibility shim, and update the 35 active frontend import sites across 16 files.
+- Files changed:
+  1. `apps/web/src/layers/aviation/` → `apps/web/src/layers/layer_01_aviation/` (via `git mv`; the `aircraft/` subfolder with 2 files and the `airports/` subfolder with 16 files — all 18 files moved atomically, no content change).
+  2. `apps/web/src/layers/layer_01_aviation/index.ts` — new file, content:
+     ```ts
+     export * from './aircraft/aircraftMarker';
+     export * from './aircraft/useLiveAircraftSocket';
+     export * from './airports/airportIntelligenceTypes';
+     export * from './airports/airportLayoutTypes';
+     export * from './airports/airportPublicProfileTypes';
+     export * from './airports/aviationCategories';
+     export * from './airports/aviationPreloader';
+     export * from './airports/aviationGlobalRenderer';
+     export * from './airports/aviationObjectStore';
+     export * from './airports/useAirportIntelligence';
+     export * from './airports/useAirportLayoutFeatures';
+     export * from './airports/useAirportPublicProfile';
+     ```
+     (canonical re-export of all 12 externally-imported public modules; UTF-8 no BOM). The 6 internal-only files (`airportMarkerSprites.ts`, `aviationLayerRenderer.ts`, `aviationTileCache.ts`, `aviationTileLoader.ts`, `airportViewport.ts`, `globeCamera.ts`) are moved atomically with the folder but are not re-exported from the barrel because they are only imported by sibling files inside the layer (or have no importers at all).
+  3. `apps/web/src/layers/aviation/` — recreated as a shim folder; contains only `apps/web/src/layers/aviation/index.ts` with content `export * from '../layer_01_aviation';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — 3 import-path updates:
+     - `'./layers/aviation/airports/aviationCategories'` → `'./layers/layer_01_aviation/airports/aviationCategories'`
+     - `'./layers/aviation/airports/useAirportLayoutFeatures'` → `'./layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+     - `'./layers/aviation/aircraft/useLiveAircraftSocket'` → `'./layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  5. `apps/web/src/CesiumGlobe.tsx` — 8 import-path updates:
+     - `'./layers/aviation/airports/airportLayoutTypes'` → `'./layers/layer_01_aviation/airports/airportLayoutTypes'`
+     - `'./layers/aviation/airports/aviationPreloader'` → `'./layers/layer_01_aviation/airports/aviationPreloader'`
+     - `'./layers/aviation/aircraft/aircraftMarker'` → `'./layers/layer_01_aviation/aircraft/aircraftMarker'`
+     - `'./layers/aviation/aircraft/useLiveAircraftSocket'` (× 2: `RENDER_CAP` and `SnapshotCallback`) → `'./layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+     - `'./layers/aviation/airports/aviationCategories'` → `'./layers/layer_01_aviation/airports/aviationCategories'`
+     - `'./layers/aviation/airports/aviationGlobalRenderer'` → `'./layers/layer_01_aviation/airports/aviationGlobalRenderer'`
+     - `'./layers/aviation/airports/aviationObjectStore'` → `'./layers/layer_01_aviation/airports/aviationObjectStore'`
+  6. `apps/web/src/components/Shell.tsx` — 3 import-path updates:
+     - `'../layers/aviation/airports/aviationCategories'` → `'../layers/layer_01_aviation/airports/aviationCategories'`
+     - `'../layers/aviation/airports/useAirportLayoutFeatures'` → `'../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+     - `'../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  7. `apps/web/src/components/StatusPanel.tsx` — 1 import-path update:
+     - `'../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  8. `apps/web/src/components/detail-panel/AviationDetail.tsx` — 3 import-path updates:
+     - `'../../layers/aviation/airports/airportPublicProfileTypes'` → `'../../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+     - `'../../layers/aviation/airports/airportIntelligenceTypes'` → `'../../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+     - `'../../layers/aviation/airports/useAirportLayoutFeatures'` → `'../../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+  9. `apps/web/src/components/detail-panel/DetailPanelRoot.tsx` — 2 import-path updates:
+     - `'../../layers/aviation/airports/useAirportPublicProfile'` → `'../../layers/layer_01_aviation/airports/useAirportPublicProfile'`
+     - `'../../layers/aviation/airports/useAirportIntelligence'` → `'../../layers/layer_01_aviation/airports/useAirportIntelligence'`
+  10. `apps/web/src/components/detail-panel/SourcesSection.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/airportPublicProfileTypes'` → `'../../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+  11. `apps/web/src/components/detail-panel/detailTypes.ts` — 1 import-path update:
+      - `'../../layers/aviation/airports/useAirportLayoutFeatures'` → `'../../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+  12. `apps/web/src/components/intel/AirportImageSlider.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/airportIntelligenceTypes'` → `'../../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+  13. `apps/web/src/components/intel/AirportLayoutOverlayToggle.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/useAirportLayoutFeatures'` → `'../../layers/layer_01_aviation/airports/useAirportLayoutFeatures'`
+  14. `apps/web/src/components/intel/AirportMapPopup.tsx` — 2 import-path updates:
+      - `'../../layers/aviation/airports/useAirportIntelligence'` → `'../../layers/layer_01_aviation/airports/useAirportIntelligence'`
+      - `'../../layers/aviation/airports/airportIntelligenceTypes'` → `'../../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+  15. `apps/web/src/components/intel/AirportOverview.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/aviationCategories'` → `'../../layers/layer_01_aviation/airports/aviationCategories'`
+  16. `apps/web/src/components/intel/AirportPublicProfilePanel.tsx` — 1 import-path update:
+      - `'../../layers/aviation/airports/airportPublicProfileTypes'` → `'../../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+  17. `apps/web/src/components/layer-panel/AviationControls.tsx` — 2 import-path updates:
+      - `'../../layers/aviation/airports/aviationCategories'` → `'../../layers/layer_01_aviation/airports/aviationCategories'`
+      - `'../../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  18. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — 2 import-path updates:
+      - `'../../layers/aviation/airports/aviationCategories'` → `'../../layers/layer_01_aviation/airports/aviationCategories'`
+      - `'../../layers/aviation/aircraft/useLiveAircraftSocket'` → `'../../layers/layer_01_aviation/aircraft/useLiveAircraftSocket'`
+  19. `apps/web/src/lib/api.ts` — 3 import-path updates:
+      - `'../layers/aviation/airports/airportPublicProfileTypes'` → `'../layers/layer_01_aviation/airports/airportPublicProfileTypes'`
+      - `'../layers/aviation/airports/airportIntelligenceTypes'` → `'../layers/layer_01_aviation/airports/airportIntelligenceTypes'`
+      - `'../layers/aviation/airports/airportLayoutTypes'` → `'../layers/layer_01_aviation/airports/airportLayoutTypes'`
+  20. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-009 Aviation Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files`) to keep the rolling window at 5 entries per the file's own update rule.
+  21. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public modules exported (12 in canonical `index.ts`):
+  1. `./aircraft/aircraftMarker` — the public marker helper module.
+  2. `./aircraft/useLiveAircraftSocket` — the public live-aircraft WebSocket hook (`useLiveAircraftSocket`, `LiveAircraftStatus`, `RENDER_CAP`, `SnapshotCallback`).
+  3. `./airports/airportIntelligenceTypes` — the public intelligence types module.
+  4. `./airports/airportLayoutTypes` — the public layout types module.
+  5. `./airports/airportPublicProfileTypes` — the public profile types module.
+  6. `./airports/aviationCategories` — the public categories module (`AviationFilters`, `DEFAULT_AVIATION_FILTERS`, `AVIATION_CATEGORIES`, `getCategoryLabel`, `getCategoryInfo`, etc.).
+  7. `./airports/aviationPreloader` — the public preloader module.
+  8. `./airports/aviationGlobalRenderer` — the public global-renderer module.
+  9. `./airports/aviationObjectStore` — the public object-store module.
+  10. `./airports/useAirportIntelligence` — the public intelligence hook.
+  11. `./airports/useAirportLayoutFeatures` — the public layout-features hook (`useAirportLayoutFeatures`, `LayoutPhase`).
+  12. `./airports/useAirportPublicProfile` — the public profile hook.
+- Internal-only files (moved atomically with the folder but NOT re-exported from the canonical barrel, because they are only imported by sibling files inside the layer or have no importers at all):
+  - `airports/airportMarkerSprites.ts` — imported by `aviationGlobalRenderer.ts` and `aviationLayerRenderer.ts` (siblings only).
+  - `airports/aviationLayerRenderer.ts` — no external or internal importers found.
+  - `airports/aviationTileCache.ts` — no importers found.
+  - `airports/aviationTileLoader.ts` — no importers found.
+  - `airports/airportViewport.ts` — no importers found.
+  - `airports/globeCamera.ts` — no importers found.
+  These files remain accessible via their direct path (e.g. `'../layers/layer_01_aviation/airports/aviationTileLoader'`) and do not need to be re-exported by the barrel.
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:23` — `layerId: 'layer_01_aviation'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/lib/useLayerRegistry.ts:28` — `description: 'Aircraft positions, airports, flight routes, details panel'`. UI description text; intentionally preserved.
+  - `apps/web/src/lib/useLayerRegistry.ts:32` — `safetyNotes: 'Public civil aviation only'`. UI safety text; intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:85` — `entry.layerId === 'layer_01_aviation'`. Already canonical; layerId comparison.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts:31` — `apiBase.replace(/^http/, 'ws') + '/ws/aviation/aircraft/live'`. WebSocket URL; runtime protocol endpoint. Intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts:86` — `layer: 'layer_01_aviation.live_aircraft'`. Layer registration string in WebSocket subscribe payload. Intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts:98-136` — message types `'aircraft.ready'`, `'aircraft.snapshot'`, `'aircraft.delta'`, `'aircraft.error'`. WebSocket protocol message types. Intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationPreloader.ts:58` — `layerId: 'layer_01_aviation'`. Already canonical; layerId field.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationPreloader.ts:59-60` — `objectType: 'airport'`, `sourceId: raw.sourceId || 'ourairports'`. Object-type and source-id strings; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationCategories.ts:129-131` — `API_CATEGORY_LARGE`, `API_CATEGORY_REGIONAL`, `API_CATEGORY_SMALL` = `'international_or_major_airport'`, `'regional_or_domestic_airport'`, `'small_airfield'`. API category enum values; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationCategories.ts:208-245` — function `getAviationDisplayCategory(airport: { category: string; typeSource: string })` and `'large_airport'`, `'medium_airport'`, `'small_airport'`, `'airport'`, `'airfield'` API category values. Runtime API value mappings; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationLayerRenderer.ts:43, 104, 143, 186, 191, 205` — `id: \`airport-${airport.id}\`` Cesium entity ID format, `item.objectType !== 'airport'` runtime object-type check, `entity.id.startsWith('airport-')` runtime string prefix check. Runtime identifiers and string prefix checks; intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:490` — `new CustomDataSource('airport-layout')`. Cesium `DataSource` runtime identifier; not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:198, 213, 246, 371-373, 381, 498-500, 559-568, 665-666, 871-1171, 1423` — React state variable names, ref names, and prop names (`aircraftCollectionRef`, `aircraftMapRef`, `aircraftCollection`, `ac`, `snapshotHandler`, `pendingSnapshotRef`, `airportFlyHeight`, `airportId`, `airport`, `allObjects`, `layoutDataSource`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:175-180` — `airportFlyHeight` function and `TARGET = 12_000` constant with comment `'// metres — whole airport visible, not city/state level'`. Source comment + constant; intentionally preserved.
+  - `apps/web/src/lib/api.ts:38` — `${API_BASE_URL}/api/layers/layer_01_aviation/objects?objectType=airport&mode=points&limit=${limit}`. Backend API path; the API route is owned by the API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:62, 236` — `${API_BASE_URL}/api/layers/layer_01_aviation/objects`. Backend API path; intentionally preserved.
+  - `apps/web/src/lib/api.ts:88, 244, 259` — error message strings `Failed to fetch aviation objects:`, `Failed to preload aviation category:`, `Failed to fetch airport detail:`. Human-readable error text; intentionally preserved.
+  - `apps/web/src/lib/api.ts:202-203` — source comments `// Live aircraft (WO-079E). Frontend calls ONLY the GOD EYES API — never Airplanes.live directly.` and `// Stale aircraft are excluded by the API by default (includeStale not sent).`. Source comments; intentionally preserved.
+  - `apps/web/src/lib/api.ts:208` — `${API_BASE_URL}/api/aviation/aircraft/latest`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:214, 227` — error message strings `Failed to fetch live aircraft:`, `Failed to fetch aircraft detail:`. Human-readable error text; intentionally preserved.
+  - `apps/web/src/lib/api.ts:223` — `${API_BASE_URL}/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:254` — `${API_BASE_URL}/api/layers/layer_01_aviation/objects/${objectId}/detail`. Backend API path; intentionally preserved.
+  - `apps/web/src/lib/api.ts:269` — `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/public-profile`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:283` — `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/intelligence`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:325` — `${API_BASE_URL}/api/airports/${encodeURIComponent(airportId)}/layout-features`. Backend API path; owned by API Agent. Intentionally preserved.
+  - `apps/web/src/lib/api.ts:43, 47-48, 131, 237, 266, 274, 280, 322, 328` — function names, parameter names, and object-type filter values `objectType: 'airport'`, error message strings, and `airportId: string` parameter. Runtime identifiers; intentionally preserved.
+  - `apps/web/src/lib/searchProviders.ts:6, 12, 24, 28-37` — source comment `'Searches for airports using the GOD EYES aviation API.'`, JS identifiers, and `id: \`airport-${airport.id}\`` runtime ID format. Source comment + identifiers; intentionally preserved.
+  - `apps/web/src/components/layer-panel/AviationControls.tsx:27, 30, 32, 33, 41, 45-56, 77, 82, 88` — React state/prop names (`aviationLayerActive`, `setAviationLayerActive`, `aviationStats`, `aviationFilters`, `onFiltersChange`, `AviationFilters`, `AviationStats`, `AVIATION_CATEGORIES`), `'active'` CSS class, `'LOADED: '`, `'VISIBLE: '`, `'STATUS: '` UI labels, and `'Live aircraft data: Airplanes.live (non-commercial/no-SLA). Not complete global coverage.'` UI disclaimer. JS identifiers + UI text; intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:42, 89-90` — React state/prop names. JavaScript identifiers; intentionally preserved.
+  - `apps/web/src/components/layer-panel/layerPanelTypes.ts:23, 25, 26` — TypeScript interface property names. TypeScript identifiers; intentionally preserved.
+  - `apps/web/src/components/Shell.tsx:34, 98, 178` — React state/prop names (`airportDetail`, `AirportDetailResponse`). JavaScript identifiers; intentionally preserved.
+  - `apps/web/src/components/StatusPanel.tsx:4` — type import. Relative import inside the moved folder structure; intentionally preserved.
+  - `apps/web/src/components/intel/AirportImageSlider.tsx, AirportLayoutOverlayToggle.tsx, AirportMapPopup.tsx, AirportOverview.tsx, AirportPublicProfilePanel.tsx, CoordinateSourceCard.tsx` — JS identifiers and prop names (`airport`, `airportId`, `airportName`, `airport.position`, `airport.elevationFt`, `airport.municipality`, `airport.region`, `airport.country`, `airport.sourceId`, `airport.updatedAt`, `airport.iataCode`, `airport.ident`, `airport.icaoCode`, `popup.iataCode`, `popup.icaoCode`, `popup.airportName`, `intel.data.mapPopup`, `intel.data.images`, `airport-overview` CSS class). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/detail-panel/AviationDetail.tsx, DetailPanelRoot.tsx, SourcesSection.tsx, detailTypes.ts` — JS identifiers and prop names (`airport`, `airportDetail`, `airport.id`, `airport.name`, `airport.ident`, `airport.iataCode`, `airport.runways`, `airport.frequencies`, `airport.nearbyNavaIds`, `airport.sourceId`, `profilePhase`, `intelImages`, `hasIntelImages`, `imageStr`, `SYSTEM ID: ${airport.id}`, `⚠ Profile match uncertain — data may not correspond to this airport.`, `RunwaysSection`, `FrequenciesSection`, `NearbyNavaidsSection`, `DataQualityCard`). JavaScript identifiers + UI text; intentionally preserved.
+  - `apps/web/src/components/detail-panel/AviationDetail.tsx:91` — `color: '#eab308'` warning color CSS value. Not related to the folder rename. Intentionally preserved.
+  - `apps/web/src/components/intel/AirportPublicProfilePanel.tsx:233, 244` — UI text `'No public profile found for this airport.'` and `'Data may not correspond to this airport.'`. Human-readable UI text; intentionally preserved.
+  - `apps/web/src/components/overlays/AircraftInfoOverlay.tsx:4-42` — React component prop names, JSX labels (`'MIL'`, `'EMERGENCY'`, `'REG:'`, `'TYPE:'`, `'ALT:'`, `'SPEED:'`, `'ID:'`, `'OBSERVED:'`), error message strings, and `aircraft.callsign`, `aircraft.registration`, `aircraft.aircraftType`, `aircraft.altitudeBaroFt`, `aircraft.groundSpeedKt`, `aircraft.sourceObjectId`, `aircraft.observedAt`, `aircraft.isMilitary`, `aircraft.emergency`, `aircraft.trackDeg`, `aircraft.headingTrueDeg`, `aircraft.headingMagDeg` object property accesses. JavaScript identifiers + UI text; intentionally preserved.
+  - `apps/web/src/styles/shell.css:498` — `.legend-marker-airport` CSS class name. CSS class; not related to the folder rename. Intentionally preserved.
+  - `apps/web/src/layers/layer_07_weather/weatherTypes.ts:11` — comment `'from other selectable objects (airports, vessels, energy features). Marker'`. Source comment; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts:4, 9, 23, 34, 71, 110` — source comments `// SVGs live in /aircraft-icons/svg/<name>.svg (public folder, served at runtime).`, `// Full mapping loaded lazily from /aircraft-icons/icon-mapping.json.`, `// Pre-load mapping eagerly so it's ready before first aircraft arrives.`, static asset paths `/aircraft-icons/icon-mapping.json` and `/aircraft-icons/svg/${iconName}.svg`, and `(ac as any).aircraftType ?? ac.aircraftType` JS type-narrowing code. Source comments + static asset paths + JS code; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts:71` — `((ac as any).aircraftType ?? ac.aircraftType ?? '').toString().toUpperCase().trim()`. JS code; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/airportIntelligenceTypes.ts:1` — source comment `// Local frontend types for GET /api/airports/:airportId/intelligence`. Source comment + API path; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/airportLayoutTypes.ts:1` — source comment `// Local frontend types for GET /api/airports/:airportId/layout-features`. Source comment + API path; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/airportPublicProfileTypes.ts:1` — source comment `// Local frontend types for GET /api/airports/:airportId/public-profile`. Source comment + API path; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationCategories.ts:206` — source comment `// Map API airport data to a display category`. Source comment; intentionally preserved.
+  - `apps/web/src/layers/layer_01_aviation/airports/aviationGlobalRenderer.ts, aviationLayerRenderer.ts, aviationPreloader.ts, aviationTileLoader.ts, useAirportIntelligence.ts, useAirportLayoutFeatures.ts, useAirportPublicProfile.ts` — all internal sibling-file relative imports (e.g. `import { ... } from './aviationCategories'`, `import { storeObjects, getAllObjects } from './aviationObjectStore'`, `import { getCategoryDotColor } from './airportMarkerSprites'`). These are relative imports **inside** the moved folder; they continue to work after the rename because both files move together. Intentionally preserved.
+  - All 18 moved source files — content unchanged; only their tracked path moved.
+- Files intentionally not touched:
+  - All other frontend layer folders (`borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `space/` shim, `layer_05_space_satellites/`, `maritime/` shim, `layer_06_maritime/`, `energy/` shim, `layer_10_energy_infrastructure/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-010, SR-010S, SR-011, SR-012, SR-013, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/objects.ts` route file, `apps/api/src/routes/aviation/...` files, and `apps/web/src/lib/useLayerRegistry.ts` are owned by their respective agents and are intentionally not modified in SR-009; the frontend rename does not change the backend route or the layer registry.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `aviation/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+  - No deprecated markers, no legacy comments, no TODO cleanup in aviation files — the task explicitly excludes these.
+  - All 18 moved source files — content unchanged; only their tracked path moved.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `frontend/sr-009/aviation-canonical-folder` (PASS)
+  - `git log -10 --oneline` → confirmed stack `90c3056 → ead0cfb → 5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd → 364a5f8` (PASS)
+  - `Test-Path "apps/web/src/layers/aviation"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/aviation` (pre-rename) → 18 tracked files (2 in `aircraft/`, 16 in `airports/`) (PASS)
+  - `git ls-files apps/web/src/layers/layer_01_aviation` (pre-rename) → empty (PASS)
+  - `git grep -n "aviation" -- apps/web/src` (pre-rename) → classified: 35 import paths to update + many runtime strings (JS identifiers, layerId registry, WebSocket URL, `category: 'aviation'`-related strings, API path strings, error messages, source comments, UI labels) to preserve (PASS)
+  - `git grep -n "aircraft" -- apps/web/src` (pre-rename) → classified: 35 import paths to update + many runtime strings (JS identifiers, message types, static asset paths `/aircraft-icons/...`, entity-id suffixes, comment text) to preserve (PASS)
+  - `git grep -n "airport" -- apps/web/src` (pre-rename) → classified: 35 import paths to update + many runtime strings (JS identifiers, entity-id format `airport-${airport.id}`, API path strings `/api/airports/...`, error message text, object-type filter `objectType: 'airport'`, CSS class `legend-marker-airport`, comment text) to preserve (PASS)
+  - `git grep -n "layers/aviation" -- apps packages tests` (pre-rename) → 35 matches in `apps/web/src/**` (16 files) (PASS)
+  - `git grep -n "airportMarkerSprites|airportViewport|aviationLayerRenderer|aviationTileCache|aviationTileLoader|globeCamera" -- apps packages tests` → only `airportMarkerSprites` matches (2 internal-only imports from `aviationGlobalRenderer.ts` and `aviationLayerRenderer.ts`); the other 5 files have no importers (PASS)
+  - `git grep -n "^export default" -- apps/web/src/layers/aviation/` → no output; all exports are named (PASS)
+  - `git mv apps/web/src/layers/aviation apps/web/src/layers/layer_01_aviation` → succeeded; `aircraft/` and `airports/` subfolders preserved; all 18 files moved atomically (PASS)
+  - Post-rename `git ls-files` shows all 18 files now under `apps/web/src/layers/layer_01_aviation/aircraft/` and `apps/web/src/layers/layer_01_aviation/airports/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` (12 exports) and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 16 import files → 16 files updated, 35 import-path occurrences replaced (PASS)
+  - `git grep -n "layers/aviation" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_01_aviation" -- apps packages tests` → 35 active import sites updated + pre-existing canonical references in `apps/api/tests/...` (API test paths), `packages/contracts/src/index.ts:11`, `packages/source-catalog/layers/layer_01_aviation/...`, and `tests/data/layer_01_aviation/...` (PASS)
+  - `git grep -n "aviation" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, layerId registry values, WebSocket URL, CustomDataSource, message types, API path strings, error messages, UI labels, comments); no active folder-path imports (PASS)
+  - `git grep -n "aircraft" -- apps/web/src` (post-import-update) → many matches, all runtime strings; no active folder-path imports (PASS)
+  - `git grep -n "airport" -- apps/web/src` (post-import-update) → many matches, all runtime strings; no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts"` → `True` (PASS, the exported public hook exists in the canonical folder)
+  - `Test-Path "apps/web/src/layers/aviation/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/aviation` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_01_aviation` → 18 nested source files + `index.ts` (PASS, `aircraft/` and `airports/` subfolders preserved)
+  - For each of the 18 moved files: `git diff HEAD~1:apps/web/src/layers/aviation/<file> apps/web/src/layers/layer_01_aviation/<file>` → no content diff (PASS, all moves are R100 renames)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-012, SR-013, SR-014, and now this SR-009 handoff entry. No regression is introduced.
+  - The `apps/api/src/routes/objects.ts` route file, `apps/api/src/routes/aviation/...` files, `apps/web/src/lib/useLayerRegistry.ts`, and `apps/web/src/lib/api.ts` (the API path strings) are intentionally not modified beyond the import-path update. The frontend rename does not change the backend route or the layer registry.
+  - The runtime strings preserved above (JS identifiers, layerId registry values, WebSocket URL, layer registration string, message types, API path strings, `new CustomDataSource('airport-layout')` Cesium data-source name, entity-id format `airport-${airport.id}`, object-type filter `objectType: 'airport'`, error message text, UI labels, UI disclaimer text, source comments, static asset paths `/aircraft-icons/...`, CSS class `legend-marker-airport`, internal sibling-file relative imports) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `aviation/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-009.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-014 local commit (`frontend/sr-014/energy-canonical-folder`, commit `90c3056`), the SR-012 local commit (`frontend/sr-012/space-canonical-folder`, commit `ead0cfb`), the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-009 before any integration or PR decision. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, SR-013, SR-012, SR-014, and SR-009 to remote and open PRs. After SR-009 is reviewed, the recommended next step is to decide the integration/full-validation step (run `python -m pytest tests/data -q` against a clean tree, run the full test suite, etc.) before any API or PR work. Per Spec 008, this completes Phase 4 (Frontend Layer Folder Canonicalization).
+
+---
+
+### 2026-06-16T03:30:00Z — sr-014-energy-canonical-folder
+
+- Work order: SR-014
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-014/energy-canonical-folder
+- Base stack: SR-012 `ead0cfb` on top of SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-014 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-012 (space) cleared the way, SR-014 is the fourth per-layer move. The energy layer has an `infrastructure/` subfolder (medium complexity: 4 nested files, 10 imports, Cesium `CustomDataSource` integration, REST API integration).
+- Goal: Rename the frontend `apps/web/src/layers/energy/` folder to the canonical `apps/web/src/layers/layer_10_energy_infrastructure/`, preserve the `infrastructure/` subfolder and all nested files, add canonical barrel + compatibility shim, and update the 10 active frontend import sites across 7 files.
+- Files changed:
+  1. `apps/web/src/layers/energy/` → `apps/web/src/layers/layer_10_energy_infrastructure/` (via `git mv`; the `infrastructure/` subfolder and all 4 nested files — `infrastructure/EnergyInfrastructureLayer.tsx`, `infrastructure/energyInfrastructureApi.ts`, `infrastructure/energyInfrastructureTypes.ts`, `infrastructure/useEnergyInfrastructure.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_10_energy_infrastructure/index.ts` — new file, content:
+     ```ts
+     export * from './infrastructure/useEnergyInfrastructure';
+     export * from './infrastructure/energyInfrastructureTypes';
+     export * from './infrastructure/energyInfrastructureApi';
+     export { default as EnergyInfrastructureLayer } from './infrastructure/EnergyInfrastructureLayer';
+     ```
+     (canonical re-export of all 4 public modules in the `infrastructure/` subfolder; the `EnergyInfrastructureLayer.tsx` module uses a default export, so it must be re-exported with `export { default as ... }` because `export *` only re-exports named exports; UTF-8 no BOM).
+  3. `apps/web/src/layers/energy/` — recreated as a shim folder; contains only `apps/web/src/layers/energy/index.ts` with content `export * from '../layer_10_energy_infrastructure';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — 2 import-path updates:
+     - `'./layers/energy/infrastructure/energyInfrastructureTypes'` → `'./layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+     - `'./layers/energy/infrastructure/useEnergyInfrastructure'` → `'./layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure'`
+  5. `apps/web/src/CesiumGlobe.tsx` — 2 import-path updates:
+     - `'./layers/energy/infrastructure/energyInfrastructureTypes'` → `'./layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+     - `'./layers/energy/infrastructure/EnergyInfrastructureLayer'` → `'./layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer'`
+  6. `apps/web/src/components/Shell.tsx` — 2 import-path updates (both for `EnergyFilters` and `EnergyFeature` types):
+     - `'../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  7. `apps/web/src/components/detail-panel/EnergyDetail.tsx` — 1 import-path update:
+     - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  8. `apps/web/src/components/detail-panel/detailTypes.ts` — 1 import-path update:
+     - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  9. `apps/web/src/components/layer-panel/EnergyControls.tsx` — 1 import-path update:
+     - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  10. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — 1 import-path update:
+      - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  11. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-014 Energy Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-010S Borders Restack`) to keep the rolling window at 5 entries per the file's own update rule.
+  12. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public modules exported (4 in canonical `index.ts`):
+  1. `./infrastructure/useEnergyInfrastructure` — the public hook (`useEnergyInfrastructure`).
+  2. `./infrastructure/energyInfrastructureTypes` — the public types module (`EnergyFeature`, `EnergyInfrastructureResponse`, `EnergyInfrastructureDetailResponse`, `EnergyFilters`, `DEFAULT_ENERGY_FILTERS`, `ENERGY_FUEL_TYPES`, `ENERGY_FEATURE_TYPES`).
+  3. `./infrastructure/energyInfrastructureApi` — the public API helper module (`fetchEnergyInfrastructure`).
+  4. `./infrastructure/EnergyInfrastructureLayer` — the public layer component (default export; re-exported as `EnergyInfrastructureLayer` named export).
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:149` — `layerId: 'layer_10_energy_infrastructure'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/lib/useLayerRegistry.ts:151` — `category: 'infrastructure'`. String category value; intentionally preserved (this is a different "infrastructure" than the folder path — it's the canonical layer category for the energy layer).
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:179` — `entry.layerId === 'layer_10_energy_infrastructure'`. Already canonical; layerId comparison.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts:12` — `layerId: 'layer_10_energy_infrastructure'`. Already canonical; layerId field in mock response.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts:57` — `${API_BASE_URL}/api/energy/infrastructure${queryString ? \`?${queryString}\` : ''}`. Backend API path; the API route is owned by the API Agent. Changing it would require a coordinated `apps/api/` edit and a contract update. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts:74-75` — error message strings `'Failed to fetch energy infrastructure:'`, `'Failed to fetch energy infrastructure data'`. Human-readable error text; intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer.tsx:50` — ``id: `energy-${feature.id}` ``. Cesium entity ID prefix; runtime identifier that should not be coupled to the folder name. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:512` — `new CustomDataSource('energy-infrastructure')`. Cesium `DataSource` runtime identifier; not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:630` — `entity.id.startsWith('energy-')`. Runtime string prefix check that pairs with the `energy-${feature.id}` ID format above. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:123-124, 160-161, 196, 511, 513-514, 629-633, 1434-1436` — React state variable names, prop names, and ref names (`energyInfrastructureFeatures`, `energyInfrastructureLayerActive`, `energyInfrastructureDataSourceRef`, `energyInfrastructureDataSource`, `onEnergyFeatureSelect`, `energyFeature`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/App.tsx:58-80, 225-226, 266-268` — React state variable names, prop names, and hook results (`energyInfrastructureLayerActive`, `setEnergyInfrastructureLayerActive`, `energyInfrastructureFilters`, `setEnergyInfrastructureFilters`, `energyInfrastructureData`, `energyInfrastructureFeatures`, `energyInfrastructureLayerActive`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/Shell.tsx:56-58, 106, 144, 146` — React state/prop names (`energyInfrastructureLayerActive`, `setEnergyInfrastructureLayerActive`, `energyInfrastructureFilters`, `onEnergyFiltersChange`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:47, 183-184` — React state/prop names (`energyInfrastructureLayerActive`, `setEnergyInfrastructureLayerActive`, `energyInfrastructureFilters`, `onEnergyFiltersChange`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/layer-panel/layerPanelTypes.ts:42, 44` — TypeScript interface property names (`energyInfrastructureLayerActive: boolean`, `energyInfrastructureFilters: EnergyFilters`). TypeScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/detail-panel/EnergyDetail.tsx:36` and `apps/web/src/components/layer-panel/EnergyControls.tsx:25, 108` — UI disclaimer text `'Static public-source infrastructure data. Not live operational status.'`. Human-readable UI text; intentionally preserved.
+  - `apps/web/src/layers/layer_07_weather/weatherTypes.ts:11` — comment `'from other selectable objects (airports, vessels, energy features).'`. Source comment; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts:95-96` — `LOCAL_LAYER_REGISTRY.find((l) => l.layerId === 'layer_07_infrastructure')`. This is a regression test ensuring a stale `layer_07_infrastructure` registry entry does not exist. It is unrelated to `layer_10_energy_infrastructure`; the project control file explicitly states `layer_07_weather` is the canonical Layer 07 and there is no `layer_07_infrastructure`. Intentionally preserved.
+  - `apps/web/src/layers/aviation/airports/airportIntelligenceTypes.ts:85` — `infrastructure: AirportIntelInfrastructure | null;` field name on a different (aviation) interface. Unrelated to the energy layer rename. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer.tsx:12-13` — relative imports `import type { EnergyFeature } from './energyInfrastructureTypes';` and `import { ENERGY_FUEL_TYPES } from './energyInfrastructureTypes';`. These are relative imports **inside** the moved folder; they continue to work after the rename because both files move together. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts:3` — relative import `import { EnergyInfrastructureResponse } from './energyInfrastructureTypes';`. Same as above; relative import inside the moved folder. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts:2` — relative import `import { EnergyFeature, EnergyFilters, EnergyInfrastructureResponse } from './energyInfrastructureTypes';`. Same as above; relative import inside the moved folder. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts:5` — source comment `'// Mock API function for energy infrastructure data'`. Source comment; not related to the layer folder rename. Intentionally preserved.
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `maritime/` shim, `layer_06_maritime/`, `space/` shim, `layer_05_space_satellites/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-010, SR-011, SR-012, SR-013 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/energy/infrastructure.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are owned by their respective agents and are intentionally not modified in SR-014; the frontend rename does not change the backend route or the layer registry.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `energy/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+  - All 4 moved source files (`infrastructure/EnergyInfrastructureLayer.tsx`, `infrastructure/energyInfrastructureApi.ts`, `infrastructure/energyInfrastructureTypes.ts`, `infrastructure/useEnergyInfrastructure.ts`) — content unchanged; only their tracked path moved.
+  - All runtime identifiers, API path strings, JS identifiers, CSS property values, font names, UI labels, comments, and relative imports — intentionally preserved (see above).
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `frontend/sr-014/energy-canonical-folder` (PASS)
+  - `git log -8 --oneline` → confirmed stack `ead0cfb → 5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/energy"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/energy` (pre-rename) → 4 tracked files in the `infrastructure/` subfolder (PASS)
+  - `git ls-files apps/web/src/layers/layer_10_energy_infrastructure` (pre-rename) → empty (PASS)
+  - `git grep -n "energy" -- apps/web/src` (pre-rename) → classified: 10 import paths to update + many runtime strings (JS identifiers, layerId registry, `category: 'infrastructure'`, `new CustomDataSource('energy-infrastructure')`, `entity.id.startsWith('energy-')`, error messages, `id: \`energy-${feature.id}\``, comments) to preserve (PASS)
+  - `git grep -n "infrastructure" -- apps/web/src` (pre-rename) → classified: 10 import paths to update + many runtime strings (`category: 'infrastructure'`, `infrastructure:` field on aviation interface, source comments, UI disclaimer text) to preserve (PASS)
+  - `git grep -n "layers/energy" -- apps packages tests` (pre-rename) → 10 matches in `apps/web/src/**` (7 files): `App.tsx:17,18`, `CesiumGlobe.tsx:30,31`, `Shell.tsx:16,17`, `EnergyDetail.tsx:1`, `detailTypes.ts:4`, `EnergyControls.tsx:1`, `layerPanelTypes.ts:9` (PASS)
+  - `git mv apps/web/src/layers/energy apps/web/src/layers/layer_10_energy_infrastructure` → succeeded; `infrastructure/` subfolder preserved (PASS)
+  - Post-rename `git ls-files` shows all 4 files now under `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` (4 exports) and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 7 import files → 7 files updated, 10 import-path occurrences replaced (PASS)
+  - `git grep -n "layers/energy" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_10_energy_infrastructure" -- apps packages tests` → 10 active import sites updated + pre-existing canonical references in `packages/contracts/src/index.ts:18` and `tests/data/layer_10_energy_infrastructure/...` (PASS)
+  - `git grep -n "energy" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, layerId registry values, CustomDataSource name, runtime prefix check, error messages, entity id format, comments); no active folder-path imports (PASS)
+  - `git grep -n "infrastructure" -- apps/web/src` (post-import-update) → many matches, all runtime strings (`category: 'infrastructure'`, `infrastructure:` field on aviation interface, source comments, UI disclaimer text); no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts"` → `True` (PASS, the exported public hook exists in the canonical folder)
+  - `Test-Path "apps/web/src/layers/energy/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/energy` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_10_energy_infrastructure` → 4 nested source files + `index.ts` (PASS, `infrastructure/` subfolder preserved)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/EnergyInfrastructureLayer.tsx apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer.tsx` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/energyInfrastructureApi.ts apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/energyInfrastructureTypes.ts apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/useEnergyInfrastructure.ts apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` → no content diff (PASS, pure rename)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-012, SR-013, and now this SR-014 handoff entry. No regression is introduced.
+  - The `apps/api/src/routes/energy/infrastructure.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are intentionally not modified. The frontend rename does not change the backend route or the layer registry.
+  - The runtime strings preserved above (JS identifiers, layerId registry values, `category: 'infrastructure'`, `new CustomDataSource('energy-infrastructure')` Cesium data-source name, `entity.id.startsWith('energy-')` runtime prefix check, `/api/energy/infrastructure` API path, error message text, UI disclaimer text, source comments, relative imports inside the moved folder) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `EnergyInfrastructureLayer.tsx` module uses a **default export**, so the canonical `index.ts` uses `export { default as EnergyInfrastructureLayer } from './infrastructure/EnergyInfrastructureLayer';` instead of `export * from ...`. The other 3 modules use named exports and use the `export * from ...` form.
+  - The `layer_07_infrastructure` reference in `apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts:95-96` is a regression test for a stale registry entry; it is unrelated to `layer_10_energy_infrastructure` (the project control file explicitly states there is no `layer_07_infrastructure`). Intentionally preserved.
+  - The `infrastructure` field in `apps/web/src/layers/aviation/airports/airportIntelligenceTypes.ts:85` is on a different (aviation) interface and is unrelated to the energy layer rename. Intentionally preserved.
+  - The `energy/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-014.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-012 local commit (`frontend/sr-012/space-canonical-folder`, commit `ead0cfb`), the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-014 before SR-009 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, SR-013, SR-012, and SR-014 to remote and open PRs. After SR-014 is reviewed, the recommended next task is **SR-009 aviation canonicalization** (35 imports, has `aircraft/` and `airports/` subfolders, highest risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
+### 2026-06-16T03:00:00Z — sr-012-space-canonical-folder
+
+- Work order: SR-012
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-012/space-canonical-folder
+- Base stack: SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-012 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-013 (maritime) cleared the way, SR-012 is the third per-layer move. The space layer has a `satellites/` subfolder (medium complexity: 4 nested files, 16 imports, Cesium `CustomDataSource` integration, WebSocket integration).
+- Goal: Rename the frontend `apps/web/src/layers/space/` folder to the canonical `apps/web/src/layers/layer_05_space_satellites/`, preserve the `satellites/` subfolder and all nested files, add canonical barrel + compatibility shim, and update the 16 active frontend import sites across 7 files.
+- Files changed:
+  1. `apps/web/src/layers/space/` → `apps/web/src/layers/layer_05_space_satellites/` (via `git mv`; the `satellites/` subfolder and all 4 nested files — `satellites/satelliteColors.ts`, `satellites/satelliteFilters.ts`, `satellites/satelliteTypes.ts`, `satellites/useSpaceSatellitesSocket.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_05_space_satellites/index.ts` — new file, content:
+     ```ts
+     export * from './satellites/useSpaceSatellitesSocket';
+     export * from './satellites/satelliteTypes';
+     export * from './satellites/satelliteFilters';
+     export * from './satellites/satelliteColors';
+     ```
+     (canonical re-export of all 4 public modules in the `satellites/` subfolder; UTF-8 no BOM).
+  3. `apps/web/src/layers/space/` — recreated as a shim folder; contains only `apps/web/src/layers/space/index.ts` with content `export * from '../layer_05_space_satellites';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — 4 import-path updates:
+     - `'./layers/space/satellites/useSpaceSatellitesSocket'` → `'./layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket'`
+     - `'./layers/space/satellites/satelliteTypes'` → `'./layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'./layers/space/satellites/satelliteFilters'` (× 2: value import and type import) → `'./layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  5. `apps/web/src/CesiumGlobe.tsx` — 4 import-path updates:
+     - `'./layers/space/satellites/satelliteColors'` → `'./layers/layer_05_space_satellites/satellites/satelliteColors'`
+     - `'./layers/space/satellites/satelliteTypes'` → `'./layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'./layers/space/satellites/satelliteFilters'` (× 2) → `'./layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  6. `apps/web/src/components/Shell.tsx` — 2 import-path updates:
+     - `'../layers/space/satellites/satelliteTypes'` → `'../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'../layers/space/satellites/satelliteFilters'` → `'../layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  7. `apps/web/src/components/StatusPanel.tsx` — 1 import-path update:
+     - `'../layers/space/satellites/satelliteTypes'` → `'../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+  8. `apps/web/src/components/layer-panel/SpaceControls.tsx` — 2 import-path updates:
+     - `'../../layers/space/satellites/satelliteFilters'` → `'../../layers/layer_05_space_satellites/satellites/satelliteFilters'`
+     - `'../../layers/space/satellites/satelliteTypes'` → `'../../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+  9. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — 2 import-path updates:
+     - `'../../layers/space/satellites/satelliteTypes'` → `'../../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+     - `'../../layers/space/satellites/satelliteFilters'` → `'../../layers/layer_05_space_satellites/satellites/satelliteFilters'`
+  10. `apps/web/src/components/overlays/SatelliteInfoOverlay.tsx` — 1 import-path update:
+      - `'../../layers/space/satellites/satelliteTypes'` → `'../../layers/layer_05_space_satellites/satellites/satelliteTypes'`
+  11. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-012 Space Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-020 Spec 008 Status Refresh`) to keep the rolling window at 5 entries per the file's own update rule.
+  12. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public modules exported (4 in canonical `index.ts`):
+  1. `./satellites/useSpaceSatellitesSocket` — the public WebSocket hook (`useSpaceSatellitesSocket`, `SatelliteSnapshotCallback`).
+  2. `./satellites/satelliteTypes` — the public type module (`SpaceSatelliteItem`, `SpaceSatellitesStatus`, `SatelliteFrontendItem`, `SatelliteObjectType`, `SatelliteFilters`, `INITIAL_SPACE_STATUS`).
+  3. `./satellites/satelliteFilters` — the public filter module (`DEFAULT_SATELLITE_FILTERS`, `getFilteredSatellites`, `satellitePassesFilter`, `SAFE_RENDER_CAP`).
+  4. `./satellites/satelliteColors` — the public color module (`getSatelliteColor`, `getSatellitePixelSize`).
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:79` — `layerId: 'layer_05_space_satellites'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/lib/useLayerRegistry.ts:81` — `category: 'space'`. String category value; intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:127` — `entry.layerId === 'layer_05_space_satellites'`. Already canonical; layerId comparison.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket.ts:16` — `apiBase.replace(/^http/, 'ws') + '/ws/space/satellites/live'`. WebSocket URL path; this is a runtime protocol endpoint, not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket.ts:56,64,76` — message types `'space.satellites.subscribe'`, `'space.satellites.snapshot'`, `'space.satellites.error'`. WebSocket protocol message types; intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteFilters.ts:16` — `sourceFilter: 'all' | 'celestrak' | 'space-track'`. Source filter type values; intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteFilters.ts:53` — `filters.sourceFilter === 'space-track' && !sid.includes('space')`. Runtime string check; intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteColors.ts:16` — `'deep space: light red'` color label comment. Intentionally preserved.
+  - `apps/web/src/layers/layer_05_space_satellites/satellites/satelliteTypes.ts:5` — `SatelliteObjectType = 'satellite' | 'debris' | 'rocket_body' | 'inactive_payload' | 'unknown'`. Type string literals; intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:507` — `new CustomDataSource('space-satellites')`. Cesium `DataSource` runtime identifier; not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:1248-1249,1253-1254,1327` and `apps/web/src/CesiumGlobe.tsx:119-121,157-159` and `apps/web/src/components/Shell.tsx:51,53-54,104-105,139,141-142,202-203` — React state/prop JavaScript identifiers like `spaceSatellitesLayerActive`, `spaceSatellites`, `spaceSatelliteFilters`, `spaceSatellitesStatus`, `setSpaceSatellitesLayerActive`, `onSpaceFiltersChange`. JS identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/StatusPanel.tsx:47` — `if (spaceSatellitesLayerActive) activeLayers.push('L5');`. The `'L5'` string is a human-readable status panel label; intentionally preserved.
+  - `apps/web/src/components/StatusPanel.tsx:137-145` — phase string values `'live'`, `'error'`, `'connecting'`, `'reconnecting'`, `'UNAVAILABLE'`, `'CONNECTING...'`, `'RECONNECTING...'` and CSS variable `'var(--shell-accent)'` and color `'#ff4d4d'`. Runtime status display values; intentionally preserved.
+  - `apps/web/src/components/overlays/SatelliteInfoOverlay.tsx:18,26-27,39,43,45-46,54-69` — component name `SatelliteInfoOverlay`, prop names, labels `'SATELLITE'`, `'NORAD ID'`, `'CATEGORY'`, `'ORBIT'`, `'ALTITUDE'`, `'SPEED'`, `'LAT'`, `'LON'`, `'COUNTRY'`, `'SOURCE'`, `'ESTIMATED AT'`, and status text `'UNKNOWN'`. Human-readable UI text; intentionally preserved.
+  - `apps/web/src/components/layer-panel/SpaceControls.tsx:81` — `value: 'space-track' as const, label: 'Space-Track'`. UI option value and label; intentionally preserved.
+  - `apps/web/src/components/intel/AirportMapPopup.tsx:9,67`, `apps/web/src/components/intel/AirportPublicProfilePanel.tsx:131`, `apps/web/src/components/intel/CoordinateSourceCard.tsx:38`, `apps/web/src/components/intel/DataQualityCard.tsx:34,40,46,52,59`, `apps/web/src/components/intel/IntelSection.tsx:25`, `apps/web/src/components/intel/RunwaysSection.tsx:27,36`, `apps/web/src/components/layer-panel/AviationControls.tsx:52`, `apps/web/src/components/overlays/AircraftInfoOverlay.tsx:17,21`, `apps/web/src/components/overlays/EarthquakeInfoOverlay.tsx:15,19`, `apps/web/src/components/overlays/SatelliteInfoOverlay.tsx:39,43`, `apps/web/src/components/overlays/TokenWarningOverlay.tsx:9` — all use `justifyContent: 'space-between'` CSS property or `'JetBrains Mono'` font name. CSS properties and font names; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/styles/shell.css:13,47,201,222` — CSS `justify-content: space-between` property and `--shell-font-mono: 'JetBrains Mono', ...` variable. CSS values; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/layers/aviation/airports/airportViewport.ts:13` — `// Fallback if looking into space or full globe`. Source comment; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/globe/configureViewerScene.ts:3` — `// Global max zoom distance — allows viewing Earth plus the full satellite shell.`. Source comment; not related to the layer folder rename. Intentionally preserved.
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `maritime/` shim, `layer_06_maritime/`, `energy/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-011, SR-013, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/space/satellites.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are owned by their respective agents and are intentionally not modified in SR-012; the frontend rename does not change the backend route or the layer registry.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `space/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+  - All 4 moved source files (`satellites/satelliteColors.ts`, `satellites/satelliteFilters.ts`, `satellites/satelliteTypes.ts`, `satellites/useSpaceSatellitesSocket.ts`) — content unchanged; only their tracked path moved.
+  - All WebSocket protocol strings, CSS properties, font names, UI labels, and React state/prop JavaScript identifiers — intentionally preserved (see above).
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-012/space-canonical-folder` (PASS)
+  - `git log -8 --oneline` → confirmed stack
+    `5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/space"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_05_space_satellites"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/space` (pre-rename) → 4 tracked files in the `satellites/` subfolder (PASS)
+  - `git ls-files apps/web/src/layers/layer_05_space_satellites` (pre-rename) → empty (PASS)
+  - `git grep -n "space" -- apps/web/src` (pre-rename) → classified: 16 import paths to update + many runtime strings (JS identifiers, layerId registry, WebSocket URL, CustomDataSource, message types, source filter values, CSS properties, font names, UI labels, comments) to preserve (PASS)
+  - `git grep -n "satellite" -- apps/web/src` (pre-rename) → classified: many matches, mostly runtime strings (JS identifiers, type literals, prop names, function names, labels, comments) to preserve; no import paths (PASS)
+  - `git grep -n "layers/space" -- apps packages tests` (pre-rename) → 16 matches in `apps/web/src/**` (7 files) (PASS)
+  - `git mv apps/web/src/layers/space apps/web/src/layers/layer_05_space_satellites` → succeeded; `satellites/` subfolder preserved (PASS)
+  - Post-rename `git ls-files` shows all 4 files now under `apps/web/src/layers/layer_05_space_satellites/satellites/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` (4 exports) and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 7 import files → 7 files updated, 16 import-path occurrences replaced (PASS)
+  - `git grep -n "layers/space" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_05_space_satellites" -- apps packages tests` → 16 active import sites updated + pre-existing canonical references in `packages/contracts/src/index.ts:14` and `tests/data/layer_05_space_satellites/...` (PASS)
+  - `git grep -n "space" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, layerId registry values, WebSocket URL, CustomDataSource, message types, CSS properties, font names, UI labels, comments); no active folder-path imports (PASS)
+  - `git grep -n "satellite" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, type literals, prop names, function names, labels, comments); no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_05_space_satellites"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_05_space_satellites/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/space/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/space` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_05_space_satellites` → 4 nested source files + `index.ts` (PASS, `satellites/` subfolder preserved)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/satelliteColors.ts apps/web/src/layers/layer_05_space_satellites/satellites/satelliteColors.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/satelliteFilters.ts apps/web/src/layers/layer_05_space_satellites/satellites/satelliteFilters.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/satelliteTypes.ts apps/web/src/layers/layer_05_space_satellites/satellites/satelliteTypes.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/space/satellites/useSpaceSatellitesSocket.ts apps/web/src/layers/layer_05_space_satellites/satellites/useSpaceSatellitesSocket.ts` → no content diff (PASS, pure rename)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules, 861ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 12 expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-013, and now this SR-012 handoff entry. No regression is introduced.
+  - The `apps/api/src/routes/space/satellites.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are intentionally not modified. The frontend rename does not change the backend route or the layer registry.
+  - The runtime strings preserved above (WebSocket protocol URLs and message types, Cesium data-source name, source filter values, CSS properties, font names, UI labels, React JS identifiers, comments) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `space/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-012.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-012 before SR-014 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, SR-013, and SR-012 to remote and open PRs. After SR-012 is reviewed, the recommended next task is **SR-014 energy canonicalization** (10 imports, has `infrastructure/` subfolder, medium risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
+### 2026-06-16T02:30:00Z — sr-013-maritime-canonical-folder
+
+- Work order: SR-013
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-013/maritime-canonical-folder
+- Base stack: SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-013 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-011 (earth-events) cleared the way, SR-013 is the second-lowest-risk per-layer move (3 imports, 5 tracked source files, no subfolders, no API changes).
+- Goal: Rename the frontend `apps/web/src/layers/maritime/` folder to the canonical `apps/web/src/layers/layer_06_maritime/`, add canonical barrel + compatibility shim, and update the 3 active frontend import sites.
+- Files changed:
+  1. `apps/web/src/layers/maritime/` → `apps/web/src/layers/layer_06_maritime/` (via `git mv`; all 5 tracked files — `MaritimeLayer.tsx`, `__tests__/maritime.test.ts`, `maritimeApi.ts`, `useMaritime.ts`, `vesselMarker.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_06_maritime/index.ts` — new file, content `export * from './useMaritime';` (canonical re-export of the public hook).
+  3. `apps/web/src/layers/maritime/` — recreated as a shim folder; contains only `apps/web/src/layers/maritime/index.ts` with content `export * from '../layer_06_maritime';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — two import-path updates: `'./layers/maritime/useMaritime'` → `'./layers/layer_06_maritime/useMaritime'`; `'./layers/maritime/maritimeApi'` → `'./layers/layer_06_maritime/maritimeApi'`.
+  5. `apps/web/src/CesiumGlobe.tsx` — one import-path update: `'./layers/maritime/MaritimeLayer'` → `'./layers/layer_06_maritime/MaritimeLayer'`.
+  6. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-013 Maritime Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-019 Constitution Conflict Resolution`) to keep the rolling window at 5 entries per the file's own update rule.
+  7. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public hook/module exported: `useMaritime.ts` (from `apps/web/src/layers/layer_06_maritime/`). The canonical `index.ts` re-exports `./useMaritime`. The other 4 moved files (`MaritimeLayer.tsx`, `maritimeApi.ts`, `vesselMarker.ts`, `__tests__/maritime.test.ts`) are imported by name at their active import sites (e.g. `import MaritimeLayer from '.../layer_06_maritime/MaritimeLayer';`) and are not part of the barrel re-export.
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:93` — `layerId: 'layer_06_maritime'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:139` — `entry.layerId === 'layer_06_maritime'`. Already canonical; layerId comparison.
+  - `apps/web/src/components/Shell.tsx` and `apps/web/src/components/layer-panel/layerPanelTypes.ts` — React state/prop type names like `maritimeLayerActive: boolean`, `maritimeStats: MaritimeStatsResponse | null`, `maritimeFilters: { search: string; vesselType: string | null }`. These are JavaScript identifiers (variable and type names), not file paths; they do not need to match the folder name.
+  - `apps/web/src/components/detail-panel/DetailPanelRoot.tsx:33` — `selectedObject.layerId === 'layer_06_maritime'`. LayerId registry comparison.
+  - `apps/web/src/App.tsx:77,144` — `selectedObject.layerId === 'layer_06_maritime'`. LayerId registry comparisons.
+  - `apps/web/src/App.tsx:45-47,81,228-229,272-277` and `apps/web/src/CesiumGlobe.tsx:126-127,163-164,1331,1385,1440-1441` — React state variable names and prop names (`maritimeLayerActive`, `maritimeFilters`, `maritimeBbox`, `maritimeVessels`, `maritimeStats`, `maritimeData`, `setMaritimeLayerActive`, `onMaritimeRefresh`, `onMaritimeBboxChange`). JavaScript identifiers; not file paths.
+  - `apps/web/src/layers/layer_06_maritime/maritimeApi.ts:18,28,38,52,57` — `${API_BASE_URL}/api/layers/layer_06_maritime/objects` and related URL paths; runtime error message strings (`Failed to fetch maritime objects: ${response.status}`, `Failed to fetch maritime statistics: ${response.status}`). The URL paths are already canonical; the error message strings contain the word "maritime" as part of human-readable error text, which is intentionally preserved.
+  - `apps/web/src/layers/layer_06_maritime/useMaritime.ts:103-104` — error message strings (`Failed to fetch maritime data`, `'Failed to fetch maritime data'`). Human-readable error text; intentionally preserved.
+  - `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts:4` — `import { fetchMaritimeObjects, fetchVesselDetail, fetchMaritimeStats } from '../maritimeApi';`. Relative import within the maritime folder; works the same way after rename because both files move together.
+  - `apps/web/src/layers/layer_06_maritime/__tests__/maritime.test.ts:34-39,55,84,118,125` — test assertions referencing `LOCAL_LAYER_REGISTRY`, `layerId === 'layer_06_maritime'`, `'/api/layers/layer_06_maritime/objects'`, and `checkAIS(...)`. All are already canonical; no changes needed.
+  - `apps/api/tests/maritime.test.ts` — all references are `/api/layers/layer_06_maritime/...` API path strings in the API test file. Out of scope (apps/api is forbidden). Not modified.
+  - `packages/contracts/src/index.ts:15` — `export * from './layers/layer_06_maritime.js';`. Pre-existing canonical export; not modified.
+  - `tests/data/layer_06_maritime/...` — pre-existing test data path; not modified.
+  - The `apps/web/src/layers/maritime/` shim folder is intentionally retained. It contains only the new `index.ts` re-exporting from the canonical folder, with no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-013.
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `energy/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-011, SR-012, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/maritime.ts` and `apps/api/tests/maritime.test.ts` files are owned by the API Agent and are intentionally not modified in SR-013; the frontend rename does not change the backend route.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `maritime/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete (SR-021 did not include a maritime `.gitkeep` because SR-011 was the prior task; the maritime folder already had source content).
+  - No API routes, no contracts, no database migrations changed.
+  - All 5 moved source files (`MaritimeLayer.tsx`, `maritimeApi.ts`, `useMaritime.ts`, `vesselMarker.ts`, `__tests__/maritime.test.ts`) — content unchanged; only their tracked path moved.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-013/maritime-canonical-folder` (PASS)
+  - `git log -7 --oneline` → confirmed stack
+    `e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/maritime"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/maritime` (pre-rename) → 5 tracked files
+    (`MaritimeLayer.tsx`, `__tests__/maritime.test.ts`, `maritimeApi.ts`,
+    `useMaritime.ts`, `vesselMarker.ts`); no `.gitkeep` (PASS)
+  - `git ls-files apps/web/src/layers/layer_06_maritime` (pre-rename) → empty (PASS)
+  - `git grep -n "maritime" -- apps/web/src` (pre-rename) → classified:
+    3 import paths to update + many runtime strings (JS identifiers,
+    layerId registry, API path strings, error message strings) to
+    preserve (PASS)
+  - `git grep -n "layers/maritime" -- apps packages tests` (pre-rename) → 3 matches
+    in `apps/web/src/**`: `App.tsx:19,20`, `CesiumGlobe.tsx:32` (PASS)
+  - `git mv apps/web/src/layers/maritime apps/web/src/layers/layer_06_maritime` → succeeded (PASS)
+  - Post-rename `git ls-files` shows all 5 files now under
+    `apps/web/src/layers/layer_06_maritime/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 3 import files → 2 files updated (App.tsx, CesiumGlobe.tsx); no other file required an import-path update (PASS)
+  - `git grep -n "layers/maritime" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_06_maritime" -- apps packages tests` → 3 active import sites updated; remaining matches are pre-existing canonical API path strings, layerId registry values, and pre-existing test paths (PASS)
+  - `git grep -n "maritime" -- apps/web/src` (post-import-update) → 30+ matches, all runtime strings (JS identifiers, layerId registry values, API path strings, error messages, the test file's `LOCAL_LAYER_REGISTRY` find); no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_06_maritime/useMaritime.ts"` → `True` (PASS, the exported public hook exists in the canonical folder)
+  - `Test-Path "apps/web/src/layers/maritime/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/maritime` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_06_maritime` → 5 source files + `index.ts` (PASS)
+  - `git diff HEAD:apps/web/src/layers/maritime/<file> apps/web/src/layers/layer_06_maritime/<file>` for each of the 5 moved files → no content diff (PASS, all moves are R100 renames)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules, 820ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests, including the relocated maritime test at `src/layers/layer_06_maritime/__tests__/maritime.test.ts` which still finds and runs its 11 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S handoff entry, the SR-011 handoff entry, and this SR-013 body as a validation caveat. No regression is introduced.
+  - The `apps/api/src/routes/maritime.ts` and `apps/api/tests/maritime.test.ts` files are intentionally not modified in SR-013. The frontend rename does not change the backend route; the API path `/api/layers/layer_06_maritime/...` is already canonical in those files.
+  - The runtime strings preserved above (JS identifiers, layerId registry values, API path strings, error message text) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `maritime/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-013.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-013 before SR-012 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, and SR-013 to remote and open PRs. After SR-013 is reviewed, the recommended next task is **SR-012 space canonicalization** (16 imports, has `satellites/` subfolder, medium risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
+### 2026-06-16T02:00:00Z — sr-011-earth-events-canonical-folder
+
+- Work order: SR-011
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-011/earth-events-canonical-folder
+- Base stack: SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-011 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-010S (borders) and SR-021 (.gitkeep cleanup) cleared the way, SR-011 is the lowest-risk remaining per-layer move (5 imports, single hook file `useEarthEvents.ts`, no subfolders, no API changes).
+- Goal: Rename the frontend `apps/web/src/layers/earth-events/` folder to the canonical `apps/web/src/layers/layer_03_earth_events/`, add canonical barrel + compatibility shim, and update the 5 active frontend import sites.
+- Files changed:
+  1. `apps/web/src/layers/earth-events/` → `apps/web/src/layers/layer_03_earth_events/` (via `git mv`; `useEarthEvents.ts` moved atomically, no content change).
+  2. `apps/web/src/layers/layer_03_earth_events/index.ts` — new file, content `export * from './useEarthEvents';` (canonical re-export).
+  3. `apps/web/src/layers/earth-events/` — recreated as a shim folder; contains only `apps/web/src/layers/earth-events/index.ts` with content `export * from '../layer_03_earth_events';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — single-line import update: `'./layers/earth-events/useEarthEvents'` → `'./layers/layer_03_earth_events/useEarthEvents'`.
+  5. `apps/web/src/components/Shell.tsx` — single-line import update: `'../layers/earth-events/useEarthEvents'` → `'../layers/layer_03_earth_events/useEarthEvents'`.
+  6. `apps/web/src/components/StatusPanel.tsx` — single-line import update: `'../layers/earth-events/useEarthEvents'` → `'../layers/layer_03_earth_events/useEarthEvents'`.
+  7. `apps/web/src/components/layer-panel/LayerPanelRoot.tsx` — single-line import update: `'../../layers/earth-events/useEarthEvents'` → `'../../layers/layer_03_earth_events/useEarthEvents'`.
+  8. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — single-line import update: `'../../layers/earth-events/useEarthEvents'` → `'../../layers/layer_03_earth_events/useEarthEvents'`.
+  9. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-011 Earth-Events Canonicalization` and removed the oldest entry (`## 2026-06-16 - Frontend Layer Canonicalization Plan`) to keep the rolling window at 5 entries per the file's own update rule.
+  10. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/CesiumGlobe.tsx:494` — `new CustomDataSource('earth-events')`. This is the Cesium `DataSource` name used to identify the layer in the Cesium scene graph and the DOM/console. The string is a runtime data-source identifier, not a TypeScript module path; it does not need to match the folder name. Changing it would risk breaking Cesium-side references (e.g. `viewer.dataSources.getByName('earth-events')` if added later) and would couple the layer-name registry to the folder name in a way the project does not require.
+  - `apps/web/src/lib/api.ts:178` — `${API_BASE_URL}/api/earth-events/latest`. This is the active backend API path. The frontend rename task explicitly excludes API routes; the API path is owned by the API Agent and any change would require a coordinated `apps/api/` edit, a contract update in `packages/contracts/`, and a backend deployment. Out of scope for SR-011.
+  - Inside `apps/web/src/layers/layer_03_earth_events/useEarthEvents.ts` (after rename): no `earth-events` string literals were found. The file references `fetchEarthEventsLatest(...)` (function name) and `'earthquake'` (event_type query value), neither of which contains the substring `earth-events`. The relative `import { fetchEarthEventsLatest } from '../../lib/api';` continues to work because the file is at the same depth in the new folder (2 levels deep into `src/`).
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `energy/`, `maritime/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-012, SR-013, SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/` — no source code outside the allowed files was changed. The `apps/api/src/routes/earth-events.ts` route file is owned by the API Agent and is intentionally not modified in SR-011; the frontend rename does not change the backend route.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `earth-events/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-011/earth-events-canonical-folder` (PASS)
+  - `git log -6 --oneline` → confirmed stack
+    `63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/earth-events"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/earth-events` (pre-rename) → `useEarthEvents.ts` only (PASS; SR-021 already removed the redundant `.gitkeep`)
+  - `git grep -n "earth-events" -- apps/web/src` (pre-rename) → 7 matches classified as 5 import paths to update + 2 runtime strings to preserve (PASS)
+  - `git mv apps/web/src/layers/earth-events apps/web/src/layers/layer_03_earth_events` → succeeded (PASS)
+  - Post-rename `git ls-files` shows `useEarthEvents.ts` now under `apps/web/src/layers/layer_03_earth_events/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 5 import files → 5 files updated (PASS)
+  - `git grep -n "layers/earth-events" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "earth-events" -- apps/web/src` (post-import-update) → only 2 runtime strings preserved (PASS; no active import paths)
+  - `git grep -n "layer_03_earth_events" -- apps/web/src` → 5 active import sites + 2 string `layerId` registry values (`LayerPanelRoot.tsx:113` and `lib/useLayerRegistry.ts:51`); all correct (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events/useEarthEvents.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_03_earth_events/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/earth-events/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/earth-events` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_03_earth_events` → `index.ts` + `useEarthEvents.ts` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules, 881ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 10 expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, in the SR-010S handoff entry, and in this SR-011 body as a validation caveat. No regression is introduced.
+  - The 2 `apps/api/.../earth-events` matches in the broader grep output (e.g. `apps/api/src/routes/earth-events.ts`) are **the API route file** for this layer. The route file is owned by the API Agent and is intentionally not modified in SR-011; the frontend rename does not change the backend route.
+  - The runtime strings `'earth-events'` in `CesiumGlobe.tsx` and `/api/earth-events/latest` in `lib/api.ts` are intentionally preserved. See the "Runtime strings preserved" section above for the full justification.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-011 before SR-013 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, and SR-011 to remote and open PRs. After SR-011 is reviewed, the recommended next task is **SR-013 maritime canonicalization** (3 imports, self-contained, low risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
+### 2026-06-16T01:30:00Z — sr-021-retry-remove-redundant-gitkeep
+
+- Work order: SR-021
+- Agent: Structure Cleanup Agent
+- Branch: chore/sr-021-retry-remove-redundant-gitkeep
+- Base stack: SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local structure cleanup handoff; no code logic change, no import change, no folder rename)
+- Reason: The original SR-021 (on branch `chore/sr-021-remove-redundant-gitkeep`) correctly stopped and reported because the canonical borders folder did not yet exist in the stack. SR-010S (`2b23bd9 refactor(web): restack borders layer canonical folder rename`) created the canonical `apps/web/src/layers/layer_02_borders_boundaries/` folder with `.gitkeep`, `index.ts`, and `useBordersBoundaries.ts`, so the SR-021 blocker is now resolved. This retry branch is stacked on SR-010S.
+- Goal: Remove the 7 redundant `.gitkeep` placeholder files from non-empty frontend folders, exactly as specified in the original SR-021 task.
+- Files deleted (7):
+  1. `apps/web/src/layers/.gitkeep` — parent folder `apps/web/src/layers/` still contains `aviation/`, `borders/` (shim), `earth-events/`, `energy/`, `layer_02_borders_boundaries/`, `layer_07_weather/`, `layer_08_news_osint/`, `maritime/`, `space/`.
+  2. `apps/web/src/layers/aviation/.gitkeep` — parent folder still contains `aircraft/` and `airports/`.
+  3. `apps/web/src/layers/aviation/aircraft/.gitkeep` — parent folder still contains `aircraftMarker.ts` and `useLiveAircraftSocket.ts`.
+  4. `apps/web/src/layers/aviation/airports/.gitkeep` — parent folder still contains 16 tracked `.ts` files.
+  5. `apps/web/src/layers/earth-events/.gitkeep` — parent folder still contains `useEarthEvents.ts`.
+  6. `apps/web/src/layers/layer_02_borders_boundaries/.gitkeep` — parent folder still contains `index.ts` and `useBordersBoundaries.ts`.
+  7. `apps/web/src/globe/.gitkeep` — parent folder still contains `cesiumVisibility.ts`, `configureViewerScene.ts`, `setupCesiumToken.ts`, `useFpsCounter.ts`, `viewerOptions.ts`.
+- Files changed (2 state docs):
+  1. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-021 Retry: Remove Redundant .gitkeep Files` and removed the oldest entry (`## 2026-06-16 - Phase 6 Archive Fence Hardening`) to keep the rolling window at 5 entries per the file's own update rule.
+  2. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Files intentionally not touched (preserved as-is):
+  - `apps/web/src/layers/borders/index.ts` (borders compatibility shim) — content verified: `export * from '../layer_02_borders_boundaries';`
+  - `apps/web/src/layers/layer_02_borders_boundaries/index.ts` (canonical export) — content verified: `export * from './useBordersBoundaries';`
+  - `apps/web/src/layers/layer_02_borders_boundaries/useBordersBoundaries.ts` (canonical hook) — not modified
+  - All other layer folders (`energy/`, `maritime/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) and their subfolders — not modified
+  - All `apps/api/`, `packages/`, `services/`, `database/`, `tests/` folders — not modified
+  - All import files in `apps/web/src/**` — not modified (no import path changes)
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `chore/sr-021-retry-remove-redundant-gitkeep` (PASS)
+  - `git log -5 --oneline` → confirmed stack
+    `2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `git ls-files -- <7 target paths>` (pre-deletion) → exactly 7 tracked
+    files (PASS)
+  - `git ls-files` for each parent folder (pre-deletion) → all 7 parent
+    folders have tracked content besides `.gitkeep` (PASS)
+  - `git rm <7 target paths>` → succeeded; 7 files deleted and staged (PASS)
+  - `git ls-files -- <7 target paths>` (post-deletion) → no output (PASS)
+  - `git ls-files` for each parent folder (post-deletion) → all 7 parent
+    folders still have tracked content; no folder became empty (PASS)
+  - `git ls-files apps/web/src/layers/borders` → only `index.ts` (shim
+    preserved) (PASS)
+  - `Get-Content apps/web/src/layers/borders/index.ts` → `export * from
+    '../layer_02_borders_boundaries';` (PASS, shim content verified)
+  - `Get-Content apps/web/src/layers/layer_02_borders_boundaries/index.ts` →
+    `export * from './useBordersBoundaries';` (PASS, canonical content
+    verified)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"`
+    → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/
+    ^specs/ ^packages/ ^services/ ^database/ ^tests/ ^.specify/ ^.env"`
+    → no output (PASS, no forbidden areas changed)
+  - `git diff --name-only | findstr /R ".ts$ .tsx$ .js$ .jsx$ .py$
+    .sql$ .json$"` → no output (PASS, no source code changed)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → exactly 9 paths: 7 deletions + 2 state doc
+    modifications (PASS)
+  - `git diff --stat` → confirms scope is exactly the 7 .gitkeep
+    deletions plus the 2 state doc modifications (PASS)
+- Known issues:
+  - No app build or test suite was run, per the task's "Do not run app
+    builds/tests because this task deletes placeholder files only"
+    instruction. The `.gitkeep` placeholders are not imported by any
+    source code, so removing them cannot affect runtime behaviour.
+  - The pre-existing line-3 reference to retired
+    `docs/control/MVP_LAYER_REGISTRY.md` in `.specify/memory/constitution.md`
+    is **not** in scope of SR-021; it remains for a future work order.
+- Push/PR/merge status: not performed by agent. Branch is local only.
+  Stacked on top of the SR-010S local commit
+  (`frontend/sr-010s-restack-borders-canonical-folder`, commit
+  `2b23bd9`), the SR-020 local commit
+  (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the
+  SR-019 local commit
+  (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-021 before next work. The
+  user / decision-control layer should decide whether to push SR-019,
+  SR-020, SR-010S, and SR-021 to remote and open PRs. After SR-021 is
+  reviewed, the recommended next task is **SR-011 earth-events
+  canonicalization** (lowest-risk per-layer move: 5 imports, single
+  hook file).
+
+---
+
+### 2026-06-16T01:00:00Z — sr-010s-restack-borders-canonical-folder
+
+- Work order: SR-010S
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-010s-restack-borders-canonical-folder
+- Base stack: SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: The original SR-010 commit `5275e61 refactor(web): rename borders layer folder to canonical path` exists on the separate, unmerged branch `frontend/sr-010/borders-canonical-folder`. The current active correction stack (this branch) does not contain it, so the on-disk state still has `apps/web/src/layers/borders/` and is missing `apps/web/src/layers/layer_02_borders_boundaries/`. SR-021 redundant-`.gitkeep` cleanup was forced to stop and report because the canonical borders folder did not exist in this stack. SR-010S re-applies the SR-010 rename pattern onto the current stacked branch so subsequent cleanup/canonicalization work sees the correct on-disk structure.
+- Goal: Re-apply the SR-010 borders canonical folder rename onto the current correction stack.
+- Files changed:
+  1. `apps/web/src/layers/borders/` → `apps/web/src/layers/layer_02_borders_boundaries/` (via `git mv`; both files — `.gitkeep` and `useBordersBoundaries.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_02_borders_boundaries/index.ts` — new file, content `export * from './useBordersBoundaries';` (canonical re-export).
+  3. `apps/web/src/layers/borders/` — recreated as a shim folder; contains only `apps/web/src/layers/borders/index.ts` with content `export * from '../layer_02_borders_boundaries';` (compatibility shim for any code that still imports from the old path).
+  4. `apps/web/src/App.tsx` — single-line import update: `'./layers/borders/useBordersBoundaries'` → `'./layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  5. `apps/web/src/components/Shell.tsx` — single-line import update: `'../layers/borders/useBordersBoundaries'` → `'../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  6. `apps/web/src/components/StatusPanel.tsx` — single-line import update: `'../layers/borders/useBordersBoundaries'` → `'../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  7. `apps/web/src/components/layer-panel/LayerPanelRoot.tsx` — single-line import update: `'../../layers/borders/useBordersBoundaries'` → `'../../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  8. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — single-line import update: `'../../layers/borders/useBordersBoundaries'` → `'../../layers/layer_02_borders_boundaries/useBordersBoundaries'`.
+  9. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-010S Borders Restack` and removed the oldest entry (`## 2026-06-16 - Documentation Structure Audit`) to keep the rolling window at 5 entries per the file's own update rule.
+  10. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `earth-events/`, `energy/`, `maritime/`, `space/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-011..SR-014 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/` — no source code outside the allowed files was changed. The 3 `apps/api/.../layer_02_borders_boundaries` references in the grep output are string `layerId` registry values (not folder paths) and were already correct.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `borders/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - The `borders/` shim folder's `.gitkeep` and `useBordersBoundaries.ts` — already moved into the canonical folder by the `git mv` step; they are no longer in `borders/`.
+  - No `.gitkeep` files removed — that is SR-021's task.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on
+    `frontend/sr-010s-restack-borders-canonical-folder` (PASS)
+  - `git log -4 --oneline` → confirmed stack
+    `a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/borders"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_02_borders_boundaries"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/borders` (pre-rename) → `.gitkeep`, `useBordersBoundaries.ts` (PASS)
+  - `git grep -n "layers/borders" -- apps packages tests` (pre-rename) → 5 hits in `apps/web/src/**`; 0 hits in `packages/` or `tests/` (PASS)
+  - `git mv apps/web/src/layers/borders apps/web/src/layers/layer_02_borders_boundaries` → succeeded (PASS)
+  - Post-rename `git ls-files` shows `.gitkeep` and `useBordersBoundaries.ts` now under `apps/web/src/layers/layer_02_borders_boundaries/` (PASS)
+  - `git grep -n "layers/borders" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `Test-Path "apps/web/src/layers/layer_02_borders_boundaries/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/borders/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^packages/ ^services/ ^database/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, see output captured in §4)
+  - `pnpm --filter web test` → succeeded (PASS, see output captured in §4)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 10 expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body and in this SR-010S body as a validation caveat. No regression is introduced.
+  - The 3 `apps/api/.../layer_02_borders_boundaries` matches in the post-update grep are **string `layerId` registry values** (e.g. `layerId: 'layer_02_borders_boundaries'`), not folder-path imports. They are already correct and were intentionally not modified.
+  - The `borders/` folder is **retained as a shim** with only `index.ts`; the old `.gitkeep` and `useBordersBoundaries.ts` were moved out by `git mv`. Future cleanup of the redundant `apps/web/src/layers/borders/index.ts` shim (and the `apps/web/src/layers/.gitkeep` etc.) is the scope of SR-021.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`) and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-010S before SR-021 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, and SR-010S to remote and open PRs. After SR-010S is reviewed, the recommended next task is to retry SR-021 redundant `.gitkeep` cleanup using the original 7-file allowed list (the canonical borders folder now exists in the stack).
+
+---
+
+### 2026-06-16T00:45:00Z — sr-020-refresh-spec-008-status
+
+- Work order: SR-020
+- Agent: Documentation / Spec Agent
+- Branch: docs/sr-020-refresh-spec-008-status
+- Base branch: docs/sr-019-resolve-constitution-conflict (stacked local branch from SR-019 commit `d746c0a`; user is not creating PRs/merges yet)
+- Reviewer decision: PENDING (agent-only local docs/spec handoff; no code change)
+- Goal: Refresh Spec 008 (`specs/008-structure-remediation-roadmap/`) so
+  the roadmap and task list accurately reflect the current SR status:
+  completed SR items (SR-001..SR-008, SR-005A, SR-005B, SR-005C,
+  SR-010) marked Done; remaining structure/naming work (SR-009, SR-011,
+  SR-012, SR-013, SR-014, plus auxiliary cleanup items) kept visibly
+  pending; safe-default next-work queue surfaced.
+- Files changed:
+  1. `specs/008-structure-remediation-roadmap/tasks.md` — added a
+     "Status as of 2026-06-16" section near the top (status legend,
+     per-work-package status table, remaining recommended order,
+     "Done" caveats); added a `> **Status (2026-06-16):** ...`
+     blockquote under each `## SR-NNN — ...` heading (SR-001 through
+     SR-018); inserted three new auxiliary task sections
+     (SR-005A, SR-005B, SR-005C) for the post-SR-004 API route splits
+     (maritime, energy, space-satellites REST-only); updated the
+     cross-task summary table at the bottom to include the new
+     SR-005A/B/C rows; updated the "Last updated" footer. The full
+     original SR-NNN task descriptions, phase details, and reviewer
+     checks are preserved verbatim as the audit trail.
+  2. `specs/008-structure-remediation-roadmap/plan.md` — added a
+     "Status as of 2026-06-16 (post-SR-010 / post-SR-019)" section
+     near the top (completed work, remaining work, needs decision,
+     planned later snapshots); updated the "Recommended Order
+     Summary" table to include a "Status (2026-06-16)" column;
+     replaced the original 11-step safe-default execution order
+     with the new current next-work queue (earth-events → maritime →
+     space → energy → aviation → gitkeep cleanup → API route
+     shape → TODO cleanup → CesiumGlobe split → ownership row →
+     API path policy) and explicitly preserved the original
+     11-step order as "historical only" inside a blockquote;
+     updated the "Last updated" footer.
+  3. `specs/008-structure-remediation-roadmap/README.md` — updated
+     the `Status:` line from "Active roadmap with completed
+     documentation phases" to "**Partially completed** — documentation
+     phases done; remaining structure/naming work still pending";
+     added a new top-of-file "Status Banner (2026-06-16)" section
+     listing the remaining SR items and auxiliary work with an
+     explicit "do not start a new frontend canonicalization branch
+     until the user / decision-control layer has reviewed the
+     SR-019 / SR-020 commits and decided to resume PR/merge activity"
+     note.
+  4. `docs/state/RECENT_CONTEXT.md` — added a new top entry
+     "2026-06-16 - SR-020 Spec 008 Status Refresh" and removed the
+     oldest entry ("2026-06-16 - Documentation Reorganization") to
+     keep the rolling window at 5 entries per the file's own
+     update rule.
+  5. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at
+     the top (append-only rule).
+- Files intentionally not touched:
+  - `specs/008-structure-remediation-roadmap/spec.md` — not in the
+    allowed-files list for this task; its "Success Criteria"
+    section is intentionally preserved as the long-term success
+    definition (some items remain incomplete by design).
+  - `specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md`
+    and `frontend-layer-canonicalization-plan-report.md` — not
+    needed: their internal status tables already accurately
+    reflect the plan/report status; no update was required.
+  - `docs/control/`, `docs/archive/`, `docs/audits/`, `docs/work-orders/`,
+    `docs/README.md`, `docs/state/CURRENT_PROJECT_STATE.md`, `AGENTS.md`,
+    `.specify/memory/constitution.md` — all out of scope per the
+    task's allowed-files list.
+  - All code folders (`apps/`, `packages/`, `services/`,
+    `database/`, `tests/`) — docs/spec-only task; no code change.
+- Validation:
+  - `git status --short --branch` → clean working tree on
+    `docs/sr-020-refresh-spec-008-status` (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- .
+    ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git grep -n "SR-010" -- specs/008-structure-remediation-roadmap
+    docs/state/RECENT_CONTEXT.md docs/state/HANDOFF_LOG.md` →
+    SR-010 referenced in the new status tables, the new handoff
+    entry, and the inline per-task status blockquotes; all
+    references consistent with the SR-010 commit
+    `5275e61 refactor(web): rename borders layer folder to canonical
+    path` on branch `frontend/sr-010/borders-canonical-folder` (PASS)
+  - `git grep -n "Status as of|Done|Pending|Needs decision" --
+    specs/008-structure-remediation-roadmap/tasks.md
+    specs/008-structure-remediation-roadmap/plan.md
+    specs/008-structure-remediation-roadmap/README.md` → all three
+    spec files contain the new status wording (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the 5 allowed files (PASS)
+  - `git diff --stat` → confirms scope is small and docs/spec-only (PASS)
+- Known issues:
+  - This is a docs/spec-only task. No app build, no test suite, no
+    data tests were run, per the task's "Do not run app builds/tests
+    because this is docs/spec-only work" instruction.
+  - The original Spec 008 `spec.md` "Success Criteria" section
+    contains items that are not yet done (e.g. "the six
+    grandfathered short-name frontend layer folders have been
+    renamed to canonical `layer_NN_name/`"). This is intentional:
+    the success criteria describe the long-term done state of
+    Spec 008, not the current partial state. The README and tasks.md
+    now make the current partial state explicit. The spec.md
+    success-criteria section was **not** modified.
+- Push/PR/merge status: not performed by agent. Branch is local
+  only. Stacked on top of the SR-019 local commit
+  (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`)
+  because the user / decision-control layer is intentionally not
+  creating PRs/merges yet.
+- Next step: Reviewer Agent should review SR-020 before next work.
+  The user / decision-control layer should decide whether to push
+  SR-019 and SR-020 (and SR-010) to remote and open PRs. The
+  recommended next task after SR-020 review is to decide between
+  redundant `.gitkeep` cleanup and the next low-risk frontend
+  canonicalization (SR-011 earth-events).
+
+---
+
+### 2026-06-16T00:30:00Z — sr-019-resolve-constitution-conflict
+
+- Work order: SR-019
+- Agent: Documentation / Control Agent
+- Branch: docs/sr-019-resolve-constitution-conflict
+- Base branch: main
+- Reviewer decision: PENDING (agent-only local docs/control handoff; no code change)
+- Goal: Resolve the unresolved Git merge conflict markers (`<<<<<<< Updated
+  upstream`, `=======`, `>>>>>>> Stashed changes`) in
+  `.specify/memory/constitution.md` so worker agents have a clean
+  first-read constitution. The active v1.3.0 / ACTIVE_PRINCIPLES side of
+  the conflict was retained; the stale v1.0.0 metadata side was discarded
+  as a duplicated conflicting metadata fragment.
+- Files changed:
+  1. `.specify/memory/constitution.md` — removed the 3 conflict marker
+     lines and the 3-line v1.0.0 metadata block (`**Version**: 1.0.0 |
+     **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05` plus the
+     `---` separator). Retained the v1.3.0 / ACTIVE_PRINCIPLES metadata
+     block, the Amendment History section, and the `## Authority`
+     heading. All other constitution content (Preamble, Core Principles
+     I–IX, Tooling Governance, Development Workflow, Quality Gates,
+     Migration Path, Governance) was preserved verbatim.
+  2. `docs/state/RECENT_CONTEXT.md` — added a new top entry
+     "2026-06-16 - SR-019 Constitution Conflict Resolution" and removed
+     the oldest entry ("2026-06-16 - Active Docs Pruned") to keep the
+     rolling window at 5 entries.
+  3. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the
+     top (append-only rule).
+- Validation:
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"`
+    → no output (PASS)
+  - `git grep -n "Updated upstream|Stashed changes" -- . ":(exclude)docs/archive/**"`
+    → no output (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only `.specify/memory/constitution.md`
+    (M), `docs/state/RECENT_CONTEXT.md` (M), `docs/state/HANDOFF_LOG.md` (M) (PASS)
+- Known issues: None
+- Push/PR/merge status: not performed by agent. Branch is local only.
+- Next step: user / decision-control layer reviews the local SR-019
+  commit and decides whether to push the branch and open a PR. After
+  SR-019 is merged, continue with SR-020 Spec 008 status refresh. Do
+  not continue frontend canonicalization (SR-009..SR-014) until the
+  constitution fix is reviewed and merged.
+
+---
+
 ### 2026-06-16T00:00:00Z — post-phase-6-documentation-cleanup-13
 
 - Work order: post-phase-6-documentation-cleanup-13

@@ -2,11 +2,6 @@
 
 This Constitution defines the non-negotiable principles that govern all code, configuration, data, and agent behavior in the GOD EYES project. It supersedes ad-hoc decisions. The authoritative source of truth for layer IDs and layer order remains `docs/control/MVP_LAYER_REGISTRY.md`.
 
-<<<<<<< Updated upstream
-**Version**: 1.0.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05
-
----
-=======
 Classification: ACTIVE_PRINCIPLES
 Version: 1.3.0
 Ratified: 2026-06-05
@@ -31,7 +26,6 @@ Last Amended: 2026-06-16
   drafts. Preserved in Git history.
 
 ## Authority
->>>>>>> Stashed changes
 
 ## Preamble — MVP Focus
 

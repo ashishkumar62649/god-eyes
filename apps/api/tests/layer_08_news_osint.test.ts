@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { newsRoutes } from '../src/routes/news.js';
+import { newsRoutes } from '../src/routes/news/index.js';
 import { query } from '../src/lib/db.js';
 
 const LAYER_ID = 'layer_08_news_osint';
@@ -695,7 +695,7 @@ describe('Layer 08 News & OSINT API', () => {
   // 27. No frontend/scheduler/source scope leaks
   it('27. No frontend imports in news route', async () => {
     const fs = await import('fs');
-    const source = fs.readFileSync('src/routes/news.ts', 'utf-8');
+    const source = fs.readFileSync('src/routes/news/index.ts', 'utf-8');
     expect(source).not.toContain('frontend');
     expect(source).not.toContain('components');
     expect(source).not.toContain('React');
@@ -1434,5 +1434,117 @@ const MOCK_GDELT_FETCH_RUN = {
     expect(item.location.longitude).toBeNull();
     expect(item.location.has_coordinates).toBe(false);
     expect(item.location.marker_ready).toBe(false);
+  });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-001 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/layers/layer_08_news_osint/news/... path. The old paths are
+  // preserved and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/news/items returns news items with the same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_POINT_ITEM]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/news/items',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce([MOCK_POINT_ITEM]);
+    vi.mocked(query).mockResolvedValueOnce([{ total: 1 }]);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: `/api/layers/${LAYER_ID}/news/items`,
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.meta.layer_id).toBe(LAYER_ID);
+    expect(legacyBody.meta.layer_id).toBe(LAYER_ID);
+  });
+
+  it('alias.2 GET /api/layers/news/markers returns news markers', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_POINT_ITEM]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/news/markers',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe(LAYER_ID);
+  });
+
+  it('alias.3 GET /api/layers/news/sources returns sources list', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_SOURCE]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/news/sources',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe(LAYER_ID);
+    expect(body.meta.count).toBe(1);
+  });
+
+  it('alias.4 GET /api/layers/news/fetch-runs returns fetch runs list', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_FETCH_RUN]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/news/fetch-runs',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe(LAYER_ID);
+    expect(body.meta.count).toBe(1);
+  });
+
+  it('alias.5 GET /api/layers/news/stats returns stats object', async () => {
+    // Match the existing test 20 mock shape so the Zod parse succeeds.
+    vi.mocked(query).mockResolvedValueOnce([{ count: 3 }]);  // total_items
+    vi.mocked(query).mockResolvedValueOnce([{ count: 1 }]);  // marker_ready_items
+    vi.mocked(query).mockResolvedValueOnce([{ count: 1 }]);  // items_with_geom
+    vi.mocked(query).mockResolvedValueOnce([{ source_id: 'gdacs', count: 3 }]);  // by_source
+    vi.mocked(query).mockResolvedValueOnce([{ category: 'Storm', count: 1 }, { category: 'Earthquake', count: 1 }, { category: 'Flood', count: 1 }]);  // by_category
+    vi.mocked(query).mockResolvedValueOnce([{ subcategory: 'Tropical Cyclone', count: 1 }, { subcategory: 'Tectonic', count: 1 }, { subcategory: 'Riverine', count: 1 }]);  // by_subcategory
+    vi.mocked(query).mockResolvedValueOnce([{ severity: 'red', count: 2 }, { severity: 'orange', count: 1 }]);  // by_severity
+    vi.mocked(query).mockResolvedValueOnce([{ geometry_type: 'Point', count: 1 }, { geometry_type: 'LineString', count: 1 }, { geometry_type: 'Polygon', count: 1 }]);  // by_geometry_type
+    vi.mocked(query).mockResolvedValueOnce([{ fetch_run_id: 'run_gdacs_20260610T120000Z' }]);  // latest_fetch_run
+    vi.mocked(query).mockResolvedValueOnce([{ count: 0 }]);  // fake_coordinate_risk_count
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/news/stats',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.layer_id).toBe(LAYER_ID);
+    expect(body.total_items).toBe(3);
+  });
+
+  it('alias.6 The new clean News path does not create a duplicated /api/layers/news/news/... path', async () => {
+    // Negative test: a duplicated /api/layers/news/news/<verb> path must
+    // NOT exist (would 404). This guards the slug rule from accidental
+    // duplication if a future agent re-introduces the `${LAYER_ID}/news/`
+    // segment under the new slug.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/news/news/items',
+    });
+    expect(response.statusCode).toBe(404);
   });
 });

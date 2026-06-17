@@ -13,10 +13,10 @@ import { bordersBoundariesRoutes } from './routes/borders-boundaries.js';
 import { aviationAircraftRoutes } from './routes/aviation-aircraft.js';
 import { attachLiveAircraftWebSocket } from './routes/live-aircraft.js';
 import { spaceSatellitesRoutes, attachSpaceSatellitesWebSocket } from './routes/space/satellites.js';
-import { energyInfrastructureRoutes } from './routes/energy/infrastructure.js';
-import { maritimeRoutes } from './routes/maritime.js';
-import { weatherRoutes } from './routes/weather.js';
-import { newsRoutes } from './routes/news.js';
+import { energyInfrastructureRoutes } from './routes/energy/infrastructure/index.js';
+import { maritimeRoutes } from './routes/maritime/index.js';
+import { weatherRoutes } from './routes/weather/index.js';
+import { newsRoutes } from './routes/news/index.js';
 
 const fastify = Fastify({
   logger: config.nodeEnv !== 'test',

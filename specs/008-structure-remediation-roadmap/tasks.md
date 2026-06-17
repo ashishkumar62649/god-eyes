@@ -27,7 +27,165 @@ For every task, the following metadata is recorded:
 
 ---
 
+## Status as of 2026-06-16 (post-SR-016)
+
+This is the post-frontend-closure status snapshot, refreshed by the
+SR-016 documentation alignment work. The detailed SR-NNN task
+descriptions below are preserved unchanged as the audit trail. Do
+not delete them.
+
+### Status legend
+
+* **Done** — work package completed; primary deliverable landed in
+  a local commit. May not yet be pushed, PR'd, or merged to `main`.
+* **Pending** — work package not yet started; still in the active
+  backlog.
+* **Blocked / Needs decision** — cannot start until a policy or
+  design decision is made.
+* **Planned later** — intentionally deferred to a future roadmap
+  cycle (not on the current critical path).
+* **N/A (frontend closed)** — the work item was subsumed by the
+  completed frontend shape cleanup and is no longer a separate
+  open item.
+
+### Work package status (summary)
+
+| ID | Title | Status | Evidence / commit |
+|---|---|---|---|
+| SR-001 | Contract / layer status response shape repair | **Done** | (per HANDOFF_LOG history) |
+| SR-002 | API weather route split | **Done** | (per HANDOFF_LOG history) |
+| SR-003 | API news route split | **Done** | (per HANDOFF_LOG history) |
+| SR-004 | API remaining route split review | **Done** | (per HANDOFF_LOG history) |
+| SR-005 | Frontend DetailPanel split | **Done** | (per HANDOFF_LOG history) |
+| SR-005A | API maritime route split | **Done** | (per HANDOFF_LOG history) |
+| SR-005B | API energy route split | **Done** | (per HANDOFF_LOG history) |
+| SR-005C | API space satellite route split (REST only; WebSocket stays in `satellites.ts`) | **Done** | (per HANDOFF_LOG history) |
+| SR-006 | Frontend LayerPanel split | **Done** | (per HANDOFF_LOG history) |
+| SR-007 | Contracts package split | **Done** | (per HANDOFF_LOG history) |
+| SR-008 | Frontend layer folder canonicalization plan | **Done** | `frontend-layer-canonicalization-plan.md` (this spec folder) |
+| SR-009 | Frontend aviation folder canonicalization | **Done** | commit `6231b1f` on branch `frontend/sr-009/aviation-canonical-folder` |
+| SR-010 | Frontend borders folder canonicalization (original) | **Done** | commit `5275e61` on branch `frontend/sr-010/borders-canonical-folder` |
+| SR-010S | Frontend borders folder canonicalization (restack onto correction stack) | **Done** | commit `2b23bd9` on branch `frontend/sr-010s-restack-borders-canonical-folder` |
+| SR-011 | Frontend earth-events folder canonicalization | **Done** | commit `e28bf38` on branch `frontend/sr-011/earth-events-canonical-folder` |
+| SR-012 | Frontend space folder canonicalization | **Done** | commit `ead0cfb` on branch `frontend/sr-012/space-canonical-folder` |
+| SR-013 | Frontend maritime folder canonicalization | **Done** | commit `5f5d075` on branch `frontend/sr-013/maritime-canonical-folder` |
+| SR-014 | Frontend energy folder canonicalization | **Done** | commit `90c3056` on branch `frontend/sr-014/energy-canonical-folder` |
+| SR-015 | Fetcher / normalizer canonical source structure (backend work) | **Planned later** | Defer; multi-source layers still flat. Note: the frontend shape cleanup that landed on branch `frontend/sr-015/final-layer-shape-cleanup` (commit `09bfc27`) is a different, frontend-only work item and is recorded as a separate note in this table — see the "Frontend shape cleanup (SR-015 branch)" row below. |
+| SR-016 | Database migration documentation cleanup | **Planned later** | Defer; aviation `002` gap grandfathered, README update not yet required. **Naming note:** the active work order called "SR-016 — Frontend closure documentation alignment" on branch `docs/sr-016/frontend-closure-alignment` is a different, docs-only work item from the backend `SR-016` defined in the spec table — see the "SR-016 docs closure alignment" row below. |
+| SR-017 | Large tests split | **Planned later** | Defer; no critical mass |
+| SR-018 | Future scaling architecture spec | **Planned later** | Defer; architecture decisions not yet made |
+
+### Frontend shape cleanup (SR-015 branch)
+
+* **Frontend final layer shape cleanup** — the temporary old-name
+  shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`,
+  `maritime/`, `energy/`) were removed and the missing public
+  `index.ts` files for `layer_07_weather/` and `layer_08_news_osint/`
+  were added. **Done** (commit `09bfc27` on branch
+  `frontend/sr-015/final-layer-shape-cleanup`). This is a
+  frontend-only work item that reused the SR-015 branch name; it
+  is **not** the same as the backend `SR-015 — Fetcher / normalizer
+  canonical source structure` defined in the spec table above,
+  which is still **Planned later**.
+
+### SR-016 docs closure alignment
+
+* **SR-016 — Frontend closure documentation alignment** —
+  documentation-only work that aligned the stale Spec 008
+  workspace docs with the completed frontend reconstruction.
+  **Pending reviewer review** (this branch:
+  `docs/sr-016/frontend-closure-alignment`). This is a
+  docs-only work item that reused the SR-016 work-order ID; it
+  is **not** the same as the backend `SR-016 — Database migration
+  documentation cleanup` defined in the spec table above, which
+  is still **Planned later**.
+
+**Auxiliary work items outside the SR-NNN series:**
+
+* Redundant `.gitkeep` cleanup in renamed layer folders — **Done**
+  (commit `63792bb` on branch `chore/sr-021-retry-remove-redundant-gitkeep`).
+  Frontend Phase 4 is closed, so this auxiliary item is complete
+  from a frontend perspective.
+* API route file-shape normalization (final review pass) — **Pending**.
+* API endpoint path policy decision (legacy vs canonical paths) — **Decided** by API-POLICY-001 (commit on branch `docs/api-policy-001-public-api-naming`, parent `5bcb089`); the decision is recorded in the new file `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` (slug map, preferred future URL shape, compatibility policy, API folder naming policy, shim policy, file-size policy, API boundary policy, migration sequence). **Implementation sequenced and complete**:
+  - `API-IMP-001` (entrypoint import normalization + pure shim removal) — **Done** (commit `f9763d2` on branch `api/api-imp-001-import-shim-cleanup`).
+  - `API-URL-001` (clean slug aliases for Weather and News alongside old paths) — **Done** (commit `5876014` on branch `api/api-url-001-weather-news-slug-aliases`).
+  - `WEB-API-001` (frontend migration for Weather and News) — **Done** (commit `e85aea9` on branch `web/web-api-001-weather-news-clean-url-callers`).
+  - `API-URL-002` (clean slug aliases for the remaining 6 endpoint groups) — **Done** (commit `8002bcf` on branch `api/api-url-002-remaining-slug-aliases`).
+  - `WEB-API-002` (frontend migration for the remaining 6 endpoint groups) — **Done** (commit `94d3895` on branch `web/web-api-002-remaining-clean-url-callers`).
+  - `API-COMPAT-001` (compatibility alias decision) — **Done / selected: keep** (commit on branch `docs/api-compat-001-keep-old-paths`, parent `94d3895`); the user / decision-control layer has chosen to **keep old paths as compatibility aliases for now**. The compatibility retention is locked into the policy doc Section 5.1.
+  - `API-URL-003` (old-path removal) — **Deferred (not selected)**. May only be opened under a future explicit user / decision-control decision.
+* `TODO` / deprecated marker cleanup in renamed layer folders — **Pending**.
+* `CesiumGlobe` split planning — **Planned later**.
+* Missing package ownership row decision in `PROJECT_CONTROL.md` Part 2 §8 — **Blocked / Needs decision**.
+
+### Remaining recommended order (post-frontend closure)
+
+Frontend layer folder canonicalization is complete. No remaining
+frontend rename tasks are open. The next frontend-related action
+is the docs closure alignment (this SR-016 branch) and the
+integration / full-validation step, both of which are decisions
+for the user / decision-control layer.
+
+The remaining open work items are documented above:
+
+1. **SR-016 docs closure alignment** — this branch; pending
+   reviewer review.
+2. **API route file-shape normalization** — final review pass for
+   consistency across the five split routes.
+3. **TODO / deprecated marker cleanup** — sweep in renamed
+   folders and their canonical `index.ts` re-export modules.
+4. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
+   plan a split before any further renderer-layer canonicalization.
+5. **Missing package ownership row decision** — `PROJECT_CONTROL.md`
+   Part 2 §8 ownership matrix has at least one row whose owner is
+   undecided; needs a user / Orchestrator decision before any new
+   work order references it.
+6. **API endpoint path policy** — **Decided** by API-POLICY-001
+   on branch `docs/api-policy-001-public-api-naming` (parent
+   `5bcb089`). The decision is recorded at
+   `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
+   Public API URLs use clean readable slugs (`aviation`, `weather`,
+   `energy`, etc.); internal layer-number IDs are not exposed in
+   public URLs. Internal IDs continue to exist in contracts, the
+   layer registry, and internal code. Existing paths remain
+   working until migration. Implementation is sequenced in the
+   policy doc (Section 10).
+   - `API-IMP-001` — **Done**.
+   - `API-URL-001` (Weather + News aliases) — **Done**.
+   - `WEB-API-001` (Weather + News frontend migration) — **Done**.
+   - `API-URL-002` (aviation / borders / earth-events / space /
+     maritime / energy aliases) — **Done**.
+   - `WEB-API-002` (remaining 6 groups frontend migration) — **Done**.
+   - `API-COMPAT-001` (compatibility alias decision) — **Done /
+     selected: keep**. User / decision-control layer has chosen to
+     keep old paths as compatibility aliases for now. The retention
+     is locked into the policy doc Section 5.1.
+   - `API-URL-003` (old-path removal) — **Deferred (not selected)**.
+     May only be opened under a future explicit user /
+     decision-control decision.
+
+> The order above is a recommendation. It is intentionally
+> **policy / decision / cleanup items grouped together** since
+> the mechanical frontend renames are all done.
+
+### "Done" caveats
+
+A task marked **Done** above means the work package's primary deliverable
+landed in a local commit on the named branch. It does **not** mean
+the branch has been pushed, PR'd, or merged to `main` — the user /
+decision-control layer is intentionally pausing all PR/merge activity
+until the frontend closure audit is reviewed. See
+`docs/state/HANDOFF_LOG.md` and `docs/state/RECENT_CONTEXT.md` for
+the per-task evidence. The frontend reconstruction (Phase 4) is
+closed from a code and structure perspective as of the frontend shape
+cleanup commit `09bfc27`.
+
+---
+
 ## SR-001 — Contract / Layer Status Response Shape Repair
+
+> **Status (2026-06-16):** **Done.** See top-of-file "Status as of 2026-06-16" table for evidence reference.
 
 * **Title:** Repair generic layer status response shape so it is not
   aviation-specific.
@@ -69,6 +227,8 @@ For every task, the following metadata is recorded:
 
 ## SR-002 — API Weather Route Split
 
+> **Status (2026-06-16):** **Done.** See top-of-file "Status as of 2026-06-16" table for evidence reference.
+
 * **Title:** Split `apps/api/src/routes/weather.ts` into the
   per-responsibility folder pattern.
 * **Goal:** Reduce `weather.ts` from 1095 lines to a thin
@@ -107,6 +267,8 @@ For every task, the following metadata is recorded:
 
 ## SR-003 — API News Route Split
 
+> **Status (2026-06-16):** **Done.** See top-of-file "Status as of 2026-06-16" table for evidence reference.
+
 * **Title:** Split `apps/api/src/routes/news.ts` into the
   per-responsibility folder pattern.
 * **Goal:** Reduce `news.ts` from 1014 lines to a thin orchestrator
@@ -144,6 +306,8 @@ For every task, the following metadata is recorded:
 
 ## SR-004 — API Remaining Route Split Review
 
+> **Status (2026-06-16):** **Done.** The review-only package was completed and the three remaining API route splits (maritime, energy, space-satellites) were implemented as SR-005A, SR-005B, SR-005C.
+
 * **Title:** Review-and-decide on the remaining three large API
   route files: `maritime.ts`, `energy/infrastructure.ts`,
   `space/satellites.ts`.
@@ -176,6 +340,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-005 — Frontend DetailPanel Split
+
+> **Status (2026-06-16):** **Done.** See top-of-file "Status as of 2026-06-16" table for evidence reference.
 
 * **Title:** Split `apps/web/src/components/DetailPanel.tsx` (953
   lines) into a thin orchestrator plus per-feature sub-components.
@@ -213,7 +379,111 @@ For every task, the following metadata is recorded:
 
 ---
 
+## SR-005A — API Maritime Route Split (auxiliary, post-SR-004)
+
+> **Status (2026-06-16):** **Done.** Split delivered after SR-004 review; see HANDOFF_LOG history. The original SR-005 numbering is retained as-is to keep the historical task numbering intact.
+
+* **Title:** Split `apps/api/src/routes/maritime.ts` into the
+  per-responsibility folder pattern.
+* **Goal:** Reduce `maritime.ts` to a thin orchestrator and move
+  SQL, parsing helpers, and mappers to `repository.ts`,
+  `validation.ts`, and `mapper.ts`.
+* **Phase:** Phase 1 — API Route Split (post-SR-004 follow-up).
+* **Branch name:** `api/sr-005a/maritime-route-split`.
+* **Lane / agent owner:** API Agent.
+* **Files / folders allowed:**
+  * `apps/api/src/routes/maritime/` (new folder with the
+    per-responsibility split).
+  * `apps/api/src/routes/maritime.ts` (replaced with re-export shim
+    or removed after the folder is created).
+  * `tests/api/**` (only if tests reference the route file path).
+* **Files / folders forbidden:**
+  * Other API route files.
+  * `packages/contracts/`.
+  * `apps/web/`, `services/`, `database/`, `docs/control/`,
+    `docs/state/`, `docs/audits/`, `docs/work-orders/`,
+    `docs/archive/`.
+* **Required tests:** Same as SR-002 / SR-003.
+* **Review requirement:** No response shape change at any endpoint.
+  Handoff log appended. No secrets.
+* **Notes:** Pure refactor with no behaviour change.
+
+---
+
+## SR-005B — API Energy Route Split (auxiliary, post-SR-004)
+
+> **Status (2026-06-16):** **Done.** Split delivered after SR-004 review; see HANDOFF_LOG history.
+
+* **Title:** Split `apps/api/src/routes/energy/infrastructure.ts` into
+  the per-responsibility folder pattern.
+* **Goal:** Reduce `infrastructure.ts` to a thin orchestrator and
+  move SQL, parsing helpers, and mappers to `repository.ts`,
+  `validation.ts`, and `mapper.ts`. The `energy/infrastructure/`
+  subfolder structure is preserved.
+* **Phase:** Phase 1 — API Route Split (post-SR-004 follow-up).
+* **Branch name:** `api/sr-005b/energy-route-split`.
+* **Lane / agent owner:** API Agent.
+* **Files / folders allowed:**
+  * `apps/api/src/routes/energy/infrastructure/` (new folder with
+    the per-responsibility split).
+  * `apps/api/src/routes/energy/infrastructure.ts` (replaced with
+    re-export shim or removed after the folder is created).
+  * `tests/api/**` (only if tests reference the route file path).
+* **Files / folders forbidden:**
+  * Other API route files.
+  * `packages/contracts/`.
+  * `apps/web/`, `services/`, `database/`, `docs/control/`,
+    `docs/state/`, `docs/audits/`, `docs/work-orders/`,
+    `docs/archive/`.
+* **Required tests:** Same as SR-002 / SR-003.
+* **Review requirement:** No response shape change at any endpoint.
+  Handoff log appended. No secrets.
+* **Notes:** Pure refactor with no behaviour change.
+
+---
+
+## SR-005C — API Space Satellite Route Split (auxiliary, post-SR-004)
+
+> **Status (2026-06-16):** **Done.** REST split delivered after SR-004 review; see HANDOFF_LOG history. The WebSocket handler remains inside `apps/api/src/routes/space/satellites.ts` and was intentionally **not** split in this package (deferred to a later, dedicated WebSocket refactor work order).
+
+* **Title:** Split the REST portion of
+  `apps/api/src/routes/space/satellites.ts` into the
+  per-responsibility folder pattern.
+* **Goal:** Reduce the REST handler surface in `satellites.ts` to a
+  thin orchestrator and move SQL, parsing helpers, and mappers to
+  `repository.ts`, `validation.ts`, and `mapper.ts`. **Do not** move
+  the WebSocket handler.
+* **Phase:** Phase 1 — API Route Split (post-SR-004 follow-up, REST
+  only).
+* **Branch name:** `api/sr-005c/space-satellites-rest-split`.
+* **Lane / agent owner:** API Agent.
+* **Files / folders allowed:**
+  * `apps/api/src/routes/space/satellites/` (new folder with the
+    per-responsibility split for REST handlers).
+  * `apps/api/src/routes/space/satellites.ts` (REST handlers
+    replaced with re-export shim; WebSocket code preserved in-place
+    until a later work order).
+  * `tests/api/**` (only if tests reference the route file path).
+* **Files / folders forbidden:**
+  * Other API route files.
+  * `packages/contracts/`.
+  * `apps/web/`, `services/`, `database/`, `docs/control/`,
+    `docs/state/`, `docs/audits/`, `docs/work-orders/`,
+    `docs/archive/`.
+* **Required tests:** Same as SR-002 / SR-003.
+* **Review requirement:** No REST response shape change. The
+  WebSocket connection path is unchanged and still served from
+  `apps/api/src/routes/space/satellites.ts`. Handoff log appended.
+  No secrets.
+* **Notes:** Pure refactor with no behaviour change on the REST
+  surface. The WebSocket is intentionally **out of scope** of this
+  package.
+
+---
+
 ## SR-006 — Frontend LayerPanel Split
+
+> **Status (2026-06-16):** **Done.** See top-of-file "Status as of 2026-06-16" table for evidence reference.
 
 * **Title:** Split `apps/web/src/components/LayerPanel.tsx` (1079
   lines) into a thin orchestrator plus per-layer sub-panels.
@@ -251,6 +521,8 @@ For every task, the following metadata is recorded:
 
 ## SR-007 — Contracts Package Split
 
+> **Status (2026-06-16):** **Done.** See top-of-file "Status as of 2026-06-16" table for evidence reference.
+
 * **Title:** Split `packages/contracts/src/index.ts` (1325 lines)
   into per-layer (or per-domain) modules, with a compatibility
   re-export from `index.ts`.
@@ -286,6 +558,8 @@ For every task, the following metadata is recorded:
 
 ## SR-008 — Frontend Layer Folder Canonicalization Plan
 
+> **Status (2026-06-16):** **Done.** The plan document was authored as `frontend-layer-canonicalization-plan.md` and the implementation order (low → high risk) was approved. This is the planning deliverable; the per-layer work is in SR-009..SR-014.
+
 * **Title:** Produce the canonical-folder plan that the per-layer
   `SR-009..SR-014` work packages will follow.
 * **Goal:** A short planning document that specifies the
@@ -316,6 +590,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-009 — Frontend Aviation Folder Canonicalization
+
+> **Status (2026-06-16):** **Pending.** Not started. Aviation is the highest-risk per-layer move (35 imports across 15 files, two subfolders). Scheduled last in the remaining canonicalization order. See "Remaining recommended order" near the top of this file.
 
 * **Title:** Move `apps/web/src/layers/aviation/` to
   `apps/web/src/layers/layer_01_aviation/`.
@@ -357,6 +633,8 @@ For every task, the following metadata is recorded:
 
 ## SR-010 — Frontend Borders Folder Canonicalization
 
+> **Status (2026-06-16):** **Done.** Local commit `5275e61 refactor(web): rename borders layer folder to canonical path` on branch `frontend/sr-010/borders-canonical-folder`. Branch is clean, in sync with its remote, but **not yet PR'd or merged** — the user / decision-control layer is intentionally pausing PR/merge activity during the Spec 008 status refresh.
+
 * **Title:** Move `apps/web/src/layers/borders/` to
   `apps/web/src/layers/layer_02_borders_boundaries/`.
 * **Goal:** Rename the frontend borders folder to the canonical
@@ -391,6 +669,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-011 — Frontend Earth-Events Folder Canonicalization
+
+> **Status (2026-06-16):** **Pending.** Not started. Scheduled first in the remaining canonicalization order (lowest risk: 5 imports, single hook file). See "Remaining recommended order" near the top of this file.
 
 * **Title:** Move `apps/web/src/layers/earth-events/` to
   `apps/web/src/layers/layer_03_earth_events/`.
@@ -427,6 +707,8 @@ For every task, the following metadata is recorded:
 
 ## SR-012 — Frontend Space Folder Canonicalization
 
+> **Status (2026-06-16):** **Pending.** Not started. Scheduled third in the remaining canonicalization order (medium risk: 16 imports, has `satellites/` subfolder). See "Remaining recommended order" near the top of this file.
+
 * **Title:** Move `apps/web/src/layers/space/` to
   `apps/web/src/layers/layer_05_space_satellites/`.
 * **Goal:** Rename the frontend space folder to the canonical layer
@@ -461,6 +743,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-013 — Frontend Maritime Folder Canonicalization
+
+> **Status (2026-06-16):** **Pending.** Not started. Scheduled second in the remaining canonicalization order (low risk: 3 imports, self-contained). See "Remaining recommended order" near the top of this file.
 
 * **Title:** Move `apps/web/src/layers/maritime/` to
   `apps/web/src/layers/layer_06_maritime/`.
@@ -497,6 +781,8 @@ For every task, the following metadata is recorded:
 
 ## SR-014 — Frontend Energy Folder Canonicalization
 
+> **Status (2026-06-16):** **Pending.** Not started. Scheduled fourth in the remaining canonicalization order (medium risk: 10 imports, has `infrastructure/` subfolder). See "Remaining recommended order" near the top of this file.
+
 * **Title:** Move `apps/web/src/layers/energy/` to
   `apps/web/src/layers/layer_10_energy_infrastructure/`.
 * **Goal:** Rename the frontend energy folder to the canonical layer
@@ -531,6 +817,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-015 — Fetcher / Normalizer Canonical Source Structure
+
+> **Status (2026-06-16):** **Planned later.** Defer. Multi-source layers (aviation, space, news, energy) still use prefixed flat file names; the `sources/<name>/` subfolder pattern is recommended but not on the current critical path.
 
 * **Title:** Organize multi-source fetcher layers under
   `sources/<source_name>/` subfolders.
@@ -579,6 +867,8 @@ For every task, the following metadata is recorded:
 
 ## SR-016 — Database Migration Documentation Cleanup
 
+> **Status (2026-06-16):** **Planned later.** Defer. The aviation `002` gap is grandfathered and explicitly not in scope; the README update is documentation-only and not on the current critical path.
+
 * **Title:** Add a one-line note to `database/migrations/README.md`
   about the aviation `002` numbering gap and document the
   migration-numbering convention.
@@ -614,6 +904,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-017 — Large Tests Split
+
+> **Status (2026-06-16):** **Planned later.** Defer. No critical mass; the 700-line Python limit is documented but not blocking any active work.
 
 * **Title:** Split the data test files exceeding the 700-line Python
   limit into focused suites per test domain.
@@ -662,6 +954,8 @@ For every task, the following metadata is recorded:
 ---
 
 ## SR-018 — Future Scaling Architecture Spec
+
+> **Status (2026-06-16):** **Planned later.** Defer. The architecture decisions (scheduler, raw retention, caching, rate limits, response size, streaming, audit logging, auth, time-series, object storage) are user-level decisions that are not yet made.
 
 * **Title:** Create the future-scaling planning spec at
   `specs/009-future-scaling-architecture/`.
@@ -714,6 +1008,9 @@ patterns, and shim placement match the approved target.
 | SR-003 | 1 | API | API news route split |
 | SR-004 | 1 | API | API remaining route split review |
 | SR-005 | 2 | Frontend | Frontend DetailPanel split |
+| SR-005A | 1 | API | API maritime route split (auxiliary, post-SR-004) |
+| SR-005B | 1 | API | API energy route split (auxiliary, post-SR-004) |
+| SR-005C | 1 | API | API space satellite route split (REST only; WebSocket stays in `satellites.ts`) |
 | SR-006 | 2 | Frontend | Frontend LayerPanel split |
 | SR-007 | 3 | API / Contract | Contracts package split |
 | SR-008 | 4 | Frontend | Frontend layer folder canonicalization plan |
@@ -730,6 +1027,6 @@ patterns, and shim placement match the approved target.
 
 ---
 
-**Last updated:** 2026-06-15
+**Last updated:** 2026-06-16 (status refresh per SR-020)
 **Author:** Orchestrator Agent
 **Maintained by:** Orchestrator Agent

@@ -4,6 +4,14 @@ import { EnergyFeature, EnergyFilters, EnergyInfrastructureResponse } from './en
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:4000';
 
+/**
+ * Public slug used in API URLs for the Energy Infrastructure layer (per API-POLICY-001).
+ * The internal layer ID `layer_10_energy_infrastructure` is preserved for folder
+ * identity, UI registration, registry keys, and data-shape fields — it is
+ * intentionally not used in the public API URL.
+ */
+const ENERGY_PUBLIC_SLUG = 'energy';
+
 
 interface UseEnergyInfrastructureResult {
   features: EnergyFeature[];
@@ -54,7 +62,7 @@ export function useEnergyInfrastructure(
         params.append('limit', '1000');
         
         const queryString = params.toString();
-        const url = `${API_BASE_URL}/api/energy/infrastructure${queryString ? `?${queryString}` : ''}`;
+        const url = `${API_BASE_URL}/api/layers/${ENERGY_PUBLIC_SLUG}/infrastructure${queryString ? `?${queryString}` : ''}`;
         
         const response = await fetch(url, {
           signal: abortControllerRef.current?.signal,

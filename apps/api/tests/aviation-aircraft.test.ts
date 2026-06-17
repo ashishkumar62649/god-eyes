@@ -463,4 +463,68 @@ describe('Aviation Live Aircraft API', () => {
     const sql = callArgs[0] as string;
     expect(sql).toContain('stale_after');
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-002 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/aviation/aircraft/... path. The old paths are preserved
+  // and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/aviation/aircraft/latest returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/aviation/aircraft/latest',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce(MOCK_AIRCRAFT);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/aviation/aircraft/latest',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.metadata.count).toBe(legacyBody.metadata.count);
+  });
+
+  it('alias.2 GET /api/layers/aviation/aircraft/:sourceObjectId returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_DETAIL_AIRCRAFT]);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/aviation/aircraft/abc123',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce([MOCK_DETAIL_AIRCRAFT]);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/aviation/aircraft/abc123',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.aircraft.sourceObjectId).toBe('abc123');
+    expect(legacyBody.aircraft.sourceObjectId).toBe('abc123');
+  });
+
+  it('alias.3 The new clean Aviation path does not create a duplicated /api/layers/aviation/aviation/... path', async () => {
+    // Negative test: a duplicated /api/layers/aviation/aviation/<verb> path must
+    // NOT exist (would 404). This guards the slug rule from accidental
+    // duplication if a future agent re-introduces the aviation/aviation
+    // segment under the new slug.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/aviation/aviation/aircraft/latest',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });

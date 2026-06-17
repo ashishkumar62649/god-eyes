@@ -20,6 +20,114 @@ order after that, but starting with the largest file is recommended.
 
 ---
 
+## Status as of 2026-06-16 (post-SR-016)
+
+The detailed phase descriptions below are preserved unchanged as the
+audit trail. Do not delete them. The status below is the active
+snapshot after the SR-016 documentation alignment. For per-work-package
+status, see the **"Status as of 2026-06-16 (post-SR-016)"** section
+at the top of `tasks.md`.
+
+### Completed work (snapshot)
+
+* **Phase 0 — Contract / Status Schema Repair** — completed
+  (SR-001). `LayerStatusResponseSchema` is no longer aviation-specific.
+* **Phase 1 — API Route Split** — completed in full. SR-002, SR-003,
+  and SR-004 done. The three remaining route splits
+  (`maritime`, `energy/infrastructure`, `space/satellites` REST
+  surface) were completed as the post-SR-004 follow-up packages
+  **SR-005A**, **SR-005B**, **SR-005C**. The space-satellites
+  WebSocket handler remains inside `apps/api/src/routes/space/satellites.ts`
+  and was intentionally **not** split in this phase.
+* **Phase 2 — Frontend Large Component Split** — completed.
+  SR-005 (`DetailPanel`) and SR-006 (`LayerPanel`) done.
+* **Phase 3 — Contracts Split** — completed (SR-007). Per-layer
+  contracts module is in place with compatibility re-exports.
+* **Phase 4 — Frontend Layer Folder Canonicalization** —
+  **completed in full.** SR-008 (plan) done, then SR-010 and
+  SR-010S (borders), SR-011 (earth-events), SR-013 (maritime),
+  SR-012 (space), SR-014 (energy), SR-009 (aviation) done, and
+  the final shape cleanup (commit `09bfc27` on branch
+  `frontend/sr-015/final-layer-shape-cleanup`) removed the
+  temporary old-name shim folders and added the missing public
+  `index.ts` files for `layer_07_weather/` and
+  `layer_08_news_osint/`. Final `apps/web/src/layers/` shape
+  contains exactly the 8 active canonical layer folders listed in
+  the spec README status banner. Future inactive layer folders
+  (`layer_04_public_military_security/`,
+  `layer_09_user_shapes/`) were intentionally not created.
+  Validation passed: `pnpm --filter web build`, `pnpm --filter
+  web test`, `pnpm --filter api build`, `pnpm --filter api test`,
+  and `python -m pytest tests/data -q` on a clean tree. The user
+  reported real backend and database runtime validation passed
+  after the frontend closure cleanup.
+
+### Remaining work (snapshot)
+
+* **Auxiliary cleanup items** — API route file-shape
+  normalization, `TODO` / deprecated marker cleanup, `CesiumGlobe`
+  split planning, and the missing `PROJECT_CONTROL.md` Part 2 §8
+  package ownership row decision. The frontend shape cleanup
+  already swept the old-shim-folder clutter and added the missing
+  public `index.ts` files for the two already-canonical layers.
+
+### Needs decision (snapshot)
+
+* **Missing package ownership row in `PROJECT_CONTROL.md` Part 2
+  8** - at least one row whose owner is undecided. **Blocked**
+  until a user / Orchestrator decision is made.
+* **API endpoint path policy** - **Decided** by API-POLICY-001 on
+  branch `docs/api-policy-001-public-api-naming` (parent
+  `5bcb089`). The full decision is recorded at
+  `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
+  Public API URLs use clean readable slugs; internal layer-number
+  IDs are not exposed in public URLs. Implementation is sequenced as
+  `API-IMP-001` -> `API-URL-001` -> `WEB-API-001` -> `API-URL-002` ->
+  `API-SIZE-001`. **All sequenced work is complete** as of `94d3895`
+  (WEB-API-002 on `web/web-api-002-remaining-clean-url-callers`,
+  parent `8002bcf`). The user / decision-control layer has now chosen
+  the compatibility retention option: the old layer-ID / legacy
+  paths remain supported compatibility aliases for now. This is
+  locked in by work order `API-COMPAT-001` on branch
+  `docs/api-compat-001-keep-old-paths` and recorded in the policy
+  doc Section 5.1. `API-URL-003` (old-path removal) is **deferred
+  (not selected)** and may only be opened under a future explicit
+  user / decision-control decision.
+
+### Planned later (snapshot)
+
+* **Phase 5 — Fetcher / Normalizer Canonical Source Structure**
+  (SR-015 in the spec table). Multi-source layers still use
+  prefixed flat file names; the `sources/<name>/` subfolder
+  pattern is recommended but not on the current critical path.
+  **Naming note:** the frontend shape cleanup that landed on
+  branch `frontend/sr-015/final-layer-shape-cleanup` is a
+  different, frontend-only work item; see the "Frontend shape
+  cleanup (SR-015 branch)" note in `tasks.md`.
+* **Phase 6 — Database / Migration Documentation Cleanup**
+  (SR-016 in the spec table). The aviation `002` gap is
+  grandfathered and explicitly not in scope; the README update is
+  documentation-only and not on the current critical path.
+  **Naming note:** the active work order called "SR-016 — Frontend
+  closure documentation alignment" on branch
+  `docs/sr-016/frontend-closure-alignment` is a different,
+  docs-only work item; see the "SR-016 docs closure alignment"
+  note in `tasks.md`.
+* **Phase 7 — Large Test File Split** (SR-017). The 700-line
+  Python limit is documented but not blocking any active work.
+* **Phase 8 — Future Scaling Architecture Spec** (SR-018). The
+  architecture decisions are user-level decisions that are not
+  yet made.
+
+> The recommended **execution order** below still describes the
+> original safe default for a single-worker execution. It is
+> **not** a "next" queue — the original queue is done. The
+> current next decision is the user / decision-control layer's
+> choice among API cleanup, integration/full validation, and PR
+> package planning.
+
+---
+
 ## Phase 0 — Contract / Status Schema Repair
 
 ### Purpose
@@ -869,35 +977,85 @@ These apply to every phase above:
 
 ## Recommended Order Summary
 
-| Phase | Work Packages | Owner / Lane | Depends on |
-|---|---|---|---|
-| Phase 0 | SR-001 | API / Contract | — |
-| Phase 1 | SR-002, SR-003, SR-004 | API | SR-001 |
-| Phase 2 | SR-005, SR-006 | Frontend | — (independent) |
-| Phase 3 | SR-007 | API / Contract | SR-001 |
-| Phase 4 | SR-008 (plan), SR-009..SR-014 (per-layer) | Frontend | — (independent) |
-| Phase 5 | SR-015 | Fetcher | — (independent) |
-| Phase 6 | SR-016 | Database | — (independent) |
-| Phase 7 | SR-017 | Database / Test | — (independent) |
-| Phase 8 | SR-018 | Orchestrator (planning) | — (independent) |
+| Phase | Work Packages | Owner / Lane | Depends on | Status (2026-06-16) |
+|---|---|---|---|---|
+| Phase 0 | SR-001 | API / Contract | — | **Done** |
+| Phase 1 | SR-002, SR-003, SR-004, SR-005A, SR-005B, SR-005C | API | SR-001 | **Done** (WebSocket handler in `space/satellites.ts` kept in place) |
+| Phase 2 | SR-005, SR-006 | Frontend | — (independent) | **Done** |
+| Phase 3 | SR-007 | API / Contract | SR-001 | **Done** |
+| Phase 4 | SR-008 (plan), SR-009..SR-014 (per-layer) | Frontend | — (independent) | **Done** (SR-008 plan + SR-010, SR-010S, SR-011, SR-013, SR-012, SR-014, SR-009 renames; final shape cleanup commit `09bfc27` removed old shim folders and added Weather/News `index.ts`; L4/L9 intentionally not created) |
+| Phase 5 | SR-015 | Fetcher | — (independent) | **Planned later** |
+| Phase 6 | SR-016 | Database | — (independent) | **Planned later** |
+| Phase 7 | SR-017 | Database / Test | — (independent) | **Planned later** |
+| Phase 8 | SR-018 | Orchestrator (planning) | — (independent) | **Planned later** |
 
-The recommended **execution order** is:
+The recommended **execution order** for any remaining work is:
 
-1. **SR-001** (Phase 0) — unblocks the contract change for status.
-2. **SR-007** (Phase 3) — splits the contracts module; unblocks per-layer
-   work that touches contracts.
-3. **SR-002** and **SR-003** (Phase 1) — the two largest API route
-   splits. Sequenced because they are the largest files.
-4. **SR-004** (Phase 1 review) — review-and-decide on the remaining
-   three large API route files.
-5. **SR-005** and **SR-006** (Phase 2) — the two large frontend
-   components.
-6. **SR-008** (Phase 4 plan) — produces the canonical-folder plan.
-7. **SR-009..SR-014** (Phase 4 per-layer) — one layer at a time.
-8. **SR-015** (Phase 5) — fetcher / normalizer source split.
-9. **SR-016** (Phase 6) — database README.
-10. **SR-017** (Phase 7) — large test files.
-11. **SR-018** (Phase 8) — future scaling spec.
+1. **SR-016 docs closure alignment** — pending reviewer review on
+   branch `docs/sr-016/frontend-closure-alignment`.
+2. **API endpoint path policy** — **Decided** by API-POLICY-001 on
+   branch `docs/api-policy-001-public-api-naming` (parent
+   `5bcb089`). The decision is recorded at
+   `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
+   Public API URLs use clean readable slugs; internal layer-number
+   IDs are not exposed in public URLs. Existing paths remain
+   working until migration. Implementation is sequenced in the
+   policy doc (Section 10).
+   - `API-IMP-001` — **Done** (commit `f9763d2` on branch
+     `api/api-imp-001-import-shim-cleanup`).
+   - `API-URL-001` (Weather + News aliases) — **Done** (commit
+     `5876014` on branch `api/api-url-001-weather-news-slug-aliases`).
+   - `WEB-API-001` (Weather + News frontend migration) — **Done**
+     (commit `e85aea9` on branch
+     `web/web-api-001-weather-news-clean-url-callers`).
+   - `API-URL-002` (aviation / borders / earth-events / space /
+     maritime / energy aliases) — **Done** (commit `8002bcf` on
+     branch `api/api-url-002-remaining-slug-aliases`).
+   - `WEB-API-002` (remaining 6 groups frontend migration) —
+     **Done** (commit `94d3895` on branch
+     `web/web-api-002-remaining-clean-url-callers`).
+   - `API-COMPAT-001` (compatibility alias decision) — **Done /
+     selected: keep** (commit on branch
+     `docs/api-compat-001-keep-old-paths`, parent `94d3895`); the
+     user / decision-control layer has chosen to **keep old paths
+     as compatibility aliases for now**. The retention is locked
+     into the policy doc Section 5.1.
+   - `API-URL-003` (old-path removal) — **Deferred (not selected)**.
+     May only be opened under a future explicit user /
+     decision-control decision.
+3. **API route file-shape normalization** — final review pass for
+   consistency across the five split routes.
+4. **`TODO` / deprecated marker cleanup** — sweep in renamed
+   folders and their canonical `index.ts` re-export modules.
+5. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
+   plan a split before any further renderer-layer canonicalization.
+6. **Missing package ownership row decision** — final decision
+   on the undecided `PROJECT_CONTROL.md` Part 2 §8 ownership row.
+
+This list is the **current remaining-work queue** after the
+frontend reconstruction is closed. The historical execution order
+(1–11 below) is preserved as the original single-worker safe
+default and is **not** the current remaining-work queue.
+
+> The original 11-step safe-default execution order (now historical
+> only) was:
+>
+> 1. **SR-001** (Phase 0) — unblocks the contract change for status.
+> 2. **SR-007** (Phase 3) — splits the contracts module; unblocks
+>    per-layer work that touches contracts.
+> 3. **SR-002** and **SR-003** (Phase 1) — the two largest API
+>    route splits. Sequenced because they are the largest files.
+> 4. **SR-004** (Phase 1 review) — review-and-decide on the
+>    remaining three large API route files.
+> 5. **SR-005** and **SR-006** (Phase 2) — the two large frontend
+>    components.
+> 6. **SR-008** (Phase 4 plan) — produces the canonical-folder
+>    plan.
+> 7. **SR-009..SR-014** (Phase 4 per-layer) — one layer at a time.
+> 8. **SR-015** (Phase 5) — fetcher / normalizer source split.
+> 9. **SR-016** (Phase 6) — database README.
+> 10. **SR-017** (Phase 7) — large test files.
+> 11. **SR-018** (Phase 8) — future scaling spec.
 
 Phases 5, 6, 7, 8 are largely independent and may run in parallel if
 multiple worker agents are available. The order above is the
@@ -905,6 +1063,6 @@ multiple worker agents are available. The order above is the
 
 ---
 
-**Last updated:** 2026-06-15
+**Last updated:** 2026-06-16 (status refresh per SR-020)
 **Author:** Orchestrator Agent
 **Maintained by:** Orchestrator Agent

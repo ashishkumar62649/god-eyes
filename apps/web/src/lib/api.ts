@@ -9,9 +9,9 @@ import type {
   AircraftLatestListResponse,
   AircraftDetailResponse,
 } from '@god-eyes/contracts';
-import type { AirportPublicProfileResponse } from '../layers/aviation/airports/airportPublicProfileTypes';
-import type { AirportIntelligenceResponse } from '../layers/aviation/airports/airportIntelligenceTypes';
-import type { AirportLayoutFeaturesResponse } from '../layers/aviation/airports/airportLayoutTypes';
+import type { AirportPublicProfileResponse } from '../layers/layer_01_aviation/airports/airportPublicProfileTypes';
+import type { AirportIntelligenceResponse } from '../layers/layer_01_aviation/airports/airportIntelligenceTypes';
+import type { AirportLayoutFeaturesResponse } from '../layers/layer_01_aviation/airports/airportLayoutTypes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const CACHE_TTL_MS = 60_000;
@@ -175,7 +175,7 @@ export async function fetchEarthEventsLatest(
   params: { limit?: number; event_type?: string } = {},
   abortSignal?: AbortSignal,
 ): Promise<EarthEventsLatestResponse> {
-  const url = new URL(`${API_BASE_URL}/api/earth-events/latest`);
+  const url = new URL(`${API_BASE_URL}/api/layers/earth-events/latest`);
   url.searchParams.set('event_type', params.event_type ?? 'earthquake');
   url.searchParams.set('limit', String(Math.min(params.limit ?? 200, 200)));
   const response = await fetch(url.toString(), { signal: abortSignal });
@@ -189,7 +189,7 @@ export async function fetchBordersBoundariesCountries(
   params: { limit?: number; simplify?: number } = {},
   abortSignal?: AbortSignal,
 ): Promise<BordersBoundariesFeatureCollection> {
-  const url = new URL(`${API_BASE_URL}/api/borders-boundaries/countries`);
+  const url = new URL(`${API_BASE_URL}/api/layers/borders-boundaries/countries`);
   url.searchParams.set('limit', String(params.limit ?? 250));
   url.searchParams.set('simplify', String(params.simplify ?? 0.05));
   const response = await fetch(url.toString(), { signal: abortSignal });
@@ -205,7 +205,7 @@ export async function fetchLiveAircraft(
   params: { bbox?: string; limit?: number } = {},
   abortSignal?: AbortSignal,
 ): Promise<AircraftLatestListResponse> {
-  const url = new URL(`${API_BASE_URL}/api/aviation/aircraft/latest`);
+  const url = new URL(`${API_BASE_URL}/api/layers/aviation/aircraft/latest`);
   url.searchParams.set('bbox', params.bbox ?? '-180,-90,180,90');
   url.searchParams.set('limit', String(Math.min(params.limit ?? 20000, 20000)));
   const response = await fetch(url.toString(), { signal: abortSignal });
@@ -220,7 +220,7 @@ export async function fetchAircraftDetail(
   sourceObjectId: string,
   abortSignal?: AbortSignal,
 ): Promise<AircraftDetailResponse> {
-  const url = `${API_BASE_URL}/api/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`;
+  const url = `${API_BASE_URL}/api/layers/aviation/aircraft/${encodeURIComponent(sourceObjectId)}`;
   const response = await fetch(url, { signal: abortSignal });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

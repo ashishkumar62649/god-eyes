@@ -255,4 +255,45 @@ describe('Earth Events API', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-002 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/earth-events/latest path. The old paths are preserved
+  // and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/earth-events/latest returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/earth-events/latest',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce(MOCK_EVENTS);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/earth-events/latest',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.events.length).toBe(legacyBody.events.length);
+    expect(newPathBody.metadata.count).toBe(legacyBody.metadata.count);
+  });
+
+  it('alias.2 The new clean Earth-events path does not create a duplicated /api/layers/earth-events/earth-events/... path', async () => {
+    // Negative test: a duplicated /api/layers/earth-events/earth-events/...
+    // path must NOT exist (would 404). This guards the slug rule from accidental
+    // duplication.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/earth-events/earth-events/latest',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });

@@ -52,7 +52,7 @@ describe('Maritime Layer Integration Tests', () => {
 
       expect(mockFetch).toHaveBeenCalled();
       const calledUrl = mockFetch.mock.calls[0][0] as string;
-      expect(calledUrl).toContain('/api/layers/layer_06_maritime/objects');
+      expect(calledUrl).toContain('/api/layers/maritime/objects');
       expect(calledUrl).toContain('bbox=10%2C20%2C30%2C40');
       expect(calledUrl).toContain('vessel_type=cargo');
       expect(calledUrl).toContain('search=Titanic');
@@ -81,7 +81,7 @@ describe('Maritime Layer Integration Tests', () => {
 
       await fetchVesselDetail(123456789);
       const calledUrl = mockFetch.mock.calls[0][0] as string;
-      expect(calledUrl).toContain('/api/layers/layer_06_maritime/objects/123456789');
+      expect(calledUrl).toContain('/api/layers/maritime/objects/123456789');
     });
 
     it('should handle API errors safely', async () => {
@@ -115,7 +115,7 @@ describe('Maritime Layer Integration Tests', () => {
         expect(url).not.toContain('wss://stream.aisstream.io');
       };
 
-      checkAIS('/api/layers/layer_06_maritime/objects');
+      checkAIS('/api/layers/maritime/objects');
     });
   });
 

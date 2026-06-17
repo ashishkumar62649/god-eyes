@@ -1,12 +1,12 @@
 // Route-local types for the LayerPanel and its sub-components.
 import type { MaritimeStatsResponse } from '@god-eyes/contracts';
-import type { AviationFilters } from '../../layers/aviation/airports/aviationCategories';
-import type { EarthEventsPhase } from '../../layers/earth-events/useEarthEvents';
-import type { BordersPhase } from '../../layers/borders/useBordersBoundaries';
-import type { LiveAircraftStatus } from '../../layers/aviation/aircraft/useLiveAircraftSocket';
-import type { SpaceSatellitesStatus } from '../../layers/space/satellites/satelliteTypes';
-import type { SatelliteFilters } from '../../layers/space/satellites/satelliteFilters';
-import type { EnergyFilters } from '../../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { AviationFilters } from '../../layers/layer_01_aviation/airports/aviationCategories';
+import type { EarthEventsPhase } from '../../layers/layer_03_earth_events/useEarthEvents';
+import type { BordersPhase } from '../../layers/layer_02_borders_boundaries/useBordersBoundaries';
+import type { LiveAircraftStatus } from '../../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
+import type { SpaceSatellitesStatus } from '../../layers/layer_05_space_satellites/satellites/satelliteTypes';
+import type { SatelliteFilters } from '../../layers/layer_05_space_satellites/satellites/satelliteFilters';
+import type { EnergyFilters } from '../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
 import type { NewsFilterState, NewsStatsResponse, NewsRenderMarker } from '../../layers/layer_08_news_osint/newsTypes';
 import type { NewsItem } from '@god-eyes/contracts';
 
