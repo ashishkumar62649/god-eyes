@@ -1,4 +1,4 @@
-import type { EnergyFilters } from '../../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { EnergyFilters } from '../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
 
 export function EnergyControls({
   active, setActive, filters, onFiltersChange, entry,

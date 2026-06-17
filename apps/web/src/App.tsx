@@ -14,8 +14,8 @@ import { useSpaceSatellitesSocket } from './layers/layer_05_space_satellites/sat
 import type { SpaceSatellitesStatus } from './layers/layer_05_space_satellites/satellites/satelliteTypes';
 import { DEFAULT_SATELLITE_FILTERS } from './layers/layer_05_space_satellites/satellites/satelliteFilters';
 import type { SatelliteFilters } from './layers/layer_05_space_satellites/satellites/satelliteFilters';
-import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/energy/infrastructure/energyInfrastructureTypes';
-import { useEnergyInfrastructure } from './layers/energy/infrastructure/useEnergyInfrastructure';
+import { EnergyFilters, DEFAULT_ENERGY_FILTERS, EnergyFeature } from './layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
+import { useEnergyInfrastructure } from './layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure';
 import { useMaritime } from './layers/layer_06_maritime/useMaritime';
 import { fetchVesselDetail } from './layers/layer_06_maritime/maritimeApi';
 import { useWeather } from './layers/layer_07_weather/useWeather';

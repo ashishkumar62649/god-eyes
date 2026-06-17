@@ -1,4 +1,4 @@
-import type { EnergyFeature } from '../../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { EnergyFeature } from '../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
 
 export function EnergyDetail({ feature }: { feature: EnergyFeature }) {
   return (

@@ -13,8 +13,8 @@ import type { BordersPhase } from '../layers/layer_02_borders_boundaries/useBord
 import type { LiveAircraftStatus } from '../layers/aviation/aircraft/useLiveAircraftSocket';
 import type { SpaceSatellitesStatus } from '../layers/layer_05_space_satellites/satellites/satelliteTypes';
 import type { SatelliteFilters } from '../layers/layer_05_space_satellites/satellites/satelliteFilters';
-import type { EnergyFilters } from '../layers/energy/infrastructure/energyInfrastructureTypes';
-import type { EnergyFeature } from '../layers/energy/infrastructure/energyInfrastructureTypes';
+import type { EnergyFilters } from '../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
+import type { EnergyFeature } from '../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
 import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
 import type { NewsRenderMarker, NewsFilterState, NewsStatsResponse } from '../layers/layer_08_news_osint/newsTypes';
 import type { NewsItem } from '@god-eyes/contracts';

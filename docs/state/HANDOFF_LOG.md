@@ -1,4 +1,130 @@
 
+### 2026-06-16T03:30:00Z — sr-014-energy-canonical-folder
+
+- Work order: SR-014
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-014/energy-canonical-folder
+- Base stack: SR-012 `ead0cfb` on top of SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-014 is the next per-layer frontend folder canonicalization per Spec 008 Phase 4. After SR-012 (space) cleared the way, SR-014 is the fourth per-layer move. The energy layer has an `infrastructure/` subfolder (medium complexity: 4 nested files, 10 imports, Cesium `CustomDataSource` integration, REST API integration).
+- Goal: Rename the frontend `apps/web/src/layers/energy/` folder to the canonical `apps/web/src/layers/layer_10_energy_infrastructure/`, preserve the `infrastructure/` subfolder and all nested files, add canonical barrel + compatibility shim, and update the 10 active frontend import sites across 7 files.
+- Files changed:
+  1. `apps/web/src/layers/energy/` → `apps/web/src/layers/layer_10_energy_infrastructure/` (via `git mv`; the `infrastructure/` subfolder and all 4 nested files — `infrastructure/EnergyInfrastructureLayer.tsx`, `infrastructure/energyInfrastructureApi.ts`, `infrastructure/energyInfrastructureTypes.ts`, `infrastructure/useEnergyInfrastructure.ts` — moved atomically, no content change).
+  2. `apps/web/src/layers/layer_10_energy_infrastructure/index.ts` — new file, content:
+     ```ts
+     export * from './infrastructure/useEnergyInfrastructure';
+     export * from './infrastructure/energyInfrastructureTypes';
+     export * from './infrastructure/energyInfrastructureApi';
+     export { default as EnergyInfrastructureLayer } from './infrastructure/EnergyInfrastructureLayer';
+     ```
+     (canonical re-export of all 4 public modules in the `infrastructure/` subfolder; the `EnergyInfrastructureLayer.tsx` module uses a default export, so it must be re-exported with `export { default as ... }` because `export *` only re-exports named exports; UTF-8 no BOM).
+  3. `apps/web/src/layers/energy/` — recreated as a shim folder; contains only `apps/web/src/layers/energy/index.ts` with content `export * from '../layer_10_energy_infrastructure';` (compatibility shim for any code still importing from the old path).
+  4. `apps/web/src/App.tsx` — 2 import-path updates:
+     - `'./layers/energy/infrastructure/energyInfrastructureTypes'` → `'./layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+     - `'./layers/energy/infrastructure/useEnergyInfrastructure'` → `'./layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure'`
+  5. `apps/web/src/CesiumGlobe.tsx` — 2 import-path updates:
+     - `'./layers/energy/infrastructure/energyInfrastructureTypes'` → `'./layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+     - `'./layers/energy/infrastructure/EnergyInfrastructureLayer'` → `'./layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer'`
+  6. `apps/web/src/components/Shell.tsx` — 2 import-path updates (both for `EnergyFilters` and `EnergyFeature` types):
+     - `'../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  7. `apps/web/src/components/detail-panel/EnergyDetail.tsx` — 1 import-path update:
+     - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  8. `apps/web/src/components/detail-panel/detailTypes.ts` — 1 import-path update:
+     - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  9. `apps/web/src/components/layer-panel/EnergyControls.tsx` — 1 import-path update:
+     - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  10. `apps/web/src/components/layer-panel/layerPanelTypes.ts` — 1 import-path update:
+      - `'../../layers/energy/infrastructure/energyInfrastructureTypes'` → `'../../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes'`
+  11. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-014 Energy Canonicalization` and removed the oldest entry (`## 2026-06-16 - SR-010S Borders Restack`) to keep the rolling window at 5 entries per the file's own update rule.
+  12. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only rule).
+- Public modules exported (4 in canonical `index.ts`):
+  1. `./infrastructure/useEnergyInfrastructure` — the public hook (`useEnergyInfrastructure`).
+  2. `./infrastructure/energyInfrastructureTypes` — the public types module (`EnergyFeature`, `EnergyInfrastructureResponse`, `EnergyInfrastructureDetailResponse`, `EnergyFilters`, `DEFAULT_ENERGY_FILTERS`, `ENERGY_FUEL_TYPES`, `ENERGY_FEATURE_TYPES`).
+  3. `./infrastructure/energyInfrastructureApi` — the public API helper module (`fetchEnergyInfrastructure`).
+  4. `./infrastructure/EnergyInfrastructureLayer` — the public layer component (default export; re-exported as `EnergyInfrastructureLayer` named export).
+- Runtime strings preserved (intentionally NOT changed):
+  - `apps/web/src/lib/useLayerRegistry.ts:149` — `layerId: 'layer_10_energy_infrastructure'`. Already canonical; layerId is a string registry value, not a folder path.
+  - `apps/web/src/lib/useLayerRegistry.ts:151` — `category: 'infrastructure'`. String category value; intentionally preserved (this is a different "infrastructure" than the folder path — it's the canonical layer category for the energy layer).
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:179` — `entry.layerId === 'layer_10_energy_infrastructure'`. Already canonical; layerId comparison.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts:12` — `layerId: 'layer_10_energy_infrastructure'`. Already canonical; layerId field in mock response.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts:57` — `${API_BASE_URL}/api/energy/infrastructure${queryString ? \`?${queryString}\` : ''}`. Backend API path; the API route is owned by the API Agent. Changing it would require a coordinated `apps/api/` edit and a contract update. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts:74-75` — error message strings `'Failed to fetch energy infrastructure:'`, `'Failed to fetch energy infrastructure data'`. Human-readable error text; intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer.tsx:50` — ``id: `energy-${feature.id}` ``. Cesium entity ID prefix; runtime identifier that should not be coupled to the folder name. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:512` — `new CustomDataSource('energy-infrastructure')`. Cesium `DataSource` runtime identifier; not a TypeScript module path. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:630` — `entity.id.startsWith('energy-')`. Runtime string prefix check that pairs with the `energy-${feature.id}` ID format above. Intentionally preserved.
+  - `apps/web/src/CesiumGlobe.tsx:123-124, 160-161, 196, 511, 513-514, 629-633, 1434-1436` — React state variable names, prop names, and ref names (`energyInfrastructureFeatures`, `energyInfrastructureLayerActive`, `energyInfrastructureDataSourceRef`, `energyInfrastructureDataSource`, `onEnergyFeatureSelect`, `energyFeature`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/App.tsx:58-80, 225-226, 266-268` — React state variable names, prop names, and hook results (`energyInfrastructureLayerActive`, `setEnergyInfrastructureLayerActive`, `energyInfrastructureFilters`, `setEnergyInfrastructureFilters`, `energyInfrastructureData`, `energyInfrastructureFeatures`, `energyInfrastructureLayerActive`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/Shell.tsx:56-58, 106, 144, 146` — React state/prop names (`energyInfrastructureLayerActive`, `setEnergyInfrastructureLayerActive`, `energyInfrastructureFilters`, `onEnergyFiltersChange`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/layer-panel/LayerPanelRoot.tsx:47, 183-184` — React state/prop names (`energyInfrastructureLayerActive`, `setEnergyInfrastructureLayerActive`, `energyInfrastructureFilters`, `onEnergyFiltersChange`). JavaScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/layer-panel/layerPanelTypes.ts:42, 44` — TypeScript interface property names (`energyInfrastructureLayerActive: boolean`, `energyInfrastructureFilters: EnergyFilters`). TypeScript identifiers; not file paths. Intentionally preserved.
+  - `apps/web/src/components/detail-panel/EnergyDetail.tsx:36` and `apps/web/src/components/layer-panel/EnergyControls.tsx:25, 108` — UI disclaimer text `'Static public-source infrastructure data. Not live operational status.'`. Human-readable UI text; intentionally preserved.
+  - `apps/web/src/layers/layer_07_weather/weatherTypes.ts:11` — comment `'from other selectable objects (airports, vessels, energy features).'`. Source comment; not related to the layer folder rename. Intentionally preserved.
+  - `apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts:95-96` — `LOCAL_LAYER_REGISTRY.find((l) => l.layerId === 'layer_07_infrastructure')`. This is a regression test ensuring a stale `layer_07_infrastructure` registry entry does not exist. It is unrelated to `layer_10_energy_infrastructure`; the project control file explicitly states `layer_07_weather` is the canonical Layer 07 and there is no `layer_07_infrastructure`. Intentionally preserved.
+  - `apps/web/src/layers/aviation/airports/airportIntelligenceTypes.ts:85` — `infrastructure: AirportIntelInfrastructure | null;` field name on a different (aviation) interface. Unrelated to the energy layer rename. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer.tsx:12-13` — relative imports `import type { EnergyFeature } from './energyInfrastructureTypes';` and `import { ENERGY_FUEL_TYPES } from './energyInfrastructureTypes';`. These are relative imports **inside** the moved folder; they continue to work after the rename because both files move together. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts:3` — relative import `import { EnergyInfrastructureResponse } from './energyInfrastructureTypes';`. Same as above; relative import inside the moved folder. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts:2` — relative import `import { EnergyFeature, EnergyFilters, EnergyInfrastructureResponse } from './energyInfrastructureTypes';`. Same as above; relative import inside the moved folder. Intentionally preserved.
+  - `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts:5` — source comment `'// Mock API function for energy infrastructure data'`. Source comment; not related to the layer folder rename. Intentionally preserved.
+- Files intentionally not touched:
+  - All other frontend layer folders (`aviation/`, `borders/` shim, `layer_02_borders_boundaries/`, `earth-events/` shim, `layer_03_earth_events/`, `maritime/` shim, `layer_06_maritime/`, `space/` shim, `layer_05_space_satellites/`, `layer_07_weather/`, `layer_08_news_osint/`) — out of scope; SR-009, SR-010, SR-011, SR-012, SR-013 cover them.
+  - `apps/api/`, `packages/`, `services/`, `database/`, `tests/data/` — no source code outside the allowed files was changed. The `apps/api/src/routes/energy/infrastructure.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are owned by their respective agents and are intentionally not modified in SR-014; the frontend rename does not change the backend route or the layer registry.
+  - `docs/archive/`, `docs/control/`, `specs/`, `.specify/`, `AGENTS.md` — out of scope.
+  - `docs/state/CURRENT_PROJECT_STATE.md`, `docs/README.md` — out of scope.
+  - The `energy/` shim folder — kept; not removed. The shim is the deliberate compatibility surface for any code that still imports from the old path.
+  - No `.gitkeep` files removed — that was SR-021's task and is already complete.
+  - No API routes, no contracts, no database migrations changed.
+  - All 4 moved source files (`infrastructure/EnergyInfrastructureLayer.tsx`, `infrastructure/energyInfrastructureApi.ts`, `infrastructure/energyInfrastructureTypes.ts`, `infrastructure/useEnergyInfrastructure.ts`) — content unchanged; only their tracked path moved.
+  - All runtime identifiers, API path strings, JS identifiers, CSS property values, font names, UI labels, comments, and relative imports — intentionally preserved (see above).
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `frontend/sr-014/energy-canonical-folder` (PASS)
+  - `git log -8 --oneline` → confirmed stack `ead0cfb → 5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd` (PASS)
+  - `Test-Path "apps/web/src/layers/energy"` (pre-rename) → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure"` (pre-rename) → `False` (PASS)
+  - `git ls-files apps/web/src/layers/energy` (pre-rename) → 4 tracked files in the `infrastructure/` subfolder (PASS)
+  - `git ls-files apps/web/src/layers/layer_10_energy_infrastructure` (pre-rename) → empty (PASS)
+  - `git grep -n "energy" -- apps/web/src` (pre-rename) → classified: 10 import paths to update + many runtime strings (JS identifiers, layerId registry, `category: 'infrastructure'`, `new CustomDataSource('energy-infrastructure')`, `entity.id.startsWith('energy-')`, error messages, `id: \`energy-${feature.id}\``, comments) to preserve (PASS)
+  - `git grep -n "infrastructure" -- apps/web/src` (pre-rename) → classified: 10 import paths to update + many runtime strings (`category: 'infrastructure'`, `infrastructure:` field on aviation interface, source comments, UI disclaimer text) to preserve (PASS)
+  - `git grep -n "layers/energy" -- apps packages tests` (pre-rename) → 10 matches in `apps/web/src/**` (7 files): `App.tsx:17,18`, `CesiumGlobe.tsx:30,31`, `Shell.tsx:16,17`, `EnergyDetail.tsx:1`, `detailTypes.ts:4`, `EnergyControls.tsx:1`, `layerPanelTypes.ts:9` (PASS)
+  - `git mv apps/web/src/layers/energy apps/web/src/layers/layer_10_energy_infrastructure` → succeeded; `infrastructure/` subfolder preserved (PASS)
+  - Post-rename `git ls-files` shows all 4 files now under `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/` (PASS)
+  - PowerShell `WriteAllText` to create canonical `index.ts` (4 exports) and shim `index.ts` → both files created (PASS)
+  - PowerShell loop updating 7 import files → 7 files updated, 10 import-path occurrences replaced (PASS)
+  - `git grep -n "layers/energy" -- apps packages tests` (post-import-update) → no output (PASS)
+  - `git grep -n "layers/layer_10_energy_infrastructure" -- apps packages tests` → 10 active import sites updated + pre-existing canonical references in `packages/contracts/src/index.ts:18` and `tests/data/layer_10_energy_infrastructure/...` (PASS)
+  - `git grep -n "energy" -- apps/web/src` (post-import-update) → many matches, all runtime strings (JS identifiers, layerId registry values, CustomDataSource name, runtime prefix check, error messages, entity id format, comments); no active folder-path imports (PASS)
+  - `git grep -n "infrastructure" -- apps/web/src` (post-import-update) → many matches, all runtime strings (`category: 'infrastructure'`, `infrastructure:` field on aviation interface, source comments, UI disclaimer text); no active folder-path imports (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure/index.ts"` → `True` (PASS)
+  - `Test-Path "apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts"` → `True` (PASS, the exported public hook exists in the canonical folder)
+  - `Test-Path "apps/web/src/layers/energy/index.ts"` → `True` (PASS, shim exists)
+  - `git ls-files apps/web/src/layers/energy` → only `index.ts` (PASS, shim folder has exactly one file)
+  - `git ls-files apps/web/src/layers/layer_10_energy_infrastructure` → 4 nested source files + `index.ts` (PASS, `infrastructure/` subfolder preserved)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/EnergyInfrastructureLayer.tsx apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer.tsx` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/energyInfrastructureApi.ts apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/energyInfrastructureTypes.ts apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes.ts` → no content diff (PASS, pure rename)
+  - `git diff HEAD:apps/web/src/layers/energy/infrastructure/useEnergyInfrastructure.ts apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/useEnergyInfrastructure.ts` → no content diff (PASS, pure rename)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, coming-soon folder not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, coming-soon folder not created)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `git diff --name-only | findstr /R "^docs/archive/ ^docs/control/ ^specs/ ^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^.specify/ ^.env"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS)
+  - `pnpm --filter web test` → succeeded (PASS, 3 files, 64 tests)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-status` → only the expected paths (PASS)
+  - `git diff --stat` → confirms scope is small (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-012, SR-013, and now this SR-014 handoff entry. No regression is introduced.
+  - The `apps/api/src/routes/energy/infrastructure.ts` route file and `apps/web/src/lib/useLayerRegistry.ts` are intentionally not modified. The frontend rename does not change the backend route or the layer registry.
+  - The runtime strings preserved above (JS identifiers, layerId registry values, `category: 'infrastructure'`, `new CustomDataSource('energy-infrastructure')` Cesium data-source name, `entity.id.startsWith('energy-')` runtime prefix check, `/api/energy/infrastructure` API path, error message text, UI disclaimer text, source comments, relative imports inside the moved folder) are intentionally not changed. None of them are import paths or TypeScript module paths required by the build; the build and test suites pass without any of them being modified.
+  - The `EnergyInfrastructureLayer.tsx` module uses a **default export**, so the canonical `index.ts` uses `export { default as EnergyInfrastructureLayer } from './infrastructure/EnergyInfrastructureLayer';` instead of `export * from ...`. The other 3 modules use named exports and use the `export * from ...` form.
+  - The `layer_07_infrastructure` reference in `apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts:95-96` is a regression test for a stale registry entry; it is unrelated to `layer_10_energy_infrastructure` (the project control file explicitly states there is no `layer_07_infrastructure`). Intentionally preserved.
+  - The `infrastructure` field in `apps/web/src/layers/aviation/airports/airportIntelligenceTypes.ts:85` is on a different (aviation) interface and is unrelated to the energy layer rename. Intentionally preserved.
+  - The `energy/` shim folder is intentionally retained with only the new `index.ts` re-export. It contains no `.gitkeep` and no source files. Future cleanup of this shim is out of scope for SR-014.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-012 local commit (`frontend/sr-012/space-canonical-folder`, commit `ead0cfb`), the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-014 before SR-009 retry. The user / decision-control layer should decide whether to push SR-019, SR-020, SR-010S, SR-021, SR-011, SR-013, SR-012, and SR-014 to remote and open PRs. After SR-014 is reviewed, the recommended next task is **SR-009 aviation canonicalization** (35 imports, has `aircraft/` and `airports/` subfolders, highest risk; per the Spec 008 "Remaining recommended order" list in `tasks.md`).
+
+---
+
 ### 2026-06-16T03:00:00Z — sr-012-space-canonical-folder
 
 - Work order: SR-012
