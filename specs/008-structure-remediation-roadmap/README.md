@@ -1,48 +1,54 @@
 ﻿# Spec 008 - Structure Remediation Roadmap
 
 Classification: SPEC_WORKSPACE
-Status: **Partially completed** — documentation phases done; remaining structure/naming work still pending
+Status: **Phase 4 (Frontend Layer Folder Canonicalization) completed** — docs closure alignment by SR-016
 Owner: Orchestrator Agent
-Last updated: 2026-06-16
+Last updated: 2026-06-16 (SR-016 docs closure)
 
-## Status Banner (2026-06-16)
+## Status Banner (2026-06-16, post-SR-016)
 
-> **Spec 008 is partially completed.** The documentation consolidation
-> phases (Phase 0 contract repair, Phase 1 API route splits including
-> the SR-005A / SR-005B / SR-005C follow-up splits, Phase 2 frontend
-> large component splits, Phase 3 contracts split, and Phase 4 planning
-> + SR-010 borders rename) are all done. The current remaining
-> structure/naming work is **still pending**:
+> **Spec 008 Phase 4 — Frontend Layer Folder Canonicalization is complete.**
+> The documentation consolidation phases (Phase 0 contract repair, Phase 1
+> API route splits including the SR-005A / SR-005B / SR-005C follow-up
+> splits, Phase 2 frontend large component splits, Phase 3 contracts
+> split, and Phase 4 frontend layer folder canonicalization including
+> SR-010, SR-010S, SR-011, SR-013, SR-012, SR-014, SR-009, and the
+> final shape cleanup) are all done.
 >
-> * **SR-011** — earth-events → `layer_03_earth_events` (frontend folder
->   rename).
-> * **SR-013** — maritime → `layer_06_maritime` (frontend folder
->   rename).
-> * **SR-012** — space → `layer_05_space_satellites` (frontend folder
->   rename; preserve `satellites/` subfolder).
-> * **SR-014** — energy → `layer_10_energy_infrastructure` (frontend
->   folder rename; preserve `infrastructure/` subfolder).
-> * **SR-009** — aviation → `layer_01_aviation` (frontend folder
->   rename; highest-risk per-layer move).
-> * Redundant `.gitkeep` cleanup.
-> * API route file-shape normalization (final review pass).
-> * API endpoint path policy decision (legacy vs canonical paths).
-> * `TODO` / deprecated marker cleanup.
-> * `CesiumGlobe` split planning.
-> * Missing package ownership row decision in `PROJECT_CONTROL.md`
->   Part 2 §8.
+> Final `apps/web/src/layers/` shape contains exactly 8 active canonical
+> layer folders:
 >
-> Do not start a new frontend canonicalization branch (SR-009,
-> SR-011, SR-012, SR-013, SR-014) until the user / decision-control
-> layer has reviewed the SR-019 / SR-020 commits and decided to
-> resume PR/merge activity.
+> * `layer_01_aviation`
+> * `layer_02_borders_boundaries`
+> * `layer_03_earth_events`
+> * `layer_05_space_satellites`
+> * `layer_06_maritime`
+> * `layer_07_weather`
+> * `layer_08_news_osint`
+> * `layer_10_energy_infrastructure`
 >
-> For per-task status with commit references, see the
-> **"Status as of 2026-06-16"** section near the top of `tasks.md`.
-> For the safe-default next-work queue, see the
-> **"Remaining recommended order"** section in `tasks.md` and the
-> **"Status as of 2026-06-16 (post-SR-010 / post-SR-019)"** section
-> near the top of `plan.md`.
+> Old duplicate short-name shim folders (`aviation/`, `borders/`,
+> `earth-events/`, `space/`, `maritime/`, `energy/`) were removed in
+> the final shape cleanup. Future inactive layer folders
+> (`layer_04_public_military_security/`, `layer_09_user_shapes/`) were
+> intentionally not created because those future inactive layers should
+> only be created when implementation starts. Every active canonical
+> layer folder has a public `index.ts`. `layer_07_weather/index.ts`
+> and `layer_08_news_osint/index.ts` were standardized in the final
+> shape cleanup.
+>
+> Validation passed: `pnpm --filter web build`, `pnpm --filter web
+> test`, `pnpm --filter api build`, `pnpm --filter api test`, and
+> `python -m pytest tests/data -q` on a clean tree. The user reported
+> real backend and database runtime validation passed after the
+> frontend closure cleanup. No push, PR, merge, or branch deletion
+> has been performed.
+>
+> For per-task evidence, see the **"Status as of 2026-06-16
+> (post-SR-016)"** section near the top of `tasks.md` and the
+> **"Status as of 2026-06-16 (post-SR-016)"** section near the top
+> of `plan.md`. For the canonical-folder plan completion addendum,
+> see `frontend-layer-canonicalization-plan.md`.
 
 ## Status After Phase 6 (2026-06-16)
 
@@ -63,10 +69,15 @@ The documentation consolidation work that motivated Spec 008 is **complete**:
 - Implemented layer specs 001-007 are archived under
   `docs/archive/2026-06-16-implemented-specs/`.
 
-Spec 008 itself **remains active** for any remaining non-documentation SR tasks
-(grandfathered folder renames, API route standardisation, etc.). The pre-
-consolidation research files inside this folder are now historical evidence only
-and must not be read as active rules — the active authorities are listed below.
+Spec 008 itself **remains active** for the unresolved non-Phase-4
+items: API route file-shape normalization, API endpoint path policy
+decision, `TODO` / deprecated marker cleanup, `CesiumGlobe` split
+planning, and the missing `PROJECT_CONTROL.md` Part 2 §8 package
+ownership row decision. Phase 4 (frontend layer folder
+canonicalization) is closed from a code and structure perspective.
+The pre-consolidation research files inside this folder are now
+historical evidence only and must not be read as active rules — the
+active authorities are listed below.
 
 ## Purpose
 
@@ -74,14 +85,20 @@ This spec is the structure-remediation roadmap for GOD EYES. It plans how the pr
 repairs grandfathered file, folder, API, frontend, contract, and documentation structure
 debt without broad unscoped refactors.
 
-The spec remains active for unfinished structure work, but several documentation
-compression phases have already been implemented:
+The spec remains active for the unresolved non-Phase-4 items listed above.
+Phase 4 (frontend layer folder canonicalization) was completed end to end:
+the documentation compression phases, the API route splits, the frontend
+component splits, the contracts split, and the per-layer frontend folder
+renames plus the final shape cleanup have all landed as local commits
+on the correction stack (see `docs/state/HANDOFF_LOG.md`).
 
 - `docs/control/PROJECT_CONTROL.md` is now the single active project control file.
 - Implemented layer specs 001-007 are archived.
 - `docs/archive/_DO_NOT_READ.md` fences historical material.
 - `.specify/memory/constitution.md`, `docs/README.md`, and `specs/README.md` now describe
   the Spec Kit-aligned documentation system.
+- Phase 4 frontend layer folder canonicalization is complete; see the
+  status banner above and the per-task evidence in `docs/state/HANDOFF_LOG.md`.
 
 ## Spec Kit Position
 

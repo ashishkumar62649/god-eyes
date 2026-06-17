@@ -27,20 +27,26 @@ For every task, the following metadata is recorded:
 
 ---
 
-## Status as of 2026-06-16
+## Status as of 2026-06-16 (post-SR-016)
 
-This is the post-SR-010 / post-SR-019 status snapshot. The detailed
-SR-NNN task descriptions below are preserved unchanged as the audit
-trail. Do not delete them.
+This is the post-frontend-closure status snapshot, refreshed by the
+SR-016 documentation alignment work. The detailed SR-NNN task
+descriptions below are preserved unchanged as the audit trail. Do
+not delete them.
 
 ### Status legend
 
-* **Done** — work package completed; branch merged or ready for merge.
-* **Pending** — work package not yet started; still in the active backlog.
+* **Done** — work package completed; primary deliverable landed in
+  a local commit. May not yet be pushed, PR'd, or merged to `main`.
+* **Pending** — work package not yet started; still in the active
+  backlog.
 * **Blocked / Needs decision** — cannot start until a policy or
   design decision is made.
 * **Planned later** — intentionally deferred to a future roadmap
   cycle (not on the current critical path).
+* **N/A (frontend closed)** — the work item was subsumed by the
+  completed frontend shape cleanup and is no longer a separate
+  open item.
 
 ### Work package status (summary)
 
@@ -57,67 +63,84 @@ trail. Do not delete them.
 | SR-006 | Frontend LayerPanel split | **Done** | (per HANDOFF_LOG history) |
 | SR-007 | Contracts package split | **Done** | (per HANDOFF_LOG history) |
 | SR-008 | Frontend layer folder canonicalization plan | **Done** | `frontend-layer-canonicalization-plan.md` (this spec folder) |
-| SR-009 | Frontend aviation folder canonicalization | **Pending** | Not started — remaining work item |
-| SR-010 | Frontend borders folder canonicalization | **Done** | commit `5275e61` on branch `frontend/sr-010/borders-canonical-folder` (local; not yet PR'd) |
-| SR-011 | Frontend earth-events folder canonicalization | **Pending** | Not started — remaining work item |
-| SR-012 | Frontend space folder canonicalization | **Pending** | Not started — remaining work item |
-| SR-013 | Frontend maritime folder canonicalization | **Pending** | Not started — remaining work item |
-| SR-014 | Frontend energy folder canonicalization | **Pending** | Not started — remaining work item |
-| SR-015 | Fetcher / normalizer canonical source structure | **Planned later** | Defer; multi-source layers still flat |
-| SR-016 | Database migration documentation cleanup | **Planned later** | Defer; aviation `002` gap grandfathered, README update not yet required |
+| SR-009 | Frontend aviation folder canonicalization | **Done** | commit `6231b1f` on branch `frontend/sr-009/aviation-canonical-folder` |
+| SR-010 | Frontend borders folder canonicalization (original) | **Done** | commit `5275e61` on branch `frontend/sr-010/borders-canonical-folder` |
+| SR-010S | Frontend borders folder canonicalization (restack onto correction stack) | **Done** | commit `2b23bd9` on branch `frontend/sr-010s-restack-borders-canonical-folder` |
+| SR-011 | Frontend earth-events folder canonicalization | **Done** | commit `e28bf38` on branch `frontend/sr-011/earth-events-canonical-folder` |
+| SR-012 | Frontend space folder canonicalization | **Done** | commit `ead0cfb` on branch `frontend/sr-012/space-canonical-folder` |
+| SR-013 | Frontend maritime folder canonicalization | **Done** | commit `5f5d075` on branch `frontend/sr-013/maritime-canonical-folder` |
+| SR-014 | Frontend energy folder canonicalization | **Done** | commit `90c3056` on branch `frontend/sr-014/energy-canonical-folder` |
+| SR-015 | Fetcher / normalizer canonical source structure (backend work) | **Planned later** | Defer; multi-source layers still flat. Note: the frontend shape cleanup that landed on branch `frontend/sr-015/final-layer-shape-cleanup` (commit `09bfc27`) is a different, frontend-only work item and is recorded as a separate note in this table — see the "Frontend shape cleanup (SR-015 branch)" row below. |
+| SR-016 | Database migration documentation cleanup | **Planned later** | Defer; aviation `002` gap grandfathered, README update not yet required. **Naming note:** the active work order called "SR-016 — Frontend closure documentation alignment" on branch `docs/sr-016/frontend-closure-alignment` is a different, docs-only work item from the backend `SR-016` defined in the spec table — see the "SR-016 docs closure alignment" row below. |
 | SR-017 | Large tests split | **Planned later** | Defer; no critical mass |
 | SR-018 | Future scaling architecture spec | **Planned later** | Defer; architecture decisions not yet made |
 
-**Auxiliary work items outside the SR-NNN series (not yet assigned IDs):**
+### Frontend shape cleanup (SR-015 branch)
 
-* Redundant `.gitkeep` cleanup in renamed layer folders — **Pending**.
+* **Frontend final layer shape cleanup** — the temporary old-name
+  shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`,
+  `maritime/`, `energy/`) were removed and the missing public
+  `index.ts` files for `layer_07_weather/` and `layer_08_news_osint/`
+  were added. **Done** (commit `09bfc27` on branch
+  `frontend/sr-015/final-layer-shape-cleanup`). This is a
+  frontend-only work item that reused the SR-015 branch name; it
+  is **not** the same as the backend `SR-015 — Fetcher / normalizer
+  canonical source structure` defined in the spec table above,
+  which is still **Planned later**.
+
+### SR-016 docs closure alignment
+
+* **SR-016 — Frontend closure documentation alignment** —
+  documentation-only work that aligned the stale Spec 008
+  workspace docs with the completed frontend reconstruction.
+  **Pending reviewer review** (this branch:
+  `docs/sr-016/frontend-closure-alignment`). This is a
+  docs-only work item that reused the SR-016 work-order ID; it
+  is **not** the same as the backend `SR-016 — Database migration
+  documentation cleanup` defined in the spec table above, which
+  is still **Planned later**.
+
+**Auxiliary work items outside the SR-NNN series:**
+
+* Redundant `.gitkeep` cleanup in renamed layer folders — **Done**
+  (commit `63792bb` on branch `chore/sr-021-retry-remove-redundant-gitkeep`).
+  Frontend Phase 4 is closed, so this auxiliary item is complete
+  from a frontend perspective.
 * API route file-shape normalization (final review pass) — **Pending**.
 * API endpoint path policy decision (legacy vs canonical paths) — **Blocked / Needs decision**.
 * `TODO` / deprecated marker cleanup in renamed layer folders — **Pending**.
 * `CesiumGlobe` split planning — **Planned later**.
 * Missing package ownership row decision in `PROJECT_CONTROL.md` Part 2 §8 — **Blocked / Needs decision**.
 
-### Remaining recommended order (post-SR-010)
+### Remaining recommended order (post-frontend closure)
 
-The current work backlog is short. The recommended next work-package
-order is:
+Frontend layer folder canonicalization is complete. No remaining
+frontend rename tasks are open. The next frontend-related action
+is the docs closure alignment (this SR-016 branch) and the
+integration / full-validation step, both of which are decisions
+for the user / decision-control layer.
 
-1. **earth-events canonicalization** — `frontend/sr-011/earth-events-canonical-folder`
-   (move `apps/web/src/layers/earth-events/` →
-   `apps/web/src/layers/layer_03_earth_events/`).
-2. **maritime canonicalization** — `frontend/sr-013/maritime-canonical-folder`
-   (move `apps/web/src/layers/maritime/` →
-   `apps/web/src/layers/layer_06_maritime/`).
-3. **space canonicalization** — `frontend/sr-012/space-canonical-folder`
-   (move `apps/web/src/layers/space/` →
-   `apps/web/src/layers/layer_05_space_satellites/`; preserve
-   `satellites/` subfolder; `satellites.ts` WebSocket path remains).
-4. **energy canonicalization** — `frontend/sr-014/energy-canonical-folder`
-   (move `apps/web/src/layers/energy/` →
-   `apps/web/src/layers/layer_10_energy_infrastructure/`; preserve
-   `infrastructure/` subfolder).
-5. **aviation canonicalization** — `frontend/sr-009/aviation-canonical-folder`
-   (move `apps/web/src/layers/aviation/` →
-   `apps/web/src/layers/layer_01_aviation/`; 35 imports; highest risk;
-   do last).
-6. **redundant `.gitkeep` cleanup** — sweep removed after each rename.
-7. **API route file-shape normalization** — final review pass for
+The remaining open work items are documented above:
+
+1. **SR-016 docs closure alignment** — this branch; pending
+   reviewer review.
+2. **API route file-shape normalization** — final review pass for
    consistency across the five split routes.
-8. **TODO / deprecated marker cleanup** — sweep in renamed folders
-   and their new `index.ts` re-export shims.
-9. **CesiumGlobe split planning** — `CesiumGlobe.tsx` is large; plan
-   a split before any further renderer-layer canonicalization.
-10. **missing package ownership row decision** — `PROJECT_CONTROL.md`
-    Part 2 §8 ownership matrix has at least one row whose owner is
-    undecided; needs a user / Orchestrator decision before any new
-    work order references it.
-11. **API endpoint path policy** — final decision needed on whether
-    legacy non-canonical endpoint paths are kept as compatibility
-    aliases after all canonicalization work is complete.
+3. **TODO / deprecated marker cleanup** — sweep in renamed
+   folders and their canonical `index.ts` re-export modules.
+4. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
+   plan a split before any further renderer-layer canonicalization.
+5. **Missing package ownership row decision** — `PROJECT_CONTROL.md`
+   Part 2 §8 ownership matrix has at least one row whose owner is
+   undecided; needs a user / Orchestrator decision before any new
+   work order references it.
+6. **API endpoint path policy** — final decision needed on whether
+   legacy non-canonical endpoint paths are kept as compatibility
+   aliases after all canonicalization work is complete.
 
 > The order above is a recommendation. It is intentionally
-> **low-to-high risk**, with policy/decision items grouped at the end
-> so they do not block the mechanical renames.
+> **policy / decision / cleanup items grouped together** since
+> the mechanical frontend renames are all done.
 
 ### "Done" caveats
 
@@ -125,9 +148,11 @@ A task marked **Done** above means the work package's primary deliverable
 landed in a local commit on the named branch. It does **not** mean
 the branch has been pushed, PR'd, or merged to `main` — the user /
 decision-control layer is intentionally pausing all PR/merge activity
-until the Spec 008 status refresh is reviewed. See
+until the frontend closure audit is reviewed. See
 `docs/state/HANDOFF_LOG.md` and `docs/state/RECENT_CONTEXT.md` for
-the per-task evidence.
+the per-task evidence. The frontend reconstruction (Phase 4) is
+closed from a code and structure perspective as of the frontend shape
+cleanup commit `09bfc27`.
 
 ---
 

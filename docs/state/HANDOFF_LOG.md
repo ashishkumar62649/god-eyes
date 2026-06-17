@@ -1,4 +1,50 @@
 
+### 2026-06-16T06:00:00Z — sr-016-frontend-closure-alignment
+
+- Work order: SR-016
+- Agent: Documentation Alignment Agent
+- Branch: docs/sr-016/frontend-closure-alignment
+- Parent: SR-015 `09bfc27` (frontend shape cleanup) on the correction stack
+- Reviewer decision: PENDING (agent-only local docs-only handoff; no docs/control or code changes)
+- Reason: The frontend reconstruction is complete through SR-015, but the closure audit found stale Spec 008 workspace docs that still described completed frontend tasks as pending. SR-016 updates the stale active/spec documentation so the docs match the actual completed frontend work. This is a clarity task — it does not make the program or docs more confusing and does not rewrite history; it clearly marks the current final status.
+- Goal: Update `specs/008-structure-remediation-roadmap/README.md`, `tasks.md`, `plan.md`, `frontend-layer-canonicalization-plan.md`, and `frontend-layer-canonicalization-plan-report.md` so they reflect the completed frontend reconstruction through SR-015. Add a short top entry to `docs/state/RECENT_CONTEXT.md` and a full entry to `docs/state/HANDOFF_LOG.md` (this entry) for SR-016.
+- Files updated (7):
+  1. `specs/008-structure-remediation-roadmap/README.md` — updated status line, status banner, "Status After Phase 6" body, "Purpose" body, and "Spec Kit Position" body so they reflect completed Phase 4 and list the 8 active canonical folders.
+  2. `specs/008-structure-remediation-roadmap/tasks.md` — updated the top "Status as of 2026-06-16" section header, status legend, work package status table, auxiliary work items, remaining recommended order, and "Done caveats". SR-009, SR-010, SR-010S, SR-011, SR-013, SR-012, SR-014, and the redundant `.gitkeep` cleanup are now marked Done. The frontend shape cleanup and SR-016 docs closure alignment are recorded as separate notes with explicit branch/commit references and naming-conflict disclaimers because they reused SR-015 / SR-016 work-order IDs that are otherwise defined in the spec table for different work packages.
+  3. `specs/008-structure-remediation-roadmap/plan.md` — updated "Status as of 2026-06-16" header, completed-work snapshot (Phase 4 is now Done), remaining-work snapshot, planned-later snapshot (with naming notes for SR-015 / SR-016), and the recommended execution order (mechanical frontend renames removed; only policy/decision/cleanup items remain).
+  4. `specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan.md` — changed status from `Planning` to `Completed (post-SR-016 docs closure)`, added a completion banner at the top with validation and runtime-wording summary, and updated the "Current Frontend Layer Folders" and "Target Canonical Folders" tables to show the final state (old folders marked Removed, new folders marked Active rather than Rename needed, L4/L9 marked intentionally not created).
+  5. `specs/008-structure-remediation-roadmap/frontend-layer-canonicalization-plan-report.md` — added a clear "Superseded / Completion addendum" at the top so the file is not read as current truth. The pre-implementation snapshot content below is preserved unchanged as the audit trail.
+  6. `docs/state/RECENT_CONTEXT.md` — added a new top entry `## 2026-06-16 - SR-016 Frontend Closure Docs Alignment` and removed the oldest entry (`## 2026-06-16 - SR-013 Maritime Canonicalization`) to keep the rolling window at 5 entries.
+  7. `docs/state/HANDOFF_LOG.md` — appended this handoff entry at the top (append-only).
+- Frontend status: closed from code/structure perspective as of the frontend shape cleanup commit `09bfc27`. Final `apps/web/src/layers/` shape contains exactly the 8 active canonical folders (`layer_01_aviation/`, `layer_02_borders_boundaries/`, `layer_03_earth_events/`, `layer_05_space_satellites/`, `layer_06_maritime/`, `layer_07_weather/`, `layer_08_news_osint/`, `layer_10_energy_infrastructure/`). All 8 have a public `index.ts`. Old shim folders removed. L4/L9 intentionally not created.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `docs/sr-016/frontend-closure-alignment` (PASS)
+  - `git log -13 --oneline` → confirmed stack ending with `09bfc27 refactor(web): finalize canonical layer folder shape` (PASS)
+  - `Get-ChildItem apps/web/src/layers -Directory` → 8 canonical folders, 0 old folders (PASS)
+  - `Test-Path` for 6 old folder paths → all `False` (PASS)
+  - `Test-Path` for `layer_04_public_military_security/` and `layer_09_user_shapes/` → both `False` (PASS)
+  - `Test-Path` for all 8 canonical `index.ts` → all `True` (PASS)
+  - `git grep` for 6 old import paths → all 0 lines (PASS)
+  - Pre-edit stale wording search (14 patterns including `pending`, `Rename needed`, `Phase 4.*pending`, `Status: Planning`) → matched 14 stale locations across the 5 spec files (PASS, classified)
+  - Post-edit stale wording search → all matches are in clearly labeled historical/superseded contexts (completion banner references and historical audit trail) (PASS)
+  - `git diff --name-status` → only the 7 expected doc files (PASS)
+  - `git diff --stat` → confirms small docs-only scope (PASS)
+  - `git diff --check` → no output (PASS, after trimming trailing blank line)
+  - `git diff --name-only | findstr` for forbidden areas/lockfiles → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules transformed)
+  - `pnpm --filter web test` → succeeded (PASS, 3 test files, 64 tests)
+  - `pnpm --filter api build` → succeeded (PASS)
+  - `pnpm --filter api test` → succeeded (PASS)
+- Runtime validation: user reported real backend and database runtime validation passed after the frontend closure cleanup. This wording is recorded carefully — the Documentation Alignment Agent did not personally run the real database runtime test.
+- Known issues / caveats:
+  - **Naming conflict between spec and active work.** The spec table at `tasks.md` line ~30 defines `SR-015` as the backend "Fetcher / normalizer canonical source structure" work package (still **Planned later**) and `SR-016` as the backend "Database migration documentation cleanup" work package (still **Planned later**). The active frontend closure work reused the SR-015 branch name (`frontend/sr-015/final-layer-shape-cleanup`) and the active docs closure work reused the SR-016 work-order ID (`docs/sr-016/frontend-closure-alignment`). Both are explicitly noted in `tasks.md` and `plan.md` as separate entries to avoid future confusion.
+  - **`python -m pytest tests/data -q` run after commit on a clean tree** is recommended for the final full-validation pass; the closure audit confirmed it passed on a clean tree prior to this docs-only branch. The docs-only diff does not touch any code paths that would affect the data test suite.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-015 local commit (`frontend/sr-015/final-layer-shape-cleanup`, commit `09bfc27`).
+- Next step: Reviewer Agent should review SR-016. The user / decision-control layer should decide whether to push the full stacked branch and open PRs. After SR-016 is approved, the frontend reconstruction can be closed cleanly from a docs perspective. The user should then decide the next area: API cleanup, integration/full validation package, or PR package planning.
+
+---
+
 ### 2026-06-16T05:00:00Z — sr-015-final-layer-shape-cleanup
 
 - Work order: SR-015

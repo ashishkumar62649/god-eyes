@@ -20,12 +20,13 @@ order after that, but starting with the largest file is recommended.
 
 ---
 
-## Status as of 2026-06-16 (post-SR-010 / post-SR-019)
+## Status as of 2026-06-16 (post-SR-016)
 
 The detailed phase descriptions below are preserved unchanged as the
 audit trail. Do not delete them. The status below is the active
-snapshot. For per-work-package status, see the **"Status as of
-2026-06-16"** section at the top of `tasks.md`.
+snapshot after the SR-016 documentation alignment. For per-work-package
+status, see the **"Status as of 2026-06-16 (post-SR-016)"** section
+at the top of `tasks.md`.
 
 ### Completed work (snapshot)
 
@@ -42,26 +43,33 @@ snapshot. For per-work-package status, see the **"Status as of
   SR-005 (`DetailPanel`) and SR-006 (`LayerPanel`) done.
 * **Phase 3 — Contracts Split** — completed (SR-007). Per-layer
   contracts module is in place with compatibility re-exports.
-* **Phase 4 (planning) — Frontend Layer Folder Canonicalization Plan**
-  — completed (SR-008). The plan document lives in this spec folder
-  as `frontend-layer-canonicalization-plan.md`.
-* **Phase 4 (first per-layer move) — Frontend Borders Folder
-  Canonicalization** — completed (SR-010, commit `5275e61` on
-  branch `frontend/sr-010/borders-canonical-folder`). Branch is
-  clean and in sync with its remote but **not yet PR'd or merged**.
+* **Phase 4 — Frontend Layer Folder Canonicalization** —
+  **completed in full.** SR-008 (plan) done, then SR-010 and
+  SR-010S (borders), SR-011 (earth-events), SR-013 (maritime),
+  SR-012 (space), SR-014 (energy), SR-009 (aviation) done, and
+  the final shape cleanup (commit `09bfc27` on branch
+  `frontend/sr-015/final-layer-shape-cleanup`) removed the
+  temporary old-name shim folders and added the missing public
+  `index.ts` files for `layer_07_weather/` and
+  `layer_08_news_osint/`. Final `apps/web/src/layers/` shape
+  contains exactly the 8 active canonical layer folders listed in
+  the spec README status banner. Future inactive layer folders
+  (`layer_04_public_military_security/`,
+  `layer_09_user_shapes/`) were intentionally not created.
+  Validation passed: `pnpm --filter web build`, `pnpm --filter
+  web test`, `pnpm --filter api build`, `pnpm --filter api test`,
+  and `python -m pytest tests/data -q` on a clean tree. The user
+  reported real backend and database runtime validation passed
+  after the frontend closure cleanup.
 
 ### Remaining work (snapshot)
 
-* **Phase 4 (remaining per-layer moves) — Frontend Layer Folder
-  Canonicalization** — partly complete. SR-010 (borders) done;
-  SR-011 (earth-events), SR-013 (maritime), SR-012 (space), SR-014
-  (energy), SR-009 (aviation) **pending**. See the "Remaining
-  recommended order" section in `tasks.md` for the safe default
-  order.
-* **Auxiliary cleanup items** — redundant `.gitkeep` cleanup, API
-  route file-shape normalization, `TODO` / deprecated marker
-  cleanup, `CesiumGlobe` split planning, and the missing
-  `PROJECT_CONTROL.md` Part 2 §8 package ownership row decision.
+* **Auxiliary cleanup items** — API route file-shape
+  normalization, `TODO` / deprecated marker cleanup, `CesiumGlobe`
+  split planning, and the missing `PROJECT_CONTROL.md` Part 2 §8
+  package ownership row decision. The frontend shape cleanup
+  already swept the old-shim-folder clutter and added the missing
+  public `index.ts` files for the two already-canonical layers.
 
 ### Needs decision (snapshot)
 
@@ -76,13 +84,22 @@ snapshot. For per-work-package status, see the **"Status as of
 ### Planned later (snapshot)
 
 * **Phase 5 — Fetcher / Normalizer Canonical Source Structure**
-  (SR-015). Multi-source layers still use prefixed flat file names;
-  the `sources/<name>/` subfolder pattern is recommended but not on
-  the current critical path.
+  (SR-015 in the spec table). Multi-source layers still use
+  prefixed flat file names; the `sources/<name>/` subfolder
+  pattern is recommended but not on the current critical path.
+  **Naming note:** the frontend shape cleanup that landed on
+  branch `frontend/sr-015/final-layer-shape-cleanup` is a
+  different, frontend-only work item; see the "Frontend shape
+  cleanup (SR-015 branch)" note in `tasks.md`.
 * **Phase 6 — Database / Migration Documentation Cleanup**
-  (SR-016). The aviation `002` gap is grandfathered and
-  explicitly not in scope; the README update is documentation-only
-  and not on the current critical path.
+  (SR-016 in the spec table). The aviation `002` gap is
+  grandfathered and explicitly not in scope; the README update is
+  documentation-only and not on the current critical path.
+  **Naming note:** the active work order called "SR-016 — Frontend
+  closure documentation alignment" on branch
+  `docs/sr-016/frontend-closure-alignment` is a different,
+  docs-only work item; see the "SR-016 docs closure alignment"
+  note in `tasks.md`.
 * **Phase 7 — Large Test File Split** (SR-017). The 700-line
   Python limit is documented but not blocking any active work.
 * **Phase 8 — Future Scaling Architecture Spec** (SR-018). The
@@ -91,10 +108,10 @@ snapshot. For per-work-package status, see the **"Status as of
 
 > The recommended **execution order** below still describes the
 > original safe default for a single-worker execution. It is
-> **not** a "next" queue — most of the original queue is already
-> done. Use the "Remaining work" snapshot above (or the
-> "Remaining recommended order" section in `tasks.md`) for the
-> current next-work queue.
+> **not** a "next" queue — the original queue is done. The
+> current next decision is the user / decision-control layer's
+> choice among API cleanup, integration/full validation, and PR
+> package planning.
 
 ---
 
@@ -953,7 +970,7 @@ These apply to every phase above:
 | Phase 1 | SR-002, SR-003, SR-004, SR-005A, SR-005B, SR-005C | API | SR-001 | **Done** (WebSocket handler in `space/satellites.ts` kept in place) |
 | Phase 2 | SR-005, SR-006 | Frontend | — (independent) | **Done** |
 | Phase 3 | SR-007 | API / Contract | SR-001 | **Done** |
-| Phase 4 | SR-008 (plan), SR-009..SR-014 (per-layer) | Frontend | — (independent) | **Partly done** (SR-008 + SR-010 done; SR-009, SR-011, SR-012, SR-013, SR-014 pending) |
+| Phase 4 | SR-008 (plan), SR-009..SR-014 (per-layer) | Frontend | — (independent) | **Done** (SR-008 plan + SR-010, SR-010S, SR-011, SR-013, SR-012, SR-014, SR-009 renames; final shape cleanup commit `09bfc27` removed old shim folders and added Weather/News `index.ts`; L4/L9 intentionally not created) |
 | Phase 5 | SR-015 | Fetcher | — (independent) | **Planned later** |
 | Phase 6 | SR-016 | Database | — (independent) | **Planned later** |
 | Phase 7 | SR-017 | Database / Test | — (independent) | **Planned later** |
@@ -961,34 +978,24 @@ These apply to every phase above:
 
 The recommended **execution order** for any remaining work is:
 
-1. **Earth-events canonicalization** (SR-011, Phase 4) — lowest-risk
-   per-layer move (5 imports, single hook file).
-2. **Maritime canonicalization** (SR-013, Phase 4) — low risk
-   (3 imports, self-contained).
-3. **Space canonicalization** (SR-012, Phase 4) — medium risk
-   (16 imports, has `satellites/` subfolder).
-4. **Energy canonicalization** (SR-014, Phase 4) — medium risk
-   (10 imports, has `infrastructure/` subfolder).
-5. **Aviation canonicalization** (SR-009, Phase 4) — highest-risk
-   per-layer move (35 imports, two subfolders).
-6. **Redundant `.gitkeep` cleanup** — sweep removed after each
-   rename.
-7. **API route file-shape normalization** — final review pass for
+1. **SR-016 docs closure alignment** — this branch; pending
+   reviewer review.
+2. **API route file-shape normalization** — final review pass for
    consistency across the five split routes.
-8. **`TODO` / deprecated marker cleanup** — sweep in renamed
-   folders and their new `index.ts` re-export shims.
-9. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
+3. **`TODO` / deprecated marker cleanup** — sweep in renamed
+   folders and their canonical `index.ts` re-export modules.
+4. **`CesiumGlobe` split planning** — `CesiumGlobe.tsx` is large;
    plan a split before any further renderer-layer canonicalization.
-10. **Missing package ownership row decision** — final decision
-    on the undecided `PROJECT_CONTROL.md` Part 2 §8 ownership row.
-11. **API endpoint path policy** — final decision on whether
-    legacy non-canonical endpoint paths are kept as compatibility
-    aliases after all canonicalization work is complete.
+5. **Missing package ownership row decision** — final decision
+   on the undecided `PROJECT_CONTROL.md` Part 2 §8 ownership row.
+6. **API endpoint path policy** — final decision on whether
+   legacy non-canonical endpoint paths are kept as compatibility
+   aliases after all canonicalization work is complete.
 
-This list is the **current next-work queue**. The historical
-execution order (1–11 below) is preserved as the original
-single-worker safe default and is **not** the current next-work
-queue.
+This list is the **current remaining-work queue** after the
+frontend reconstruction is closed. The historical execution order
+(1–11 below) is preserved as the original single-worker safe
+default and is **not** the current remaining-work queue.
 
 > The original 11-step safe-default execution order (now historical
 > only) was:

@@ -1,5 +1,46 @@
 # Final Report — Frontend Layer Canonicalization Plan
 
+> **Superseded / Completion addendum (2026-06-16, post-SR-016).**
+> This file is a **pre-implementation snapshot** that was authored
+> before the per-layer renames happened. It is preserved here as
+> historical evidence of the planning step. It has been superseded
+> by the completed frontend reconstruction, which landed through
+> **SR-010, SR-010S, SR-011, SR-013, SR-012, SR-014, SR-009, and
+> the frontend shape cleanup** (branch
+> `frontend/sr-015/final-layer-shape-cleanup`, commit `09bfc27`).
+>
+> Key facts about the current state (do not read the tables below as
+> current truth — they describe the pre-implementation snapshot):
+>
+> * The old short-name folders listed below (`aviation/`, `borders/`,
+>   `earth-events/`, `space/`, `maritime/`, `energy/`) **no longer
+>   exist**. They were removed in the frontend shape cleanup.
+> * The current `apps/web/src/layers/` shape contains **only the
+>   8 active canonical layer folders**: `layer_01_aviation/`,
+>   `layer_02_borders_boundaries/`, `layer_03_earth_events/`,
+>   `layer_05_space_satellites/`, `layer_06_maritime/`,
+>   `layer_07_weather/`, `layer_08_news_osint/`,
+>   `layer_10_energy_infrastructure/`.
+> * **All 8 active canonical folders have a public `index.ts`.**
+>   `layer_07_weather/index.ts` and `layer_08_news_osint/index.ts`
+>   were added in the frontend shape cleanup.
+> * **`layer_04_public_military_security/` and
+>   `layer_09_user_shapes/` were intentionally not created.**
+>   Both layers remain `coming_soon` per the layer registry and
+>   should only be created when implementation starts.
+> * **Validation passed:** `pnpm --filter web build`,
+>   `pnpm --filter web test`, `pnpm --filter api build`,
+>   `pnpm --filter api test`, and `python -m pytest tests/data -q`
+>   on a clean tree. The user reported **real backend and database
+>   runtime validation passed** after the frontend closure
+>   cleanup.
+> * **No push, PR, merge, or branch deletion** has been performed.
+>
+> The pre-implementation snapshot content below is preserved
+> unchanged as the audit trail. Do not read it as current truth.
+
+---
+
 **Agent:** Documentation Planning Agent
 
 **Branch:** plan/frontend-layer-canonicalization
@@ -16,7 +57,7 @@
 - `docs/state/RECENT_CONTEXT.md` (added entry, removed oldest)
 - `docs/state/HANDOFF_LOG.md` (appended entry)
 
-## Current Folders Found
+## Current Folders Found (pre-implementation snapshot)
 
 - `apps/web/src/layers/aviation/` (contains `aircraft/`, `airports/`, `.gitkeep`)
 - `apps/web/src/layers/borders/` (contains `useBordersBoundaries.ts`, `.gitkeep`)
@@ -27,9 +68,9 @@
 - `apps/web/src/layers/layer_07_weather/` (already canonical)
 - `apps/web/src/layers/layer_08_news_osint/` (already canonical)
 
-## Target Folders
+## Target Folders (pre-implementation snapshot)
 
-| Current | Target | Status |
+| Current | Target | Status (pre-implementation) |
 |---------|--------|--------|
 | `aviation/` | `layer_01_aviation/` | Rename needed |
 | `borders/` | `layer_02_borders_boundaries/` | Rename needed |

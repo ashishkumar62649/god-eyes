@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-016 Frontend Closure Docs Alignment
+
+- Agent: Documentation Alignment Agent
+- Branch: docs/sr-016/frontend-closure-alignment
+- What changed: Aligned stale Spec 008 workspace docs (README.md, tasks.md, plan.md, frontend-layer-canonicalization-plan.md, frontend-layer-canonicalization-plan-report.md) with the completed frontend reconstruction through SR-015; updated status banners, work package status table, Phase 4 snapshot, recommended-order list, and added a completion addendum to the pre-implementation plan and report; frontend reconstruction is closed from a code/structure perspective.
+- Validation: final layers directory listing PASS (8 canonical folders, 0 old folders); L4/L9 absence checks PASS; all 8 canonical `index.ts` exist PASS; old import grep checks PASS (all 6 old paths returned 0 lines); stale wording re-search PASS; git diff --check PASS; conflict-marker grep PASS; forbidden change check PASS; docs-only scope verified; `pnpm --filter web build` PASS; `pnpm --filter web test` PASS (64 tests); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS; user reported real backend and database runtime validation passed after SR-015.
+- Known issues: None
+- Next: Reviewer Agent reviews SR-016; do not PR yet unless user explicitly decides; after SR-016 review, the user / decision-control layer should decide the next area: API cleanup, integration/full validation package, or PR package planning.
+
 ## 2026-06-16 - SR-015 Final Layer Shape Cleanup
 
 - Agent: Frontend Structure Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: old `layers/space` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests); conflict-marker grep PASS; git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews SR-012; do not PR yet unless user explicitly decides; recommended next task after SR-012 review is SR-014 energy canonicalization.
-
-## 2026-06-16 - SR-013 Maritime Canonicalization
-
-- Agent: Frontend Structure Agent
-- Branch: frontend/sr-013/maritime-canonical-folder
-- What changed: Renamed the frontend maritime layer folder to `layer_06_maritime` via `git mv`; added canonical `index.ts`; recreated the `maritime/` shim folder with `index.ts` re-exporting from the canonical path; updated the 3 active frontend import sites (`App.tsx` × 2, `CesiumGlobe.tsx` × 1). Runtime strings preserved as intentional: `layer_06_maritime` layerId registry values (already canonical), `/api/layers/layer_06_maritime/...` API paths (owned by API Agent), and internal React state/prop names like `maritimeLayerActive` (JS identifiers, not file paths).
-- Validation: old `layers/maritime` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests including the relocated maritime test at `src/layers/layer_06_maritime/__tests__/maritime.test.ts`); conflict-marker grep PASS; git diff --check PASS
-- Known issues: None
-- Next: Reviewer Agent reviews SR-013; do not PR yet unless user explicitly decides; recommended next task after SR-013 review is SR-012 space canonicalization.
