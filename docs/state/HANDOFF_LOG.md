@@ -46,7 +46,73 @@
 - Push/PR/merge status: not performed by agent. Branch is local only.
 - Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
 
-### 2026-06-17T00:00:00Z — api-policy-001-public-api-naming
+### 2026-06-17T01:00:00Z — api-url-001-weather-news-slug-aliases
+
+- Work order: API-URL-001
+- Agent: API Implementation Agent
+- Branch: `api/api-url-001-weather-news-slug-aliases`
+- Parent: `f9763d2 refactor(api): remove pure route shim imports` (API-IMP-001)
+- Reviewer decision: PENDING (agent-only local handoff; no fetcher/normalizer/ingestion/web/services/database/packages changes)
+- Reason: API-POLICY-001 was approved and recorded the public API endpoint naming policy. The user / decision-control layer directed implementation to begin with the first two endpoint groups (Weather and News) using the handler-extraction alias pattern (one handler body, two registrations). API-IMP-001 had already cleaned the import base; this work order builds the first clean public slug aliases without removing the existing layer-ID paths. The aviation / borders / earth-events / space / maritime / energy endpoint groups are intentionally deferred to API-URL-002 in a later work order.
+- Goal: Add the first batch of clean public slug endpoint aliases (Weather + News) without removing any old path, without changing any response shape, and without changing any frontend caller. All old `/api/layers/layer_07_weather/weather/...` and `/api/layers/layer_08_news_osint/news/...` paths continue to work and return the same response shape.
+- Files updated (4):
+  1. `apps/api/src/routes/weather/index.ts` — refactored from inline arrow handler bodies into named const arrow functions (`latestHandler`, `currentHandler`, `hourlyHandler`, `nearbyHandler`, `sourcesHandler`, `fetchRunsHandler`) defined inside `weatherRoutes(...)`, then each function registered under both the legacy path and the new clean path (12 `fastify.get` calls total: 6 old + 6 new). Added module-level `const PUBLIC_SLUG = 'weather';` for the new path strings. Added a header comment listing the 6 new clean aliases and noting that old paths are preserved. The internal `const LAYER_ID = 'layer_07_weather';` is preserved and continues to be used in `meta.layer_id` responses per API-POLICY-001. No service / repository / mapper / validation / types files were modified.
+  2. `apps/api/src/routes/news/index.ts` — same refactor pattern: 5 named const arrow handlers (`itemsHandler`, `markersHandler`, `sourcesHandler`, `fetchRunsHandler`, `statsHandler`) registered under both the legacy path and the new clean path (10 `fastify.get` calls total: 5 old + 5 new). Added `const PUBLIC_SLUG = 'news';`. Added a header comment listing the 5 new clean aliases. The internal `LAYER_ID = 'layer_08_news_osint'` is preserved for `meta.layer_id`. No support files were modified.
+  3. `apps/api/tests/weather.test.ts` — added 7 new alias tests inside the existing `describe('Weather API', ...)` block, right before its closing `});`: `alias.1` parity test (verifies `/api/layers/weather/latest` returns the same top-level shape and same `meta.layer_id` as the legacy path); `alias.2` current; `alias.3` hourly; `alias.4` nearby; `alias.5` sources; `alias.6` fetch-runs; `alias.7` negative test confirming the bad duplicate `/api/layers/weather/weather/latest` returns 404 (slug rule guard). All 51 pre-existing tests still pass unchanged. No test was weakened or removed.
+  4. `apps/api/tests/layer_08_news_osint.test.ts` — added 6 new alias tests in the same style: `alias.1` parity test (verifies `/api/layers/news/items` shape and `meta.layer_id` matches the legacy path); `alias.2` markers; `alias.3` sources (uses existing `MOCK_SOURCE` to satisfy Zod parse); `alias.4` fetch-runs (uses existing `MOCK_FETCH_RUN`); `alias.5` stats (uses the same multi-mock sequence as the existing test 20 so the Zod parse succeeds); `alias.6` negative test confirming the bad duplicate `/api/layers/news/news/items` returns 404. All 60 pre-existing tests still pass unchanged.
+- Weather clean aliases added (6):
+  - `GET /api/layers/weather/latest` (alias for `/api/layers/layer_07_weather/weather/latest`)
+  - `GET /api/layers/weather/current` (alias for `/api/layers/layer_07_weather/weather/current`)
+  - `GET /api/layers/weather/hourly` (alias for `/api/layers/layer_07_weather/weather/hourly`)
+  - `GET /api/layers/weather/nearby` (alias for `/api/layers/layer_07_weather/weather/nearby`)
+  - `GET /api/layers/weather/sources` (alias for `/api/layers/layer_07_weather/weather/sources`)
+  - `GET /api/layers/weather/fetch-runs` (alias for `/api/layers/layer_07_weather/weather/fetch-runs`)
+- News clean aliases added (5):
+  - `GET /api/layers/news/items` (alias for `/api/layers/layer_08_news_osint/news/items`)
+  - `GET /api/layers/news/markers` (alias for `/api/layers/layer_08_news_osint/news/markers`)
+  - `GET /api/layers/news/sources` (alias for `/api/layers/layer_08_news_osint/news/sources`)
+  - `GET /api/layers/news/fetch-runs` (alias for `/api/layers/layer_08_news_osint/news/fetch-runs`)
+  - `GET /api/layers/news/stats` (alias for `/api/layers/layer_08_news_osint/news/stats`)
+- Old paths preserved: yes (all 11 old layer-ID paths still registered, return the same shape, all existing tests for old paths still pass).
+- Endpoint removals: none.
+- Response shapes changed: no (`meta.layer_id` continues to use the internal layer ID per API-POLICY-001; the alias.1 / alias.1 parity tests assert identical top-level shape between old and new paths).
+- Frontend callers changed: no (`apps/web/**` not touched).
+- Fetcher / normalizer / ingestion touched: no.
+- Aviation / borders / earth-events / space / maritime / energy route files touched: no (intentionally out of scope; deferred to API-URL-002 in a later work order).
+- `/api/airports/...` and `/ws/...` paths touched: no.
+- `apps/api/src/routes/objects.ts`, `apps/api/src/routes/space/satellites.ts`, and all support files (service.ts, validation.ts, types.ts, mapper.ts, repository.ts) for weather / news: not touched.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `api/api-url-001-weather-news-slug-aliases` (PASS)
+  - `git branch --show-current` → `api/api-url-001-weather-news-slug-aliases` (PASS)
+  - `git log -16 --oneline` → HEAD = `f9763d2 refactor(api): remove pure route shim imports` (PASS)
+  - `git grep -nE "fastify\.get"` against `apps/api/src/routes/weather/index.ts` → exactly 12 registrations (6 old + 6 new) (PASS)
+  - `git grep -nE "fastify\.get"` against `apps/api/src/routes/news/index.ts` → exactly 10 registrations (5 old + 5 new) (PASS)
+  - `git grep -nE "/api/layers/weather/weather"` against `apps/api` → only test-file references (the negative alias.7 test and its comment); no route registration (PASS)
+  - `git grep -nE "/api/layers/news/news"` against `apps/api` → only test-file references (the negative alias.6 test and its comment); no route registration (PASS)
+  - `git diff -- apps/api/src/routes/{aviation-aircraft,borders-boundaries,earth-events}.ts apps/api/src/routes/{maritime,space,energy,airport-intelligence,airport-layout-features,public-profile,objects}.ts apps/api/src/routes/{live-aircraft,health,layers}.ts` → 0 lines (PASS, scope guard)
+  - `git diff --name-status` → only the 4 allowed files (2 modified source, 2 modified test) (PASS)
+  - `git diff --stat` → 4 files changed, 625 insertions, 362 deletions (PASS; bulk is the handler-extraction refactor inside the two route files)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr` against forbidden patterns (`apps/web/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS)
+  - `cd apps/api; npx vitest run tests/weather.test.ts tests/layer_08_news_osint.test.ts` → 2 files passed (2), 124 tests passed (124): 51 + 7 alias in weather, 60 + 6 alias in news (PASS)
+  - `cd apps/api; npx vitest run` (full API suite) → 18 files passed (18), 539 tests passed (539) — was 526 before; the 13 new alias tests account for the delta (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) (PASS; web build was intentionally skipped to avoid emitting `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the tree)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (docs + endpoint alias diff does not touch frontend code; running web build would emit `vite.config.{d.ts,js}` build artifacts that would dirty the working tree per the API-PLAN-001 experience)
+  - `python -m pytest tests/data -q` → SKIPPED (the diff is not a code change to fetcher / normalizer / ingestion / database. The scope-guard tests would fail on a dirty tree per API-001 / API-PLAN-001 baseline; classified as non-blocking per task instructions)
+- Known issues / caveats:
+  - **No real database runtime validation was performed by this agent.** Only Fastify inject-based tests with mocked `query()` results. The parity test (`alias.1`) confirms that the same handler is called by both old and new paths with the same input, so the response shape is identical by construction.
+  - **`meta.layer_id` is intentionally unchanged.** Per API-POLICY-001, the public API URL surface and the internal layer registry are separate concerns. The internal layer ID continues to appear in response metadata for both old and new paths.
+  - **`API-URL-001` is the first batch only.** Aviation / borders / earth-events / space / maritime / energy endpoint groups are intentionally not addressed in this work order. They are deferred to `API-URL-002` in a later work order per the migration sequence in `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` Section 10.
+  - **Frontend migration is a separate work order (`WEB-API-001`).** Frontend consumers in `apps/web/src/lib/api.ts` and the per-layer `*Api.ts` files were not changed in this work order. They will be migrated in a coordinated work order after `API-URL-002` (or earlier per user direction).
+  - **`public-profile/service.ts:122` TODO marker is unchanged.** The placeholder remains a comment marking a future fetcher integration point, not actual fetcher code. The API boundary remains clean.
+  - **Object route (`apps/api/src/routes/objects/`) was not touched.** It already uses `/api/layers/<layerId>/...` canonical path semantics with internal layer IDs and is out of scope for API-URL-001.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of API-IMP-001 (`f9763d2`) and API-POLICY-001 (`a632a95`).
+- Next step: Reviewer Agent should review API-URL-001. The user / decision-control layer should decide whether to push the branch and open a PR. After API-URL-001 is approved, the next implementation work order is `API-URL-002` (aviation / borders / earth-events / space / maritime / energy clean aliases), or `WEB-API-001` (frontend migration of Weather and News consumers to the new clean slugs), per user / decision-control layer direction. Do not start either implementation work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
 
 - Work order: API-POLICY-001
 - Agent: API Policy Documentation Agent

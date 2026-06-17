@@ -43,6 +43,15 @@ receive the **complete** handoff entry after every completed task.
 - Known issues: None
 - Next: Reviewer Agent reviews API-IMP-001; do not PR yet unless user explicitly decides; after approval, next implementation should be API-URL-001 (clean slug endpoint aliases) or API-IMP-002 (objects shim audit), per user direction.
 
+## 2026-06-17 - API-URL-001 Weather and News Slug Aliases
+
+- Agent: API Implementation Agent
+- Branch: api/api-url-001-weather-news-slug-aliases
+- What changed: Added clean public slug endpoint aliases for the Weather and News layers per API-POLICY-001 (11 new aliases: `/api/layers/weather/{latest,current,hourly,nearby,sources,fetch-runs}` and `/api/layers/news/{items,markers,sources,fetch-runs,stats}`); each handler body was extracted to a named const arrow function inside `weather/index.ts` and `news/index.ts` and registered under both the old `/api/layers/layer_07_weather/weather/...` (or `layer_08_news_osint/news/...`) path and the new clean slug path so old paths continue to work with the same response shape. Old paths were not removed. No response shape changed. `meta.layer_id` continues to use the internal layer ID per the policy. Frontend callers were not changed. Aviation / borders / earth-events / space / maritime / energy route files were not touched. Fetcher / normalizer / ingestion lanes were not touched.
+- Validation: `apps/api/src/routes/weather/index.ts` now has 12 fastify.get registrations (6 old + 6 new) PASS; `apps/api/src/routes/news/index.ts` now has 10 fastify.get registrations (5 old + 5 new) PASS; no `/api/layers/weather/weather/...` or `/api/layers/news/news/...` duplicate paths PASS; `apps/api/tsc` exit 0 PASS; weather.test.ts 58/58 PASS (51 existing + 7 alias); layer_08_news_osint.test.ts 66/66 PASS (60 existing + 6 alias); full API test suite 539/539 PASS (previous 526 + 13 new alias tests); `git diff --check` clean PASS; forbidden change check PASS.
+- Known issues: None
+- Next: Reviewer Agent reviews API-URL-001; do not PR yet unless user explicitly decides; after API-URL-001 review, recommended next work is API-URL-002 (aviation / borders / earth-events / space / maritime / energy clean aliases) or WEB-API-001 (frontend migration to clean slugs), per user / decision-control layer direction.
+
 ## 2026-06-17 - API-POLICY-001 Public API Naming Policy
 
 - Agent: API Policy Documentation Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-delete old shim folder checks PASS (each old folder contained only `index.ts`); pre-delete old import grep checks PASS (all 6 old paths returned 0 lines); canonical folder file listing PASS (all 8 canonical folders contain real source files); final layers directory listing PASS (8 canonical folders, 0 old folders); L4/L9 absence checks PASS; all 8 canonical `index.ts` exist PASS; weather/news index content checks PASS (no tests exported); pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests); conflict-marker grep PASS; git diff --check PASS; forbidden change check PASS.
 - Known issues: None
 - Next: Reviewer Agent reviews SR-015; do not PR yet unless user explicitly decides; after SR-015 review, run website/backend smoke test again, then perform docs closure alignment.
-
-## 2026-06-16 - SR-009 Aviation Canonicalization
-
-- Agent: Frontend Structure Agent
-- Branch: frontend/sr-009/aviation-canonical-folder
-- What changed: Renamed the frontend aviation layer folder to `layer_01_aviation` via `git mv`; preserved the `aircraft/` subfolder (2 files) and `airports/` subfolder (16 files) with all 18 nested files atomic-moved with no content change; added canonical `index.ts` re-exporting all 12 externally-imported public modules via `export *` (no default exports in the folder); recreated the `aviation/` shim folder with `index.ts` re-exporting from the canonical path; updated the 35 active frontend import sites across 16 files (`App.tsx` × 3, `CesiumGlobe.tsx` × 8, `Shell.tsx` × 3, `StatusPanel.tsx`, `AviationDetail.tsx` × 3, `DetailPanelRoot.tsx` × 2, `SourcesSection.tsx`, `detailTypes.ts`, `AirportImageSlider.tsx`, `AirportLayoutOverlayToggle.tsx`, `AirportMapPopup.tsx` × 2, `AirportOverview.tsx`, `AirportPublicProfilePanel.tsx`, `AviationControls.tsx` × 2, `layerPanelTypes.ts` × 2, `lib/api.ts` × 3). Runtime strings preserved as intentional: `layerId: 'layer_01_aviation'` registry value (already canonical), WebSocket URL `/ws/aviation/aircraft/live`, layer registration `'layer_01_aviation.live_aircraft'`, message types (`aircraft.ready/snapshot/delta/error`), API paths `/api/aviation/aircraft/...`, `/api/airports/...`, `/api/layers/layer_01_aviation/...`, `new CustomDataSource('airport-layout')` Cesium data source name, entity id format `airport-${airport.id}`, error messages, UI disclaimer text, source comments, CSS class `legend-marker-airport`, `/aircraft-icons/...` static asset paths, and internal React state/prop names like `aviationLayerActive`/`aviationStats`/`aviationFilters`/`airportCollection`/`airportMap` (JS identifiers, not file paths).
-- Validation: old `layers/aviation` import grep PASS (no output); canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
-- Known issues: None
-- Next: Reviewer Agent reviews SR-009; do not PR yet unless user explicitly decides; recommended next task after SR-009 review is to decide integration/full validation step before API or PR.

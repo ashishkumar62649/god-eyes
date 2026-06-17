@@ -1123,4 +1123,126 @@ describe('Weather API Numeric Coercion', () => {
     const body = JSON.parse(response.body);
     expect(Array.isArray(body.data)).toBe(true);
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-001 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/layers/layer_07_weather/weather/... path. The old paths are
+  // preserved and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/weather/latest returns observations with the same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_OBSERVATIONS);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/latest',
+    });
+
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce(MOCK_OBSERVATIONS);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_07_weather/weather/latest',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    // Both responses must have the same top-level keys and meta.layer_id
+    // must continue to be the internal layer ID per API-POLICY-001.
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.meta.layer_id).toBe('layer_07_weather');
+    expect(legacyBody.meta.layer_id).toBe('layer_07_weather');
+    expect(newPathBody.meta.count).toBe(5);
+  });
+
+  it('alias.2 GET /api/layers/weather/current returns current-shape observations', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_OBSERVATIONS[0]]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/current',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe('layer_07_weather');
+    expect(body.data[0].observation_type).toBe('current');
+  });
+
+  it('alias.3 GET /api/layers/weather/hourly returns hourly-shape observations', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_OBSERVATIONS[1]]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/hourly',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe('layer_07_weather');
+  });
+
+  it('alias.4 GET /api/layers/weather/nearby returns nearby-shape observations', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_OBSERVATIONS[0]]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/nearby?lat=52.0&lon=13.0',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe('layer_07_weather');
+    expect(body.meta.lat).toBe(52.0);
+    expect(body.meta.lon).toBe(13.0);
+  });
+
+  it('alias.5 GET /api/layers/weather/sources returns sources list', async () => {
+    vi.mocked(query).mockResolvedValueOnce([
+      { source_id: 'open-meteo', source_name: 'Open-Meteo', source_url: 'https://open-meteo.com/', licence: 'CC-BY-4.0', attribution: 'Open-Meteo', is_active: true },
+    ]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/sources',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe('layer_07_weather');
+  });
+
+  it('alias.6 GET /api/layers/weather/fetch-runs returns fetch runs list', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_FETCH_RUNS);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/fetch-runs',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.data).toBeDefined();
+    expect(body.meta.layer_id).toBe('layer_07_weather');
+    expect(Array.isArray(body.data)).toBe(true);
+  });
+
+  it('alias.7 The new clean Weather path does not create a duplicated /api/layers/weather/weather/... path', async () => {
+    // Negative test: a duplicated /api/layers/weather/weather/<verb> path must
+    // NOT exist (would 404). This guards the slug rule from accidental
+    // duplication if a future agent re-introduces the `${LAYER_ID}/weather/`
+    // segment under the new slug.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/weather/weather/latest',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });
