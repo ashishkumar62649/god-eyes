@@ -5,12 +5,19 @@ import type {
   NewsSourcesResponse,
   NewsFetchRunsResponse,
 } from '@god-eyes/contracts';
-import { NEWS_LAYER_ID } from './newsTypes';
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:4000';
 
-const BASE = `/api/layers/${NEWS_LAYER_ID}/news`;
+/**
+ * Public slug used in API URLs for the News & OSINT layer (per API-POLICY-001).
+ * The internal layer ID `NEWS_LAYER_ID` is preserved for folder identity,
+ * UI registration, and registry keys — it is intentionally not used in the
+ * public API URL.
+ */
+const NEWS_PUBLIC_SLUG = 'news';
+
+const BASE = `/api/layers/${NEWS_PUBLIC_SLUG}`;
 
 export const NEWS_ITEMS_PATH = `${BASE}/items`;
 export const NEWS_MARKERS_PATH = `${BASE}/markers`;

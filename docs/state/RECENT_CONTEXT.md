@@ -43,6 +43,15 @@ receive the **complete** handoff entry after every completed task.
 - Known issues: None
 - Next: Reviewer Agent reviews API-IMP-001; do not PR yet unless user explicitly decides; after approval, next implementation should be API-URL-001 (clean slug endpoint aliases) or API-IMP-002 (objects shim audit), per user direction.
 
+## 2026-06-17 - WEB-API-001 Weather and News Clean URL Migration
+
+- Agent: Web/API Migration Agent
+- Branch: web/web-api-001-weather-news-clean-url-callers
+- What changed: Migrated Weather and News frontend API request paths to the clean public slugs added in API-URL-001. `apps/web/src/layers/layer_07_weather/weatherApi.ts` now constructs `WEATHER_CURRENT_PATH` from a new module-local `WEATHER_PUBLIC_SLUG = 'weather'` (was constructed from `WEATHER_LAYER_ID = 'layer_07_weather'`); `apps/web/src/layers/layer_08_news_osint/newsApi.ts` constructs `BASE` from `NEWS_PUBLIC_SLUG = 'news'` (was constructed from `NEWS_LAYER_ID = 'layer_08_news_osint'`). Internal layer IDs (`WEATHER_LAYER_ID`, `NEWS_LAYER_ID`) are preserved unchanged for folder identity, UI registration, registry keys, and data-shape fields. The two affected frontend tests (`weather.test.ts` line 112-113 and `news.test.ts` line 101) had their exact-URL assertions updated to the new clean paths. Backend code, backend tests, services, database, packages, and any other endpoint groups (aviation / borders / earth-events / space / maritime / energy) were not touched. Old backend compatibility paths remain registered and available.
+- Validation: `apps/web/tsc --noEmit` exit 0 PASS; frontend test suite 64/64 PASS (3 files); no old frontend request paths in `apps/web/src` (`git grep /api/layers/layer_07_weather/weather` and `/api/layers/layer_08_news_osint/news` both return 0 lines) PASS; clean slug constants `WEATHER_PUBLIC_SLUG` and `NEWS_PUBLIC_SLUG` present and used in both `weatherApi.ts` and `newsApi.ts` PASS; backend diff 0 lines PASS; no unrelated endpoint group URL changes (aviation / borders / earth-events / space / maritime / energy / airports / ws) PASS; `git diff --check` clean PASS; forbidden change check PASS.
+- Known issues: None
+- Next: Reviewer Agent reviews WEB-API-001; do not PR yet unless user explicitly decides; after WEB-API-001 review, recommended next work is API-URL-002 (clean slug endpoint aliases for aviation / borders / earth-events / space / maritime / energy) per user / decision-control layer direction.
+
 ## 2026-06-17 - API-URL-001 Weather and News Slug Aliases
 
 - Agent: API Implementation Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: final layers directory listing PASS (8 canonical folders, 0 old folders); L4/L9 absence checks PASS; all 8 canonical `index.ts` exist PASS; old import grep checks PASS (all 6 old paths returned 0 lines); stale wording re-search PASS; git diff --check PASS; conflict-marker grep PASS; forbidden change check PASS; docs-only scope verified; `pnpm --filter web build` PASS; `pnpm --filter web test` PASS (64 tests); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS; user reported real backend and database runtime validation passed after SR-015.
 - Known issues: None
 - Next: Reviewer Agent reviews SR-016; do not PR yet unless user explicitly decides; after SR-016 review, the user / decision-control layer should decide the next area: API cleanup, integration/full validation package, or PR package planning.
-
-## 2026-06-16 - SR-015 Final Layer Shape Cleanup
-
-- Agent: Frontend Structure Agent
-- Branch: frontend/sr-015/final-layer-shape-cleanup
-- What changed: Removed the 6 temporary old-name shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) after SR-009 reviewer verified they were index-only; added missing public `index.ts` files for the already-canonical `layer_07_weather/` and `layer_08_news_osint/` folders (6 exports each, including the `WeatherLayer` and `NewsLayer` default exports); L4/L9 future-inactive folders were intentionally not created; final `apps/web/src/layers/` shape is now the 8 canonical layer folders only.
-- Validation: pre-delete old shim folder checks PASS (each old folder contained only `index.ts`); pre-delete old import grep checks PASS (all 6 old paths returned 0 lines); canonical folder file listing PASS (all 8 canonical folders contain real source files); final layers directory listing PASS (8 canonical folders, 0 old folders); L4/L9 absence checks PASS; all 8 canonical `index.ts` exist PASS; weather/news index content checks PASS (no tests exported); pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests); conflict-marker grep PASS; git diff --check PASS; forbidden change check PASS.
-- Known issues: None
-- Next: Reviewer Agent reviews SR-015; do not PR yet unless user explicitly decides; after SR-015 review, run website/backend smoke test again, then perform docs closure alignment.

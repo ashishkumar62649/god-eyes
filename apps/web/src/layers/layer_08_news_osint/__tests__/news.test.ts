@@ -98,7 +98,7 @@ describe('News & OSINT Layer (Layer 08) Tests', () => {
       await fetchNewsItems();
       const url = mockFetch.mock.calls[0][0] as string;
       expect(url).toContain(NEWS_ITEMS_PATH);
-      expect(url).toContain(`/api/layers/${NEWS_LAYER_ID}/news/items`);
+      expect(url).toContain('/api/layers/news/items');
       expect(url).not.toContain('gdacs.org');
     });
 

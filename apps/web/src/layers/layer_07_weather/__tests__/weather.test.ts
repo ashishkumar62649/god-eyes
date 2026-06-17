@@ -109,8 +109,8 @@ describe('Weather Layer (Layer 07) Tests', () => {
       await fetchCurrentWeather();
 
       const calledUrl = mockFetch.mock.calls[0][0] as string;
-      expect(WEATHER_CURRENT_PATH).toBe('/api/layers/layer_07_weather/weather/current');
-      expect(calledUrl).toContain('/api/layers/layer_07_weather/weather/current');
+      expect(WEATHER_CURRENT_PATH).toBe('/api/layers/weather/current');
+      expect(calledUrl).toContain('/api/layers/weather/current');
       expect(calledUrl).not.toContain('open-meteo.com');
       expect(calledUrl).not.toContain('api.open-meteo.com');
     });

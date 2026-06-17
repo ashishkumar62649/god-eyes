@@ -46,7 +46,63 @@
 - Push/PR/merge status: not performed by agent. Branch is local only.
 - Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
 
-### 2026-06-17T01:00:00Z — api-url-001-weather-news-slug-aliases
+### 2026-06-17T02:00:00Z — web-api-001-weather-news-clean-url-callers
+
+- Work order: WEB-API-001
+- Agent: Web/API Migration Agent
+- Branch: `web/web-api-001-weather-news-clean-url-callers`
+- Parent: `5876014 feat(api): add weather and news slug route aliases` (API-URL-001)
+- Reviewer decision: PENDING (agent-only local handoff; frontend caller migration only; no backend / services / database / packages / specs changes)
+- Reason: API-URL-001 added clean public slug endpoint aliases for Weather and News while preserving the old layer-ID compatibility paths. This work order proves the end-to-end migration loop: frontend callers move to the clean slug URLs, backend keeps serving both old and new, frontend tests pass, no other endpoint group is touched. The frontend had only two API-caller files (Weather and News); both were migrated in this single small work order. Aviation / borders / earth-events / space / maritime / energy frontend callers are intentionally out of scope and are not migrated in this work order.
+- Goal: Migrate the Weather and News frontend API request paths to the clean public slugs (`/api/layers/weather/...` and `/api/layers/news/...`) without changing internal layer IDs, response parsing, data types, exported function names, or any other frontend code. Backend must not be touched. Old backend paths must remain available.
+- Files updated (4):
+  1. `apps/web/src/layers/layer_07_weather/weatherApi.ts` — Removed `import { WEATHER_LAYER_ID } from './weatherTypes';`. Added module-local `const WEATHER_PUBLIC_SLUG = 'weather';` with a doc comment explaining the boundary between the internal layer ID (folder / UI / registry) and the public slug (URL). Changed `WEATHER_CURRENT_PATH` from `\`/api/layers/${WEATHER_LAYER_ID}/weather/current\`` to `\`/api/layers/${WEATHER_PUBLIC_SLUG}/current\``. Net runtime URL: `GET /api/layers/weather/current`. No other changes (no response parsing, no data types, no exported function names, no fetch call shape, no error handling).
+  2. `apps/web/src/layers/layer_08_news_osint/newsApi.ts` — Removed `import { NEWS_LAYER_ID } from './newsTypes';`. Added module-local `const NEWS_PUBLIC_SLUG = 'news';` with the same boundary comment. Changed `BASE` from `\`/api/layers/${NEWS_LAYER_ID}/news\`` to `\`/api/layers/${NEWS_PUBLIC_SLUG}\``. The 5 derived path constants (`NEWS_ITEMS_PATH`, `NEWS_MARKERS_PATH`, `NEWS_STATS_PATH`, `NEWS_SOURCES_PATH`, `NEWS_FETCH_RUNS_PATH`) now resolve to clean slug URLs. Net runtime URLs: `GET /api/layers/news/{items,markers,stats,sources,fetch-runs}`. No other changes.
+  3. `apps/web/src/layers/layer_07_weather/__tests__/weather.test.ts` — Updated 2 exact-URL assertions at lines 112 and 113 from `/api/layers/layer_07_weather/weather/current` to `/api/layers/weather/current`. All other 21 weather tests were left unchanged. The non-URL assertions that reference `WEATHER_LAYER_ID` (line 52 for mock data `layer_id` field) were preserved — `WEATHER_LAYER_ID` remains the internal layer ID for data shape, registry, and folder identity.
+  4. `apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts` — Updated 1 exact-URL assertion at line 101 from `\`/api/layers/${NEWS_LAYER_ID}/news/items\`` to `/api/layers/news/items`. All other 29 news tests were left unchanged. The non-URL assertions that reference `NEWS_LAYER_ID` (mock data `layer_id` fields and the explicit `expect(NEWS_LAYER_ID).toBe('layer_08_news_osint')` identity test) were preserved — `NEWS_LAYER_ID` remains the internal layer ID.
+- Weather caller migration summary:
+  - `WEATHER_CURRENT_PATH`: `/api/layers/layer_07_weather/weather/current` → `/api/layers/weather/current`
+  - Test assertion `expect(WEATHER_CURRENT_PATH).toBe(...)`: updated to match the new value
+  - Test assertion `expect(calledUrl).toContain(...)`: updated to match the new value
+- News caller migration summary:
+  - `BASE = /api/layers/layer_08_news_osint/news` → `BASE = /api/layers/news`
+  - All 5 derived path constants resolve to the clean slug URL via `BASE`
+  - Test assertion `expect(url).toContain(\`/api/layers/${NEWS_LAYER_ID}/news/items\`)`: updated to hardcoded `/api/layers/news/items` (the prior template literal was redundant with `expect(url).toContain(NEWS_ITEMS_PATH)` already on the prior line, so the hardcoded assertion is no weaker)
+- Backend route changes: none (`git diff -- apps/api` → 0 lines)
+- Old backend paths removed: none (the backend still registers both `/api/layers/layer_07_weather/weather/*` and `/api/layers/weather/*`; the frontend simply now uses the clean path)
+- Response shapes changed: none (backend unchanged; mock test data unchanged)
+- Internal layer IDs removed from UI/registry metadata: no (`WEATHER_LAYER_ID` and `NEWS_LAYER_ID` are still exported and still used for folder identity, import paths, registry entries, mock `layer_id` data fields, and the explicit identity test `expect(NEWS_LAYER_ID).toBe('layer_08_news_osint')`)
+- Unrelated frontend endpoint groups changed: no (aviation / borders / earth-events / space / maritime / energy callers and the `/api/airports/...` and `/ws/...` paths are untouched; `apps/web/src/lib/api.ts` does not contain any Weather or News URL construction so it was not modified)
+- Fetcher / normalizer / ingestion touched: no
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `web/web-api-001-weather-news-clean-url-callers` (PASS)
+  - `git branch --show-current` → `web/web-api-001-weather-news-clean-url-callers` (PASS)
+  - `git log -17 --oneline` → HEAD = `5876014 feat(api): add weather and news slug route aliases` (PASS)
+  - `git grep -nE "/api/layers/layer_07_weather/weather|/api/layers/layer_08_news_osint/news"` against `apps/web/src` → 0 lines (PASS; no remaining old request paths in frontend src)
+  - `git grep -n "WEATHER_PUBLIC_SLUG"` against `apps/web/src` → 2 references in `weatherApi.ts` (the constant declaration and the `WEATHER_CURRENT_PATH` template literal) (PASS)
+  - `git grep -n "NEWS_PUBLIC_SLUG"` against `apps/web/src` → 2 references in `newsApi.ts` (the constant declaration and the `BASE` template literal) (PASS)
+  - `git diff -- apps/api` → 0 lines (PASS; backend untouched)
+  - `git diff --name-only | findstr` against forbidden patterns (`apps/api/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → 0 output (PASS)
+  - `git diff --name-status` → 4 files (2 source + 2 test) (PASS)
+  - `git diff --stat` → 4 files changed, 21 insertions, 7 deletions (small focused diff) (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/web; npx tsc --noEmit` (TypeScript type-check only, no build artifacts) → exit 0 (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) (PASS; no test weakened or removed)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS; backend unchanged but verified)
+  - `cd apps/api; npx vitest run` (= `pnpm --filter api test`) → 18 files passed (18), 539 tests passed (539) (PASS; backend test suite still green)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (no frontend source change beyond URL string constants; running web build would emit `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the working tree per API-PLAN-001 / API-POLICY-001 / API-URL-001 baseline)
+  - `python -m pytest tests/data -q` → SKIPPED (no fetcher / normalizer / ingestion / database change; the dirty-docs scope-guard tests are pre-existing dirty-tree artifacts and not in scope)
+- Known issues / caveats:
+  - **`public-profile/service.ts:122` TODO marker remains unchanged.** This is a future-integration placeholder, not actual fetcher code. The API boundary stays clean.
+  - **Aviation / borders / earth-events / space / maritime / energy callers were intentionally NOT migrated in this work order.** They will be addressed in a separate work order after API-URL-002 adds clean slug aliases for those layers. Per user / decision-control layer direction, this work order proves the migration loop on Weather and News first; the same pattern can then be applied to the remaining endpoint groups in API-URL-002 / WEB-API-002.
+  - **No real backend runtime validation was performed by this agent.** Frontend tests use mocked `fetch()` calls (no live API). The end-to-end migration loop will only be proven end-to-end when the user / decision-control layer runs the dev server and exercises the frontend against the live API. The frontend test suite confirms that the new clean URLs are produced by the frontend and that the test mocks resolve them.
+  - **`apps/web/src/lib/api.ts` was inspected and confirmed not to contain any Weather or News URL construction.** No change was needed there.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of API-URL-001 (`5876014`).
+- Next step: Reviewer Agent should review WEB-API-001. The user / decision-control layer should decide whether to push the branch and open a PR. After WEB-API-001 is approved, the next implementation work order is `API-URL-002` (clean slug endpoint aliases for the remaining 6 endpoint groups: aviation, borders-boundaries, earth-events, space, maritime, energy) followed by `WEB-API-002` (frontend migration of those groups), per the migration sequence in `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` Section 10. Do not start either implementation work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
 
 - Work order: API-URL-001
 - Agent: API Implementation Agent
