@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-17 - API-COMPAT-001 Keep Old Paths as Compatibility Aliases
+
+- Agent: Documentation / API Policy Agent
+- Branch: docs/api-compat-001-keep-old-paths
+- What changed: Locked the compatibility retention decision in the API endpoint path policy (Section 5.1): clean slug URLs (`/api/layers/<slug>/<resource>`) are the official public API; old layer-ID / legacy paths remain supported as compatibility aliases; old path removal is deferred and must only happen under a future explicit user / decision-control decision. Updated `tasks.md` and `plan.md` to mark the full migration sequence (API-IMP-001, API-URL-001, WEB-API-001, API-URL-002, WEB-API-002) as Done and API-COMPAT-001 as the selected decision. No source code changed. No endpoint removals. No frontend caller changes.
+- Validation: branch clean (PASS); git diff --name-status shows 3 docs files (api-endpoint-path-policy.md, tasks.md, plan.md) plus 2 state docs (RECENT_CONTEXT.md, HANDOFF_LOG.md) (PASS); git diff --check clean (PASS); conflict-marker grep clean (PASS); forbidden change check clean (PASS, no apps/, services/, database/, packages/, docs/archive/, docs/control/, CURRENT_PROJECT_STATE, .specify/, .github/, .env, or lockfile paths); pnpm --filter api build PASS; pnpm --filter api test PASS (560/560); pnpm --filter web test PASS (64/64).
+- Known issues: None
+- Next: Reviewer Agent reviews API-COMPAT-001; do not PR yet unless user explicitly decides; after API-COMPAT-001 review, the next decision is PR/merge timing for the full stack (or another cleanup lane per user / decision-control direction).
+
 ## 2026-06-17 - WEB-API-002 Remaining Clean URL Migration
 
 - Agent: Web/API Migration Agent
@@ -69,13 +78,4 @@ receive the **complete** handoff entry after every completed task.
 - Validation: `apps/api/src/routes/weather/index.ts` now has 12 fastify.get registrations (6 old + 6 new) PASS; `apps/api/src/routes/news/index.ts` now has 10 fastify.get registrations (5 old + 5 new) PASS; no `/api/layers/weather/weather/...` or `/api/layers/news/news/...` duplicate paths PASS; `apps/api/tsc` exit 0 PASS; weather.test.ts 58/58 PASS (51 existing + 7 alias); layer_08_news_osint.test.ts 66/66 PASS (60 existing + 6 alias); full API test suite 539/539 PASS (previous 526 + 13 new alias tests); `git diff --check` clean PASS; forbidden change check PASS.
 - Known issues: None
 - Next: Reviewer Agent reviews API-URL-001; do not PR yet unless user explicitly decides; after API-URL-001 review, recommended next work is API-URL-002 (aviation / borders / earth-events / space / maritime / energy clean aliases) or WEB-API-001 (frontend migration to clean slugs), per user / decision-control layer direction.
-
-## 2026-06-17 - API-POLICY-001 Public API Naming Policy
-
-- Agent: API Policy Documentation Agent
-- Branch: docs/api-policy-001-public-api-naming
-- What changed: Recorded the public API endpoint naming policy in `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` (slug map: `layer_07_weather` → `weather`, `layer_08_news_osint` → `news`, `layer_10_energy_infrastructure` → `energy`, etc.); updated `tasks.md` and `plan.md` to mark the "API endpoint path policy decision" entry as Decided instead of Blocked / Needs decision (implementation remains Pending, sequenced as API-IMP-001 → API-URL-001 → WEB-API-001 → API-URL-002 → API-SIZE-001 in the policy doc). Internal layer IDs remain in contracts, registry, internal code, tests, and the database.
-- Validation: branch and working tree clean (PASS); HEAD = `5bcb089`; only the 5 allowed files in `git diff --name-status` (new policy doc + tasks.md + plan.md + RECENT_CONTEXT + HANDOFF_LOG); `git diff --check` PASS; conflict-marker grep PASS; forbidden change check PASS (no apps/, services/, database/, packages/, tests/, docs/archive/, docs/control/, CURRENT_PROJECT_STATE, .specify/, .github/, or lockfiles); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (526/526 tests).
-- Known issues: None
-- Next: Reviewer Agent reviews API-POLICY-001; do not PR yet unless user explicitly decides; after API-POLICY-001 review, the next implementation work order is API-IMP-001 (entrypoint import normalization + pure shim removal) or API-URL-001 (clean slug endpoint aliases), per user / decision-control layer direction.
 - Next: Reviewer Agent reviews SR-016; do not PR yet unless user explicitly decides; after SR-016 review, the user / decision-control layer should decide the next area: API cleanup, integration/full validation package, or PR package planning.

@@ -46,7 +46,57 @@
 - Push/PR/merge status: not performed by agent. Branch is local only.
 - Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
 
-### 2026-06-17T04:00:00Z — web-api-002-remaining-clean-url-callers
+### 2026-06-17T05:00:00Z — api-compat-001-keep-old-paths
+
+- Work order: API-COMPAT-001
+- Agent: Documentation / API Policy Agent
+- Branch: `docs/api-compat-001-keep-old-paths`
+- Parent: `94d3895 refactor(web): use clean remaining layer api urls` (WEB-API-002)
+- Reviewer decision: PENDING (agent-only local handoff; no source code changes; docs / policy only)
+- Reason: The clean public API migration is complete (API-POLICY-001 → API-IMP-001 → API-URL-001 → WEB-API-001 → API-URL-002 → WEB-API-002). The user / decision-control layer has now made the compatibility decision explicit: **keep old paths as compatibility aliases for now**. This work order locks that decision into the active policy and roadmap docs. No source code is changed.
+- Decision recorded: **Keep old API paths as compatibility aliases for now.**
+  - **Clean slug URLs are the official public API.** New frontend code, new API documentation, and any future work order must use the clean slug pattern: `/api/layers/<slug>/<resource>` (e.g. `/api/layers/aviation/aircraft/latest`, `/api/layers/weather/current`, `/api/layers/news/items`, `/api/layers/maritime/objects`).
+  - **Old layer-ID / legacy paths remain supported compatibility aliases** for now. They are registered by the backend and return the same response shape as their clean slug equivalents. They are not preferred. They are kept so any third-party caller, test fixture, or leftover frontend code that still references them continues to work without breakage.
+  - **Old path removal is deferred.** `API-URL-003` (old-path removal) is **Deferred (not selected)** and may only be opened under a future explicit user / decision-control decision.
+  - **Frontend callers must keep using clean slug URLs.** WEB-API-001 and WEB-API-002 have already migrated the frontend's active callers. New frontend code added after this decision must use the clean slug pattern; old compatibility aliases must not be added to any new frontend caller.
+  - **API documentation must present clean slug URLs first.** Compatibility aliases may be mentioned only as a brief note in a "compatibility" section, not as a recommended path.
+  - **Until the user issues a removal decision, tests may continue to assert compatibility.** Backend alias tests (added in API-URL-001 and API-URL-002 under the `alias.N` naming pattern) are valid until the alias is removed. New tests for clean slug endpoints should prefer asserting the clean slug path.
+  - **Approved public slugs (from policy Section 2):** `aviation`, `borders-boundaries`, `earth-events`, `weather`, `news`, `space`, `maritime`, `energy`.
+- Files updated (5):
+  1. `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` — Added a new section **5.1 "Compatibility Alias Decision (locked by API-COMPAT-001)"** immediately after Section 5. The new section documents the locked decision (clean slugs are official; old paths remain as compatibility aliases; old path removal is deferred; `API-URL-003` is deferred). The section lists the compatibility alias examples and the approved slug map. The section's status header cites the work order, branch, and parent commit. Updated the doc footer to record the new "Last updated" date and a note that the doc was originally authored by API-POLICY-001. Existing Sections 1–10, 11, 12 are unchanged.
+  2. `specs/008-structure-remediation-roadmap/tasks.md` — Updated the auxiliary work items entry "API endpoint path policy decision (legacy vs canonical paths)" to list each migration step in the sequence with its status (API-IMP-001 Done, API-URL-001 Done, WEB-API-001 Done, API-URL-002 Done, WEB-API-002 Done, API-COMPAT-001 Done / selected: keep, API-URL-003 Deferred (not selected)). Updated item 6 of the "Remaining recommended order" section to show the same status list. No other work items changed. The legend, the SR-NNN status table, the "Frontend shape cleanup (SR-015 branch)" section, the "SR-016 docs closure alignment" note, and the "Done" caveats section are unchanged.
+  3. `specs/008-structure-remediation-roadmap/plan.md` — Updated the "Needs decision (snapshot)" entry for the API endpoint path policy to say all sequenced work is complete, the user / decision-control layer chose compatibility retention, and `API-URL-003` is deferred. Updated item 2 of the "Recommended execution order" to list the same status sequence. The cross-task summary table, the phase descriptions, the original safe-default 11-step order, and the closing sections are unchanged.
+  4. `docs/state/RECENT_CONTEXT.md` — Added a new top entry `## 2026-06-17 - API-COMPAT-001 Keep Old Paths as Compatibility Aliases` with Agent, Branch, What changed (locked compatibility retention; clean slugs official; old paths remain; no source code; no endpoint removals; no frontend caller changes), Validation (branch clean; diff scope 5 files; diff --check clean; conflict-marker grep clean; forbidden change check clean; pnpm --filter api build PASS; pnpm --filter api test PASS; pnpm --filter web test PASS), Known issues (None), Next (reviewer; do not PR until user decides; recommend PR/merge timing for full stack or another cleanup lane next). Removed the oldest entry (`## 2026-06-17 - API-POLICY-001 Public API Naming Policy`) to keep the rolling window at 5 entries. `HANDOFF_LOG.md` was not affected by the rolling-window rule and remains append-only.
+  5. `docs/state/HANDOFF_LOG.md` — Appended this full handoff entry at the top (append-only).
+- Source code changes: none. `apps/api/`, `apps/web/`, `services/`, `database/`, `packages/`, `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` was edited as the active policy doc, no implementation code was changed. `tests/` were not modified.
+- Endpoint removals: none. All 11 legacy paths from API-URL-001 and API-URL-002 remain registered as compatibility aliases.
+- Frontend caller changes: none.
+- Tests changed: none.
+- Fetcher / normalizer / ingestion touched: no.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `docs/api-compat-001-keep-old-paths` (PASS)
+  - `git branch --show-current` → `docs/api-compat-001-keep-old-paths` (PASS)
+  - `git log -20 --oneline` → HEAD = `94d3895 refactor(web): use clean remaining layer api urls` (PASS)
+  - `git diff --name-status` → exactly 5 files (3 specs + 2 state docs) (PASS)
+  - `git diff --stat` → 5 files changed, small docs-only diff (PASS)
+  - `git diff --check` → no output (PASS)
+  - Forbidden change check (`git diff --name-only | findstr` against `apps/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS, backend unchanged but verified)
+  - `cd apps/api; npx vitest run` (= `pnpm --filter api test`) → 18 files passed (18), 560 tests passed (560) — unchanged (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) — unchanged (PASS)
+  - `python -m pytest tests/data -q` → SKIPPED on dirty docs (would fail the pre-existing scope-guard tests per the API-001 / API-PLAN-001 baseline). Classified as non-blocking per task instructions.
+- Known issues / caveats:
+  - **Policy doc Section 5.1 is a new section, not a replacement.** Section 5 "Compatibility Policy" remains the technical rule set. Section 5.1 records the user-level decision that the technical rules implement: keep. Future removal work orders (e.g. `API-URL-003`) will close Section 5.1 and remove the documented compatibility aliases.
+  - **The rolled-out migration sequence is now complete in the policy doc** (Section 10 implied final state). The sequence remains in the policy as a historical record. Future work orders that close the migration loop would either re-open Section 5.1 (e.g. for a 410 Gone policy) or re-write Section 5.1 to say "removed".
+  - **The new Section 5.1 lists non-exhaustive compatibility alias examples.** The exhaustive list is the union of the legacy paths that existed before API-URL-001 and API-URL-002, plus their clean slug aliases added in those work orders. The Section 5.1 text marks the list as non-exhaustive so future backend changes are not constrained by a frozen enumeration.
+  - **The aviation `/api/layers/layer_01_aviation/objects` paths remain on the legacy internal layer-ID form** because no clean alias was added in API-URL-002 for that endpoint. They are listed in Section 5.1 as a compatibility alias. A future work order could add a clean alias for that endpoint and migrate the frontend if the user wishes.
+  - **No real backend runtime validation was performed by this agent.** This is a docs / policy lock. The end-to-end validation was completed by API-URL-002 (560/560 API tests) and WEB-API-002 (64/64 web tests).
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of WEB-API-002 (`94d3895`).
+- Next step: Reviewer Agent should review API-COMPAT-001. The user / decision-control layer should decide whether to push the branch and open a PR. After API-COMPAT-001 is approved, the next decision is PR/merge timing for the full stack (decide whether to push all stacked branches and open a single PR for the completed work package, or handle them in another order). Alternatively, the user may direct the next cleanup lane (e.g. `API-SIZE-001` for large file responsibility review, the `CesiumGlobe` split planning, or the missing package ownership row decision). Do not start any further work order until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
 
 - Work order: WEB-API-002
 - Agent: Web/API Migration Agent

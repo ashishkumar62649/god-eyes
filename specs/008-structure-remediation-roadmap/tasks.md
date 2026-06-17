@@ -107,7 +107,14 @@ not delete them.
   Frontend Phase 4 is closed, so this auxiliary item is complete
   from a frontend perspective.
 * API route file-shape normalization (final review pass) — **Pending**.
-* API endpoint path policy decision (legacy vs canonical paths) — **Decided** by API-POLICY-001 (commit on branch `docs/api-policy-001-public-api-naming`, parent `5bcb089`); the decision is recorded in the new file `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` (slug map, preferred future URL shape, compatibility policy, API folder naming policy, shim policy, file-size policy, API boundary policy, migration sequence). **Implementation remains Pending** and is sequenced as `API-IMP-001` (entrypoint import normalization + pure shim removal) → `API-URL-001` (clean slug aliases alongside old paths) → `WEB-API-001` (frontend migration) → `API-URL-002` (remove or formally keep old aliases after real runtime validation) → `API-SIZE-001` (split only on responsibility mixing).
+* API endpoint path policy decision (legacy vs canonical paths) — **Decided** by API-POLICY-001 (commit on branch `docs/api-policy-001-public-api-naming`, parent `5bcb089`); the decision is recorded in the new file `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md` (slug map, preferred future URL shape, compatibility policy, API folder naming policy, shim policy, file-size policy, API boundary policy, migration sequence). **Implementation sequenced and complete**:
+  - `API-IMP-001` (entrypoint import normalization + pure shim removal) — **Done** (commit `f9763d2` on branch `api/api-imp-001-import-shim-cleanup`).
+  - `API-URL-001` (clean slug aliases for Weather and News alongside old paths) — **Done** (commit `5876014` on branch `api/api-url-001-weather-news-slug-aliases`).
+  - `WEB-API-001` (frontend migration for Weather and News) — **Done** (commit `e85aea9` on branch `web/web-api-001-weather-news-clean-url-callers`).
+  - `API-URL-002` (clean slug aliases for the remaining 6 endpoint groups) — **Done** (commit `8002bcf` on branch `api/api-url-002-remaining-slug-aliases`).
+  - `WEB-API-002` (frontend migration for the remaining 6 endpoint groups) — **Done** (commit `94d3895` on branch `web/web-api-002-remaining-clean-url-callers`).
+  - `API-COMPAT-001` (compatibility alias decision) — **Done / selected: keep** (commit on branch `docs/api-compat-001-keep-old-paths`, parent `94d3895`); the user / decision-control layer has chosen to **keep old paths as compatibility aliases for now**. The compatibility retention is locked into the policy doc Section 5.1.
+  - `API-URL-003` (old-path removal) — **Deferred (not selected)**. May only be opened under a future explicit user / decision-control decision.
 * `TODO` / deprecated marker cleanup in renamed layer folders — **Pending**.
 * `CesiumGlobe` split planning — **Planned later**.
 * Missing package ownership row decision in `PROJECT_CONTROL.md` Part 2 §8 — **Blocked / Needs decision**.
@@ -144,6 +151,19 @@ The remaining open work items are documented above:
    layer registry, and internal code. Existing paths remain
    working until migration. Implementation is sequenced in the
    policy doc (Section 10).
+   - `API-IMP-001` — **Done**.
+   - `API-URL-001` (Weather + News aliases) — **Done**.
+   - `WEB-API-001` (Weather + News frontend migration) — **Done**.
+   - `API-URL-002` (aviation / borders / earth-events / space /
+     maritime / energy aliases) — **Done**.
+   - `WEB-API-002` (remaining 6 groups frontend migration) — **Done**.
+   - `API-COMPAT-001` (compatibility alias decision) — **Done /
+     selected: keep**. User / decision-control layer has chosen to
+     keep old paths as compatibility aliases for now. The retention
+     is locked into the policy doc Section 5.1.
+   - `API-URL-003` (old-path removal) — **Deferred (not selected)**.
+     May only be opened under a future explicit user /
+     decision-control decision.
 
 > The order above is a recommendation. It is intentionally
 > **policy / decision / cleanup items grouped together** since

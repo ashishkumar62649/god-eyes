@@ -81,11 +81,18 @@ at the top of `tasks.md`.
   `5bcb089`). The full decision is recorded at
   `specs/008-structure-remediation-roadmap/api-endpoint-path-policy.md`.
   Public API URLs use clean readable slugs; internal layer-number
-  IDs are not exposed in public URLs; existing paths remain
-  working until migration; implementation is sequenced as
+  IDs are not exposed in public URLs. Implementation is sequenced as
   `API-IMP-001` -> `API-URL-001` -> `WEB-API-001` -> `API-URL-002` ->
-  `API-SIZE-001`. **Implementation status remains Pending**; the
-  decision itself is no longer blocked.
+  `API-SIZE-001`. **All sequenced work is complete** as of `94d3895`
+  (WEB-API-002 on `web/web-api-002-remaining-clean-url-callers`,
+  parent `8002bcf`). The user / decision-control layer has now chosen
+  the compatibility retention option: the old layer-ID / legacy
+  paths remain supported compatibility aliases for now. This is
+  locked in by work order `API-COMPAT-001` on branch
+  `docs/api-compat-001-keep-old-paths` and recorded in the policy
+  doc Section 5.1. `API-URL-003` (old-path removal) is **deferred
+  (not selected)** and may only be opened under a future explicit
+  user / decision-control decision.
 
 ### Planned later (snapshot)
 
@@ -994,6 +1001,28 @@ The recommended **execution order** for any remaining work is:
    IDs are not exposed in public URLs. Existing paths remain
    working until migration. Implementation is sequenced in the
    policy doc (Section 10).
+   - `API-IMP-001` — **Done** (commit `f9763d2` on branch
+     `api/api-imp-001-import-shim-cleanup`).
+   - `API-URL-001` (Weather + News aliases) — **Done** (commit
+     `5876014` on branch `api/api-url-001-weather-news-slug-aliases`).
+   - `WEB-API-001` (Weather + News frontend migration) — **Done**
+     (commit `e85aea9` on branch
+     `web/web-api-001-weather-news-clean-url-callers`).
+   - `API-URL-002` (aviation / borders / earth-events / space /
+     maritime / energy aliases) — **Done** (commit `8002bcf` on
+     branch `api/api-url-002-remaining-slug-aliases`).
+   - `WEB-API-002` (remaining 6 groups frontend migration) —
+     **Done** (commit `94d3895` on branch
+     `web/web-api-002-remaining-clean-url-callers`).
+   - `API-COMPAT-001` (compatibility alias decision) — **Done /
+     selected: keep** (commit on branch
+     `docs/api-compat-001-keep-old-paths`, parent `94d3895`); the
+     user / decision-control layer has chosen to **keep old paths
+     as compatibility aliases for now**. The retention is locked
+     into the policy doc Section 5.1.
+   - `API-URL-003` (old-path removal) — **Deferred (not selected)**.
+     May only be opened under a future explicit user /
+     decision-control decision.
 3. **API route file-shape normalization** — final review pass for
    consistency across the five split routes.
 4. **`TODO` / deprecated marker cleanup** — sweep in renamed

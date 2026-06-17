@@ -233,6 +233,126 @@ removes an existing path.
 
 ---
 
+## 5.1 Compatibility Alias Decision (locked by API-COMPAT-001)
+
+> **Status:** Locked by work order **API-COMPAT-001** on branch
+> `docs/api-compat-001-keep-old-paths` (parent `94d3895`).
+> **Source docs:** this file (Section 5 rules above), `tasks.md`,
+> `plan.md`, `docs/state/HANDOFF_LOG.md`, `docs/state/RECENT_CONTEXT.md`.
+> **Implementation:** docs / policy only. No source code changed.
+
+The clean public API migration is complete:
+
+* **API-URL-001** and **WEB-API-001** delivered the clean Weather and
+  News public slug endpoints and migrated the frontend to them.
+* **API-URL-002** and **WEB-API-002** delivered the clean slug
+  endpoints for the remaining six endpoint groups
+  (aviation, borders-boundaries, earth-events, space, maritime,
+  energy) and migrated the frontend to them.
+
+The user / decision-control layer has now made the compatibility
+decision explicit. The locked policy is:
+
+1. **Clean slug URLs are the official public API.** New frontend
+   code, new API documentation, and any future work order must use
+   the clean slug pattern:
+
+   ```
+   /api/layers/<slug>/<resource>
+   ```
+
+   Approved public slugs (from Section 2):
+
+   * `aviation`
+   * `borders-boundaries`
+   * `earth-events`
+   * `weather`
+   * `news`
+   * `space`
+   * `maritime`
+   * `energy`
+
+2. **Old layer-ID / legacy paths remain supported compatibility
+   aliases for now.** They are registered by the backend and return
+   the same response shape as their clean slug equivalents. They are
+   not preferred. They are not advertised. They are kept so that any
+   third-party caller, test fixture, or leftover frontend code that
+   still references them continues to work without breakage.
+
+   Examples of paths that remain registered as compatibility aliases
+   (non-exhaustive; the full set is the union of the old paths that
+   existed before API-URL-001 and API-URL-002, plus their clean slug
+   aliases added in those work orders):
+
+   * `/api/aviation/aircraft/latest` and
+     `/api/aviation/aircraft/:sourceObjectId`
+   * `/api/borders-boundaries/countries`
+   * `/api/earth-events/latest`
+   * `/api/layers/layer_01_aviation/weather/<verb>` (the legacy
+     aviation objects endpoints have no clean alias and remain on
+     the old internal layer-ID path)
+   * `/api/space/satellites`, `/api/space/satellites/categories`,
+     `/api/space/satellites/:satelliteId`
+   * `/api/layers/layer_06_maritime/<verb>` (4 paths: objects,
+     objects/:objectId, stats, vessels/:mmsi/positions)
+   * `/api/energy/infrastructure`,
+     `/api/energy/infrastructure/categories`,
+     `/api/energy/infrastructure/sources`,
+     `/api/energy/infrastructure/:featureId`
+   * `/api/layers/layer_07_weather/weather/<verb>` (Weather legacy)
+   * `/api/layers/layer_08_news_osint/news/<verb>` (News legacy)
+
+3. **Frontend callers must keep using clean slug URLs.** WEB-API-001
+   and WEB-API-002 have already migrated the frontend's active
+   callers. New frontend code added after this decision must use the
+   clean slug pattern. Old compatibility aliases must not be added to
+   any new frontend caller. Frontend tests that previously asserted
+   old paths have been updated; any new frontend test that targets a
+   clean endpoint must assert the clean slug path.
+
+4. **API documentation must present clean slug URLs first.** Any new
+   or updated API documentation, README section, or example must
+   use the clean slug pattern. The compatibility aliases should be
+   mentioned only as a brief note in a "compatibility" section, not
+   as a recommended path.
+
+5. **Old path removal is deferred.** No old compatibility alias may
+   be removed without a future explicit user / decision-control
+   decision. If the user later decides to remove old aliases, that
+   work must happen under a separate explicit work order
+   (`API-URL-003` in the migration sequence in Section 10). The
+   current decision is **keep**. `API-URL-003` is **deferred until
+   explicitly chosen**.
+
+6. **API-URL-003 status:** **Deferred (not selected).** It remains on
+   the optional cleanup list. It will be re-evaluated only if the
+   user / decision-control layer issues a new decision.
+
+7. **Until the user issues a removal decision, tests may continue to
+   assert compatibility.** Backend alias tests (added in API-URL-001
+   and API-URL-002 under the `alias.N` naming pattern) and any frontend
+   test that exercises a compatibility alias are valid until the
+   alias is removed. New tests for clean slug endpoints should
+   prefer asserting the clean slug path.
+
+8. **A future removal work order must follow Section 5 rules 1–5.**
+   Specifically: the removal of any old path must happen in a
+   separate work order; it must not be combined with the introduction
+   of the clean slug replacement (the introduction is already in
+   `API-URL-001` / `API-URL-002`); the frontend migration must have
+   completed (it has, in `WEB-API-001` / `WEB-API-002`); the user /
+   decision-control layer must have issued an explicit removal
+   decision; and the removal work order must update the alias tests
+   to assert the absence of the old path (or to assert a 410 Gone
+   response, if a `410` policy is later chosen).
+
+This section is the binding compatibility decision. It supersedes
+any earlier wording in `tasks.md` and `plan.md` that implied the old
+paths would be removed automatically. The old paths are now
+**compatibility aliases** until the user explicitly removes them.
+
+---
+
 ## 6. API Folder Naming Policy
 
 API route folders should describe **domain purpose**, not internal
@@ -429,6 +549,7 @@ Additional sequencing notes:
 
 ---
 
-**Last updated:** 2026-06-17 (initial recording per API-POLICY-001)
+**Last updated:** 2026-06-17 (compatibility alias decision locked by API-COMPAT-001)
+**Originally authored:** 2026-06-17 (initial recording per API-POLICY-001)
 **Author:** API Policy Documentation Agent
 **Maintained by:** Orchestrator Agent
