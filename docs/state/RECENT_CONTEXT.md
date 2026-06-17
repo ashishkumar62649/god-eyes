@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-16 - SR-015 Final Layer Shape Cleanup
+
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-015/final-layer-shape-cleanup
+- What changed: Removed the 6 temporary old-name shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) after SR-009 reviewer verified they were index-only; added missing public `index.ts` files for the already-canonical `layer_07_weather/` and `layer_08_news_osint/` folders (6 exports each, including the `WeatherLayer` and `NewsLayer` default exports); L4/L9 future-inactive folders were intentionally not created; final `apps/web/src/layers/` shape is now the 8 canonical layer folders only.
+- Validation: pre-delete old shim folder checks PASS (each old folder contained only `index.ts`); pre-delete old import grep checks PASS (all 6 old paths returned 0 lines); canonical folder file listing PASS (all 8 canonical folders contain real source files); final layers directory listing PASS (8 canonical folders, 0 old folders); L4/L9 absence checks PASS; all 8 canonical `index.ts` exist PASS; weather/news index content checks PASS (no tests exported); pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests); conflict-marker grep PASS; git diff --check PASS; forbidden change check PASS.
+- Known issues: None
+- Next: Reviewer Agent reviews SR-015; do not PR yet unless user explicitly decides; after SR-015 review, run website/backend smoke test again, then perform docs closure alignment.
+
 ## 2026-06-16 - SR-009 Aviation Canonicalization
 
 - Agent: Frontend Structure Agent
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: old `layers/maritime` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS (64 tests including the relocated maritime test at `src/layers/layer_06_maritime/__tests__/maritime.test.ts`); conflict-marker grep PASS; git diff --check PASS
 - Known issues: None
 - Next: Reviewer Agent reviews SR-013; do not PR yet unless user explicitly decides; recommended next task after SR-013 review is SR-012 space canonicalization.
-
-## 2026-06-16 - SR-011 Earth-Events Canonicalization
-
-- Agent: Frontend Structure Agent
-- Branch: frontend/sr-011/earth-events-canonical-folder
-- What changed: Renamed the frontend earth-events layer folder to `layer_03_earth_events` via `git mv`; added canonical `index.ts`; recreated the `earth-events/` shim folder with `index.ts` re-exporting from the canonical path; updated the 5 active frontend import sites. Runtime strings (`CesiumGlobe.tsx` `new CustomDataSource('earth-events')` data source identifier; `lib/api.ts` `/api/earth-events/latest` API path) preserved as intentional.
-- Validation: old `layers/earth-events` import grep PASS; canonical import grep PASS; runtime string review complete; pnpm --filter web build PASS; pnpm --filter web test PASS; conflict-marker grep PASS; git diff --check PASS
-- Known issues: None
-- Next: Reviewer Agent reviews SR-011; do not PR yet unless user explicitly decides; recommended next task after SR-011 review is SR-013 maritime canonicalization.

@@ -1,4 +1,138 @@
 
+### 2026-06-16T05:00:00Z — sr-015-final-layer-shape-cleanup
+
+- Work order: SR-015
+- Agent: Frontend Structure Agent
+- Branch: frontend/sr-015/final-layer-shape-cleanup
+- Base stack: SR-009 `6231b1f` on top of SR-014 `90c3056` on top of SR-012 `ead0cfb` on top of SR-013 `5f5d075` on top of SR-011 `e28bf38` on top of SR-021 `63792bb` on top of SR-010S `2b23bd9` on top of SR-020 `a87f2d7` on top of SR-019 `d746c0a` (stacked on `main` `6c9e4fd`); local-only, no upstream
+- Reviewer decision: PENDING (agent-only local frontend structure handoff; no docs/control or spec changes)
+- Reason: SR-015 is a frontend structure clarity pass after the per-layer rename batch (SR-009..SR-014). The rename batch intentionally created temporary compatibility shim folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) so old import paths could continue to resolve during migration. After the SR-009 reviewer verified all 6 shim folders were index-only and the user manually smoke-tested the website and backend with everything working, the shims are no longer needed and only add visual clutter. This task removes them and standardizes the active canonical layer folder shape. It also adds the missing public `index.ts` files for the two already-canonical folders (`layer_07_weather/` and `layer_08_news_osint/`) that were never given an index during the rename batch.
+- Goal: Make `apps/web/src/layers/` clean and understandable. Remove the 6 temporary old-name shim folders completely. Add the missing public `index.ts` files for the 2 already-canonical folders. Do not create L4/L9 future-inactive folders.
+- Files deleted (6):
+  1. `apps/web/src/layers/aviation/index.ts` — old aviation shim, content `export * from '../layer_01_aviation';`
+  2. `apps/web/src/layers/borders/index.ts` — old borders shim, content `export * from '../layer_02_borders_boundaries';`
+  3. `apps/web/src/layers/earth-events/index.ts` — old earth-events shim, content `export * from '../layer_03_earth_events';`
+  4. `apps/web/src/layers/space/index.ts` — old space shim, content `export * from '../layer_05_space_satellites';`
+  5. `apps/web/src/layers/maritime/index.ts` — old maritime shim, content `export * from '../layer_06_maritime';`
+  6. `apps/web/src/layers/energy/index.ts` — old energy shim, content `export * from '../layer_10_energy_infrastructure';`
+  Each of these shim folders contained exactly one tracked file (the `index.ts`) and zero active import references (verified by `git grep` returning 0 lines for all 6 old paths across `apps packages tests` before deletion). The empty shim folders were removed from disk after `git rm` via `Remove-Item -Recurse -Force`.
+- Files added (2):
+  1. `apps/web/src/layers/layer_07_weather/index.ts` — new public index for the already-canonical Weather layer. Content (UTF-8 no BOM):
+     ```ts
+     export * from './useWeather';
+     export * from './weatherTypes';
+     export * from './weatherDetail';
+     export * from './weatherMarker';
+     export * from './weatherApi';
+     export { default as WeatherLayer } from './WeatherLayer';
+     ```
+     (5 named-export re-exports via `export *` + 1 default-export re-export via `export { default as ... }` because `export *` does not re-export default exports; the `__tests__/weather.test.ts` test file is intentionally NOT re-exported.)
+  2. `apps/web/src/layers/layer_08_news_osint/index.ts` — new public index for the already-canonical News/OSINT layer. Content (UTF-8 no BOM):
+     ```ts
+     export * from './useNews';
+     export * from './newsTypes';
+     export * from './newsDetail';
+     export * from './newsMarker';
+     export * from './newsApi';
+     export { default as NewsLayer } from './NewsLayer';
+     ```
+     (5 named-export re-exports via `export *` + 1 default-export re-export via `export { default as ... }`; the `__tests__/news.test.ts` test file is intentionally NOT re-exported.)
+- Weather public modules exported (6):
+  1. `./useWeather` — the public hook (`useWeather`, `UseWeatherResult`).
+  2. `./weatherTypes` — the public types module (`WeatherRenderItem`, `WEATHER_LAYER_ID`, `WEATHER_ATTRIBUTION`, `mapObservationToRenderItem`, `mapObservationsToRenderItems`).
+  3. `./weatherDetail` — the public detail/formatter module (`degreesToCardinal`, `formatMeasurement`, `formatWindDirection`, `formatTimestamp`, `formatCondition`).
+  4. `./weatherMarker` — the public marker module (`TemperatureBucket`, `getTemperatureBucket`, `TEMPERATURE_BUCKET_COLORS`, `TEMPERATURE_BUCKET_LABELS`, `TEMPERATURE_LEGEND`, `getTemperatureColor`, `getWeatherMarkerImage`, `WEATHER_BILLBOARD_SCALE`).
+  5. `./weatherApi` — the public API module (`WEATHER_CURRENT_PATH`, `WeatherCurrentParams`, `fetchCurrentWeather`).
+  6. `./WeatherLayer` — the public layer component (default export; re-exported as `WeatherLayer` named export).
+- News/OSINT public modules exported (6):
+  1. `./useNews` — the public hook (`useNews`, `UseNewsResult`).
+  2. `./newsTypes` — the public types module (`NewsItem`, `NewsMarkerItem`, `NewsStatsResponse`, `NewsSourceItem`, `NewsFetchRunItem`, `NewsRenderMarker`, `NewsFilterState`, `DEFAULT_NEWS_FILTERS`, `NEWS_SEVERITY_LEVELS`, `NEWS_SEVERITY_COLORS`, `NEWS_LAYER_ID`, `NEWS_ATTRIBUTION`, `mapMarkerToRenderItem`, `mapMarkersToRenderItems`, `mapNewsItemToRenderItem`).
+  3. `./newsDetail` — the public detail/formatter module (`formatNewsTimestamp`, `formatNewsSeverity`, `formatNewsCountry`, `orDash`).
+  4. `./newsMarker` — the public marker module (`NEWS_BILLBOARD_SCALE`, `getNewsMarkerColor`, `getNewsMarkerImage`).
+  5. `./newsApi` — the public API module (`NEWS_ITEMS_PATH`, `NEWS_MARKERS_PATH`, `NEWS_STATS_PATH`, `NEWS_SOURCES_PATH`, `NEWS_FETCH_RUNS_PATH`, `NewsItemsParams`, `NewsMarkersParams`, `fetchNewsItems`, `fetchNewsMarkers`, `fetchNewsStats`, `fetchNewsSources`, `fetchNewsFetchRuns`).
+  6. `./NewsLayer` — the public layer component (default export; re-exported as `NewsLayer` named export).
+- Final layer folder structure (`apps/web/src/layers/`):
+  ```
+  layer_01_aviation/                 (19 files: 18 source + index.ts)
+  layer_02_borders_boundaries/       (2 files: useBordersBoundaries.ts + index.ts)
+  layer_03_earth_events/             (2 files: useEarthEvents.ts + index.ts)
+  layer_05_space_satellites/         (5 files: 4 source + index.ts)
+  layer_06_maritime/                 (6 files: 5 source + index.ts)
+  layer_07_weather/                  (8 files: 7 source + index.ts [NEW])
+  layer_08_news_osint/               (8 files: 7 source + index.ts [NEW])
+  layer_10_energy_infrastructure/    (5 files: 4 source + index.ts)
+  ```
+  Old plain-name folders (`aviation/`, `borders/`, `earth-events/`, `space/`, `maritime/`, `energy/`) are completely removed from disk and from the index.
+- L4/L9 not created: `apps/web/src/layers/layer_04_public_military_security/` and `apps/web/src/layers/layer_09_user_shapes/` were intentionally NOT created. Both layers remain `coming_soon` per the layer registry and should not have folders until implementation starts.
+- Files intentionally not touched:
+  - `apps/api/**` — out of scope; SR-015 is frontend-only.
+  - `packages/**` — out of scope.
+  - `services/**` — out of scope.
+  - `database/**` — out of scope.
+  - `tests/data/**` — out of scope.
+  - `docs/archive/**` — out of scope.
+  - `docs/control/**` — out of scope.
+  - `specs/**` — out of scope.
+  - `.specify/**` — out of scope.
+  - `.github/**` — out of scope.
+  - Lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`) — out of scope.
+  - `.env` files — out of scope.
+  - All 8 canonical layer source files — only the 2 new `index.ts` files were added; no source logic was changed.
+  - `App.tsx`, `CesiumGlobe.tsx`, `lib/api.ts` — out of scope (forbidden by the task).
+  - All component files — out of scope.
+  - No active import paths were updated; the existing imports from `apps/web/src/...` continue to use the per-file paths (e.g. `'./layers/layer_07_weather/useWeather'`), and the new `index.ts` files are available for future use.
+  - No runtime strings were changed.
+  - No `.gitkeep` files were removed (none existed in the 6 old shim folders; they were removed during SR-021).
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `frontend/sr-015/final-layer-shape-cleanup` (PASS)
+  - `git log -11 --oneline` → confirmed stack `6231b1f → 90c3056 → ead0cfb → 5f5d075 → e28bf38 → 63792bb → 2b23bd9 → a87f2d7 → d746c0a → 6c9e4fd → 364a5f8` (PASS)
+  - Pre-delete `git ls-files apps/web/src/layers/aviation` → `apps/web/src/layers/aviation/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/borders` → `apps/web/src/layers/borders/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/earth-events` → `apps/web/src/layers/earth-events/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/space` → `apps/web/src/layers/space/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/maritime` → `apps/web/src/layers/maritime/index.ts` only (PASS, index-only)
+  - Pre-delete `git ls-files apps/web/src/layers/energy` → `apps/web/src/layers/energy/index.ts` only (PASS, index-only)
+  - Pre-delete `git grep -n "layers/aviation" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/borders" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/earth-events" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/space" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/maritime" -- apps packages tests` → 0 lines (PASS)
+  - Pre-delete `git grep -n "layers/energy" -- apps packages tests` → 0 lines (PASS)
+  - Canonical folder file listing → all 8 canonical folders contain real source files (PASS)
+  - Pre-create `Test-Path "apps/web/src/layers/layer_07_weather/index.ts"` → `False` (PASS, did not exist)
+  - Pre-create `Test-Path "apps/web/src/layers/layer_08_news_osint/index.ts"` → `False` (PASS, did not exist)
+  - Weather exports inspection → 5 named-export modules + 1 default-export module identified (PASS)
+  - News/OSINT exports inspection → 5 named-export modules + 1 default-export module identified (PASS)
+  - `git rm` of 6 old shim index.ts files → succeeded (PASS)
+  - `Remove-Item` of 6 empty old shim folders → all removed (PASS, `Test-Path` returns `False` for all 6)
+  - `WriteAllText` to create Weather and News/OSINT canonical `index.ts` files → both files created with UTF-8 no BOM (PASS)
+  - Final layers directory listing → 8 canonical folders only, 0 old folders (PASS)
+  - `Test-Path "apps/web/src/layers/layer_04_public_military_security"` → `False` (PASS, L4 not created)
+  - `Test-Path "apps/web/src/layers/layer_09_user_shapes"` → `False` (PASS, L9 not created)
+  - All 8 canonical `index.ts` existence checks → all `True` (PASS)
+  - Weather `index.ts` content check → 5 `export *` lines + 1 `export { default as WeatherLayer }` line; no test re-exports (PASS)
+  - News/OSINT `index.ts` content check → 5 `export *` lines + 1 `export { default as NewsLayer }` line; no test re-exports (PASS)
+  - `git diff --name-status` → only the expected paths (6 D + 2 A + 2 M) (PASS)
+  - `git diff --stat` → confirms scope is small (10 files, 22 insertions, 8 deletions) (PASS)
+  - `git diff --check` → no output (PASS)
+  - `git diff --name-only | findstr /R "^apps/api/ ^packages/ ^services/ ^database/ ^tests/data/ ^docs/archive/ ^docs/control/ ^specs/ ^.specify/ ^.github/ ^.env pnpm-lock.yaml package-lock.json yarn.lock"` → no output (PASS, no forbidden areas or lockfiles)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `pnpm --filter web build` → succeeded (PASS, 111 modules transformed, ~900ms)
+  - `pnpm --filter web test` → succeeded (PASS, 3 test files, 64 tests)
+  - `git diff --cached --name-status` → 10 expected paths: 6 D + 2 A + 2 M (PASS)
+  - `git diff --cached --stat` → confirms scope is exactly 10 files (PASS)
+  - `git diff --cached --check` → no output (PASS)
+  - `git log -1 --oneline` (post-commit) → `e2d4f8b refactor(web): finalize canonical layer folder shape` (PASS)
+  - `git log --oneline -12` (post-commit) → stack confirmed (PASS)
+- Known issues / caveats:
+  - **`python -m pytest tests/data -q` intentionally not run.** This is a pre-existing known behaviour: the suite is known to fail on unrelated dirty-worktree scope guards while `apps/web` paths are dirty, regardless of whether the changes are intentional. Documented in the original SR-010 commit body, the SR-010S, SR-011, SR-012, SR-013, SR-014, SR-009, and now this SR-015 handoff entry as a validation caveat. The task explicitly says to run it later during clean integration/full validation. No regression is introduced.
+  - The `apps/web/src/...` files continue to import from the per-file paths (e.g. `'./layers/layer_07_weather/useWeather'`). The new `index.ts` files are available for future consolidation but are not used by any current import. This is intentional per the task's "Do not change existing imports just to use the new index files" rule.
+  - `apps/web/src/lib/api.ts`, `apps/web/src/components/SearchCommand.tsx`, and a few other files contain source comments with words like "energy", "maritime", "aviation" (e.g. `'aviation objects'`, `Failed to fetch aviation objects:`, `Failed to fetch live aircraft:`, `Failed to fetch energy infrastructure:`). These are runtime error message strings and source comments; they are not import paths and were intentionally not changed.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of the SR-009 local commit (`frontend/sr-009/aviation-canonical-folder`, commit `6231b1f`), the SR-014 local commit (`frontend/sr-014/energy-canonical-folder`, commit `90c3056`), the SR-012 local commit (`frontend/sr-012/space-canonical-folder`, commit `ead0cfb`), the SR-013 local commit (`frontend/sr-013/maritime-canonical-folder`, commit `5f5d075`), the SR-011 local commit (`frontend/sr-011/earth-events-canonical-folder`, commit `e28bf38`), the SR-021 local commit (`chore/sr-021-retry-remove-redundant-gitkeep`, commit `63792bb`), the SR-010S local commit (`frontend/sr-010s-restack-borders-canonical-folder`, commit `2b23bd9`), the SR-020 local commit (`docs/sr-020-refresh-spec-008-status`, commit `a87f2d7`), and the SR-019 local commit (`docs/sr-019-resolve-constitution-conflict`, commit `d746c0a`).
+- Next step: Reviewer Agent should review SR-015 before docs closure alignment. The user / decision-control layer should decide whether to push the full stacked branch (SR-019 → SR-020 → SR-010S → SR-021 → SR-011 → SR-013 → SR-012 → SR-014 → SR-009 → SR-015) to remote and open PRs. After SR-015 is reviewed, the recommended next steps are: (1) run the website/backend smoke test again to confirm the new Weather/News index files do not break anything, (2) run the full integration validation (including `python -m pytest tests/data -q` on a clean tree), (3) perform docs closure alignment (Spec 008 status update, project state refresh).
+
+---
+
 ### 2026-06-16T04:00:00Z — sr-009-aviation-canonical-folder
 
 - Work order: SR-009
