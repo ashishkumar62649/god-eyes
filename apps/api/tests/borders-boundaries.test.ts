@@ -337,4 +337,47 @@ describe('Borders & Boundaries API', () => {
       caveat: expect.stringContaining('MVP/local/dev only'),
     });
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-002 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/borders-boundaries/countries path. The old paths are preserved
+  // and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/borders-boundaries/countries returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SOURCE);
+    vi.mocked(query).mockResolvedValueOnce(MOCK_FEATURES);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/borders-boundaries/countries',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce(MOCK_SOURCE);
+    vi.mocked(query).mockResolvedValueOnce(MOCK_FEATURES);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/borders-boundaries/countries',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.meta.count).toBe(legacyBody.meta.count);
+    expect(newPathBody.features.length).toBe(legacyBody.features.length);
+  });
+
+  it('alias.2 The new clean Borders-boundaries path does not create a duplicated /api/layers/borders-boundaries/borders-boundaries/... path', async () => {
+    // Negative test: a duplicated /api/layers/borders-boundaries/borders-boundaries/...
+    // path must NOT exist (would 404). This guards the slug rule from accidental
+    // duplication.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/borders-boundaries/borders-boundaries/countries',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });

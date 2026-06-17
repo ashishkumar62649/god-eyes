@@ -803,4 +803,99 @@ describe('Energy Infrastructure API', () => {
       expect(source.homepage).toBeDefined();
     }
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-002 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/energy/infrastructure/... path. The old paths are preserved
+  // and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/energy/infrastructure returns same shape as the legacy path', async () => {
+    vi.mocked(query)
+      .mockResolvedValueOnce([{ count: 1 }])
+      .mockResolvedValueOnce([MOCK_FEATURES[0]])
+      .mockResolvedValueOnce([]);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/energy/infrastructure',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query)
+      .mockResolvedValueOnce([{ count: 1 }])
+      .mockResolvedValueOnce([MOCK_FEATURES[0]])
+      .mockResolvedValueOnce([]);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/energy/infrastructure',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.metadata.layerId).toBe(legacyBody.metadata.layerId);
+    expect(newPathBody.features.length).toBe(legacyBody.features.length);
+  });
+
+  it('alias.2 GET /api/layers/energy/infrastructure/categories returns the categories endpoint', async () => {
+    vi.mocked(query).mockResolvedValueOnce([]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/energy/infrastructure/categories',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.layerId).toBe('layer_10_energy_infrastructure');
+  });
+
+  it('alias.3 GET /api/layers/energy/infrastructure/sources returns the sources endpoint', async () => {
+    vi.mocked(query).mockResolvedValueOnce([]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/energy/infrastructure/sources',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.metadata.layerId).toBe('layer_10_energy_infrastructure');
+  });
+
+  it('alias.4 GET /api/layers/energy/infrastructure/:featureId returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_FEATURES[0]]);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/energy/infrastructure/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce([MOCK_FEATURES[0]]);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/energy/infrastructure/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.feature.id).toBe(legacyBody.feature.id);
+  });
+
+  it('alias.5 The new clean Energy path does not create a duplicated /api/layers/energy/energy/... path', async () => {
+    // Negative test: a duplicated /api/layers/energy/energy/<verb> path must
+    // NOT exist (would 404). This guards the slug rule from accidental
+    // duplication.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/energy/energy/infrastructure',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });

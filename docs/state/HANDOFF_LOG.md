@@ -46,7 +46,98 @@
 - Push/PR/merge status: not performed by agent. Branch is local only.
 - Next step: Reviewer Agent should review API-IMP-001. After approval, the next implementation work order is `API-URL-001` (clean slug endpoint aliases alongside old paths) or `API-IMP-002` (objects shim audit), per user / decision-control layer direction.
 
-### 2026-06-17T02:00:00Z — web-api-001-weather-news-clean-url-callers
+### 2026-06-17T03:00:00Z — api-url-002-remaining-slug-aliases
+
+- Work order: API-URL-002
+- Agent: API Implementation Agent
+- Branch: `api/api-url-002-remaining-slug-aliases`
+- Parent: `e85aea9 refactor(web): use clean weather and news api urls` (WEB-API-001)
+- Reviewer decision: PENDING (agent-only local handoff; no fetcher/normalizer/ingestion/web/services/database/packages/specs changes)
+- Reason: API-POLICY-001 was approved and recorded the public API endpoint naming policy. API-URL-001 added clean slug aliases for Weather and News (which WEB-API-001 then proved the migration loop on). API-URL-002 continues the implementation by adding clean slug aliases for the remaining 6 endpoint groups: aviation, borders-boundaries, earth-events, space, maritime, energy. All old layer-ID / domain paths remain registered and continue to work. The frontend is intentionally NOT migrated in this work order; that is a separate WEB-API-002 work order after API-URL-002 is reviewed.
+- Goal: Add clean public slug endpoint aliases for the remaining 6 endpoint groups while preserving the existing legacy paths. No response shape changes. No frontend callers changed. No fetcher / normalizer / ingestion touched.
+- Files updated (12):
+  1. `apps/api/src/routes/aviation-aircraft.ts` — Refactored from inline arrow handler bodies into 2 named const arrow functions (`latestHandler`, `detailHandler`) registered under both the legacy `/api/aviation/aircraft/<verb>` paths and the new clean slug paths `/api/layers/aviation/aircraft/<verb>`. Added module-level `const LAYER_ID = 'layer_01_aviation';` and `const PUBLIC_SLUG = 'aviation';`. No service / repository / mapper / validation / types files were modified.
+  2. `apps/api/src/routes/borders-boundaries.ts` — Refactored to a single named const arrow handler (`countriesHandler`) registered under both `/api/borders-boundaries/countries` and `/api/layers/borders-boundaries/countries`. Added `LAYER_ID = 'layer_02_borders_boundaries'` and `PUBLIC_SLUG = 'borders-boundaries'`. No support files touched.
+  3. `apps/api/src/routes/earth-events.ts` — Refactored to a single named const arrow handler (`latestHandler`) registered under both `/api/earth-events/latest` and `/api/layers/earth-events/latest`. Added `LAYER_ID = 'layer_03_earth_events'` and `PUBLIC_SLUG = 'earth-events'`. No support files touched.
+  4. `apps/api/src/routes/space/satellites/index.ts` — Refactored 3 REST handlers (`listHandler`, `categoriesHandler`, `detailHandler`) registered under both the legacy domain paths (`/api/space/satellites`, `/api/space/satellites/categories`, `/api/space/satellites/:satelliteId`) and the new clean slug paths (`/api/layers/space/satellites`, `/api/layers/space/satellites/categories`, `/api/layers/space/satellites/:satelliteId`). Added `const PUBLIC_SLUG = 'space';`. The WebSocket broadcaster in `apps/api/src/routes/space/satellites.ts` was intentionally NOT touched (per Spec 008 SR-005C and the work order). No service / repository / mapper / validation / types files were modified.
+  5. `apps/api/src/routes/maritime/index.ts` — Refactored 4 handlers (`listHandler`, `detailHandler`, `statsHandler`, `positionsHandler`) registered under both the legacy `/api/layers/layer_06_maritime/<verb>` paths and the new clean slug paths `/api/layers/maritime/<verb>`. Added `const PUBLIC_SLUG = 'maritime';`. The internal `LAYER_ID = 'layer_06_maritime'` is preserved for `meta.layerId` and for the `objects/:objectId` URL param validation. No service / validation / mapper / types files were modified.
+  6. `apps/api/src/routes/energy/infrastructure/index.ts` — Refactored 4 handlers (`listHandler`, `categoriesHandler`, `sourcesHandler`, `detailHandler`) registered under both the legacy `/api/energy/infrastructure/<verb>` paths and the new clean slug paths `/api/layers/energy/infrastructure/<verb>`. Added `const PUBLIC_SLUG = 'energy';`. The internal `LAYER_ID = 'layer_10_energy_infrastructure'` is preserved for `meta.layerId` responses. No service / validation / mapper / types files were modified.
+  7-12. Per-group test files (`aviation-aircraft.test.ts`, `borders-boundaries.test.ts`, `earth-events.test.ts`, `space-satellites.test.ts`, `maritime.test.ts`, `energy-infrastructure.test.ts`) — added a total of 21 new alias tests inside the existing `describe(...)` blocks: (a) at least one `alias.N` parity test per group that compares the new clean slug path response shape to the legacy path response shape; (b) at least one `alias.N` per-alias test for every new clean slug alias added; (c) one negative `alias.N` test per group confirming the bad duplicate `/api/layers/<slug>/<slug>/...` path returns 404 (slug-rule guard). All pre-existing tests unchanged. No test was weakened or removed.
+- Aliases added by group (12 in total):
+  - **Aviation (2):**
+    - `GET /api/layers/aviation/aircraft/latest` (alias for `/api/aviation/aircraft/latest`)
+    - `GET /api/layers/aviation/aircraft/:sourceObjectId` (alias for `/api/aviation/aircraft/:sourceObjectId`)
+  - **Borders-boundaries (1):**
+    - `GET /api/layers/borders-boundaries/countries` (alias for `/api/borders-boundaries/countries`)
+  - **Earth-events (1):**
+    - `GET /api/layers/earth-events/latest` (alias for `/api/earth-events/latest`)
+  - **Space (3):**
+    - `GET /api/layers/space/satellites` (alias for `/api/space/satellites`)
+    - `GET /api/layers/space/satellites/categories` (alias for `/api/space/satellites/categories`)
+    - `GET /api/layers/space/satellites/:satelliteId` (alias for `/api/space/satellites/:satelliteId`)
+  - **Maritime (4):**
+    - `GET /api/layers/maritime/objects` (alias for `/api/layers/layer_06_maritime/objects`)
+    - `GET /api/layers/maritime/objects/:objectId` (alias for `/api/layers/layer_06_maritime/objects/:objectId`)
+    - `GET /api/layers/maritime/stats` (alias for `/api/layers/layer_06_maritime/stats`)
+    - `GET /api/layers/maritime/vessels/:mmsi/positions` (alias for `/api/layers/layer_06_maritime/vessels/:mmsi/positions`)
+  - **Energy (1, plus 3 existing categories / sources / detail):**
+    - `GET /api/layers/energy/infrastructure` (alias for `/api/energy/infrastructure`)
+    - `GET /api/layers/energy/infrastructure/categories` (alias for `/api/energy/infrastructure/categories`)
+    - `GET /api/layers/energy/infrastructure/sources` (alias for `/api/energy/infrastructure/sources`)
+    - `GET /api/layers/energy/infrastructure/:featureId` (alias for `/api/energy/infrastructure/:featureId`)
+- Old paths preserved: yes. All 11 legacy paths are still registered and all pre-existing tests for them still pass.
+- Endpoint removals: none.
+- Response shapes changed: no. `meta.layerId` continues to use the internal layer ID per API-POLICY-001 (e.g. `layer_02_borders_boundaries` for borders, `layer_10_energy_infrastructure` for energy, etc.). Each `alias.1` parity test asserts identical top-level shape between the legacy and new paths.
+- Frontend callers changed: no. `apps/web/**` not touched.
+- Fetcher / normalizer / ingestion touched: no.
+- Aviation / borders / earth-events / space / maritime / energy support files (service / validation / mapper / types / repository) touched: no. The 6 route index.ts files were modified in-place using the same pattern as API-URL-001.
+- WebSocket paths touched: no. `/ws/aviation/aircraft/live` and `/ws/space/satellites/live` remain unchanged. `apps/api/src/routes/live-aircraft.ts` and the WebSocket portion of `apps/api/src/routes/space/satellites.ts` were intentionally not modified in this work order.
+- `/api/airports/...` paths touched: no.
+- Weather / News alias paths touched: no. `apps/api/src/routes/weather/index.ts` and `apps/api/src/routes/news/index.ts` were not modified.
+- Validation:
+  - `git status --short --branch` (pre-edit) → clean working tree on `api/api-url-002-remaining-slug-aliases` (PASS)
+  - `git branch --show-current` → `api/api-url-002-remaining-slug-aliases` (PASS)
+  - `git log -18 --oneline` → HEAD = `e85aea9 refactor(web): use clean weather and news api urls` (PASS)
+  - Pre-edit route inventory:
+    - `apps/api/src/routes/aviation-aircraft.ts` → 2 fastify.get registrations (legacy domain paths)
+    - `apps/api/src/routes/borders-boundaries.ts` → 1 fastify.get registration (legacy domain path)
+    - `apps/api/src/routes/earth-events.ts` → 1 fastify.get registration (legacy domain path)
+    - `apps/api/src/routes/space/satellites/index.ts` → 3 fastify.get registrations (legacy domain paths); WebSocket in `space/satellites.ts` (untouched)
+    - `apps/api/src/routes/maritime/index.ts` → 4 fastify.get registrations (legacy `/api/layers/layer_06_maritime/...` paths)
+    - `apps/api/src/routes/energy/infrastructure/index.ts` → 4 fastify.get registrations (legacy domain paths)
+  - Post-edit route registration counts (alias additions beside legacy):
+    - `aviation-aircraft.ts` → 4 fastify.get registrations (2 old + 2 new)
+    - `borders-boundaries.ts` → 2 fastify.get registrations (1 old + 1 new)
+    - `earth-events.ts` → 2 fastify.get registrations (1 old + 1 new)
+    - `space/satellites/index.ts` → 6 fastify.get registrations (3 old + 3 new); WebSocket in `space/satellites.ts` unchanged
+    - `maritime/index.ts` → 8 fastify.get registrations (4 old + 4 new)
+    - `energy/infrastructure/index.ts` → 8 fastify.get registrations (4 old + 4 new)
+  - `git grep /api/layers/<slug>/<slug>` (bad duplicate paths) → only test-file references for negative assertions; no route registration produces them (PASS)
+  - `git grep /ws/` against `apps/api/src` → unchanged (2 `index.ts` matches for upgrade dispatcher log lines + 1 each in `live-aircraft.ts` and `space/satellites.ts` for upgrade handler; no `ws` path added, removed, or renamed) (PASS)
+  - `git diff -- apps/web services database packages specs docs/control` → 0 lines (PASS; all other lanes untouched)
+  - `git diff --name-status` → exactly 12 files (6 source routes + 6 tests); docs added at staging (PASS)
+  - `git diff --stat` → 12 files changed, 752 insertions, 437 deletions (PASS)
+  - `git diff --check` → no output (PASS)
+  - Forbidden change check (`git diff --name-only | findstr` against `apps/web/`, `services/`, `database/`, `packages/`, `specs/`, `docs/archive/`, `docs/control/`, `docs/state/CURRENT_PROJECT_STATE.md`, `.specify/`, `.github/`, `.env`, lockfiles) → no output (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → no output (PASS)
+  - `cd apps/api; npx tsc` (= `pnpm --filter api build`) → exit 0 (PASS)
+  - `cd apps/api; npx vitest run` (full API suite) → 18 files passed (18), 560 tests passed (560) — was 539; +21 alias tests (PASS)
+  - `cd apps/web; npx vitest run` (= `pnpm --filter web test`) → 3 files passed (3), 64 tests passed (64) — unchanged (PASS)
+  - `cd apps/web; npx tsc -b` (= `pnpm --filter web build`) → SKIPPED intentionally (no frontend source change; running web build would emit `apps/web/vite.config.{d.ts,js}` build side-effect files that would dirty the working tree per the API-IMP-001 / API-POLICY-001 / API-URL-001 / WEB-API-001 baseline)
+  - `python -m pytest tests/data -q` → SKIPPED on dirty docs (would fail the pre-existing scope-guard tests per the API-001 / API-PLAN-001 / API-URL-001 / WEB-API-001 baseline). Classified as non-blocking per task instructions. The diff does not touch any code path that would affect the Python data test suite.
+- Known issues / caveats:
+  - **Aviation folder test overlap.** `apps/api/tests/objects.test.ts`, `preload.test.ts`, `production-hardening.test.ts`, `smoke.test.ts` use the URL pattern `/api/layers/layer_01_aviation/objects` (with internal layer ID). These paths are registered by `apps/api/src/routes/objects/index.ts`, not by `apps/api/src/routes/aviation-aircraft.ts`. The aviation-aircraft work in this order does not affect them. Future work to add clean slug aliases for the objects route is out of scope and must be a separate work order.
+  - **Maritime has 4 legacy paths.** All 4 are registered (objects list, objects detail, stats, vessels positions). All 4 received clean slug aliases.
+  - **Space has 3 REST legacy paths.** All 3 received clean slug aliases. The `/categories` subpath is registered before `/:satelliteId` to avoid param capture. WebSocket is intentionally NOT aliased.
+  - **Energy has 4 legacy paths.** All 4 received clean slug aliases (list, categories, sources, detail). The `/categories` and `/sources` subpaths are registered before `/:featureId` to avoid param capture.
+  - **Frontend migration is intentionally NOT in this work order.** WEB-API-002 is the next work order per the policy doc migration sequence (Section 10). The 6 frontend API-caller files (in `apps/web/src/lib/api.ts` and the per-layer `useXxx.ts` hook files) will be migrated using the same `WEATHER_PUBLIC_SLUG` / `NEWS_PUBLIC_SLUG` pattern proven by WEB-API-001.
+  - **`public-profile/service.ts:122` TODO marker is unchanged.** This is a future-integration placeholder, not actual fetcher code. The API boundary stays clean.
+  - **No real backend runtime validation was performed by this agent.** Frontend and API tests use mocked `fetch()` / `query()` results. The end-to-end migration loop will only be proven end-to-end when the user / decision-control layer runs the dev server and exercises the frontend against the live API.
+- Push/PR/merge status: not performed by agent. Branch is local only. Stacked on top of WEB-API-001 (`e85aea9`).
+- Next step: Reviewer Agent should review API-URL-002. The user / decision-control layer should decide whether to push the branch and open a PR. After API-URL-002 is approved, the next implementation work order is `WEB-API-002` (frontend migration of aviation, borders-boundaries, earth-events, space, maritime, energy frontend callers to the clean slugs added in this work order). Do not start WEB-API-002 until the user explicitly approves it. Do not push, open PR, merge, or delete this branch unless the user explicitly decides.
+
+---
+
 
 - Work order: WEB-API-001
 - Agent: Web/API Migration Agent

@@ -5,6 +5,9 @@ import {
   ErrorCodes,
 } from '@god-eyes/contracts';
 
+const LAYER_ID = 'layer_02_borders_boundaries';
+const PUBLIC_SLUG = 'borders-boundaries';
+
 const DEFAULT_LIMIT = 250;
 const MAX_LIMIT = 500;
 const DEFAULT_SOURCE_ID = 'natural_earth_admin0_50m';
@@ -93,201 +96,215 @@ interface BorderBoundaryRow {
   geometry: Record<string, unknown>;
 }
 
+// HTTP route handlers for Layer 02 — Borders & Boundaries. No SQL, no business logic here.
+//
+// Clean public slug aliases added per API-POLICY-001:
+//   /api/layers/borders-boundaries/countries  (alias for /api/borders-boundaries/countries)
+//
+// Old paths remain registered for compatibility and are not removed in this work order.
+
 export async function bordersBoundariesRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Querystring: BordersBoundariesQuerystring }>(
-    '/api/borders-boundaries/countries',
-    async (request, reply) => {
-      const { limit: rawLimit, bbox: rawBbox, source_id: rawSourceId, simplify: rawSimplify } = request.query;
+  // The handler is defined once and registered under both the legacy domain
+  // path and the new clean public slug path. meta.layerId continues to use
+  // the internal layer ID per API-POLICY-001.
 
-      // Validate limit
-      const parsedLimit = parseLimit(rawLimit);
-      if (parsedLimit.error) {
-        reply.code(400);
-        return {
-          error: {
-            code: parsedLimit.error.code,
-            message: parsedLimit.error.message,
-            details: { provided: rawLimit },
-          },
-        };
-      }
-      const limit = parsedLimit.value;
+  const countriesHandler = async (request: any, reply: any) => {
+    const { limit: rawLimit, bbox: rawBbox, source_id: rawSourceId, simplify: rawSimplify } = request.query;
 
-      // Validate simplify
-      const parsedSimplify = parseSimplify(rawSimplify);
-      if (parsedSimplify.error) {
-        reply.code(400);
-        return {
-          error: {
-            code: parsedSimplify.error.code,
-            message: parsedSimplify.error.message,
-            details: { provided: rawSimplify },
-          },
-        };
-      }
-      const simplify = parsedSimplify.value;
-
-      // Validate bbox
-      let bbox: BBox | null = null;
-      if (rawBbox !== undefined && rawBbox !== '') {
-        bbox = parseBbox(rawBbox);
-        if (!bbox) {
-          reply.code(400);
-          return {
-            error: {
-              code: ErrorCodes.INVALID_BBOX,
-              message: 'Invalid bbox format. Expected: minLon,minLat,maxLon,maxLat. Valid ranges: lon [-180,180], lat [-90,90].',
-              details: { provided: rawBbox },
-            },
-          };
-        }
-      }
-
-      // Validate source_id
-      const sourceId = (rawSourceId !== undefined && rawSourceId !== '') ? rawSourceId : DEFAULT_SOURCE_ID;
-      if (!/^[a-zA-Z0-9_-]+$/.test(sourceId)) {
-        reply.code(400);
-        return {
-          error: {
-            code: ErrorCodes.INVALID_QUERY,
-            message: 'Invalid source_id. Must contain only alphanumeric characters, hyphens, and underscores.',
-            details: { provided: rawSourceId },
-          },
-        };
-      }
-
-      // Check database
-      const dbStatus = await checkDatabaseStatus();
-      if (dbStatus.status === 'offline') {
-        reply.code(503);
-        return {
-          error: {
-            code: ErrorCodes.DATABASE_OFFLINE,
-            message: 'Database is not available.',
-            details: {},
-          },
-        };
-      }
-
-      // Get source name
-      let sourceName: string | null = null;
-      try {
-        const sourceRows = await query<SourceRow>(
-          'SELECT source_id AS "sourceId", source_name AS "sourceName" FROM border_boundary_sources WHERE source_id = $1',
-          [sourceId]
-        );
-        if (sourceRows.length > 0) {
-          sourceName = sourceRows[0].sourceName;
-        }
-      } catch {
-        // Source lookup failure is non-fatal; sourceName stays null
-      }
-
-      // Build query
-      const conditions: string[] = [];
-      const params: unknown[] = [];
-      let paramIndex = 1;
-
-      conditions.push('b.boundary_type = $' + paramIndex++);
-      params.push('country_boundary');
-
-      conditions.push('b.admin_level = $' + paramIndex++);
-      params.push(0);
-
-      conditions.push('b.source_id = $' + paramIndex++);
-      params.push(sourceId);
-
-      if (bbox) {
-        conditions.push('ST_Intersects(b.geometry, ST_MakeEnvelope($' + paramIndex + ', $' + (paramIndex + 1) + ', $' + (paramIndex + 2) + ', $' + (paramIndex + 3) + ', 4326))');
-        params.push(bbox.minLon, bbox.minLat, bbox.maxLon, bbox.maxLat);
-        paramIndex += 4;
-      }
-
-      const whereClause = 'WHERE ' + conditions.join(' AND ');
-
-      const geometryExpr = simplify > 0
-        ? 'ST_AsGeoJSON(ST_SimplifyPreserveTopology(b.geometry, $' + paramIndex++ + '))::json AS geometry'
-        : 'ST_AsGeoJSON(b.geometry)::json AS geometry';
-
-      const sql = `
-        SELECT
-          b.id,
-          b.layer_id AS "layerId",
-          b.source_id AS "sourceId",
-          b.source_object_id AS "sourceObjectId",
-          b.boundary_type AS "boundaryType",
-          b.boundary_level AS "boundaryLevel",
-          b.admin_level AS "adminLevel",
-          b.country_iso2 AS "countryIso2",
-          b.country_iso3 AS "countryIso3",
-          b.name,
-          b.display_name AS "displayName",
-          b.disputed,
-          b.india_sensitive AS "indiaSensitive",
-          b.india_compliance_status AS "indiaComplianceStatus",
-          ${geometryExpr}
-        FROM border_boundaries b
-        ${whereClause}
-        ORDER BY b.display_name NULLS LAST, b.name
-        LIMIT $${paramIndex}
-      `;
-
-      if (simplify > 0) {
-        params.push(simplify);
-      }
-      params.push(limit);
-
-      // Execute query
-      let rows: BorderBoundaryRow[];
-      try {
-        rows = await query<BorderBoundaryRow>(sql, params);
-      } catch {
-        reply.code(500);
-        return {
-          error: {
-            code: ErrorCodes.INTERNAL_ERROR,
-            message: 'An internal error occurred while fetching border boundaries.',
-            details: {},
-          },
-        };
-      }
-
-      const features = rows.map((row) => ({
-        type: 'Feature' as const,
-        id: row.id,
-        geometry: row.geometry,
-        properties: {
-          id: row.id,
-          layerId: row.layerId,
-          sourceId: row.sourceId,
-          sourceObjectId: row.sourceObjectId,
-          boundaryType: row.boundaryType,
-          boundaryLevel: row.boundaryLevel,
-          adminLevel: row.adminLevel,
-          countryIso2: row.countryIso2,
-          countryIso3: row.countryIso3,
-          name: row.name,
-          displayName: row.displayName,
-          disputed: row.disputed,
-          indiaSensitive: row.indiaSensitive,
-          indiaComplianceStatus: row.indiaComplianceStatus,
+    // Validate limit
+    const parsedLimit = parseLimit(rawLimit);
+    if (parsedLimit.error) {
+      reply.code(400);
+      return {
+        error: {
+          code: parsedLimit.error.code,
+          message: parsedLimit.error.message,
+          details: { provided: rawLimit },
         },
-      }));
-
-      return BordersBoundariesFeatureCollectionSchema.parse({
-        type: 'FeatureCollection',
-        features,
-        meta: {
-          count: features.length,
-          limit,
-          sourceId,
-          sourceName,
-          mvpLocalDevOnly: true,
-          productionApproved: false,
-          indiaCompliant: false,
-          caveat: CAVEAT,
-        },
-      });
+      };
     }
-  );
+    const limit = parsedLimit.value;
+
+    // Validate simplify
+    const parsedSimplify = parseSimplify(rawSimplify);
+    if (parsedSimplify.error) {
+      reply.code(400);
+      return {
+        error: {
+          code: parsedSimplify.error.code,
+          message: parsedSimplify.error.message,
+          details: { provided: rawSimplify },
+        },
+      };
+    }
+    const simplify = parsedSimplify.value;
+
+    // Validate bbox
+    let bbox: BBox | null = null;
+    if (rawBbox !== undefined && rawBbox !== '') {
+      bbox = parseBbox(rawBbox);
+      if (!bbox) {
+        reply.code(400);
+        return {
+          error: {
+            code: ErrorCodes.INVALID_BBOX,
+            message: 'Invalid bbox format. Expected: minLon,minLat,maxLon,maxLat. Valid ranges: lon [-180,180], lat [-90,90].',
+            details: { provided: rawBbox },
+          },
+        };
+      }
+    }
+
+    // Validate source_id
+    const sourceId = (rawSourceId !== undefined && rawSourceId !== '') ? rawSourceId : DEFAULT_SOURCE_ID;
+    if (!/^[a-zA-Z0-9_-]+$/.test(sourceId)) {
+      reply.code(400);
+      return {
+        error: {
+          code: ErrorCodes.INVALID_QUERY,
+          message: 'Invalid source_id. Must contain only alphanumeric characters, hyphens, and underscores.',
+          details: { provided: rawSourceId },
+        },
+      };
+    }
+
+    // Check database
+    const dbStatus = await checkDatabaseStatus();
+    if (dbStatus.status === 'offline') {
+      reply.code(503);
+      return {
+        error: {
+          code: ErrorCodes.DATABASE_OFFLINE,
+          message: 'Database is not available.',
+          details: {},
+        },
+      };
+    }
+
+    // Get source name
+    let sourceName: string | null = null;
+    try {
+      const sourceRows = await query<SourceRow>(
+        'SELECT source_id AS "sourceId", source_name AS "sourceName" FROM border_boundary_sources WHERE source_id = $1',
+        [sourceId]
+      );
+      if (sourceRows.length > 0) {
+        sourceName = sourceRows[0].sourceName;
+      }
+    } catch {
+      // Source lookup failure is non-fatal; sourceName stays null
+    }
+
+    // Build query
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    conditions.push('b.boundary_type = $' + paramIndex++);
+    params.push('country_boundary');
+
+    conditions.push('b.admin_level = $' + paramIndex++);
+    params.push(0);
+
+    conditions.push('b.source_id = $' + paramIndex++);
+    params.push(sourceId);
+
+    if (bbox) {
+      conditions.push('ST_Intersects(b.geometry, ST_MakeEnvelope($' + paramIndex + ', $' + (paramIndex + 1) + ', $' + (paramIndex + 2) + ', $' + (paramIndex + 3) + ', 4326))');
+      params.push(bbox.minLon, bbox.minLat, bbox.maxLon, bbox.maxLat);
+      paramIndex += 4;
+    }
+
+    const whereClause = 'WHERE ' + conditions.join(' AND ');
+
+    const geometryExpr = simplify > 0
+      ? 'ST_AsGeoJSON(ST_SimplifyPreserveTopology(b.geometry, $' + paramIndex++ + '))::json AS geometry'
+      : 'ST_AsGeoJSON(b.geometry)::json AS geometry';
+
+    const sql = `
+      SELECT
+        b.id,
+        b.layer_id AS "layerId",
+        b.source_id AS "sourceId",
+        b.source_object_id AS "sourceObjectId",
+        b.boundary_type AS "boundaryType",
+        b.boundary_level AS "boundaryLevel",
+        b.admin_level AS "adminLevel",
+        b.country_iso2 AS "countryIso2",
+        b.country_iso3 AS "countryIso3",
+        b.name,
+        b.display_name AS "displayName",
+        b.disputed,
+        b.india_sensitive AS "indiaSensitive",
+        b.india_compliance_status AS "indiaComplianceStatus",
+        ${geometryExpr}
+      FROM border_boundaries b
+      ${whereClause}
+      ORDER BY b.display_name NULLS LAST, b.name
+      LIMIT $${paramIndex}
+    `;
+
+    if (simplify > 0) {
+      params.push(simplify);
+    }
+    params.push(limit);
+
+    // Execute query
+    let rows: BorderBoundaryRow[];
+    try {
+      rows = await query<BorderBoundaryRow>(sql, params);
+    } catch {
+      reply.code(500);
+      return {
+        error: {
+          code: ErrorCodes.INTERNAL_ERROR,
+          message: 'An internal error occurred while fetching border boundaries.',
+          details: {},
+        },
+      };
+    }
+
+    const features = rows.map((row) => ({
+      type: 'Feature' as const,
+      id: row.id,
+      geometry: row.geometry,
+      properties: {
+        id: row.id,
+        layerId: row.layerId,
+        sourceId: row.sourceId,
+        sourceObjectId: row.sourceObjectId,
+        boundaryType: row.boundaryType,
+        boundaryLevel: row.boundaryLevel,
+        adminLevel: row.adminLevel,
+        countryIso2: row.countryIso2,
+        countryIso3: row.countryIso3,
+        name: row.name,
+        displayName: row.displayName,
+        disputed: row.disputed,
+        indiaSensitive: row.indiaSensitive,
+        indiaComplianceStatus: row.indiaComplianceStatus,
+      },
+    }));
+
+    return BordersBoundariesFeatureCollectionSchema.parse({
+      type: 'FeatureCollection',
+      features,
+      meta: {
+        count: features.length,
+        limit,
+        sourceId,
+        sourceName,
+        mvpLocalDevOnly: true,
+        productionApproved: false,
+        indiaCompliant: false,
+        caveat: CAVEAT,
+      },
+    });
+  };
+
+  fastify.get<{ Querystring: BordersBoundariesQuerystring }>('/api/borders-boundaries/countries', countriesHandler);
+  fastify.get<{ Querystring: BordersBoundariesQuerystring }>(`/api/layers/${PUBLIC_SLUG}/countries`, countriesHandler);
+
+  // Suppress LAYER_ID unused warning: kept intentionally for future metadata symmetry with other layer routes.
+  void LAYER_ID;
 }

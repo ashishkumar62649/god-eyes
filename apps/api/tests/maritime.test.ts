@@ -989,4 +989,122 @@ describe('Maritime API Numeric Coercion', () => {
     const body = JSON.parse(response.body);
     expect(Array.isArray(body.objects)).toBe(true);
   });
+
+  // ===================================================================
+  // Clean public slug aliases (API-URL-002 / API-POLICY-001)
+  // Each new path returns the same response shape as the legacy
+  // /api/layers/layer_06_maritime/... path. The old paths are preserved
+  // and continue to work; the new paths are aliases only.
+  // ===================================================================
+
+  it('alias.1 GET /api/layers/maritime/objects returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce(MOCK_VESSELS);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/maritime/objects',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce(MOCK_VESSELS);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.metadata.count).toBe(legacyBody.metadata.count);
+    expect(newPathBody.objects.length).toBe(legacyBody.objects.length);
+  });
+
+  it('alias.2 GET /api/layers/maritime/objects/:objectId returns same shape as the legacy path', async () => {
+    vi.mocked(query).mockResolvedValueOnce([MOCK_DETAIL]);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/maritime/objects/258674000',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query).mockResolvedValueOnce([MOCK_DETAIL]);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/objects/258674000',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.vessel.mmsi).toBe(legacyBody.vessel.mmsi);
+  });
+
+  it('alias.3 GET /api/layers/maritime/stats returns same shape as the legacy path', async () => {
+    vi.mocked(query)
+      .mockResolvedValueOnce(MOCK_STATS)
+      .mockResolvedValueOnce(MOCK_VESSEL_TYPES);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/maritime/stats',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query)
+      .mockResolvedValueOnce(MOCK_STATS)
+      .mockResolvedValueOnce(MOCK_VESSEL_TYPES);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/stats',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.totalVessels).toBe(legacyBody.totalVessels);
+    expect(newPathBody.layerId).toBe('layer_06_maritime');
+    expect(legacyBody.layerId).toBe('layer_06_maritime');
+  });
+
+  it('alias.4 GET /api/layers/maritime/vessels/:mmsi/positions returns same shape as the legacy path', async () => {
+    vi.mocked(query)
+      .mockResolvedValueOnce(MOCK_VESSEL_NAME)
+      .mockResolvedValueOnce(MOCK_POSITIONS);
+
+    const newPathResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/maritime/vessels/258674000/positions',
+    });
+    expect(newPathResponse.statusCode).toBe(200);
+    const newPathBody = JSON.parse(newPathResponse.body);
+
+    vi.mocked(query)
+      .mockResolvedValueOnce(MOCK_VESSEL_NAME)
+      .mockResolvedValueOnce(MOCK_POSITIONS);
+    const legacyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/layers/layer_06_maritime/vessels/258674000/positions',
+    });
+    expect(legacyResponse.statusCode).toBe(200);
+    const legacyBody = JSON.parse(legacyResponse.body);
+
+    expect(Object.keys(newPathBody).sort()).toEqual(Object.keys(legacyBody).sort());
+    expect(newPathBody.count).toBe(legacyBody.count);
+    expect(newPathBody.layerId).toBe('layer_06_maritime');
+  });
+
+  it('alias.5 The new clean Maritime path does not create a duplicated /api/layers/maritime/maritime/... path', async () => {
+    // Negative test: a duplicated /api/layers/maritime/maritime/<verb> path must
+    // NOT exist (would 404). This guards the slug rule from accidental
+    // duplication.
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/layers/maritime/maritime/objects',
+    });
+    expect(response.statusCode).toBe(404);
+  });
 });

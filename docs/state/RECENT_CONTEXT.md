@@ -43,6 +43,15 @@ receive the **complete** handoff entry after every completed task.
 - Known issues: None
 - Next: Reviewer Agent reviews API-IMP-001; do not PR yet unless user explicitly decides; after approval, next implementation should be API-URL-001 (clean slug endpoint aliases) or API-IMP-002 (objects shim audit), per user direction.
 
+## 2026-06-17 - API-URL-002 Remaining Layer Slug Aliases
+
+- Agent: API Implementation Agent
+- Branch: api/api-url-002-remaining-slug-aliases
+- What changed: Added clean public slug endpoint aliases for the remaining 6 endpoint groups (aviation, borders-boundaries, earth-events, space, maritime, energy) per API-POLICY-001. 12 new aliases in total. Each handler was extracted into a named const arrow function inside the corresponding route file, then registered under both the legacy path and the new clean slug path so old paths continue to work. `meta.layerId` continues to use the internal layer ID per the policy. The WebSocket broadcaster in `apps/api/src/routes/space/satellites.ts` was intentionally NOT touched. Aviation / borders / earth-events / maritime / energy support files (service / validation / mapper / types / repository) were not modified. Added 21 new alias tests across the 6 groups (aviation +3, borders +2, earth-events +2, space +4, maritime +5, energy +5). No frontend callers changed. No fetcher / normalizer / ingestion changes.
+- Validation: API build exit 0; full API test suite 560/560 PASS (was 539; +21 alias); apps/web diff 0 lines; services diff 0 lines; database diff 0 lines; packages diff 0 lines; specs diff 0 lines; forbidden change check PASS; conflict marker grep PASS; git diff --check PASS; bad duplicate path grep (e.g. /api/layers/aviation/aviation/...) — only test-file references for negative assertions; no route registration produces them.
+- Known issues: None
+- Next: Reviewer Agent reviews API-URL-002; do not PR yet unless user explicitly decides; after API-URL-002 review, recommended next work is WEB-API-002 (frontend migration of the same 6 groups to clean slugs), per user / decision-control layer direction.
+
 ## 2026-06-17 - WEB-API-001 Weather and News Clean URL Migration
 
 - Agent: Web/API Migration Agent
@@ -69,12 +78,4 @@ receive the **complete** handoff entry after every completed task.
 - Validation: branch and working tree clean (PASS); HEAD = `5bcb089`; only the 5 allowed files in `git diff --name-status` (new policy doc + tasks.md + plan.md + RECENT_CONTEXT + HANDOFF_LOG); `git diff --check` PASS; conflict-marker grep PASS; forbidden change check PASS (no apps/, services/, database/, packages/, tests/, docs/archive/, docs/control/, CURRENT_PROJECT_STATE, .specify/, .github/, or lockfiles); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (526/526 tests).
 - Known issues: None
 - Next: Reviewer Agent reviews API-POLICY-001; do not PR yet unless user explicitly decides; after API-POLICY-001 review, the next implementation work order is API-IMP-001 (entrypoint import normalization + pure shim removal) or API-URL-001 (clean slug endpoint aliases), per user / decision-control layer direction.
-
-## 2026-06-16 - SR-016 Frontend Closure Docs Alignment
-
-- Agent: Documentation Alignment Agent
-- Branch: docs/sr-016/frontend-closure-alignment
-- What changed: Aligned stale Spec 008 workspace docs (README.md, tasks.md, plan.md, frontend-layer-canonicalization-plan.md, frontend-layer-canonicalization-plan-report.md) with the completed frontend reconstruction through SR-015; updated status banners, work package status table, Phase 4 snapshot, recommended-order list, and added a completion addendum to the pre-implementation plan and report; frontend reconstruction is closed from a code/structure perspective.
-- Validation: final layers directory listing PASS (8 canonical folders, 0 old folders); L4/L9 absence checks PASS; all 8 canonical `index.ts` exist PASS; old import grep checks PASS (all 6 old paths returned 0 lines); stale wording re-search PASS; git diff --check PASS; conflict-marker grep PASS; forbidden change check PASS; docs-only scope verified; `pnpm --filter web build` PASS; `pnpm --filter web test` PASS (64 tests); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS; user reported real backend and database runtime validation passed after SR-015.
-- Known issues: None
 - Next: Reviewer Agent reviews SR-016; do not PR yet unless user explicitly decides; after SR-016 review, the user / decision-control layer should decide the next area: API cleanup, integration/full validation package, or PR package planning.

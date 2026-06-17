@@ -6,6 +6,9 @@ import {
   ErrorCodes,
 } from '@god-eyes/contracts';
 
+const LAYER_ID = 'layer_01_aviation';
+const PUBLIC_SLUG = 'aviation';
+
 const DEFAULT_LIMIT = 1000;
 const MAX_LIMIT = 20000;
 
@@ -269,118 +272,134 @@ async function getAircraftBySourceObjectId(sourceObjectId: string): Promise<Airc
   return rows.length > 0 ? rows[0] : null;
 }
 
+// HTTP route handlers for Layer 01 — Aviation. No SQL, no business logic here.
+//
+// Clean public slug aliases added per API-POLICY-001:
+//   /api/layers/aviation/aircraft/latest        (alias for /api/aviation/aircraft/latest)
+//   /api/layers/aviation/aircraft/:sourceObjectId (alias for /api/aviation/aircraft/:sourceObjectId)
+//
+// Old paths remain registered for compatibility and are not removed in this work order.
+
 export async function aviationAircraftRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Querystring: LatestAircraftQuerystring }>(
-    '/api/aviation/aircraft/latest',
-    async (request, reply) => {
-      const { limit: rawLimit, bbox: rawBbox, includeStale: rawIncludeStale } = request.query;
+  // Each handler is defined once and registered under both the legacy
+  // domain path and the new clean public slug path.
 
-      const parsedLimit = parseLimit(rawLimit);
-      if (parsedLimit.error) {
+  // Latest aircraft
+  const latestHandler = async (request: any, reply: any) => {
+    const { limit: rawLimit, bbox: rawBbox, includeStale: rawIncludeStale } = request.query;
+
+    const parsedLimit = parseLimit(rawLimit);
+    if (parsedLimit.error) {
+      reply.code(400);
+      return { error: parsedLimit.error };
+    }
+
+    let bbox: BBox | null = null;
+    if (rawBbox !== undefined && rawBbox !== '') {
+      bbox = parseBbox(rawBbox);
+      if (!bbox) {
         reply.code(400);
-        return { error: parsedLimit.error };
-      }
-
-      let bbox: BBox | null = null;
-      if (rawBbox !== undefined && rawBbox !== '') {
-        bbox = parseBbox(rawBbox);
-        if (!bbox) {
-          reply.code(400);
-          return {
-            error: {
-              code: ErrorCodes.INVALID_BBOX,
-              message: 'Invalid bbox format. Expected: minLon,minLat,maxLon,maxLat. Valid ranges: lon [-180,180], lat [-90,90]. minLon < maxLon and minLat < maxLat required.',
-              details: { provided: rawBbox },
-            },
-          };
-        }
-      }
-
-      const includeStale = parseIncludeStale(rawIncludeStale);
-
-      const dbStatus = await checkDatabaseStatus();
-      if (dbStatus.status === 'offline') {
-        reply.code(503);
         return {
           error: {
-            code: ErrorCodes.DATABASE_OFFLINE,
-            message: 'Database is not available.',
-            details: {},
+            code: ErrorCodes.INVALID_BBOX,
+            message: 'Invalid bbox format. Expected: minLon,minLat,maxLon,maxLat. Valid ranges: lon [-180,180], lat [-90,90]. minLon < maxLon and minLat < maxLat required.',
+            details: { provided: rawBbox },
           },
         };
       }
+    }
 
-      let rows: AircraftLatestRow[];
-      try {
-        rows = await listLatestAircraft({ bbox, limit: parsedLimit.value, includeStale });
-      } catch {
-        reply.code(500);
-        return {
-          error: {
-            code: ErrorCodes.INTERNAL_ERROR,
-            message: 'An internal error occurred while fetching live aircraft data.',
-            details: {},
-          },
-        };
-      }
+    const includeStale = parseIncludeStale(rawIncludeStale);
 
-      const aircraft = rows.map(rowToLatest);
-
-      return AircraftLatestListResponseSchema.parse({
-        aircraft,
-        metadata: {
-          count: aircraft.length,
-          generatedAt: new Date().toISOString(),
+    const dbStatus = await checkDatabaseStatus();
+    if (dbStatus.status === 'offline') {
+      reply.code(503);
+      return {
+        error: {
+          code: ErrorCodes.DATABASE_OFFLINE,
+          message: 'Database is not available.',
+          details: {},
         },
-      });
+      };
     }
-  );
 
-  fastify.get<{ Params: AircraftParams }>(
-    '/api/aviation/aircraft/:sourceObjectId',
-    async (request, reply) => {
-      const { sourceObjectId } = request.params;
-
-      const dbStatus = await checkDatabaseStatus();
-      if (dbStatus.status === 'offline') {
-        reply.code(503);
-        return {
-          error: {
-            code: ErrorCodes.DATABASE_OFFLINE,
-            message: 'Database is not available.',
-            details: {},
-          },
-        };
-      }
-
-      let row: AircraftLatestRow | null;
-      try {
-        row = await getAircraftBySourceObjectId(sourceObjectId);
-      } catch {
-        reply.code(500);
-        return {
-          error: {
-            code: ErrorCodes.INTERNAL_ERROR,
-            message: 'An internal error occurred while fetching aircraft detail.',
-            details: {},
-          },
-        };
-      }
-
-      if (!row) {
-        reply.code(404);
-        return {
-          error: {
-            code: ErrorCodes.OBJECT_NOT_FOUND,
-            message: `Aircraft with source object ID '${sourceObjectId}' was not found.`,
-            details: { sourceObjectId },
-          },
-        };
-      }
-
-      return AircraftDetailResponseSchema.parse({
-        aircraft: rowToDetail(row),
-      });
+    let rows: AircraftLatestRow[];
+    try {
+      rows = await listLatestAircraft({ bbox, limit: parsedLimit.value, includeStale });
+    } catch {
+      reply.code(500);
+      return {
+        error: {
+          code: ErrorCodes.INTERNAL_ERROR,
+          message: 'An internal error occurred while fetching live aircraft data.',
+          details: {},
+        },
+      };
     }
-  );
+
+    const aircraft = rows.map(rowToLatest);
+
+    return AircraftLatestListResponseSchema.parse({
+      aircraft,
+      metadata: {
+        count: aircraft.length,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  };
+
+  fastify.get<{ Querystring: LatestAircraftQuerystring }>('/api/aviation/aircraft/latest', latestHandler);
+  fastify.get<{ Querystring: LatestAircraftQuerystring }>(`/api/layers/${PUBLIC_SLUG}/aircraft/latest`, latestHandler);
+
+  // Aircraft detail
+  const detailHandler = async (request: any, reply: any) => {
+    const { sourceObjectId } = request.params;
+
+    const dbStatus = await checkDatabaseStatus();
+    if (dbStatus.status === 'offline') {
+      reply.code(503);
+      return {
+        error: {
+          code: ErrorCodes.DATABASE_OFFLINE,
+          message: 'Database is not available.',
+          details: {},
+        },
+      };
+    }
+
+    let row: AircraftLatestRow | null;
+    try {
+      row = await getAircraftBySourceObjectId(sourceObjectId);
+    } catch {
+      reply.code(500);
+      return {
+        error: {
+          code: ErrorCodes.INTERNAL_ERROR,
+          message: 'An internal error occurred while fetching aircraft detail.',
+          details: {},
+        },
+      };
+    }
+
+    if (!row) {
+      reply.code(404);
+      return {
+        error: {
+          code: ErrorCodes.OBJECT_NOT_FOUND,
+          message: `Aircraft with source object ID '${sourceObjectId}' was not found.`,
+          details: { sourceObjectId },
+        },
+      };
+    }
+
+    return AircraftDetailResponseSchema.parse({
+      aircraft: rowToDetail(row),
+    });
+  };
+
+  fastify.get<{ Params: AircraftParams }>('/api/aviation/aircraft/:sourceObjectId', detailHandler);
+  fastify.get<{ Params: AircraftParams }>(`/api/layers/${PUBLIC_SLUG}/aircraft/:sourceObjectId`, detailHandler);
+
+  // Suppress LAYER_ID unused warning: kept intentionally for future metadata symmetry with other layer routes.
+  void LAYER_ID;
 }
