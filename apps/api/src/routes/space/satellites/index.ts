@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   SpaceSatellitesListResponseSchema, SpaceSatelliteDetailResponseSchema,
   SpaceCategoriesResponseSchema, ErrorCodes,
@@ -28,7 +28,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
   // path and the new clean public slug path. meta.layerId continues to use
   // the internal layer ID `layer_05_space_satellites` per API-POLICY-001.
 
-  const listHandler = async (request: any, reply: any) => {
+  const listHandler = async (request: FastifyRequest<{ Querystring: SpaceListQuerystring }>, reply: FastifyReply) => {
     const { limit: rawLimit, category: rawCategory, objectType: rawObjectType, orbitClass: rawOrbitClass, sourceId: rawSourceId, importantOnly: rawImportantOnly, minAltitude: rawMinAltitude, maxAltitude: rawMaxAltitude } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);
@@ -66,7 +66,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
     });
   };
 
-  const categoriesHandler = async (_request: any, reply: any) => {
+  const categoriesHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE }; }
     try {
@@ -75,7 +75,7 @@ export async function spaceSatellitesRoutes(fastify: FastifyInstance) {
     } catch { reply.code(500); return { error: { ...INTERNAL, message: 'An internal error occurred while fetching satellite categories.' } }; }
   };
 
-  const detailHandler = async (request: any, reply: any) => {
+  const detailHandler = async (request: FastifyRequest<{ Params: SatelliteParams }>, reply: FastifyReply) => {
     const { satelliteId } = request.params;
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE }; }
