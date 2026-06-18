@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from scope_guard import all_changed_paths_are_orchestrator_docs_scope
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MIGRATION_PATH = (
@@ -433,6 +435,13 @@ def test_maritime_work_order_changes_stay_in_allowed_paths():
 
     if not changed_paths:
         pytest.skip("Scope guard only applies during local dirty worktree work-order review")
+
+    # Approved Orchestrator docs/spec-only dirty trees (e.g. AGENTS.md,
+    # docs/control/, specs/) are not layer-scoped data work and must not be
+    # blocked by this layer guard. The allowance fires only when EVERY dirty
+    # path is approved orchestrator docs/spec; a mixed tree still fails below.
+    if all_changed_paths_are_orchestrator_docs_scope(changed_paths):
+        return
 
     # Detection: if any changed path is under services/fetch-orchestrator, this is
     # a fetching-worker (ingestion/fetcher) work order; allow that path prefix.

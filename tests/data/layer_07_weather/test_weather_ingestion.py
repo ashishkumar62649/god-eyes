@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from scope_guard import all_changed_paths_are_orchestrator_docs_scope
 from database.ingestion.layers.layer_07_weather import weather_ingestion
 
 
@@ -432,6 +433,13 @@ def test_weather_ingestion_work_order_changes_stay_in_allowed_paths():
 
     if not changed_paths:
         pytest.skip("Scope guard applies only during dirty worktree review")
+
+    # Approved Orchestrator docs/spec-only dirty trees (e.g. AGENTS.md,
+    # docs/control/, specs/) are not layer-scoped data work and must not be
+    # blocked by this layer guard. The allowance fires only when EVERY dirty
+    # path is approved orchestrator docs/spec; a mixed tree still fails below.
+    if all_changed_paths_are_orchestrator_docs_scope(changed_paths):
+        return
 
     allowed_prefixes = (
         "database/ingestion/",

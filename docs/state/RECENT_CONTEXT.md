@@ -1,7 +1,7 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
 This file is the short rolling context for agents.
 
@@ -33,6 +33,35 @@ receive the **complete** handoff entry after every completed task.
 ```
 
 ---
+
+## 2026-06-18 - WO-002 Allow Orchestrator Docs/Spec Scope in Data Work-Order Guards
+
+- Agent: Database Agent
+- Branch: data/wo-002-orchestrator-scope-guards
+- What changed: Added a centralized `tests/data/scope_guard.py` helper with
+  `is_orchestrator_docs_scope_path()` and
+  `all_changed_paths_are_orchestrator_docs_scope()`, and taught all 8 per-layer
+  `test_*_work_order_changes_stay_in_allowed_paths` guards to grant an
+  allowance when the dirty tree is 100% approved Orchestrator docs/spec paths
+  (AGENTS.md, .specify/memory/constitution.md, docs/control/, docs/state/,
+  docs/work-orders/, specs/, docs/decisions/). The allowance only fires when
+  every dirty path qualifies, so mixed trees (orchestrator docs + any
+  non-approved path) and forbidden paths still fail. docs/archive/ and
+  docs/audits/ stay forbidden via an explicit deny list. Added 32 unit tests
+  in `tests/data/test_scope_guard.py`. Made `scope_guard` importable from all
+  layer tests by adding `tests/data` to sys.path in `tests/data/conftest.py`.
+- Validation: `git diff --check` clean (PASS); new helper unit tests 32 passed
+  (PASS); `python -m pytest tests/data -q` (deselecting the 8 dirty-tree
+  guards) 1191 passed, 7 skipped (PASS, matches WO-001 baseline + 32 new
+  tests); the 8 dirty-tree guards fail pre-commit only because this branch
+  touches all 8 layer test folders at once (expected cross-layer dirty-tree
+  behavior, documented in WO-001 background; they skip on a clean tree);
+  `pnpm --filter web/api/@god-eyes/contracts build` PASS.
+- Known issues: The 8 dirty-tree scope-guard failures are pre-commit-only and
+  expected; they are not a regression (documented in HANDOFF_LOG.md caveat).
+- Next: Reviewer Agent reviews WO-002. If PASS, user / decision-control layer
+  may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If
+  FAIL, revise on the same branch.
 
 ## 2026-06-17 - WO-001 Documentation Ownership Matrix Alignment + Spec 009 Placeholder
 
@@ -69,13 +98,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: API build exit 0; full API test suite 560/560 PASS (was 539; +21 alias); apps/web diff 0 lines; services diff 0 lines; database diff 0 lines; packages diff 0 lines; specs diff 0 lines; forbidden change check PASS; conflict marker grep PASS; git diff --check PASS; bad duplicate path grep (e.g. /api/layers/aviation/aviation/...) — only test-file references for negative assertions; no route registration produces them.
 - Known issues: None
 - Next: Reviewer Agent reviews API-URL-002; do not PR yet unless user explicitly decides; after API-URL-002 review, recommended next work is WEB-API-002 (frontend migration of the same 6 groups to clean slugs), per user / decision-control layer direction.
-
-## 2026-06-17 - WEB-API-001 Weather and News Clean URL Migration
-
-- Agent: Web/API Migration Agent
-- Branch: web/web-api-001-weather-news-clean-url-callers
-- What changed: Migrated Weather and News frontend API request paths to the clean public slugs added in API-URL-001. `apps/web/src/layers/layer_07_weather/weatherApi.ts` now constructs `WEATHER_CURRENT_PATH` from a new module-local `WEATHER_PUBLIC_SLUG = 'weather'` (was constructed from `WEATHER_LAYER_ID = 'layer_07_weather'`); `apps/web/src/layers/layer_08_news_osint/newsApi.ts` constructs `BASE` from `NEWS_PUBLIC_SLUG = 'news'` (was constructed from `NEWS_LAYER_ID = 'layer_08_news_osint'`). Internal layer IDs (`WEATHER_LAYER_ID`, `NEWS_LAYER_ID`) are preserved unchanged for folder identity, UI registration, registry keys, and data-shape fields. The two affected frontend tests (`weather.test.ts` line 112-113 and `news.test.ts` line 101) had their exact-URL assertions updated to the new clean paths. Backend code, backend tests, services, database, packages, and any other endpoint groups (aviation / borders / earth-events / space / maritime / energy) were not touched. Old backend compatibility paths remain registered and available.
-- Validation: `apps/web/tsc --noEmit` exit 0 PASS; frontend test suite 64/64 PASS (3 files); no old frontend request paths in `apps/web/src` (`git grep /api/layers/layer_07_weather/weather` and `/api/layers/layer_08_news_osint/news` both return 0 lines) PASS; clean slug constants `WEATHER_PUBLIC_SLUG` and `NEWS_PUBLIC_SLUG` present and used in both `weatherApi.ts` and `newsApi.ts` PASS; backend diff 0 lines PASS; no unrelated endpoint group URL changes (aviation / borders / earth-events / space / maritime / energy / airports / ws) PASS; `git diff --check` clean PASS; forbidden change check PASS.
-- Known issues: None
-- Next: Reviewer Agent reviews WEB-API-001; do not PR yet unless user explicitly decides; after WEB-API-001 review, recommended next work is API-URL-002 (clean slug endpoint aliases for aviation / borders / earth-events / space / maritime / energy) per user / decision-control layer direction.
-- Next: Reviewer Agent reviews SR-016; do not PR yet unless user explicitly decides; after SR-016 review, the user / decision-control layer should decide the next area: API cleanup, integration/full validation package, or PR package planning.
