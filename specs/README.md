@@ -48,6 +48,10 @@ Rules:
 
 - `specs/008-structure-remediation-roadmap/` - active remediation roadmap with a compact spec/plan/tasks spine. Supporting evidence is archived under `docs/archive/2026-06-16-docs-pruned/spec-008-evidence/`.
 
+## Reserved Spec Folders
+
+- `specs/009-future-scaling-architecture/` - **placeholder only**. Created by WO-001 (2026-06-17) as a reserved location for future CesiumGlobe split planning, future scaling architecture, or other large roadmap planning. The README stub does **not** authorize any implementation work. Spec 008 remains the active remediation roadmap until it is explicitly closed or superseded. See `specs/009-future-scaling-architecture/README.md` for the open-conditions gate.
+
 ## Archived Specs
 
 Implemented layer specs 001-007 are archived under:

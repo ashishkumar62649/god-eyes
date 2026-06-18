@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-17 - WO-001 Documentation Ownership Matrix Alignment + Spec 009 Placeholder
+
+- Agent: Orchestrator Agent
+- Branch: orchestrator/wo-001/docs-ownership-cleanup
+- What changed: Marked `packages/ui/`, `packages/layers/`, and `packages/auth/` as **planned / future, not currently present** in `AGENTS.md`, `.specify/memory/constitution.md`, and `docs/control/PROJECT_CONTROL.md` (Parts 1, 2 §8, 2 §15, 3). Created `specs/009-future-scaling-architecture/README.md` as a placeholder stub. Updated `specs/README.md` to list Spec 009 as reserved. Updated `docs/state/CURRENT_PROJECT_STATE.md` with a "Currently-Present Package Folders" section and a "Specs" section. SR-016 docs closure branch status verified: branch `docs/sr-016/frontend-closure-alignment` exists **locally only** (not on `origin`); this is unchanged from before this WO. **No code, no API contracts, no fetcher/normalizer, no migration, no test changes.** No source-code edits of any kind.
+- Validation: pre-edit clean (PASS); post-edit diff scoped to `AGENTS.md`, `.specify/memory/constitution.md`, `docs/control/PROJECT_CONTROL.md`, `specs/README.md`, `specs/008-structure-remediation-roadmap/repository-skeleton.md`, `specs/009-future-scaling-architecture/README.md` (added), `docs/state/CURRENT_PROJECT_STATE.md`, `docs/state/RECENT_CONTEXT.md`, `docs/state/HANDOFF_LOG.md` (9 files total: 8 modified, 1 added); no `apps/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, lockfile, `.env*`, or test-file changes (PASS); `git diff --check` clean (PASS); conflict-marker grep clean (PASS); `pnpm --filter web build` PASS; `pnpm --filter api build` PASS; `pnpm --filter @god-eyes/contracts build` PASS; `python -m pytest tests/data -q` PASS (1159 passed, 15 skipped); `pnpm --filter web test` PASS (64/64); `pnpm --filter api test` PASS (560/560).
+- Known issues: None.
+- Next: Reviewer Agent reviews WO-001. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. Recommended next WO after WO-001 lands: SR-016 docs closure alignment review (existing branch `docs/sr-016/frontend-closure-alignment`, local-only, not yet on origin), per the Spec 008 remaining-work queue.
+
 ## 2026-06-17 - API-COMPAT-001 Keep Old Paths as Compatibility Aliases
 
 - Agent: Documentation / API Policy Agent
@@ -69,13 +78,4 @@ receive the **complete** handoff entry after every completed task.
 - Validation: `apps/web/tsc --noEmit` exit 0 PASS; frontend test suite 64/64 PASS (3 files); no old frontend request paths in `apps/web/src` (`git grep /api/layers/layer_07_weather/weather` and `/api/layers/layer_08_news_osint/news` both return 0 lines) PASS; clean slug constants `WEATHER_PUBLIC_SLUG` and `NEWS_PUBLIC_SLUG` present and used in both `weatherApi.ts` and `newsApi.ts` PASS; backend diff 0 lines PASS; no unrelated endpoint group URL changes (aviation / borders / earth-events / space / maritime / energy / airports / ws) PASS; `git diff --check` clean PASS; forbidden change check PASS.
 - Known issues: None
 - Next: Reviewer Agent reviews WEB-API-001; do not PR yet unless user explicitly decides; after WEB-API-001 review, recommended next work is API-URL-002 (clean slug endpoint aliases for aviation / borders / earth-events / space / maritime / energy) per user / decision-control layer direction.
-
-## 2026-06-17 - API-URL-001 Weather and News Slug Aliases
-
-- Agent: API Implementation Agent
-- Branch: api/api-url-001-weather-news-slug-aliases
-- What changed: Added clean public slug endpoint aliases for the Weather and News layers per API-POLICY-001 (11 new aliases: `/api/layers/weather/{latest,current,hourly,nearby,sources,fetch-runs}` and `/api/layers/news/{items,markers,sources,fetch-runs,stats}`); each handler body was extracted to a named const arrow function inside `weather/index.ts` and `news/index.ts` and registered under both the old `/api/layers/layer_07_weather/weather/...` (or `layer_08_news_osint/news/...`) path and the new clean slug path so old paths continue to work with the same response shape. Old paths were not removed. No response shape changed. `meta.layer_id` continues to use the internal layer ID per the policy. Frontend callers were not changed. Aviation / borders / earth-events / space / maritime / energy route files were not touched. Fetcher / normalizer / ingestion lanes were not touched.
-- Validation: `apps/api/src/routes/weather/index.ts` now has 12 fastify.get registrations (6 old + 6 new) PASS; `apps/api/src/routes/news/index.ts` now has 10 fastify.get registrations (5 old + 5 new) PASS; no `/api/layers/weather/weather/...` or `/api/layers/news/news/...` duplicate paths PASS; `apps/api/tsc` exit 0 PASS; weather.test.ts 58/58 PASS (51 existing + 7 alias); layer_08_news_osint.test.ts 66/66 PASS (60 existing + 6 alias); full API test suite 539/539 PASS (previous 526 + 13 new alias tests); `git diff --check` clean PASS; forbidden change check PASS.
-- Known issues: None
-- Next: Reviewer Agent reviews API-URL-001; do not PR yet unless user explicitly decides; after API-URL-001 review, recommended next work is API-URL-002 (aviation / borders / earth-events / space / maritime / energy clean aliases) or WEB-API-001 (frontend migration to clean slugs), per user / decision-control layer direction.
 - Next: Reviewer Agent reviews SR-016; do not PR yet unless user explicitly decides; after SR-016 review, the user / decision-control layer should decide the next area: API cleanup, integration/full validation package, or PR package planning.

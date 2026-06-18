@@ -478,14 +478,18 @@ SR-007 then splits the barrel. Both are pure refactors — no schema value chang
 
 ### `packages/layers/` and `packages/schemas/`
 
+> **Note (WO-001, 2026-06-17):** `packages/layers/` is **planned / future, not currently present**.
+> Only `packages/schemas/` exists today. The skeleton below documents the target shape
+> for when `packages/layers/` is created by a future work order.
+
 ```
 packages/
-  layers/
+  layers/                                  # [PLANNED / FUTURE — not currently present]
     src/
       registry.ts                               # [KEEP]
       layer-ids.ts                              # [KEEP]
 
-  schemas/
+  schemas/                                  # [CURRENT] — owned by Database Agent
     layers/
       layer_01_aviation/                        # [KEEP] Python schemas for aviation
 ```

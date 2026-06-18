@@ -1,7 +1,7 @@
 ﻿# Current Project State
 
 Classification: CURRENT_STATE
-Last updated: 2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
+Last updated: 2026-06-17 - Orchestrator Agent (post-WO-001 ownership docs alignment)
 
 ## Phase: Repository Alignment In Progress
 
@@ -90,16 +90,45 @@ ever displayed.
 - Data export/sharing
 - Unified live-worker runner/scheduler (workers exist but are run manually)
 
+## Currently-Present Package Folders
+
+The actually-present package folders in the repository are:
+
+| Folder | Owner | Status |
+|--------|-------|--------|
+| `packages/contracts/` | API Agent (writes); Frontend Agent and data agents read | active |
+| `packages/schemas/` | Database Agent | active |
+| `packages/source-catalog/` | Fetcher Agent | active |
+
+`packages/ui/`, `packages/layers/`, and `packages/auth/` are referenced historically
+in `AGENTS.md`, `.specify/memory/constitution.md`, and `docs/control/PROJECT_CONTROL.md`
+as planned/future locations. They are **not currently present** in the repository.
+Agents must not search for, edit, or import from these paths until a future work order
+explicitly creates them. (WO-001, 2026-06-17.)
+
+## Specs
+
+- `specs/008-structure-remediation-roadmap/` — active remediation roadmap
+  (Phases 0–4 done; Phases 5–8 Planned Later; see `tasks.md`).
+- `specs/009-future-scaling-architecture/` — placeholder only (created by WO-001).
+  No implementation authorized. Spec 008 remains the active roadmap.
+
 ## Workflow
 
 Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJECT_CONTROL.md`.
 
 ## Last Updated
 
-2026-06-16 - Orchestrator Agent (post-Phase 6 documentation cleanup)
+2026-06-17 - Orchestrator Agent (post-WO-001 ownership docs alignment)
 
 Change log for this file:
 
+- 2026-06-17 (WO-001 ownership docs alignment) - Marked `packages/ui/`,
+  `packages/layers/`, and `packages/auth/` as planned/future in `AGENTS.md`,
+  `.specify/memory/constitution.md`, and `docs/control/PROJECT_CONTROL.md`.
+  Created `specs/009-future-scaling-architecture/README.md` as a placeholder.
+  Added a "Currently-Present Package Folders" section and a "Specs" section
+  to this file. No layer business logic was changed. No code was changed.
 - 2026-06-16 (single control file consolidation) - `docs/control/PROJECT_CONTROL.md`
   is now the only active project control file. Retired pointer stubs were
   removed from `docs/control/`. This state file's Authoritative Sources section

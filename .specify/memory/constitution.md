@@ -6,6 +6,7 @@ Classification: ACTIVE_PRINCIPLES
 Version: 1.3.0
 Ratified: 2026-06-05
 Last Amended: 2026-06-16
+Docs-only clarification applied 2026-06-17 (WO-001): §II rewritten to mark `packages/ui/`, `packages/layers/`, `packages/auth/` as planned/future, not currently present. No principle changed; no version bump.
 
 ### Amendment History
 
@@ -39,7 +40,7 @@ The current project phase is **MVP** (minimum viable product). The MVP goal: tak
 Every entity in GOD EYES — data source, database table, API route, frontend component, fetch job, normalizer — must declare which `layer_id` it belongs to. No orphans. Every layer has a unique `layer_id` and authoritative entry in the layer registry. The layer order in `MVP_LAYER_REGISTRY.md` is binding; if any document or code disagrees with the registry, the registry wins.
 
 ### II. Strict Agent Boundaries (NON-NEGOTIABLE)
-Frontend code lives in `apps/web/`, `packages/ui/`, `packages/layers/`. API code lives in `apps/api/`, `packages/contracts/`, `packages/auth/`. Data pipeline lives in `services/`, `packages/source-catalog/`, `packages/schemas/`. Database lives in `database/`. **Frontend never connects directly to the database** — it must call the API. The API is the only component that talks to the database.
+Frontend code lives in `apps/web/`. API code lives in `apps/api/`, `packages/contracts/`. Data pipeline lives in `services/`, `packages/source-catalog/`, `packages/schemas/`. Database lives in `database/`. The following package folders are referenced historically but are **planned / future, not currently present** in the repository: `packages/ui/`, `packages/layers/` (planned for Frontend Agent), `packages/auth/` (planned for API Agent). See `AGENTS.md` and `docs/control/PROJECT_CONTROL.md` Part 2 §8 for the authoritative ownership matrix. **Frontend never connects directly to the database** — it must call the API. The API is the only component that talks to the database.
 
 ### III. Data Provenance and Pipeline Order
 Fetchers always store **raw data first** (path includes `layer_id` and `source_id` per `docs/control/DATA_LOCATION_RULES.md`), then normalizers read raw object metadata (never random files) to produce normalized records. Raw storage is immutable; normalization is reproducible. For the MVP, this means: pull from provider → write raw to disk → normalize → write to DB.
