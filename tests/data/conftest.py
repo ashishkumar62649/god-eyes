@@ -3,6 +3,13 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FETCH_SRC = REPO_ROOT / "services" / "fetch-orchestrator" / "src"
+TESTS_DATA_DIR = Path(__file__).resolve().parent
+
+# Make tests/data importable as a namespace so every layer test can import the
+# shared scope_guard helper, regardless of whether its package has __init__.py.
+TESTS_DATA_STR = str(TESTS_DATA_DIR)
+if TESTS_DATA_STR not in sys.path:
+    sys.path.insert(0, TESTS_DATA_STR)
 
 
 def pytest_runtest_setup(item):
