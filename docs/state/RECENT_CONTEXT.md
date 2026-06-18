@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-18 - WO-006 Space Satellites Route Handler Typing Normalization
+
+- Agent: API Agent
+- Branch: api/wo-006-space-satellites-typing
+- What changed: Replaced broad `request: any` / `reply: any` route handler parameters in `apps/api/src/routes/space/satellites/index.ts` with Fastify-compatible types. Added `FastifyReply, FastifyRequest` to the existing `fastify` import. `listHandler` (line 31) now uses `FastifyRequest<{ Querystring: SpaceListQuerystring }>` (the `SpaceListQuerystring` interface was already imported from `./types.js` and the route registrations on lines 91–92 already used `<{ Querystring: SpaceListQuerystring }>`). `categoriesHandler` (line 69) uses plain `FastifyRequest` (no querystring/params). `detailHandler` (line 78) uses `FastifyRequest<{ Params: SatelliteParams }>` (the `SatelliteParams` interface was already imported and the route registrations on lines 97–98 already used `<{ Params: SatelliteParams }>`). **No runtime behavior changed. No route paths, methods, registration order, response payloads, status codes, compatibility aliases (`/api/space/satellites/...` clean slug paths + `/api/layers/space/satellites/...` legacy layer-ID aliases), service calls, database calls, or error handling behavior changed.** WebSocket broadcaster (`apps/api/src/routes/space/space-satellites-broadcaster.ts`) was NOT touched. Forbidden route files (`objects/index.ts`, `layers.ts`) not touched.
+- Validation: pre-edit clean (PASS); post-edit diff scoped to 1 production route file + 2 state docs (PASS); no `apps/web/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, `.env*`, or lockfile changes (PASS); `git diff --check` clean (PASS); targeted post-change search: 0 `request: any` or `reply: any` remaining in the target file (PASS); 0 `as any` casts in the target file (PASS); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS — same count as pre-WO-006; `pnpm --filter web build` PASS; `pnpm --filter web test` PASS (64/64); `pnpm --filter @god-eyes/contracts build` PASS.
+- Known issues: `python -m pytest tests/data -q` reports pre-existing scope-guard test failures (`test_*_work_order_changes_stay_in_allowed_paths` and `*_adds_no_raw_environment_api_or_frontend_files` variants) for non-layer data work orders; these are correctly rejecting my `apps/api/src/routes/` change as out-of-scope for any single layer's data work, same pattern as WO-003, WO-004, and WO-005. The failures are not regressions in my changes. Actual code/build/test validation all PASS. A CRLF/LF git autocrlf warning may appear on Windows when checking diffs of files written with LF (informational; git is configured to convert on commit and there are no whitespace errors).
+- Next: Reviewer Agent reviews WO-006. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. Recommended next WO after WO-006 lands: this completes the final pass of the API route handler typing normalization for the three remaining safe/correctly-typed route files deferred from WO-005 (`objects/index.ts`, `space/satellites/index.ts`, `layers.ts`). All 10 route files in `apps/api/src/routes/` are now properly typed. Remaining Spec 008 cleanup items can be picked up from the remaining-work queue.
+
 ## 2026-06-18 - WO-005 API Route Handler Typing Normalization
 
 - Agent: API Agent
@@ -89,12 +98,3 @@ receive the **complete** handoff entry after every completed task.
 - Next: Reviewer Agent reviews WO-002. If PASS, user / decision-control layer
   may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If
   FAIL, revise on the same branch.
-
-## 2026-06-17 - API-COMPAT-001 Keep Old Paths as Compatibility Aliases
-
-- Agent: Documentation / API Policy Agent
-- Branch: docs/api-compat-001-keep-old-paths
-- What changed: Locked the compatibility retention decision in the API endpoint path policy (Section 5.1): clean slug URLs (`/api/layers/<slug>/<resource>`) are the official public API; old layer-ID / legacy paths remain supported as compatibility aliases; old path removal is deferred and must only happen under a future explicit user / decision-control decision. Updated `tasks.md` and `plan.md` to mark the full migration sequence (API-IMP-001, API-URL-001, WEB-API-001, API-URL-002, WEB-API-002) as Done and API-COMPAT-001 as the selected decision. No source code changed. No endpoint removals. No frontend caller changes.
-- Validation: branch clean (PASS); git diff --name-status shows 3 docs files (api-endpoint-path-policy.md, tasks.md, plan.md) plus 2 state docs (RECENT_CONTEXT.md, HANDOFF_LOG.md) (PASS); git diff --check clean (PASS); conflict-marker grep clean (PASS); forbidden change check clean (PASS, no apps/, services/, database/, packages/, docs/archive/, docs/control/, CURRENT_PROJECT_STATE, .specify/, .github/, .env, or lockfile paths); pnpm --filter api build PASS; pnpm --filter api test PASS (560/560); pnpm --filter web test PASS (64/64).
-- Known issues: None
-- Next: Reviewer Agent reviews API-COMPAT-001; do not PR yet unless user explicitly decides; after API-COMPAT-001 review, the next decision is PR/merge timing for the full stack (or another cleanup lane per user / decision-control direction).
