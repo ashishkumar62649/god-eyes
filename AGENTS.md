@@ -1,7 +1,7 @@
 ﻿# AGENTS.md — GOD EYES Multi-Agent Control
 
 Classification: ENTRY_POINT
-Last updated: 2026-06-16
+Last updated: 2026-06-17 (WO-001 ownership matrix alignment)
 
 This is the agent entry point. It defines the neutral agent roles, the reading policy,
 the cycle, and pointers to the single active control file. All detailed engineering
@@ -37,12 +37,18 @@ workflow requires a specific local project tool, such as Graphify.
 
 | Agent | Role | Owns |
 |-------|------|------|
-| Orchestrator Agent | Spec manager, work-order creator, integration reviewer, layer consistency checker, coordination | `specs/`, `docs/control/`, `docs/work-orders/`, `docs/state/CURRENT_PROJECT_STATE.md` |
-| Frontend Agent | Globe Core frontend and all visual layer rendering | `apps/web/`, `packages/ui/`, `packages/layers/` |
+| Orchestrator Agent | Spec manager, work-order creator, integration reviewer, layer consistency checker, coordination | `specs/`, `docs/control/`, `docs/work-orders/` *(created only when an active work order exists)*, `docs/state/CURRENT_PROJECT_STATE.md` |
+| Frontend Agent | Globe Core frontend and all visual layer rendering | `apps/web/`. **Planned / future, not currently present:** `packages/ui/`, `packages/layers/`. |
 | Fetcher Agent | Source fetchers and source catalog | `services/fetch-orchestrator/`, `packages/source-catalog/` |
 | Normalizer Agent | Raw-to-normalized transformation (aviation only) | `services/normalizer/` |
 | Database Agent | Schema, migrations, ingestion, data tests | `database/`, `packages/schemas/`, `tests/data/` |
-| API Agent | API gateway, env validation, API contracts, backend integration | `apps/api/`, `packages/contracts/`, `packages/auth/`, `tests/api/` |
+| API Agent | API gateway, env validation, API contracts, backend integration | `apps/api/`, `packages/contracts/`, `tests/api/`. **Planned / future, not currently present:** `packages/auth/`. |
+
+> **Note (WO-001, 2026-06-17):** `packages/ui/`, `packages/layers/`, and `packages/auth/`
+> are referenced historically but the corresponding folders are not present in the
+> current repository. They are listed here only as **planned / future** locations,
+> not as currently active ownership. See `docs/control/PROJECT_CONTROL.md` Part 2 §8
+> for the authoritative ownership matrix.
 
 Full ownership matrix (with shared read access and "Others may" rules) lives in
 `docs/control/PROJECT_CONTROL.md` Part 2 §8.

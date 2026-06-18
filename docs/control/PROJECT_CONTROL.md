@@ -1,7 +1,7 @@
 ﻿# GOD EYES Project Control
 
 Classification: ACTIVE_CONTROL
-Last updated: 2026-06-16
+Last updated: 2026-06-17 (WO-001 ownership matrix alignment)
 
 This is the single active control document for GOD EYES. It merges the engineering
 rules, layer registry, ownership matrix, source/data contract, Git workflow, and work
@@ -350,7 +350,7 @@ New API routes must address at design time:
 - Response size limits (document and enforce max limit)
 - Caching strategy (HTTP cache headers, in-memory TTL, or CDN where applicable)
 - Rate limits (where applicable)
-- Authentication and authorization (`packages/auth/` owns auth)
+- Authentication and authorization (`packages/auth/` owns auth when created; **planned / future, not currently present**)
 - Input validation (all query params and request bodies validated)
 - Audit logging (where applicable for write or sensitive endpoints)
 
@@ -479,13 +479,16 @@ Layer 0 has no data pipeline. It is frontend-only.
 
 | From | May import | Must never import |
 |------|-----------|-------------------|
-| Frontend (`apps/web/`) | `packages/contracts/`, `packages/ui/`, `packages/layers/` | `apps/api/`, `services/`, `database/`, external provider APIs |
-| API (`apps/api/`) | `packages/contracts/`, `packages/auth/`, database via `query()` | `apps/web/`, `services/`, database source files |
+| Frontend (`apps/web/`) | `packages/contracts/`. **Planned / future, not currently present:** `packages/ui/`, `packages/layers/`. | `apps/api/`, `services/`, `database/`, external provider APIs |
+| API (`apps/api/`) | `packages/contracts/`, database via `query()`. **Planned / future, not currently present:** `packages/auth/`. | `apps/web/`, `services/`, database source files |
 | Fetcher/normalizer (`services/`) | External provider APIs, raw storage, Python stdlib | `apps/web/`, `apps/api/` |
 | Contracts (`packages/contracts/`) | Zod only | Any application code |
 
 **No cross-layer imports.** A frontend component for `layer_07_weather` must not import
-from `layer_01_aviation`. Shared types go in `packages/contracts/` or `packages/ui/`.
+from `layer_01_aviation`. Shared types go in `packages/contracts/` today. When the
+planned `packages/ui/` is created, it may host shared React components per the
+Frontend Agent's ownership row in Part 2 §8; until then, `packages/contracts/` is
+the only approved shared-types location for cross-layer code.
 
 ---
 
@@ -646,7 +649,7 @@ To add, modify, or supersede a rule:
 **Source lineage:** retired engineering, data-location, pipeline handoff, and layer-ID
 convention documents.
 
-**Last updated:** 2026-06-16
+**Last updated:** 2026-06-17 (WO-001 ownership matrix alignment — planned/future markers added for `packages/ui/`, `packages/layers/`, `packages/auth/`)
 
 ---
 
@@ -789,8 +792,8 @@ Folder-per-lane conventions are in `docs/control/PROJECT_CONTROL.md` §5.
 | `docs/state/HANDOFF_LOG.md` | All agents | Append only |
 | `docs/state/RECENT_CONTEXT.md` | All agents | Append only |
 | `apps/web/` | Frontend Agent | — |
-| `packages/ui/` | Frontend Agent | — |
-| `packages/layers/` | Frontend Agent | — |
+| `packages/ui/` | **Planned / future (not currently present)** — Frontend Agent | — |
+| `packages/layers/` | **Planned / future (not currently present)** — Frontend Agent | — |
 | `services/fetch-orchestrator/` | Fetcher Agent | Colocated normalizer modules per Normalizer Location Rule (see `PROJECT_CONTROL.md` §8) |
 | `packages/source-catalog/` | Fetcher Agent | — |
 | `services/normalizer/` | Normalizer Agent (aviation only) | See Normalizer Location Rule |
@@ -799,9 +802,16 @@ Folder-per-lane conventions are in `docs/control/PROJECT_CONTROL.md` §5.
 | `tests/data/` | Database Agent | — |
 | `apps/api/` | API Agent | — |
 | `packages/contracts/` | API Agent (writes); Frontend Agent and data agents read | — |
-| `packages/auth/` | API Agent | — |
+| `packages/auth/` | **Planned / future (not currently present)** — API Agent | — |
 | `tests/api/` | API Agent | — |
 | `.env.example` | API Agent | Read only |
+
+> **Note (WO-001, 2026-06-17):** `packages/ui/`, `packages/layers/`, and `packages/auth/`
+> are listed for historical and forward-planning reasons. They are **not currently present**
+> in the repository. Agents must not search for, edit, or import from these paths until a
+> future work order explicitly creates them. Today, the actually-present package folders
+> under agent ownership are: `packages/contracts/` (API Agent), `packages/schemas/` (Database Agent),
+> `packages/source-catalog/` (Fetcher Agent).
 
 ### Ownership rules
 
@@ -940,7 +950,7 @@ To add, modify, or supersede a rule or registry entry:
 **Source lineage:** retired layer registry, architecture, ownership, and source contract
 documents in `docs/control/`.
 
-**Last updated:** 2026-06-16
+**Last updated:** 2026-06-17 (WO-001 ownership matrix alignment — planned/future markers added for `packages/ui/`, `packages/layers/`, `packages/auth/`)
 
 ---
 
@@ -1039,11 +1049,11 @@ Verify:
 
 #### 2. Folder Boundaries
 
-- [ ] Frontend Agent only edited: `apps/web/`, `packages/ui/`, `packages/layers/`
+- [ ] Frontend Agent only edited: `apps/web/`. **Planned / future, not currently present:** `packages/ui/`, `packages/layers/`.
 - [ ] Fetcher Agent only edited: `services/fetch-orchestrator/`, `packages/source-catalog/`
 - [ ] Normalizer Agent only edited: `services/normalizer/`
 - [ ] Database Agent only edited: `database/`, `packages/schemas/`, `tests/data/`
-- [ ] API Agent only edited: `apps/api/`, `packages/contracts/`, `packages/auth/`, `tests/api/`
+- [ ] API Agent only edited: `apps/api/`, `packages/contracts/`, `tests/api/`. **Planned / future, not currently present:** `packages/auth/`.
 - [ ] Orchestrator Agent only edited: `docs/`, `specs/` (unless explicitly asked)
 
 #### 3. Required Checks
