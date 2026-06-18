@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { checkDatabaseStatus, query } from '../lib/db.js';
 import {
   AircraftLatestListResponseSchema,
@@ -285,7 +285,7 @@ export async function aviationAircraftRoutes(fastify: FastifyInstance) {
   // domain path and the new clean public slug path.
 
   // Latest aircraft
-  const latestHandler = async (request: any, reply: any) => {
+  const latestHandler = async (request: FastifyRequest<{ Querystring: LatestAircraftQuerystring }>, reply: FastifyReply) => {
     const { limit: rawLimit, bbox: rawBbox, includeStale: rawIncludeStale } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);
@@ -352,7 +352,7 @@ export async function aviationAircraftRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: LatestAircraftQuerystring }>(`/api/layers/${PUBLIC_SLUG}/aircraft/latest`, latestHandler);
 
   // Aircraft detail
-  const detailHandler = async (request: any, reply: any) => {
+  const detailHandler = async (request: FastifyRequest<{ Params: AircraftParams }>, reply: FastifyReply) => {
     const { sourceObjectId } = request.params;
 
     const dbStatus = await checkDatabaseStatus();

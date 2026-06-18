@@ -34,6 +34,15 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-18 - WO-005 API Route Handler Typing Normalization
+
+- Agent: API Agent
+- Branch: api/wo-005-route-handler-typing
+- What changed: Replaced broad `request: any` / `reply: any` route handler parameters with Fastify-compatible types in 7 safe route files (`apps/api/src/routes/borders-boundaries.ts`, `earth-events.ts`, `energy/infrastructure/index.ts`, `maritime/index.ts`, `news/index.ts`, `weather/index.ts`, `aviation-aircraft.ts`). Added `FastifyReply, FastifyRequest` imports to each file. Used route-specific generics (`FastifyRequest<{ Querystring: T }>` and `FastifyRequest<{ Params: T }>`) where the corresponding `Querystring`/`Params` interface was already defined and the route registration already used the same generic. Used plain `FastifyRequest` for handlers without a specific typed query/params (sources/stats/categories). **No runtime behavior changed. No route paths, methods, registration order, response payloads, status codes, compatibility aliases, clean slug URLs, legacy layer-ID URLs, service calls, database calls, or error handling behavior changed.** Forbidden route files (`objects/index.ts`, `space/satellites/index.ts`, `layers.ts`) not touched.
+- Validation: pre-edit clean (PASS); post-edit diff scoped to 7 production route files (PASS); no `apps/web/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, `.env*`, or lockfile changes (PASS); `git diff --check` clean (PASS); targeted post-change search: 0 `request: any` or `reply: any` remaining in the 7 target files (PASS); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS — **581/581** (no test changes; same count as pre-WO-005); `pnpm --filter web build` PASS; `pnpm --filter web test` PASS (64/64); `pnpm --filter @god-eyes/contracts build` PASS.
+- Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures (`test_*_work_order_changes_stay_in_allowed_paths` and `*_adds_no_raw_environment_api_or_frontend_files` variants) for non-layer data work orders; these are correctly rejecting my `apps/api/src/routes/` changes as out-of-scope for any single layer's data work, same pattern as WO-003 and WO-004. The 11 failures are not regressions in my changes. Actual code/build/test validation all PASS (api 581/581, web 64/64). A CRLF/LF git autocrlf warning appears on Windows when checking diffs of files written with LF (informational; git is configured to convert on commit and there are no whitespace errors).
+- Next: Reviewer Agent reviews WO-005. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. Recommended next WO after WO-005 lands: continue the Phase 4 cleanup lane per Spec 008 remaining-work queue (TODO/deprecated marker sweep is now partly done via WO-003 + WO-004 + WO-005; remaining items include API route file-shape normalization final pass for the explicitly deferred forbidden files `objects/index.ts`, `space/satellites/index.ts`, and `layers.ts`, plus the missing package-ownership-row decision in `PROJECT_CONTROL.md` Part 2 §8).
+
 ## 2026-06-18 - WO-004 API Environment Config Validation Hardening
 
 - Agent: API Agent
@@ -80,15 +89,6 @@ receive the **complete** handoff entry after every completed task.
 - Next: Reviewer Agent reviews WO-002. If PASS, user / decision-control layer
   may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If
   FAIL, revise on the same branch.
-
-## 2026-06-17 - WO-001 Documentation Ownership Matrix Alignment + Spec 009 Placeholder
-
-- Agent: Orchestrator Agent
-- Branch: orchestrator/wo-001/docs-ownership-cleanup
-- What changed: Marked `packages/ui/`, `packages/layers/`, and `packages/auth/` as **planned / future, not currently present** in `AGENTS.md`, `.specify/memory/constitution.md`, and `docs/control/PROJECT_CONTROL.md` (Parts 1, 2 §8, 2 §15, 3). Created `specs/009-future-scaling-architecture/README.md` as a placeholder stub. Updated `specs/README.md` to list Spec 009 as reserved. Updated `docs/state/CURRENT_PROJECT_STATE.md` with a "Currently-Present Package Folders" section and a "Specs" section. SR-016 docs closure branch status verified: branch `docs/sr-016/frontend-closure-alignment` exists **locally only** (not on `origin`); this is unchanged from before this WO. **No code, no API contracts, no fetcher/normalizer, no migration, no test changes.** No source-code edits of any kind.
-- Validation: pre-edit clean (PASS); post-edit diff scoped to `AGENTS.md`, `.specify/memory/constitution.md`, `docs/control/PROJECT_CONTROL.md`, `specs/README.md`, `specs/008-structure-remediation-roadmap/repository-skeleton.md`, `specs/009-future-scaling-architecture/README.md` (added), `docs/state/CURRENT_PROJECT_STATE.md`, `docs/state/RECENT_CONTEXT.md`, `docs/state/HANDOFF_LOG.md` (9 files total: 8 modified, 1 added); no `apps/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, lockfile, `.env*`, or test-file changes (PASS); `git diff --check` clean (PASS); conflict-marker grep clean (PASS); `pnpm --filter web build` PASS; `pnpm --filter api build` PASS; `pnpm --filter @god-eyes/contracts build` PASS; `python -m pytest tests/data -q` PASS (1159 passed, 15 skipped); `pnpm --filter web test` PASS (64/64); `pnpm --filter api test` PASS (560/560).
-- Known issues: None.
-- Next: Reviewer Agent reviews WO-001. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. Recommended next WO after WO-001 lands: SR-016 docs closure alignment review (existing branch `docs/sr-016/frontend-closure-alignment`, local-only, not yet on origin), per the Spec 008 remaining-work queue.
 
 ## 2026-06-17 - API-COMPAT-001 Keep Old Paths as Compatibility Aliases
 

@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { checkDatabaseStatus, query } from '../lib/db.js';
 import {
   EarthEventsLatestResponseSchema,
@@ -123,7 +123,7 @@ export async function earthEventsRoutes(fastify: FastifyInstance) {
   // path and the new clean public slug path. meta.layerId continues to use
   // the internal layer ID per API-POLICY-001.
 
-  const latestHandler = async (request: any, reply: any) => {
+  const latestHandler = async (request: FastifyRequest<{ Querystring: EarthEventsLatestQuerystring }>, reply: FastifyReply) => {
     const { limit: rawLimit, bbox: rawBbox, event_type: rawEventType, since: rawSince } = request.query;
 
     // Validate limit

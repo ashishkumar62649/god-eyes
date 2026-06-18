@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   EnergyInfrastructureListResponseSchema, EnergyInfrastructureDetailResponseSchema,
   EnergyCategoriesResponseSchema, EnergySourcesResponseSchema, ErrorCodes,
@@ -28,7 +28,7 @@ export async function energyInfrastructureRoutes(fastify: FastifyInstance) {
   // domain path and the new clean public slug path. meta.layerId continues
   // to use the internal layer ID per API-POLICY-001.
 
-  const listHandler = async (request: any, reply: any) => {
+  const listHandler = async (request: FastifyRequest<{ Querystring: EnergyInfrastructureQuerystring }>, reply: FastifyReply) => {
     const q = request.query;
     const parsedLimit = parseLimit(q.limit);
     if (parsedLimit.error) { reply.code(400); return { error: { code: parsedLimit.error.code, message: parsedLimit.error.message, details: { provided: q.limit } } }; }
@@ -73,7 +73,7 @@ export async function energyInfrastructureRoutes(fastify: FastifyInstance) {
   };
 
   // /categories must be registered BEFORE /:featureId to avoid param capture
-  const categoriesHandler = async (_request: any, reply: any) => {
+  const categoriesHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE }; }
     let categories: Awaited<ReturnType<typeof getCategories>> = [];
@@ -81,7 +81,7 @@ export async function energyInfrastructureRoutes(fastify: FastifyInstance) {
     return EnergyCategoriesResponseSchema.parse({ categories, metadata: { layerId: LAYER_ID, generatedAt: new Date().toISOString() } });
   };
 
-  const sourcesHandler = async (_request: any, _reply: any) => {
+  const sourcesHandler = async (_request: FastifyRequest, _reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     let sources;
     if (dbStatus.status === 'connected') {
@@ -93,7 +93,7 @@ export async function energyInfrastructureRoutes(fastify: FastifyInstance) {
     return EnergySourcesResponseSchema.parse({ sources, metadata: { layerId: LAYER_ID, generatedAt: new Date().toISOString() } });
   };
 
-  const detailHandler = async (request: any, reply: any) => {
+  const detailHandler = async (request: FastifyRequest<{ Params: FeatureIdParams }>, reply: FastifyReply) => {
     const { featureId } = request.params;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(featureId)) { reply.code(400); return { error: { code: ErrorCodes.INVALID_QUERY, message: 'featureId must be a valid UUID.', details: { provided: featureId } } }; }

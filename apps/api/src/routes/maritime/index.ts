@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   MaritimeObjectsListResponseSchema, MaritimeVesselDetailResponseSchema,
   MaritimeStatsResponseSchema, MaritimePositionHistoryResponseSchema, ErrorCodes,
@@ -29,7 +29,7 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
   // layer-ID path and the new clean public slug path. meta.layerId continues
   // to use the internal layer ID per API-POLICY-001.
 
-  const listHandler = async (request: any, reply: any) => {
+  const listHandler = async (request: FastifyRequest<{ Querystring: ObjectsQuerystring }>, reply: FastifyReply) => {
     const { bbox: rawBbox, vessel_type: rawVesselType, min_speed: rawMinSpeed, max_speed: rawMaxSpeed, updated_since: rawUpdatedSince, mmsi: rawMmsi, search: rawSearch, limit: rawLimit, offset: rawOffset } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);
@@ -71,7 +71,7 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
     });
   };
 
-  const detailHandler = async (request: any, reply: any) => {
+  const detailHandler = async (request: FastifyRequest<{ Params: ObjectIdParams }>, reply: FastifyReply) => {
     const { objectId } = request.params;
     const mmsi = Number(objectId);
     if (isNaN(mmsi) || !Number.isInteger(mmsi) || mmsi <= 0) {
@@ -88,7 +88,7 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
     return MaritimeVesselDetailResponseSchema.parse({ vessel });
   };
 
-  const statsHandler = async (_request: any, reply: any) => {
+  const statsHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE }; }
 
@@ -104,7 +104,7 @@ export async function maritimeRoutes(fastify: FastifyInstance) {
     });
   };
 
-  const positionsHandler = async (request: any, reply: any) => {
+  const positionsHandler = async (request: FastifyRequest<{ Params: MmsiParams; Querystring: PositionsQuerystring }>, reply: FastifyReply) => {
     const { mmsi: rawMmsi } = request.params;
     const { hours: rawHours, limit: rawLimit } = request.query;
 
