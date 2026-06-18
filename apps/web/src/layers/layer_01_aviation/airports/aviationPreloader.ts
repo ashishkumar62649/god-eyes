@@ -79,7 +79,6 @@ export async function fetchAllAviationCategories(
   abortSignal: AbortSignal,
   onBatch: PreloadBatchCallback,
 ): Promise<number> {
-  console.log('[AVIATION] fetchAllAviationCategories called, categories:', PRELOAD_CATEGORIES.map(c => c.apiCat));
   let totalLoaded = 0;
   const categoryCounts: Record<string, number> = {};
 

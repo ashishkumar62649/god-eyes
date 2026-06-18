@@ -119,7 +119,11 @@ export async function handlePublicProfile(airportId: string): Promise<PublicProf
     }
 
     // No cache, no in-progress fetch - create fetch run and return fetching
-    // TODO: Actual fetcher integration would go here
+    // The route records the request as a fetch_run row and returns the fetching
+    // status. The fetcher worker (owned by the Fetcher Agent) populates profile
+    // data asynchronously by reading this row. An in-process or on-demand fetcher
+    // hook at this call site would be a future work-order concern tracked
+    // separately from this route handler.
     await repository.createFetchRun(airportId);
     return buildFetchingResponse(airportId);
   } catch (error) {
