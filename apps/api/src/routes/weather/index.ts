@@ -9,7 +9,7 @@
 //   /api/layers/weather/fetch-runs (alias for /api/layers/layer_07_weather/weather/fetch-runs)
 //
 // Old paths remain registered for compatibility and are not removed in this work order.
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   WeatherListResponseSchema,
   WeatherNearbyResponseSchema,
@@ -43,7 +43,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
   // the internal layer ID per API-POLICY-001.
 
   // A. Latest weather observations
-  const latestHandler = async (request: any, reply: any) => {
+  const latestHandler = async (request: FastifyRequest<{ Querystring: WeatherQuerystring }>, reply: FastifyReply) => {
     const { bbox: rawBbox, observation_type: rawObservationType, source_id: rawSourceId, forecast_from: rawForecastFrom, forecast_to: rawForecastTo, limit: rawLimit, offset: rawOffset } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);
@@ -108,7 +108,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: WeatherQuerystring }>(`/api/layers/${PUBLIC_SLUG}/latest`, latestHandler);
 
   // B. Current weather observations
-  const currentHandler = async (request: any, reply: any) => {
+  const currentHandler = async (request: FastifyRequest<{ Querystring: WeatherQuerystring }>, reply: FastifyReply) => {
     const { bbox: rawBbox, source_id: rawSourceId, limit: rawLimit, offset: rawOffset } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);
@@ -147,7 +147,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: WeatherQuerystring }>(`/api/layers/${PUBLIC_SLUG}/current`, currentHandler);
 
   // C. Hourly weather observations
-  const hourlyHandler = async (request: any, reply: any) => {
+  const hourlyHandler = async (request: FastifyRequest<{ Querystring: WeatherQuerystring }>, reply: FastifyReply) => {
     const { bbox: rawBbox, source_id: rawSourceId, forecast_from: rawForecastFrom, forecast_to: rawForecastTo, limit: rawLimit, offset: rawOffset } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);
@@ -204,7 +204,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: WeatherQuerystring }>(`/api/layers/${PUBLIC_SLUG}/hourly`, hourlyHandler);
 
   // D. Nearby weather
-  const nearbyHandler = async (request: any, reply: any) => {
+  const nearbyHandler = async (request: FastifyRequest<{ Querystring: NearbyQuerystring }>, reply: FastifyReply) => {
     const { lat: rawLat, lon: rawLon, radius_km: rawRadiusKm, observation_type: rawObservationType, source_id: rawSourceId, limit: rawLimit } = request.query;
 
     const lat = Number(rawLat);
@@ -259,7 +259,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: NearbyQuerystring }>(`/api/layers/${PUBLIC_SLUG}/nearby`, nearbyHandler);
 
   // E. Weather sources
-  const sourcesHandler = async (_request: any, reply: any) => {
+  const sourcesHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE_ERROR }; }
 
@@ -277,7 +277,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
   fastify.get(`/api/layers/${PUBLIC_SLUG}/sources`, sourcesHandler);
 
   // F. Fetch runs
-  const fetchRunsHandler = async (request: any, reply: any) => {
+  const fetchRunsHandler = async (request: FastifyRequest<{ Querystring: FetchRunsQuerystring }>, reply: FastifyReply) => {
     const { source_id: rawSourceId, status: rawStatus, limit: rawLimit, offset: rawOffset } = request.query;
 
     const parsedLimit = parseLimit(rawLimit);

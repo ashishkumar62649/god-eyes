@@ -8,7 +8,7 @@
 //   /api/layers/news/stats      (alias for /api/layers/layer_08_news_osint/news/stats)
 //
 // Old paths remain registered for compatibility and are not removed in this work order.
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   NewsItemsListResponseSchema,
   NewsMarkersListResponseSchema,
@@ -33,7 +33,7 @@ export async function newsRoutes(fastify: FastifyInstance) {
   // the internal layer ID per API-POLICY-001.
 
   // A. News items list
-  const itemsHandler = async (request: any, reply: any) => {
+  const itemsHandler = async (request: FastifyRequest<{ Querystring: ItemsQuerystring }>, reply: FastifyReply) => {
     const { source_id: rawSourceId, category: rawCategory, subcategory: rawSubcategory, severity: rawSeverity, country_code: rawCountryCode, marker_ready: rawMarkerReady, has_coordinates: rawHasCoordinates, geometry_type: rawGeometryType, published_after: rawPublishedAfter, published_before: rawPublishedBefore, search: rawSearch, limit: rawLimit, offset: rawOffset, order: rawOrder } = request.query;
 
     const parsedLimit = parseLimit(rawLimit, MAX_LIMIT);
@@ -118,7 +118,7 @@ export async function newsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: ItemsQuerystring }>(`/api/layers/${PUBLIC_SLUG}/items`, itemsHandler);
 
   // B. News markers
-  const markersHandler = async (request: any, reply: any) => {
+  const markersHandler = async (request: FastifyRequest<{ Querystring: MarkersQuerystring }>, reply: FastifyReply) => {
     const { source_id: rawSourceId, category: rawCategory, subcategory: rawSubcategory, severity: rawSeverity, country_code: rawCountryCode, published_after: rawPublishedAfter, published_before: rawPublishedBefore, limit: rawLimit } = request.query;
 
     const parsedLimit = parseLimit(rawLimit, MAX_MARKER_LIMIT);
@@ -158,7 +158,7 @@ export async function newsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: MarkersQuerystring }>(`/api/layers/${PUBLIC_SLUG}/markers`, markersHandler);
 
   // C. News sources
-  const sourcesHandler = async (_request: any, reply: any) => {
+  const sourcesHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE_ERROR }; }
 
@@ -176,7 +176,7 @@ export async function newsRoutes(fastify: FastifyInstance) {
   fastify.get(`/api/layers/${PUBLIC_SLUG}/sources`, sourcesHandler);
 
   // D. Fetch runs
-  const fetchRunsHandler = async (request: any, reply: any) => {
+  const fetchRunsHandler = async (request: FastifyRequest<{ Querystring: FetchRunsQuerystring }>, reply: FastifyReply) => {
     const { source_id: rawSourceId, status: rawStatus, limit: rawLimit, offset: rawOffset } = request.query;
 
     const parsedLimit = parseLimit(rawLimit, MAX_LIMIT);
@@ -207,7 +207,7 @@ export async function newsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: FetchRunsQuerystring }>(`/api/layers/${PUBLIC_SLUG}/fetch-runs`, fetchRunsHandler);
 
   // E. News stats
-  const statsHandler = async (_request: any, reply: any) => {
+  const statsHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
     const dbStatus = await checkDatabaseStatus();
     if (dbStatus.status === 'offline') { reply.code(503); return { error: DB_OFFLINE_ERROR }; }
 
