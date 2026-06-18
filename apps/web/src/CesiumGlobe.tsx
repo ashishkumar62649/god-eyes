@@ -322,7 +322,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   ): void {
     const allObjects = getAllObjects();
     const visibleCount = globalDotCollectionRef.current?.length ?? 0;
-    console.log('[AVIATION] emitStats:', renderMode, preloadStatus, 'loaded:', allObjects.length, 'visible:', visibleCount);
     onStatsChangeRef.current?.({
       loaded: allObjects.length,
       visible: visibleCount,
@@ -461,8 +460,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   // Viewer initialization
   useEffect(() => {
-    console.log('[AVIATION] viewer init useEffect');
-
     if (!setupCesiumToken()) {
       setTokenMissing(true);
     }
@@ -481,7 +478,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       viewerRef.current = viewer;
       viewerReadyRef.current = true;
       setViewerReady(true);
-      console.log('[AVIATION] viewer ready, viewerRef.current set');
 
       const dataSource = new CustomDataSource('aviation');
       aviationDataSourceRef.current = dataSource;
@@ -735,10 +731,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         // because cameraTarget is still set. No extra state needed.
         return;
       }
-      console.log('[SEARCH FLYTO] flying to', latitude, longitude);
       const currentHeight = viewer.camera.positionCartographic?.height;
       const targetHeight = airportFlyHeight(currentHeight);
-      console.log('[SEARCH FLYTO] current height', Math.round(currentHeight ?? 0), 'final height', targetHeight);
       viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(longitude, latitude, targetHeight),
         duration: 1.5,
@@ -1009,12 +1003,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         applyingRef.current = false;
         onAircraftRenderedRef.current?.(map.size);
         viewerRef.current?.scene.requestRender();
-        // Debug: log once per snapshot apply (not per frame).
-        if (import.meta.env.DEV) {
-          const first = valid[0];
-          console.log('[AIRCRAFT] snapshot applied', map.size, 'billboards; collection.length=', coll!.length,
-            first ? `first: lon=${first.lon} lat=${first.lat} alt=${first.altitudeBaroFt}ft` : '');
-        }
         if (pendingSnapshotRef.current) startApply();
       }
 
@@ -1093,8 +1081,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const existing = map.get(key);
         if (existing) {
-          const oldLon = existing.currLon;
-          const oldLat = existing.currLat;
           existing.currPos = newPos;
           existing.currLat = ac.lat;
           existing.currLon = ac.lon;
@@ -1111,9 +1097,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
           existing.billboard.rotation = rotation;
           (existing.billboard.id as any)._aircraftData = ac;
           updatedCount++;
-          if (import.meta.env.DEV && updatedCount === 1) {
-            console.log(`[AIRCRAFT DELTA] moved ${key}: lon ${oldLon} → ${ac.lon}, lat ${oldLat} → ${ac.lat}`);
-          }
           if (shouldShowAircraftIcons()) {
             getAircraftMarkerImageAsync(iconName, color).then((img) => {
               if (existing.billboard && shouldShowAircraftIcons() && img !== image) existing.billboard.image = img;
@@ -1151,10 +1134,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       for (const key of removes) {
         const rec = map.get(key);
         if (rec) { coll.remove(rec.billboard); map.delete(key); }
-      }
-
-      if (import.meta.env.DEV) {
-        console.log(`[AIRCRAFT DELTA] upserts=${upsert.length} removes=${removes.length} billboardsUpdated=${updatedCount} total=${map.size}`);
       }
 
       if (updatedCount > 0 || removes.length > 0) {
