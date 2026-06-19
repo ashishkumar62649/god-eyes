@@ -2,11 +2,7 @@
 
 Classification: ROLLING_CONTEXT
 
-Last updated: 2026-06-19 - Aviation Route Split Agent (Wave 3 SR-005D)
-
-Last updated: 2026-06-19 - Earth Events Route Split Agent (Wave 3 SR-005F)
-
-Last updated: 2026-06-19 - Borders Route Split Agent (Wave 3 SR-005E)
+Last updated: 2026-06-19 - Wave 3 State Sync Agent (Wave 3 Route Split Closeout)
 
 
 This file is the short rolling context for agents.
@@ -41,34 +37,14 @@ receive the **complete** handoff entry after every completed task.
 ---
 
 
-## 2026-06-19 - Wave 3 SR-005D Aviation Aircraft Route Split
+## 2026-06-19 - Wave 3 State Sync / API Route Split Closeout
 
-- Agent: Aviation Route Split Agent
-- Branch: `api/sr-005d/aviation-aircraft-route-split`
-- What changed: Split `apps/api/src/routes/aviation-aircraft.ts` (361 lines) into the standard folder structure under `apps/api/src/routes/aviation/aircraft/` (`index.ts`, `service.ts`, `repository.ts`, `mapper.ts`, `validation.ts`, `types.ts`). The old top-level file is now a 1-line compatibility shim that re-exports `aviationAircraftRoutes` from the new folder. All four public paths (`GET /api/aviation/aircraft/latest`, `GET /api/aviation/aircraft/:sourceObjectId`, `GET /api/layers/aviation/aircraft/latest`, `GET /api/layers/aviation/aircraft/:sourceObjectId`) and the existing test file (`tests/aviation-aircraft.test.ts`, 23 tests) work unchanged. `borders-boundaries.ts` and `earth-events.ts` are intentionally untouched (separate scope, out of this work order).
-- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS, single LF/CRLF informational warning on new shim); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test -- aviation-aircraft.test.ts` PASS (23/23); `pnpm --filter api test` PASS (581/581); scope guards clean (no `request: any|reply: any` in new aviation files, no diffs on forbidden files).
-- Known issues: CRLF/LF autocrlf informational warning on Windows for the new shim file (matches existing repo pattern). No test changes were needed because the test imports from `../src/routes/aviation-aircraft.js` and the shim re-exports `aviationAircraftRoutes` with the same name.
-- Next: Wave 3 SR-005D closes the aviation aircraft route split. Remaining Wave 3 candidates (per Spec 008 cleanup lane) can continue per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
-
-## 2026-06-19 - Wave 3 SR-005F Earth Events Route Split
-
-- Agent: Earth Events Route Split Agent
-- Branch: `api/sr-005f/earth-events-route-split`
-- What changed: Split `apps/api/src/routes/earth-events.ts` into standard folder route structure at `apps/api/src/routes/earth-events/` with 6 files: `index.ts`, `service.ts`, `repository.ts`, `mapper.ts`, `validation.ts`, `types.ts`. Old file reduced to compatibility shim re-exporting from the new folder. All 13 earth-events tests and full API suite (581/581 tests) pass unchanged. Both route paths preserved: `GET /api/earth-events/latest` and `GET /api/layers/earth-events/latest`.
-- Validation: `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test -- earth-events.test.ts` PASS (13/13); `pnpm --filter api test` PASS (581/581); scope guard diffs clean for aviation, borders, existing split folders, shared libs (PASS); no `request: any` / `reply: any` route handler types in earth-events files (PASS).
-- Known issues: State-doc rebase risk from Wave 3 parallel mode (Aviation Route Split Agent and Borders Route Split Agent may also be writing to state docs concurrently). CRLF/LF git autocrlf warning on Windows is informational.
-- Next: Orchestrator Agent reviews this branch and creates integration review. On PASS, the user pushes to origin and opens a PR for this work package.
-
-
-## 2026-06-19 - Wave 3 SR-005E Borders-Boundaries Route Split
-
-- Agent: Borders Route Split Agent
-- Branch: `api/sr-005e/borders-boundaries-route-split`
-- What changed: Split `apps/api/src/routes/borders-boundaries.ts` into 6 sub-modules under `apps/api/src/routes/borders-boundaries/` (index, service, repository, mapper, validation, types). Old file converted to 1-line compatibility shim. Public route behavior preserved — both `/api/borders-boundaries/countries` and `/api/layers/borders-boundaries/countries` continue to work unchanged.
-- Validation: contracts build PASS; api build PASS; 18/18 borders-boundaries tests PASS; 581/581 full api tests PASS; scope guards PASS (zero diffs on aviation, earth-events, existing split folders, shared libs, web, services, packages, specs).
-- Known issues: Wave 3 runs in parallel — state-doc conflicts may require rebase later.
-- Next: Aviation Route Split Agent and/or Earth Events Route Split Agent continue their parallel Wave 3 work.
-
+- Agent: Wave 3 State Sync Agent
+- Branch: `docs/wave-3-state-sync`
+- What changed: Recorded Wave 3 complete after aviation, earth-events, and borders route splits merged to `main` (SR-005D aviation aircraft split into `apps/api/src/routes/aviation/aircraft/` with shim at `apps/api/src/routes/aviation-aircraft.ts`; SR-005F earth events split into `apps/api/src/routes/earth-events/` with shim at `apps/api/src/routes/earth-events.ts`; SR-005E borders boundaries split into `apps/api/src/routes/borders-boundaries/` with shim at `apps/api/src/routes/borders-boundaries.ts`). Updated `CURRENT_PROJECT_STATE.md` with a new "Wave 3 outcomes (all complete)" subsection listing all three splits, the three preserved compatibility shims, the three canonical folders, and pointing the next wave at Wave 4 frontend CesiumGlobe split planning. Trimmed `RECENT_CONTEXT.md` rolling window to a clean 5 entries by removing the 3 individual SR-005D/F/E entries (now subsumed by this closeout entry; full per-PR detail remains in `HANDOFF_LOG.md`).
+- Validation: docs-only validation — `git diff --check` clean (PASS); no merge conflict markers anywhere in the active tree (PASS); `git diff --name-only` confirms only the 3 `docs/state/` files changed (PASS); no `pnpm` build/test re-runs needed (docs-only sync); per-route validations already passed at PR time and are recorded in HANDOFF_LOG entries (581/581 API tests, contracts build, api build all PASS for each of SR-005D, SR-005F, SR-005E).
+- Known issues: None. Wave 3 ran in parallel and the three individual agents each wrote their own RECENT_CONTEXT/HANDOFF_LOG entries at PR time; this closeout consolidates those into a single Wave 3 outcome section in `CURRENT_PROJECT_STATE.md` and trims the rolling context window so future agents see one clean Wave 3 entry rather than three near-duplicate per-PR entries.
+- Next: Start Wave 4 — frontend CesiumGlobe split planning. `apps/web/src/components/CesiumGlobe.tsx` is the largest remaining frontend file flagged in the Spec 008 cleanup lane and is the recommended next target per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
 
 ## 2026-06-19 - Wave 2 DISC-1E Energy Placeholder Decision
 

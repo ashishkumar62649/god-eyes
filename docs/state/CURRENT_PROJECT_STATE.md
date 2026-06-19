@@ -1,15 +1,19 @@
 ﻿# Current Project State
 
 Classification: CURRENT_STATE
-Last updated: 2026-06-19 - Energy Decision Record Agent (Wave 2 DISC-1E)
+Last updated: 2026-06-19 - Wave 3 State Sync Agent (Wave 3 Route Split Closeout)
 
-## Phase: Wave 2 Complete
+## Phase: Wave 3 Complete
 
-Wave 1 is fully merged into `main`. Wave 2 dead-code cleanup (Batch A+B DISC-1B/C/D/F
-deletions, plus the DISC-1E product decision) is now complete. Repository state docs,
-layer registries (API + frontend), CI/dependency files, environment examples, and route
-documentation are aligned with the current working code. No layer business logic is
-being redesigned in this phase.
+Wave 1 and Wave 2 are fully merged into `main`. Wave 3 API route split cleanup
+is now complete. Three large single-file API routes (aviation aircraft, earth
+events, borders boundaries) have been split into the standard folder route
+structure, with the old top-level files preserved as 1-line compatibility
+shims. All public API paths, route registration, and existing tests continue
+to work unchanged. Repository state docs, layer registries (API + frontend),
+CI/dependency files, environment examples, and route documentation remain
+aligned with the current working code. No layer business logic is being
+redesigned in this phase.
 
 ### Current main includes (Wave 1, all merged)
 
@@ -35,13 +39,68 @@ being redesigned in this phase.
   re-export in `apps/web/src/layers/layer_10_energy_infrastructure/index.ts` and the
   test file stay as-is.
 
+### Wave 3 outcomes (all complete)
+
+Wave 3 was the API route split cleanup wave, run in parallel across three
+discrete work packages. Each old single-file API route was split into the
+standard folder route structure (`index.ts` / `service.ts` / `repository.ts` /
+`mapper.ts` / `validation.ts` / `types.ts`), and the old top-level file was
+preserved as a 1-line compatibility shim that re-exports from the new folder.
+
+- **SR-005D — Aviation aircraft route split** (merged to `main`).
+  Old file `apps/api/src/routes/aviation-aircraft.ts` (361 lines) replaced with
+  a 1-line shim. Canonical implementation now lives in
+  `apps/api/src/routes/aviation/aircraft/` (6 files). All four public paths
+  preserved: `GET /api/aviation/aircraft/latest`,
+  `GET /api/aviation/aircraft/:sourceObjectId`,
+  `GET /api/layers/aviation/aircraft/latest`,
+  `GET /api/layers/aviation/aircraft/:sourceObjectId`.
+- **SR-005F — Earth events route split** (merged to `main`).
+  Old file `apps/api/src/routes/earth-events.ts` replaced with a 1-line shim.
+  Canonical implementation now lives in `apps/api/src/routes/earth-events/`
+  (6 files). Public paths preserved: `GET /api/earth-events/latest` and
+  `GET /api/layers/earth-events/latest`.
+- **SR-005E — Borders boundaries route split** (merged to `main`).
+  Old file `apps/api/src/routes/borders-boundaries.ts` replaced with a 1-line
+  shim. Canonical implementation now lives in
+  `apps/api/src/routes/borders-boundaries/` (6 files). Public paths preserved:
+  `GET /api/borders-boundaries/countries` and
+  `GET /api/layers/borders-boundaries/countries`.
+
+#### Wave 3 compatibility shims (preserved on `main`)
+
+- `apps/api/src/routes/aviation-aircraft.ts` — 1-line shim:
+  `export { aviationAircraftRoutes } from './aviation/aircraft/index.js';`
+- `apps/api/src/routes/earth-events.ts` — 1-line shim:
+  `export { earthEventsRoutes } from './earth-events/index.js';`
+- `apps/api/src/routes/borders-boundaries.ts` — 1-line shim:
+  `export { bordersBoundariesRoutes } from './borders-boundaries/index.js';`
+
+#### Wave 3 canonical implementations (new folders on `main`)
+
+- `apps/api/src/routes/aviation/aircraft/` — index, service, repository, mapper, validation, types
+- `apps/api/src/routes/earth-events/` — index, service, repository, mapper, validation, types
+- `apps/api/src/routes/borders-boundaries/` — index, service, repository, mapper, validation, types
+
+All three splits passed `pnpm --filter @god-eyes/contracts build`,
+`pnpm --filter api build`, and `pnpm --filter api test` (581/581 PASS).
+Each route's existing test file passes unchanged because the shims preserve
+the import paths used by `apps/api/src/index.ts` and by the existing test
+files. No `request: any` / `reply: any` types were introduced. No shared
+lib, web, services, packages, or spec files were touched.
+
 ### Current mode
 
 - **Wave 1 complete** — all 5 items are merged to `main`.
 - **Wave 2 complete** — Batch A+B dead-code removal merged; DISC-1E energy
   placeholder decision recorded as KEEP (no code change required).
-- **Next wave** — continue the remaining Spec 008 cleanup lane / API route
-  structure cleanup items per `docs/control/PROJECT_CONTROL.md` and
+- **Wave 3 complete** — three API route splits (aviation aircraft, earth events,
+  borders boundaries) merged to `main` with compatibility shims preserved
+  and all public API paths intact.
+- **Next wave** — Wave 4: frontend CesiumGlobe split planning / implementation.
+  The current `apps/web/src/components/CesiumGlobe.tsx` is the largest remaining
+  frontend file flagged in the Spec 008 cleanup lane and is the recommended
+  next target per `docs/control/PROJECT_CONTROL.md` and
   `specs/008-structure-remediation-roadmap/`.
 
 ## Authoritative Sources
@@ -154,10 +213,24 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJE
 
 ## Last Updated
 
-2026-06-19 - Energy Decision Record Agent (Wave 2 DISC-1E)
+2026-06-19 - Wave 3 State Sync Agent (Wave 3 Route Split Closeout)
 
 Change log for this file:
 
+- 2026-06-19 (Wave 3 Route Split Closeout) - Recorded Wave 3 complete after the
+  three API route splits (SR-005D aviation aircraft, SR-005F earth events,
+  SR-005E borders boundaries) merged to `main`. Added a new "Wave 3 outcomes
+  (all complete)" subsection recording all three splits, the three preserved
+  compatibility shims (`apps/api/src/routes/aviation-aircraft.ts`,
+  `apps/api/src/routes/earth-events.ts`,
+  `apps/api/src/routes/borders-boundaries.ts`), and the three canonical
+  implementation folders (`apps/api/src/routes/aviation/aircraft/`,
+  `apps/api/src/routes/earth-events/`,
+  `apps/api/src/routes/borders-boundaries/`). Updated the "Phase" header to
+  "Wave 3 Complete" and the "Current mode" subsection to mark Wave 1 + Wave 2
+  + Wave 3 all complete, with the next wave pointing at Wave 4 — frontend
+  CesiumGlobe split planning / implementation. No layer business logic was
+  changed. No code was changed.
 - 2026-06-19 (Wave 2 DISC-1E energy placeholder decision) - Recorded DISC-1E decision
   **KEEP** for
   `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts`.
