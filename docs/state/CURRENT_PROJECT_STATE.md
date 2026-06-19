@@ -1,14 +1,15 @@
 ﻿# Current Project State
 
 Classification: CURRENT_STATE
-Last updated: 2026-06-19 - State Sync Agent (post-Parallel Wave 1)
+Last updated: 2026-06-19 - Energy Decision Record Agent (Wave 2 DISC-1E)
 
-## Phase: Parallel Wave 1 Complete — Wave 2 Ready to Start
+## Phase: Wave 2 Complete
 
-Wave 1 is fully merged into `main`. Repository state docs, layer registries (API +
-frontend), CI/dependency files, environment examples, and route documentation are
-aligned with the current working code. No layer business logic is being redesigned in
-this phase.
+Wave 1 is fully merged into `main`. Wave 2 dead-code cleanup (Batch A+B DISC-1B/C/D/F
+deletions, plus the DISC-1E product decision) is now complete. Repository state docs,
+layer registries (API + frontend), CI/dependency files, environment examples, and route
+documentation are aligned with the current working code. No layer business logic is
+being redesigned in this phase.
 
 ### Current main includes (Wave 1, all merged)
 
@@ -18,25 +19,30 @@ this phase.
 - **WO-3-2** — Centralize API request-validation helpers (`apps/api/src/lib/requestValidation.ts`)
 - **WO-7-2** — Frontend layer test coverage (5 new test files, 153/153 web tests; the `aviationTileCache` tests were removed in the revision after DISC-1 confirmed the module as dead code)
 
+### Wave 2 outcomes (all complete)
+
+- **Wave 2 Batch A+B** — DISC-1B/C/D/F dead-code removals (merged to `main`):
+  5 dead aviation files deleted (`aviationTileCache.ts`, `aviationTileLoader.ts`,
+  `globeCamera.ts`, `airportViewport.ts`, `aviationLayerRenderer.ts`); 3 dead exports
+  trimmed from `aircraftMarker.ts`. 153/153 web tests, 581/581 API tests, all 3
+  builds PASS.
+- **DISC-1E** — Energy placeholder product decision: **KEEP**
+  `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts`.
+  It is intentionally retained as a tested static-layer placeholder / future
+  typed-client seed. It has zero production runtime callers, but is covered by
+  frontend tests (`energyInfrastructure.test.ts`, 11 tests) as the static-data-layer
+  contract placeholder. **No source-code deletion is required.** The barrel
+  re-export in `apps/web/src/layers/layer_10_energy_infrastructure/index.ts` and the
+  test file stay as-is.
+
 ### Current mode
 
 - **Wave 1 complete** — all 5 items are merged to `main`.
-- **Wave 2 ready to start** — see "Wave 2 Next Recommended Work" below.
-
-### Wave 2 Next Recommended Work
-
-1. **Remove confirmed dead frontend aviation files/exports from DISC-1** (lowest-risk first):
-   - `apps/web/src/layers/layer_01_aviation/airports/aviationTileCache.ts`
-   - `apps/web/src/layers/layer_01_aviation/airports/aviationTileLoader.ts`
-   - `apps/web/src/layers/layer_01_aviation/airports/globeCamera.ts`
-   - `apps/web/src/layers/layer_01_aviation/airports/airportViewport.ts`
-   - `apps/web/src/layers/layer_01_aviation/airports/aviationLayerRenderer.ts`
-   - 3 dead exports inside `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts`
-     (`getAircraftArrowSprite`, `getAircraftDotSprite`, `getAircraftColor` legacy alias)
-2. **Decide `energyInfrastructureApi.ts` placeholder future** — DISC-1E product call:
-   keep as documented stub vs delete + drop dead `export *` from barrel.
-3. **Then continue API route structure cleanup** — remaining Spec 008 cleanup lane
-   items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
+- **Wave 2 complete** — Batch A+B dead-code removal merged; DISC-1E energy
+  placeholder decision recorded as KEEP (no code change required).
+- **Next wave** — continue the remaining Spec 008 cleanup lane / API route
+  structure cleanup items per `docs/control/PROJECT_CONTROL.md` and
+  `specs/008-structure-remediation-roadmap/`.
 
 ## Authoritative Sources
 
@@ -148,10 +154,22 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJE
 
 ## Last Updated
 
-2026-06-19 - State Sync Agent (post-Parallel Wave 1)
+2026-06-19 - Energy Decision Record Agent (Wave 2 DISC-1E)
 
 Change log for this file:
 
+- 2026-06-19 (Wave 2 DISC-1E energy placeholder decision) - Recorded DISC-1E decision
+  **KEEP** for
+  `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts`.
+  The file is intentionally retained as a tested static-layer placeholder / future
+  typed-client seed (covered by `energyInfrastructure.test.ts`, 11 tests). No
+  source-code deletion is required. Wave 2 Batch A+B dead-code removal was already
+  merged to `main` prior to this update. The "Wave 2 Next Recommended Work" section
+  was removed because Wave 2 is now complete; the file's "Current mode" subsection
+  was updated to record "Wave 2 complete" and point the next wave at the remaining
+  Spec 008 cleanup lane / API route structure cleanup items. The "Phase" header was
+  updated to "Wave 2 Complete". No layer business logic was changed. No code was
+  changed.
 - 2026-06-19 (post-Parallel Wave 1 state sync) - Recorded that Wave 1 is fully merged
   into `main` (WO-3-1, DISC-1, CLEANUP-1, WO-3-2, WO-7-2). Updated phase to "Wave 1
   Complete — Wave 2 Ready to Start". Added a "Wave 2 Next Recommended Work" section

@@ -1,7 +1,7 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
-Last updated: 2026-06-19 - Frontend Dead Code Removal Agent (Wave 2 Batch A + B)
+Last updated: 2026-06-19 - Energy Decision Record Agent (Wave 2 DISC-1E)
 
 This file is the short rolling context for agents.
 
@@ -34,7 +34,14 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+## 2026-06-19 - Wave 2 DISC-1E Energy Placeholder Decision
 
+- Agent: Energy Decision Record Agent
+- Branch: `docs/wave-2-energy-decision-record`
+- What changed: Recorded the DISC-1E product decision: **KEEP** `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts`. The file is intentionally retained as a tested static-layer placeholder / future typed-client seed (zero production runtime callers, but covered by frontend tests as the static-data-layer contract placeholder). **No code changes required** — the barrel re-export in `apps/web/src/layers/layer_10_energy_infrastructure/index.ts` and the test file stay as-is. Wave 2 dead-code cleanup is now complete (Batch A+B deletions merged to `main` + DISC-1E decision recorded).
+- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); 3 `docs/state/` files updated only; `git diff --name-only` confirms zero hits for `apps/`, `services/`, `database/`, `packages/`, `tests/`, `specs/`, lockfile, or `.env*`. No `pnpm` build/test runs needed (docs-only state sync).
+- Known issues: None. `energyInfrastructureApi.ts` is a documented tested placeholder, not dead-by-accident; the test file relies on its existence, so the decision to keep it is the correct outcome of DISC-1E.
+- Next: Wave 2 closes. Next wave moves to the remaining Spec 008 cleanup lane / API route structure cleanup items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
 
 ## 2026-06-19 - Wave 2 Batch A + B Dead-Code Removal (DISC-1B/C/D/F)
 
