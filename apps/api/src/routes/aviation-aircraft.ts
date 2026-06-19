@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { checkDatabaseStatus, query } from '../lib/db.js';
+import { toIsoString } from '../lib/typeUtils.js';
 import {
   AircraftLatestListResponseSchema,
   AircraftDetailResponseSchema,
@@ -62,12 +63,6 @@ interface AircraftLatestRow {
   firstSeenAt: Date | string;
   lastSeenAt: Date | string;
   rawJson?: Record<string, unknown> | null;
-}
-
-function toIsoString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string') return value;
-  return String(value);
 }
 
 function rowToLatest(row: AircraftLatestRow) {

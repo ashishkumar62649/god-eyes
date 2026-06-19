@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { checkDatabaseStatus, query } from '../lib/db.js';
+import { toIsoString } from '../lib/typeUtils.js';
 import {
   EarthEventsLatestResponseSchema,
   ErrorCodes,
@@ -61,12 +62,6 @@ function parseLimit(raw: string | undefined): { value: number; error: { code: st
 function isValidIsoDatetime(raw: string): boolean {
   const d = new Date(raw);
   return d instanceof Date && !isNaN(d.getTime()) && raw.includes('T');
-}
-
-function toIsoString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string') return value;
-  return String(value);
 }
 
 interface EarthEventRow {
