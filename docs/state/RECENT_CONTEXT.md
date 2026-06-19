@@ -35,6 +35,7 @@ receive the **complete** handoff entry after every completed task.
 ---
 
 
+
 ## 2026-06-19 - DISC-1 Dead/Duplicate Code Investigation (audit only)
 
 - Agent: Dead Code Audit Agent
@@ -61,6 +62,19 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (581/581 — unchanged); `pnpm --filter web build` PASS (111 modules, 304.03 kB JS); `pnpm --filter web test` PASS (64/64 — unchanged).
 - Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures for non-layer data API work orders (same pattern as WO-003 through WO-3-1). Actual code/build/test all PASS. Will skip on clean tree after commit.
 - Next: Reviewer Agent reviews WO-3-2. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3.
+
+
+## 2026-06-19 - WO-7-2 Frontend Layer Test Coverage
+
+## 2026-06-19 - WO-7-2 Frontend Layer Test Coverage (revision)
+
+
+- Agent: Frontend Layer Test Agent
+- Branch: web/wo-7-2-frontend-layer-tests
+- What changed: Revised WO-7-2 to remove 13 `aviationTileCache` tests from `aviation.test.ts` (46→33 aviation tests) after reviewer flagged cross-lane dead-code conflict with DISC-1 (`aviationTileCache.ts` is a confirmed deletion candidate with no production importers). Removed `aviationTileCache` import and `describe('aviationTileCache — pure helpers')` block; removed `clearTileCache()`/`clearInFlightTiles()` from `beforeEach`. Total web test count: 153 (was 166 pre-revision; −13 removed). All remaining tests cover live production-used modules only (`aviationCategories`, `aviationObjectStore`, borders API, earth events API, satellites filters/colors, energy types/API).
+- Validation: `pnpm --filter web test` PASS (153/153 — V8 cleanup crash after all tests pass, known issue); `pnpm --filter api test` PASS (581/581); `pnpm --filter web build` PASS; `pnpm --filter api build` PASS; `pnpm --filter @god-eyes/contracts build` PASS; `git diff --check` clean.
+- Known issues: V8 `FatalError: v8::ToLocalChecked Empty MaybeLocal` after all 153 web tests pass (exit code 134). Known Node.js/Vitest cleanup-phase issue, not test-content related. `python -m pytest tests/data -q` dirty-tree scope-guard failures are pre-existing.
+- Next: Re-reviewer verifies no `aviationTileCache` references remain in the test branch. If PASS, user / decision-control layer may push, open a single PR, and merge.
 
 
 ## 2026-06-19 - WO-3-1 Centralize API Type/Date Helper Functions
