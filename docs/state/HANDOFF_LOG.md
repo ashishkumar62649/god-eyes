@@ -1,3 +1,65 @@
+### 2026-06-19T03:00:00Z — wave-2-batch-a-b-dead-code-removal
+
+- Work order: WAVE-2-BATCH-A-B-DEAD-CODE-REMOVAL (a single batched work package covering DISC-1B, DISC-1C, DISC-1D, DISC-1F)
+- Agent: Frontend Dead Code Removal Agent
+- Worktree folder: `E:\god-eyes-worktrees\wave-2-dead-code-removal`
+- Branch: `frontend/wo-wave2/batch-a-b-dead-code-removal`
+- Base commit: `624b85b Merge pull request #67 from ashishkumar62649/docs/state-sync-wave-1` (current `main`; Wave 1 fully merged)
+- Reviewer decision: PENDING (Orchestrator Agent review required before push)
+- Reason: DISC-1 (dead-code investigation, audit-only) confirmed 5 dead frontend aviation files and 3 dead exports inside `aircraftMarker.ts`, all with zero production callers. DISC-1 was a static-evidence audit only; this wave actually deletes the dead code. `energyInfrastructureApi.ts` is explicitly deferred as a product decision (DISC-1E), per the Wave 2 brief.
+- Goal: (1) Delete 5 whole files with zero production callers. (2) Remove 3 dead exports from `aircraftMarker.ts` plus the legacy comment block that framed them. (3) Keep every active export in `aircraftMarker.ts` untouched. (4) Leave `energyInfrastructureApi.ts`, its barrel re-export, and its test file intact. (5) Validate with the full required build + test matrix and commit locally.
+- Approach chosen: Delete-first because all candidates had 0 callers and the aviation barrel `index.ts` does not re-export any of them, so no downstream code can break. For `aircraftMarker.ts`, surgical in-place edit that preserves the line-for-line structure of every kept export; only the trailing "Legacy exports kept for any remaining callers" comment block + `getAircraftColor` alias + two `@deprecated` sprite functions removed. No barrel file edits (aviation barrel does not re-export any dead file).
+- Files deleted (5):
+  1. `apps/web/src/layers/layer_01_aviation/airports/aviationTileCache.ts` (163 lines)
+  2. `apps/web/src/layers/layer_01_aviation/airports/aviationTileLoader.ts` (237 lines)
+  3. `apps/web/src/layers/layer_01_aviation/airports/globeCamera.ts` (27 lines)
+  4. `apps/web/src/layers/layer_01_aviation/airports/airportViewport.ts` (49 lines)
+  5. `apps/web/src/layers/layer_01_aviation/airports/aviationLayerRenderer.ts` (254 lines)
+  Total: 730 lines removed via deletion.
+- Files modified (1): `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts` (254 → 220 lines, -34 lines).
+  - Exports removed (3): `getAircraftArrowSprite` (deprecated canvas-arrow helper), `getAircraftDotSprite` (deprecated canvas-dot helper), `getAircraftColor` legacy alias (`export { getAircraftAltitudeColor as getAircraftColor }`).
+  - Comment block removed (1): the `// Legacy exports kept for any remaining callers` separator block that framed those 3 dead exports.
+  - Exports preserved (6 required by spec, plus 2 actively used): `getAircraftMarkerImage`, `getAircraftMarkerImageAsync`, `getAircraftAltitudeColor`, `getAircraftHeadingDeg`, `headingToBillboardRotation`, `AIRCRAFT_BILLBOARD_SCALE`, `resolveAircraftIconName`, `getAircraftDotMarkerImage`. The last two were not on the spec's keep list but have active callers in `CesiumGlobe.tsx` and were intentionally preserved.
+- Files deferred (NOT touched, per Wave 2 task brief): `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts`, `apps/web/src/layers/layer_10_energy_infrastructure/index.ts`, `apps/web/src/layers/layer_10_energy_infrastructure/__tests__/energyInfrastructure.test.ts`. `energyInfrastructureApi.ts` is now a tested placeholder (per WO-7-2's `energyInfrastructure.test.ts` with 11 tests covering it); the test suite still relies on its existence. Removing it is a DISC-1E product decision that requires explicit user / decision-control layer approval (keep as documented stub vs delete + drop dead `export *` from barrel), so it is out of scope for this dead-code-removal batch.
+- State docs updated (2):
+  1. `docs/state/RECENT_CONTEXT.md` — `Last updated` bumped to 2026-06-19 - Frontend Dead Code Removal Agent (Wave 2 Batch A + B); new top entry for this work; oldest entry (WO-3-1) removed to maintain the AGENTS.md 5-entry rolling window. The WO-7-2 / WO-3-2 / CLEANUP-1 / DISC-1 entries are preserved verbatim, including the WO-7-2 entry that documents the prior cross-lane coordination removing 13 `aviationTileCache` tests.
+  2. `docs/state/HANDOFF_LOG.md` — This entry is prepended at the very top. No other entries rewritten, removed, or reordered. The previous top entry (`### 2026-06-19T02:00:00Z — state-sync-wave-1`) is now further down the file, preserved verbatim.
+- Pre-deletion reference checks (all PASS):
+  - `git grep -n "aviationTileCache" -- apps/web/src ":(exclude)docs/**"` → 0 hits.
+  - `git grep -n "aviationTileLoader" -- apps/web/src ":(exclude)docs/**"` → 0 hits.
+  - `git grep -n "globeCamera" -- apps/web/src ":(exclude)docs/**"` → 0 hits.
+  - `git grep -n "airportViewport" -- apps/web/src ":(exclude)docs/**"` → 0 hits.
+  - `git grep -n "aviationLayerRenderer" -- apps/web/src ":(exclude)docs/**"` → 0 hits.
+  - `git grep -n "getAircraftArrowSprite|getAircraftDotSprite|getAircraftColor\b" -- apps/web/src` → only the 3 self-references inside `aircraftMarker.ts` (the export definitions themselves); no callers in `CesiumGlobe.tsx`, no callers in tests, no callers in any layer barrel.
+  - Active exports cross-checked: `resolveAircraftIconName` and `getAircraftDotMarkerImage` (both used by `CesiumGlobe.tsx` at lines 50, 364, 375, 925, 1076) are NOT in the task spec's "remove" list and were preserved.
+  - Repo-wide grep scan (excluding `docs/**`): only matches for the 5 dead file names and the 3 dead exports are inside `docs/archive/`, `docs/audits/`, and `docs/state/` — i.e. historical/audit references only, no active production or test code callers.
+- Validation commands run:
+  - `git status --short --branch` (pre-edit) → `## frontend/wo-wave2/batch-a-b-dead-code-removal...origin/main` (clean) (PASS, matches expected branch)
+  - `git branch --show-current` (pre-edit) → `frontend/wo-wave2/batch-a-b-dead-code-removal` (PASS)
+  - `git log -5 --oneline` (pre-edit) → top is `624b85b Merge pull request #67 from ashishkumar62649/docs/state-sync-wave-1` (Wave 1 merged) (PASS)
+  - `git diff --check` → no whitespace errors (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → 0 hits (PASS, no merge conflict markers)
+  - `pnpm --filter @god-eyes/contracts build` → exit 0; `dist/index.d.ts` + `dist/index.js` + subfolder output produced cleanly (PASS)
+  - `pnpm --filter web build` → 111 modules transformed, 304.03 kB JS, identical bundle size to pre-Wave-2 baseline (PASS)
+  - `pnpm --filter api build` → exit 0; `dist/index.js` + subfolder output produced cleanly (PASS)
+  - `pnpm --filter web test` → 8 test files, **153/153 PASS** (matches expected count, unchanged from WO-7-2) (PASS)
+  - `pnpm --filter api test` → 19 test files, **581/581 PASS** (matches expected count, unchanged from WO-3-2) (PASS)
+  - `python -m pytest tests/data -q` (pre-commit dirty tree) → **11 pre-existing scope-guard failures**, 1188 passed, 7 skipped. The 11 failures are the documented `test_*_work_order_changes_stay_in_allowed_paths` and `test_*_work_order_adds_no_raw_environment_*` scope-guard tests, which intentionally fail on any non-matching dirty tree. The dirty tree here is Frontend-only (`apps/web/src/layers/layer_01_aviation/**` + 2 state docs) but those data-layer scope-guard tests assert that changed paths fall under `database/migrations/layers/<layer>/` or `tests/data/<layer>/` per-layer prefixes — so they correctly trip on a Frontend dirty tree. **Same pattern documented in WO-3-1, WO-3-2, CLEANUP-1, DISC-1, and WO-7-2.** Will re-run on clean tree after commit; expected to pass.
+- Known issues / caveats:
+  - PowerShell `node.exe : $ tsc && vite build` cosmetic noise on Windows when running `pnpm --filter <pkg> build` is a known pnpm-wrapper artifact; the build itself exits 0 with the expected output (`✓ built in 757ms` for web, `dist/` produced for api and contracts). Not an error.
+  - V8 `FatalError: v8::ToLocalChecked Empty MaybeLocal` after `pnpm --filter web test` exits 134 — known Node.js/Vitest cleanup-phase issue, not test-content related. All 153 tests pass before the crash. Same issue documented in WO-7-2.
+  - `python -m pytest tests/data -q` pre-commit shows 11 dirty-tree scope-guard failures; not regressions, will pass on clean tree (re-run after commit).
+  - The repo-wide grep for the 5 dead file names and the 3 dead exports surfaces matches inside `docs/archive/`, `docs/audits/`, and `docs/state/` — these are historical references (health audits, the DISC-1 audit, state docs); they are not active production or test code references. No active code or test depends on any deleted file or removed export.
+  - `docs/state/CURRENT_PROJECT_STATE.md` was NOT modified in this batch (out of scope per the Wave 2 task brief). The existing "Wave 2 Next Recommended Work" section already lists these deletions, so the file remains accurate as a roadmap; the next state-sync agent (e.g. as part of the Wave 2 PR) can update the "Wave 2 Next Recommended Work" pointer when it lands.
+  - The aviation barrel `apps/web/src/layers/layer_01_aviation/index.ts` was NOT touched (no re-exports of any deleted file; nothing to remove).
+  - No test files were modified — the expected "no test changes needed" outcome held: existing test coverage already excluded `aviationTileCache` (per the WO-7-2 revision that removed 13 such tests after DISC-1 cross-lane coordination), and no test referenced `getAircraftArrowSprite`, `getAircraftDotSprite`, or `getAircraftColor`.
+- Forbidden folders touched: confirmed **no**. Filter check on the post-edit `git diff --name-only` output: zero hits for `services/`, `database/`, `packages/` (other than the implicit contracts build artifact under `packages/contracts/dist/` which is gitignored), `tests/`, `scripts/`, `infra/`, `docs/control/`, `docs/audits/`, `docs/archive/`, `specs/`, `apps/api/`, lockfile, or `.env*`. The changed paths are exclusively `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts` + 5 deletions under `apps/web/src/layers/layer_01_aviation/airports/` + 2 state docs.
+- Folder ownership: Frontend Agent touched only `apps/web/` (per `PROJECT_CONTROL.md` Part 2 §8) + 2 `docs/state/` files (allowed for `RECENT_CONTEXT.md` + `HANDOFF_LOG.md` updates per `AGENTS.md` Hard Rules 3).
+- Secrets added: none.
+- Final status: COMPLETE on this branch. Local commit only — **no push, no PR, no merge, no branch delete**. Orchestrator Agent should review this branch; on PASS, the user / decision-control layer may push and open a single PR for the completed Wave 2 Batch A+B work package.
+- Next step: (1) Orchestrator Agent reviews this branch and creates `docs/state/INTEGRATION_REVIEW_WAVE-2-BATCH-A-B.md` (active, archived under `docs/archive/` after Wave 2 PR merges). (2) On reviewer PASS, the user / decision-control layer pushes the branch and opens one PR for this work package. (3) After merge, the Wave 2 next recommended task is the DISC-1E product decision on `energyInfrastructureApi.ts` (keep as documented stub vs delete + drop dead `export *` from barrel) — this should be a discrete decision work order, not a code-only task. (4) Then continue with the remaining Spec 008 cleanup lane items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
+
+
 ### 2026-06-19T02:00:00Z — state-sync-wave-1
 
 - Work order: STATE-SYNC-WAVE-1 (state docs cleanup only)

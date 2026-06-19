@@ -1,7 +1,7 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
-Last updated: 2026-06-19 - State Sync Agent (post-Parallel Wave 1)
+Last updated: 2026-06-19 - Frontend Dead Code Removal Agent (Wave 2 Batch A + B)
 
 This file is the short rolling context for agents.
 
@@ -36,6 +36,15 @@ receive the **complete** handoff entry after every completed task.
 
 
 
+## 2026-06-19 - Wave 2 Batch A + B Dead-Code Removal (DISC-1B/C/D/F)
+
+- Agent: Frontend Dead Code Removal Agent
+- Branch: `frontend/wo-wave2/batch-a-b-dead-code-removal`
+- What changed: Deleted 5 confirmed dead aviation files (`aviationTileCache.ts` 163 lines, `aviationTileLoader.ts` 237 lines, `globeCamera.ts` 27 lines, `airportViewport.ts` 49 lines, `aviationLayerRenderer.ts` 254 lines; ≈730 lines removed) and trimmed 3 dead exports from `aircraftMarker.ts` (`getAircraftArrowSprite`, `getAircraftDotSprite`, `getAircraftColor` legacy alias, plus the "Legacy exports kept for any remaining callers" comment block; -34 lines from 254→220). Active exports preserved: `getAircraftMarkerImage`, `getAircraftMarkerImageAsync`, `getAircraftAltitudeColor`, `getAircraftHeadingDeg`, `headingToBillboardRotation`, `AIRCRAFT_BILLBOARD_SCALE`, plus `resolveAircraftIconName` and `getAircraftDotMarkerImage` (both actively used by `CesiumGlobe.tsx`). **Deferred (out of scope):** `energyInfrastructureApi.ts` placeholder is left intact — requires a separate product decision (DISC-1E) per the Wave 2 task brief.
+- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter web build` PASS (111 modules, 304.03 kB JS — identical bundle size); `pnpm --filter api build` PASS; `pnpm --filter web test` PASS (153/153); `pnpm --filter api test` PASS (581/581); `python -m pytest tests/data -q` pre-commit dirty-tree → 11 pre-existing scope-guard failures (same pattern as WO-3-1 / WO-3-2 / CLEANUP-1 / WO-7-2), will pass on clean tree.
+- Known issues: PowerShell `node.exe : $ tsc && vite build` cosmetic noise on Windows (informational, not an error). `python -m pytest tests/data -q` dirty-tree scope-guard failures are the documented pre-existing test-design limitation, not regressions. V8 `FatalError` after all 153 web tests pass (known Node/Vitest cleanup-phase issue).
+- Next: Wave 2 next step is the DISC-1E product decision on `energyInfrastructureApi.ts` (keep as documented stub vs delete + drop dead `export *` from barrel). Then continue the remaining Spec 008 cleanup lane items.
+
 ## 2026-06-19 - WO-7-2 Frontend Layer Test Coverage
 
 - Agent: Frontend Layer Test Agent
@@ -62,21 +71,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); post-edit diff scoped to 2 new `.env.example` files + 1 root `package.json` + 2 state docs (PASS); no `apps/web/**`, `services/**` production code, `database/**`, `packages/**`, `tests/**`, lockfile, or `.env` real file touches; `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter web build` PASS; `pnpm --filter api test` PASS (581/581); `pnpm --filter web test` PASS (64/64).
 - Known issues: `python -m pytest tests/data -q` may report pre-existing scope-guard test failures on the dirty tree (same pre-existing test-design limitation documented in WO-003, WO-004, WO-005, WO-006, WO-1-4, WO-3-1). CRLF/LF git autocrlf warning on Windows is informational.
 - Next: Wave 1 complete. Recommended next cleanup work after CLEANUP-1: complete the deferred `console.error` cleanup in `apps/api/src/routes/public-profile/service.ts:130` as a separate, properly-scoped work order (e.g. introduce a shared `apps/api/src/lib/logger.ts` that the service can import without dependency injection, or refactor the route handler to be the single owner of error logging).
-
-## 2026-06-19 - DISC-1 Dead/Duplicate Code Investigation (audit only)
-
-- Agent: Dead Code Audit Agent
-- Branch: `review/dead-code-investigation`
-- What changed: Investigation/audit only — **no production code changes, no deletions**. Created `docs/audits/DEAD_DUPLICATE_CODE_INVESTIGATION_2026-06-19.md` classifying suspected dead/duplicate files with repo-level grep evidence. Confirmed dead: `aviationTileCache.ts` (163 lines), `aviationTileLoader.ts` (237 lines, duplicate impl), `globeCamera.ts` (27 lines), `airportViewport.ts` (49 lines), `aviationLayerRenderer.ts` (254 lines, duplicate impl), 3 exports inside `aircraftMarker.ts` (`getAircraftArrowSprite`, `getAircraftDotSprite`, `getAircraftColor` legacy alias). Not dead: `packages/schemas/` (6 active Python imports). Product decision needed: `energyInfrastructureApi.ts` (mock placeholder, 0 callers, future intent unclear).
-- Validation: pre-edit clean (PASS); docs-only diff scoped to 1 new audit doc + 2 state docs (PASS); `git diff --check` clean; no merge conflict markers; no apps/services/database/packages/tests/specs/lockfile touches.
-- Known issues: Static-evidence only — no runtime/coverage tracing. Findings are advisory; actual deletions deferred to follow-up WOs (DISC-1B/C/D/E/F). A future bundle analyzer pass is the gold standard before mass deletion.
-- Next: Wave 2 first task — implement the DISC-1 follow-up WOs. Priority order: **DISC-1B** (delete dead aviation tile pair `aviationTileCache.ts` + `aviationTileLoader.ts`), **DISC-1C** (delete dead `globeCamera.ts`), **DISC-1D** (drop 3 dead `aircraftMarker.ts` exports, keep the rest), **DISC-1F** (delete dead `airportViewport.ts` + `aviationLayerRenderer.ts` after confirming `aviationGlobalRenderer.ts` covers render needs), **DISC-1E** (product call on `energyInfrastructureApi.ts` mock — keep as documented stub vs delete + drop dead `export *` from barrel). DISC-1A (packages/schemas) closed as false positive — not dead.
-
-## 2026-06-19 - WO-3-1 Centralize API Type/Date Helper Functions
-
-- Agent: API Cleanup Agent
-- Branch: `api/wo-3-1-centralize-type-date-utils`
-- What changed: Created `apps/api/src/lib/typeUtils.ts` with 6 pure conversion helpers (`toIsoString`, `toIsoStringOrNull`, `toNumber`, `toNumberOrNull`, `toInteger`, `toIntegerOrNull`) and removed the duplicated local `function toIsoString / toNumber / toNumberOrNull / toInteger / toIntegerOrNull` definitions from 6 mapper/route files (`weather/mapper.ts`, `maritime/mapper.ts`, `news/mapper.ts`, `energy/infrastructure/mapper.ts`, `aviation-aircraft.ts`, `earth-events.ts`). Each mapper now imports the canonical helper(s) from `typeUtils.ts` and re-exports them so existing downstream service/index imports keep working unchanged. **No behavior change**: each canonical helper's body is the exact prior duplicate body, line-for-line. Out-of-scope and intentionally NOT centralized: `parseBbox` / `parseLimit` / `isValidIsoDatetime` (request validation → WO-3-2); the typed `toDate(value: Date | string | null)` in `airport-intelligence/service.ts` and `public-profile/repository.ts` (different signature/behavior); the `toNumber(value: unknown): number | null` in `airport-intelligence/service.ts` (different fallback).
-- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); targeted post-change search confirms duplicate `function toIsoString / toNumber / toNumberOrNull / toInteger / toIntegerOrNull` definitions are removed from the 6 touched files (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter web build` PASS (111 modules; identical to pre-WO-3-1); `pnpm --filter api test` PASS (581/581 — same count as pre-WO-3-1; pure re-exports with identical bodies mean all existing API tests pass unchanged); `pnpm --filter web test` PASS (64/64 — same count as pre-WO-3-1).
-- Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures on the dirty tree (same test-design limitation documented in WO-003 through WO-006). The 11 failures are not regressions. CRLF/LF git autocrlf warning on Windows is informational.
-- Next: Wave 1 complete. WO-3-1 covered only type/date/number conversions; request-validation helpers were explicitly deferred to WO-3-2 which has now landed. Wave 2 may pick up remaining Spec 008 cleanup items.
