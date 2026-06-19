@@ -24,19 +24,15 @@ import { AircraftInfoOverlay } from '../components/overlays/AircraftInfoOverlay'
 import { EarthquakeInfoOverlay } from '../components/overlays/EarthquakeInfoOverlay';
 import { TokenWarningOverlay } from '../components/overlays/TokenWarningOverlay';
 import { SatelliteInfoOverlay } from '../components/overlays/SatelliteInfoOverlay';
-import type { AircraftLatest, EarthEvent, MaritimeVesselObject } from '@god-eyes/contracts';
+import type { AircraftLatest, EarthEvent } from '@god-eyes/contracts';
 import type { SatelliteFrontendItem } from '../layers/layer_05_space_satellites/satellites/satelliteTypes';
-import type { EnergyFeature } from '../layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureTypes';
 import EnergyInfrastructureLayer from '../layers/layer_10_energy_infrastructure/infrastructure/EnergyInfrastructureLayer';
 import MaritimeLayer from '../layers/layer_06_maritime/MaritimeLayer';
 import WeatherLayer from '../layers/layer_07_weather/WeatherLayer';
 import NewsLayer from '../layers/layer_08_news_osint/NewsLayer';
-import type { NewsRenderMarker } from '../layers/layer_08_news_osint/newsTypes';
-import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
 import { getSatelliteColor, getSatellitePixelSize } from '../layers/layer_05_space_satellites/satellites/satelliteColors';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from '../layers/layer_05_space_satellites/satellites/satelliteFilters';
 
-import { isPositionVisible } from '../globe/cesiumVisibility';
 import {
   getAircraftAltitudeColor,
   getAircraftMarkerImage,
@@ -50,13 +46,8 @@ import {
 import { RENDER_CAP } from '../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
 import type { SnapshotCallback } from '../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
 import {
-  isGlobalDot,
-  getGlobalDotPosition,
   filterVisibleGlobalDots,
 } from '../layers/layer_01_aviation/airports/aviationGlobalRenderer';
-import {
-  getAllObjects,
-} from '../layers/layer_01_aviation/airports/aviationObjectStore';
 import { useFpsCounter } from '../globe/useFpsCounter';
 import { setupCesiumToken } from '../globe/setupCesiumToken';
 import { configureViewerScene } from '../globe/configureViewerScene';
@@ -64,6 +55,7 @@ import { createViewerOptions } from '../globe/viewerOptions';
 
 import { AIRCRAFT_ICON_VIEW_HEIGHT_METERS } from './constants';
 import { airportFlyHeight } from './helpers';
+import { createPickClickHandler } from './picking';
 import { useCameraBboxReporter } from './useCameraBboxReporter';
 import { useResidentAviationCache } from './useResidentAviationCache';
 import type { AircraftRecord, CesiumGlobeProps } from './types';
@@ -332,102 +324,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
       viewer.camera.changed.addEventListener(changedHandler);
       viewer.camera.moveEnd.addEventListener(moveEndHandler);
 
-      // Click handler
+      // Click handler — branch logic lives in apps/web/src/CesiumGlobe/picking.ts
+      // (W4-F). The ScreenSpaceEventHandler lifetime is bound to the
+      // viewer (implicit cleanup via viewer.destroy() in the effect
+      // cleanup below).
       const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-      handler.setInputAction((click: { position: Cartesian2 }) => {
-        const pickedObject = viewer!.scene.pick(click.position);
-        if (!pickedObject || !pickedObject.id) {
-          onObjectSelectRef.current(null);
-          return;
-        }
-
-        // Global dot click → fly to coordinate
-        if (isGlobalDot(pickedObject)) {
-          const pos = getGlobalDotPosition(pickedObject);
-          if (pos) {
-            // Look up the airport from resident cache
-            const airportId = pickedObject.id.airportId;
-            const allObjects = getAllObjects();
-            const airport = allObjects.find(a => a.id === airportId);
-            if (airport) {
-              onObjectSelectRef.current(airport);
-            }
-            viewer!.camera.flyTo({
-              destination: Cartesian3.fromDegrees(pos.longitude, pos.latitude,
-                airportFlyHeight(viewer!.camera.positionCartographic.height)),
-              duration: 1.0,
-            });
-          }
-          return;
-        }
-
-        if (!(pickedObject.id instanceof Entity)) {
-          // Check if it's a live aircraft billboard pick.
-          if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._aircraftData) {
-            const ac = (pickedObject.id as any)._aircraftData as AircraftLatest;
-            const pos = Cartesian3.fromDegrees(ac.lon!, ac.lat!, 0);
-            if (isPositionVisible(viewer!, pos)) {
-              setSelectedAircraft(ac);
-            }
-          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._vesselData) {
-            const vessel = (pickedObject.id as any)._vesselData as MaritimeVesselObject;
-            const pos = Cartesian3.fromDegrees(vessel.longitude, vessel.latitude, 0);
-            if (isPositionVisible(viewer!, pos)) {
-              onObjectSelectRef.current(vessel);
-            }
-          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._weatherData) {
-            const weatherItem = (pickedObject.id as any)._weatherData as WeatherRenderItem;
-            const pos = Cartesian3.fromDegrees(weatherItem.longitude, weatherItem.latitude, 0);
-            if (isPositionVisible(viewer!, pos)) {
-              onWeatherSelectRef.current?.(weatherItem);
-            }
-          } else if (pickedObject.id && typeof pickedObject.id === 'object' && (pickedObject.id as any)._newsData) {
-            const newsItem = (pickedObject.id as any)._newsData as NewsRenderMarker;
-            if (typeof newsItem.latitude === 'number' && typeof newsItem.longitude === 'number') {
-              const pos = Cartesian3.fromDegrees(newsItem.longitude, newsItem.latitude, 0);
-              if (isPositionVisible(viewer!, pos)) {
-                onNewsSelectRef.current?.(newsItem);
-              }
-            }
-          } else {
-            onObjectSelectRef.current(null);
-          }
-          return;
-        }
-
-        const entity = pickedObject.id;
-        const position = entity.position?.getValue(viewer!.clock.currentTime);
-        if (position && !isPositionVisible(viewer!, position)) {
-          onObjectSelectRef.current(null);
-          return;
-        }
-
-        // Earthquake entity click
-        if (entity.properties && entity.properties.earthquakeData) {
-          setSelectedEarthquake(entity.properties.earthquakeData.getValue() as EarthEvent);
-          return;
-        }
-
-        // Satellite triangle entity click (WO-082E)
-        if (entity.properties && entity.properties.satelliteData) {
-          const sat = entity.properties.satelliteData.getValue() as SatelliteFrontendItem;
-          setSelectedSatellite(sat);
-          return;
-        }
-
-        // Energy infrastructure feature click
-        if (entity.id && typeof entity.id === 'string' && entity.id.startsWith('energy-')) {
-          const energyFeature = entity.properties?.rawData?.getValue() as EnergyFeature;
-          if (energyFeature) {
-            onEnergyFeatureSelect?.(energyFeature);
-          }
-          return;
-        }
-
-        if (entity.properties && entity.properties.rawData) {
-          onObjectSelectRef.current(entity.properties.rawData.getValue());
-        }
-      }, ScreenSpaceEventType.LEFT_CLICK);
+      handler.setInputAction(
+        createPickClickHandler({
+          viewer,
+          onObjectSelectRef,
+          setSelectedAircraft,
+          setSelectedEarthquake,
+          setSelectedSatellite,
+          onWeatherSelectRef,
+          onNewsSelectRef,
+          onEnergyFeatureSelect,
+        }),
+        ScreenSpaceEventType.LEFT_CLICK,
+      );
     } catch (err) {
       console.error('Cesium failed to initialize:', err);
       setError(err instanceof Error ? err.message : String(err));
