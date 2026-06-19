@@ -1,7 +1,7 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
-Last updated: 2026-06-19 - Energy Decision Record Agent (Wave 2 DISC-1E)
+Last updated: 2026-06-19 - Aviation Route Split Agent (Wave 3 SR-005D)
 
 This file is the short rolling context for agents.
 
@@ -33,6 +33,15 @@ receive the **complete** handoff entry after every completed task.
 ```
 
 ---
+
+## 2026-06-19 - Wave 3 SR-005D Aviation Aircraft Route Split
+
+- Agent: Aviation Route Split Agent
+- Branch: `api/sr-005d/aviation-aircraft-route-split`
+- What changed: Split `apps/api/src/routes/aviation-aircraft.ts` (361 lines) into the standard folder structure under `apps/api/src/routes/aviation/aircraft/` (`index.ts`, `service.ts`, `repository.ts`, `mapper.ts`, `validation.ts`, `types.ts`). The old top-level file is now a 1-line compatibility shim that re-exports `aviationAircraftRoutes` from the new folder. All four public paths (`GET /api/aviation/aircraft/latest`, `GET /api/aviation/aircraft/:sourceObjectId`, `GET /api/layers/aviation/aircraft/latest`, `GET /api/layers/aviation/aircraft/:sourceObjectId`) and the existing test file (`tests/aviation-aircraft.test.ts`, 23 tests) work unchanged. `borders-boundaries.ts` and `earth-events.ts` are intentionally untouched (separate scope, out of this work order).
+- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS, single LF/CRLF informational warning on new shim); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test -- aviation-aircraft.test.ts` PASS (23/23); `pnpm --filter api test` PASS (581/581); scope guards clean (no `request: any|reply: any` in new aviation files, no diffs on forbidden files).
+- Known issues: CRLF/LF autocrlf informational warning on Windows for the new shim file (matches existing repo pattern). No test changes were needed because the test imports from `../src/routes/aviation-aircraft.js` and the shim re-exports `aviationAircraftRoutes` with the same name.
+- Next: Wave 3 SR-005D closes the aviation aircraft route split. Remaining Wave 3 candidates (per Spec 008 cleanup lane) can continue per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
 
 ## 2026-06-19 - Wave 2 DISC-1E Energy Placeholder Decision
 
@@ -69,12 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (581/581 — unchanged); `pnpm --filter web build` PASS (111 modules, 304.03 kB JS); `pnpm --filter web test` PASS (64/64 — unchanged).
 - Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures for non-layer data API work orders (same pattern as WO-003 through WO-3-1). Actual code/build/test all PASS. Will skip on clean tree after commit.
 - Next: Wave 1 complete. WO-3-2 closes the request-validation centralization follow-up explicitly deferred from WO-3-1. Wave 2 may continue with the remaining Spec 008 cleanup lane items.
-
-## 2026-06-19 - CLEANUP-1 Tiny Environment / Config / Security Hygiene Cleanup
-
-- Agent: Environment Cleanup Agent
-- Branch: `cleanup/env-config-tiny-cleanup`
-- What changed: Added `services/fetch-orchestrator/.env.example` (DATABASE_URL, MINIO_*, AISSTREAM_API_KEY, SPACE_TRACK_USERNAME, SPACE_TRACK_PASSWORD) and `services/normalizer/.env.example` (DATABASE_URL, MINIO_*) — both contain placeholders only, no real secrets, no real URLs with credentials. Removed the duplicate `test:api` root script from `package.json` (CI uses `api:test` exclusively per `.github/workflows/ci.yml:87` and project health audit HEALTH-008). Deferred: the `console.error` at `apps/api/src/routes/public-profile/service.ts:130` — replacing it with `fastify.log.error` would require either injecting the logger into the service signature (forbidden behavior change) or making the service re-throw so the route handler can log it (also forbidden), so it is left as-is and documented.
-- Validation: pre-edit clean (PASS); post-edit diff scoped to 2 new `.env.example` files + 1 root `package.json` + 2 state docs (PASS); no `apps/web/**`, `services/**` production code, `database/**`, `packages/**`, `tests/**`, lockfile, or `.env` real file touches; `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter web build` PASS; `pnpm --filter api test` PASS (581/581); `pnpm --filter web test` PASS (64/64).
-- Known issues: `python -m pytest tests/data -q` may report pre-existing scope-guard test failures on the dirty tree (same pre-existing test-design limitation documented in WO-003, WO-004, WO-005, WO-006, WO-1-4, WO-3-1). CRLF/LF git autocrlf warning on Windows is informational.
-- Next: Wave 1 complete. Recommended next cleanup work after CLEANUP-1: complete the deferred `console.error` cleanup in `apps/api/src/routes/public-profile/service.ts:130` as a separate, properly-scoped work order (e.g. introduce a shared `apps/api/src/lib/logger.ts` that the service can import without dependency injection, or refactor the route handler to be the single owner of error logging).
