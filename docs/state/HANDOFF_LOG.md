@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### 2026-06-19T05:00:00Z — wave-3-sr-005d-aviation-aircraft-route-split (SR-005D)
 
 - Work order: WAVE-3-SR-005D-AVIATION-AIRCRAFT-ROUTE-SPLIT (split aviation aircraft route into standard folder structure with compatibility shim)
@@ -49,6 +50,53 @@
   - `python -m pytest tests/data -q` was **not** run by this worker — per the task brief ("Do not run `python -m pytest tests/data -q`; this worker does not touch data pipeline files"). All other validation gates listed in the task brief were run and passed.
 - Final status: COMPLETE on this branch. Local commit only — **no push, no PR, no merge, no branch delete**. Orchestrator Agent should review this branch; on PASS, the user / decision-control layer may push and open a single PR for this Wave 3 SR-005D work package.
 - Next step: (1) Orchestrator Agent reviews this branch and creates `docs/state/INTEGRATION_REVIEW_SR-005D.md` (active, archived under `docs/archive/` after the PR merges). (2) On reviewer PASS, the user / decision-control layer pushes the branch and opens one PR for this work package. (3) After merge, Wave 3 SR-005D closes the aviation aircraft route split and the remaining Wave 3 candidates (per Spec 008 cleanup lane) can continue per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
+=======
+### 2026-06-19T22:36:00Z — sr-005f-earth-events-route-split
+
+- Work order: SR-005F
+- Agent: Earth Events Route Split Agent
+- Worktree folder: `E:\god-eyes-worktrees\wave-3-sr-005f`
+- Branch: `api/sr-005f/earth-events-route-split`
+- Base commit: `b19a4d6 Merge pull request #69 from ashishkumar62649/docs/wave-2-energy-decision-record`
+- Reviewer decision: PENDING (Orchestrator Agent review required before push)
+- Reason: Split the old single-file earth events API route (`apps/api/src/routes/earth-events.ts`) into the standard folder route structure (`apps/api/src/routes/earth-events/`) following the same pattern as weather, maritime, news, energy/infrastructure, space/satellites, and public-profile routes. The old file is converted to a 1-line compatibility shim.
+- Goal: (1) Create `apps/api/src/routes/earth-events/index.ts`, `service.ts`, `repository.ts`, `mapper.ts`, `validation.ts`, `types.ts`. (2) Reduce old file to shim `export { earthEventsRoutes } from './earth-events/index.js';`. (3) Preserve all public route behavior: `GET /api/earth-events/latest` and `GET /api/layers/earth-events/latest`. (4) Validate with contracts build, api build, targeted earth-events tests, and full API test. (5) Run scope guards to confirm aviation, borders, existing split folders, shared libs untouched. (6) Update state docs. (7) Commit locally — no push, no PR, no merge, no branch delete.
+- Approach chosen: Decomposed the monolithic route file into 6 files following the established pattern. `types.ts` holds route-local interfaces (`EarthEventsLatestQuerystring`, `EarthEventRow`). `validation.ts` wraps shared `parseBbox`, `parseLimit`, `isValidIsoDatetime` with route-specific constants (`DEFAULT_LIMIT=50`, `MAX_LIMIT=200`). `mapper.ts` holds `rowToEvent` using `toIsoString` from `apps/api/src/lib/typeUtils.ts`. `repository.ts` extracts SQL query building into `queryLatest()`. `service.ts` provides `getLatest()` as business orchestration layer. `index.ts` keeps Fastify route registration and handler logic (validation + calling service). Old file becomes a compatibility shim preserving the import path for `apps/api/src/index.ts`.
+- Files created (6 new):
+  1. `apps/api/src/routes/earth-events/types.ts` — Route-local interfaces
+  2. `apps/api/src/routes/earth-events/validation.ts` — Route-specific validation wrappers
+  3. `apps/api/src/routes/earth-events/mapper.ts` — Row-to-event mapper
+  4. `apps/api/src/routes/earth-events/repository.ts` — SQL queries
+  5. `apps/api/src/routes/earth-events/service.ts` — Business orchestration
+  6. `apps/api/src/routes/earth-events/index.ts` — Route registration & handlers
+- Files modified (1):
+  1. `apps/api/src/routes/earth-events.ts` — Reduced to 1-line shim
+- State docs updated (2):
+  1. `docs/state/RECENT_CONTEXT.md` — New entry prepended; rolling window trimmed to 5 entries
+  2. `docs/state/HANDOFF_LOG.md` — This entry prepended at the top
+- Source code changes: 6 new files + 1 modified route shim. No test changes. No spec changes. No package changes. No lockfile changes. No env changes. No `apps/web/`, `packages/`, `services/`, `database/`, `tests/data/` touches.
+- Public route behavior: **PRESERVED**. Both `GET /api/earth-events/latest` and `GET /api/layers/earth-events/latest` respond identically. Parameter filtering (bbox, event_type, since), default/capped limit (50/200), response schema (EarthEventsLatestResponseSchema), and error codes (INVALID_BBOX, INVALID_LIMIT, INVALID_QUERY, DATABASE_OFFLINE, INTERNAL_ERROR) are unchanged.
+- Forbidden folders touched: **confirmed none**. `git diff -- apps/api/src/routes/aviation-aircraft.ts apps/api/src/routes/borders-boundaries.ts` — no output (PASS). `git diff -- apps/api/src/routes/aviation apps/api/src/routes/weather apps/api/src/routes/maritime apps/api/src/routes/news apps/api/src/routes/energy apps/api/src/routes/space` — no output (PASS). `apps/api/src/lib/typeUtils.ts`, `apps/api/src/lib/requestValidation.ts`, `apps/api/src/lib/db.ts`, `apps/api/src/index.ts` — untouched (PASS).
+- Type safety: No `request: any` or `reply: any` found in earth-events files (PASS).
+- Secrets added: none.
+- Validation:
+  - Pre-edit: `## api/sr-005f/earth-events-route-split...origin/main` (PASS, correct branch)
+  - `git diff --check` → no whitespace errors (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → 0 hits (PASS, no merge conflict markers)
+  - `pnpm --filter @god-eyes/contracts build` → PASS
+  - `pnpm --filter api build` → PASS
+  - `pnpm --filter api test -- earth-events.test.ts` → PASS (13/13 tests)
+  - `pnpm --filter api test` → PASS (581/581 tests, 19/19 test files)
+  - `Select-String -Pattern "request: any|reply: any" -Path "apps/api/src/routes/earth-events/**/*.ts"` → no output (PASS)
+  - Scope guard diffs → no output for aviation, borders, existing split route folders (PASS)
+- Known issues / caveats:
+  - State-doc rebase risk: Wave 3 is running in parallel. The Aviation Route Split Agent and Borders Route Split Agent may also be writing to state docs concurrently. State-doc conflicts may require rebase resolution during PR/merge.
+  - CRLF/LF `git autocrlf` warning on Windows may appear on `git diff` (informational; consistent with the rest of the repository).
+  - `pnpm --filter api build` produces no `vite build` artifact (the API uses `tsc` for compilation only, not bundling); this matches all prior Wave 1/2/3 work.
+- Final status: COMPLETE on this branch. Local commit only — **no push, no PR, no merge, no branch delete**. Orchestrator Agent should review this branch; on PASS, the user may push and open a PR for this work package.
+- Next step: (1) Orchestrator Agent reviews this branch and creates `docs/state/INTEGRATION_REVIEW_SR-005F.md` (active, archived under `docs/archive/` after the PR merges). (2) On reviewer PASS, the user pushes the branch and opens one PR for this work package. (3) After merge, the earth-events route split is fully closed on `main`. (4) Remaining Wave 3 route splits (aviation, borders) continue on their parallel branches.
+
+>>>>>>> 5259010 (refactor(api): split earth events route)
 
 ### 2026-06-19T04:00:00Z — wave-2-energy-decision-record (DISC-1E)
 
