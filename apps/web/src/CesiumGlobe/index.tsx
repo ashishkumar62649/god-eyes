@@ -34,18 +34,6 @@ import { getSatelliteColor, getSatellitePixelSize } from '../layers/layer_05_spa
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from '../layers/layer_05_space_satellites/satellites/satelliteFilters';
 
 import {
-  getAircraftAltitudeColor,
-  getAircraftMarkerImage,
-  getAircraftMarkerImageAsync,
-  getAircraftDotMarkerImage,
-  resolveAircraftIconName,
-  getAircraftHeadingDeg,
-  headingToBillboardRotation,
-  AIRCRAFT_BILLBOARD_SCALE,
-} from '../layers/layer_01_aviation/aircraft/aircraftMarker';
-import { RENDER_CAP } from '../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
-import type { SnapshotCallback } from '../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
-import {
   filterVisibleGlobalDots,
 } from '../layers/layer_01_aviation/airports/aviationGlobalRenderer';
 import { useFpsCounter } from '../globe/useFpsCounter';
@@ -53,10 +41,10 @@ import { setupCesiumToken } from '../globe/setupCesiumToken';
 import { configureViewerScene } from '../globe/configureViewerScene';
 import { createViewerOptions } from '../globe/viewerOptions';
 
-import { AIRCRAFT_ICON_VIEW_HEIGHT_METERS } from './constants';
 import { airportFlyHeight } from './helpers';
 import { createPickClickHandler } from './picking';
 import { useCameraBboxReporter } from './useCameraBboxReporter';
+import { useLiveAircraftRenderer } from './useLiveAircraftRenderer';
 import { useResidentAviationCache } from './useResidentAviationCache';
 import type { AircraftRecord, CesiumGlobeProps } from './types';
 
@@ -212,36 +200,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return () => removeListener();
   }, [selectedAirport?.id, viewerReady]);
 
-  function shouldShowAircraftIcons(): boolean {
-    return cameraHeightRef.current <= AIRCRAFT_ICON_VIEW_HEIGHT_METERS;
-  }
-
-  function getAircraftVisualImage(color: string, iconName: string): string {
-    if (!shouldShowAircraftIcons()) {
-      return getAircraftDotMarkerImage(color);
-    }
-    return getAircraftMarkerImage(iconName, color);
-  }
-
-  function updateAircraftVisualMode(): void {
-    if (!aircraftMapRef.current.size) return;
-    for (const record of aircraftMapRef.current.values()) {
-      const ac = (record.billboard.id as any)?._aircraftData as AircraftLatest | undefined;
-      if (!ac) continue;
-      const color = getAircraftAltitudeColor(ac);
-      const iconName = resolveAircraftIconName(ac);
-      const image = getAircraftVisualImage(color, iconName);
-      record.billboard.image = image;
-      if (shouldShowAircraftIcons()) {
-        getAircraftMarkerImageAsync(iconName, color).then((img) => {
-          const currentAircraft = (record.billboard.id as any)?._aircraftData as AircraftLatest | undefined;
-          if (currentAircraft?.sourceObjectId === ac.sourceObjectId && shouldShowAircraftIcons() && img !== image) {
-            record.billboard.image = img;
-          }
-        });
-      }
-    }
-  }
+  // Live aircraft renderer hooks are mounted below (W4-G).
+  // The hook returns updateAircraftVisualMode, which the
+  // viewer-init camera listener calls whenever cameraHeightRef
+  // changes (the visual-mode switch is driven by camera height).
 
   // Viewer initialization
   useEffect(() => {
@@ -360,13 +322,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewerRef.current = null;
         viewerReadyRef.current = false;
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      if (applyRafRef.current) cancelAnimationFrame(applyRafRef.current);
-      if (drRafRef.current) cancelAnimationFrame(drRafRef.current);
-      aircraftMapRef.current.clear();
-      aircraftCollectionRef.current = null;
+       if (abortControllerRef.current) {
+         abortControllerRef.current.abort();
+       }
+       // applyRafRef and drRafRef cleanup now lives in
+       // useLiveAircraftRenderer's own effect cleanups (W4-G).
+       aircraftMapRef.current.clear();
+       aircraftCollectionRef.current = null;
       if (bordersDataSourceRef.current && viewerRef.current) {
         viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
       }
@@ -390,6 +352,31 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     abortControllerRef,
     onStatsChangeRef,
     fpsRef,
+  });
+
+  // Live aircraft renderer (W4-G): snapshot apply loop, delta handler,
+  // dead-reckoning animation, layer-OFF cleanup. The returned
+  // `updateAircraftVisualMode` is invoked from the viewer-init camera
+  // listener (above) to swap each aircraft billboard between icon and
+  // dot modes when the camera height crosses the icon-view threshold.
+  const { updateAircraftVisualMode } = useLiveAircraftRenderer({
+    viewerRef,
+    viewerReady,
+    liveAircraftLayerActive,
+    aircraftCollectionRef,
+    aircraftMapRef,
+    pendingSnapshotRef,
+    applyingRef,
+    applyRafRef,
+    drRafRef,
+    cameraHeightRef,
+    onAircraftSnapshotRef,
+    onAircraftDeltaRef,
+    onAircraftRenderedRef,
+    onGetBboxRef2,
+    onSnapshotCbRef,
+    onDeltaCbRef,
+    setSelectedAircraft,
   });
 
   // Camera fly-to when a search result is selected
@@ -539,354 +526,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }
   }, [earthEvents]);
 
-  // Live aircraft renderer (WO-079H).
-  // Architecture:
-  //   - Snapshots arrive via onAircraftSnapshot callback (no React re-render per poll).
-  //   - Applied in chunked rAF batches (CHUNK_SIZE per frame) to keep globe responsive.
-  //   - BillboardCollection (single primitive) instead of Entity per aircraft.
-  //   - Interpolation: CallbackProperty lerps between prev/curr observed positions.
-  //   - Apply-guard: only one apply loop runs at a time; new snapshot queues as pending.
-  //   - Camera bbox: onGetBbox() called by the hook on each poll tick.
-  useEffect(() => {
-    if (!viewerReady) return;
-
-    const CHUNK_SIZE = 500;
-
-    // Wire the snapshot callback so the hook can deliver data without React re-render.
-    const snapshotHandler: SnapshotCallback = (aircraft: AircraftLatest[]) => {
-      pendingSnapshotRef.current = aircraft;
-      if (!applyingRef.current) startApply();
-    };
-    onAircraftSnapshotRef.current = snapshotHandler;
-    // Also populate the external ref so App.tsx can forward WS snapshots here.
-    if (onSnapshotCbRef) onSnapshotCbRef.current = snapshotHandler;
-
-    function startApply() {
-      const snapshot = pendingSnapshotRef.current;
-      if (!snapshot) return;
-      pendingSnapshotRef.current = null;
-      applyingRef.current = true;
-
-      const coll = aircraftCollectionRef.current;
-      if (!coll) { applyingRef.current = false; return; }
-
-      const map = aircraftMapRef.current;
-
-      // Build the set of valid aircraft to apply.
-      const valid: AircraftLatest[] = [];
-      for (const ac of snapshot) {
-        if (ac.lat === null || ac.lon === null) continue;
-        // Do NOT filter by staleAfter — WS stream is source of truth for liveness.
-        valid.push(ac);
-        if (valid.length >= RENDER_CAP) break;
-      }
-
-      const seen = new Set<string>();
-      let i = 0;
-
-      function applyChunk() {
-        const end = Math.min(i + CHUNK_SIZE, valid.length);
-        for (; i < end; i++) {
-          const ac = valid[i];
-          const key = ac.sourceObjectId;
-          seen.add(key);
-
-          const heading = getAircraftHeadingDeg(ac);
-          const color = getAircraftAltitudeColor(ac);
-          // Support both WS wire field (altitudeFt) and contract field (altitudeBaroFt).
-          const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
-            : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
-          const altMeters = Math.max(0, altitudeFt * 0.3048);
-          const newPos = Cartesian3.fromDegrees(ac.lon!, ac.lat!, altMeters);
-          const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
-          const iconName = resolveAircraftIconName(ac);
-          const image: string = getAircraftVisualImage(color, iconName);
-          const obsTime = new Date(ac.observedAt).getTime();
-          const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
-          // Support both WS wire field (speedKt) and contract field (groundSpeedKt).
-          const speedKt = typeof (ac as any).speedKt === 'number' ? (ac as any).speedKt
-            : typeof ac.groundSpeedKt === 'number' ? ac.groundSpeedKt : 0;
-
-          const existing = map.get(key);
-          if (existing) {
-            existing.currPos = newPos;
-            existing.currLat = ac.lat!;
-            existing.currLon = ac.lon!;
-            existing.currAltM = altMeters;
-            existing.currTime = obsTime;
-            existing.staleAfter = staleMs;
-            existing.speedKt = speedKt;
-            existing.trackDeg = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN;
-            existing.verticalRateFpm = ac.verticalRateFpm ?? 0;
-            existing.onGround = ac.onGround ?? false;
-            existing.billboard.position = newPos;
-            existing.billboard.image = image;
-            existing.billboard.color = Color.WHITE;
-            existing.billboard.rotation = rotation;
-            (existing.billboard.id as any)._aircraftData = ac;
-            // Async update: swap to real SVG once loaded.
-            if (shouldShowAircraftIcons()) {
-              getAircraftMarkerImageAsync(iconName, color).then((img) => {
-                if (existing.billboard && shouldShowAircraftIcons() && img !== image) existing.billboard.image = img;
-              });
-            }
-          } else {
-            const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
-            const billboard = coll!.add({
-              image,
-              color: Color.WHITE,
-              scale: AIRCRAFT_BILLBOARD_SCALE,
-              rotation,
-              alignedAxis: Cartesian3.ZERO,
-              position: newPos,
-              id: idObj,
-            });
-            map.set(key, {
-              billboard,
-              currLat: ac.lat!,
-              currLon: ac.lon!,
-              currAltM: altMeters,
-              currPos: newPos,
-              currTime: obsTime,
-              staleAfter: staleMs,
-              speedKt,
-              trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
-              verticalRateFpm: ac.verticalRateFpm ?? 0,
-              onGround: ac.onGround ?? false,
-            });
-            // Async update: swap to real SVG once loaded.
-            if (shouldShowAircraftIcons()) {
-              getAircraftMarkerImageAsync(iconName, color).then((img) => {
-                if (billboard && shouldShowAircraftIcons() && img !== image) billboard.image = img;
-              });
-            }
-          }
-        }
-
-        if (i < valid.length) {
-          // More chunks to process.
-          applyRafRef.current = requestAnimationFrame(applyChunk);
-          return;
-        }
-
-        // All valid aircraft applied. Remove gone/stale markers.
-        for (const [key, rec] of map) {
-          if (!seen.has(key)) {
-            coll!.remove(rec.billboard);
-            map.delete(key);
-          }
-        }
-
-        applyingRef.current = false;
-        onAircraftRenderedRef.current?.(map.size);
-        viewerRef.current?.scene.requestRender();
-        if (pendingSnapshotRef.current) startApply();
-      }
-
-      applyRafRef.current = requestAnimationFrame(applyChunk);
-    }
-
-    // Wire the bbox callback so the hook can get the current camera viewport.
-    onGetBboxRef2.current = () => {
-      const viewer = viewerRef.current;
-      if (!viewer) return null;
-      try {
-        const rect = viewer.camera.computeViewRectangle();
-        if (!rect) return null;
-        const toDeg = (r: number) => r * (180 / Math.PI);
-        const bbox: [number, number, number, number] = [
-          toDeg(rect.west), toDeg(rect.south), toDeg(rect.east), toDeg(rect.north),
-        ];
-        // Validate before returning.
-        if (bbox.some((v) => !isFinite(v))) return null;
-        return bbox;
-      } catch {
-        return null;
-      }
-    };
-
-    return () => {
-      if (applyRafRef.current) cancelAnimationFrame(applyRafRef.current);
-      applyingRef.current = false;
-    };
-  }, [viewerReady]);
-
-  // Clear all live aircraft markers when the layer is turned OFF (WO-079H).
-  useEffect(() => {
-    if (liveAircraftLayerActive) return;
-    if (applyRafRef.current) { cancelAnimationFrame(applyRafRef.current); applyRafRef.current = 0; }
-    applyingRef.current = false;
-    pendingSnapshotRef.current = null;
-    const coll = aircraftCollectionRef.current;
-    const map = aircraftMapRef.current;
-    if (coll) {
-      for (const rec of map.values()) {
-        rec.billboard.show = false;
-      }
-    }
-    map.clear();
-    setSelectedAircraft(null);
-  }, [liveAircraftLayerActive]);
-
-  // Wire delta handler: upsert/remove individual aircraft without full snapshot apply.
-  useEffect(() => {
-    if (!viewerReady) return;
-    const deltaHandler = (upsert: AircraftLatest[], removes: string[]) => {
-      const coll = aircraftCollectionRef.current;
-      const map = aircraftMapRef.current;
-      if (!coll) return;
-
-      let updatedCount = 0;
-
-      // Upsert changed/new aircraft.
-      for (const ac of upsert) {
-        if (ac.lat === null || ac.lon === null) continue;
-        const key = ac.sourceObjectId;
-        const heading = getAircraftHeadingDeg(ac);
-        const color = getAircraftAltitudeColor(ac);
-        const altitudeFt = typeof (ac as any).altitudeFt === 'number' ? (ac as any).altitudeFt
-          : typeof ac.altitudeBaroFt === 'number' ? ac.altitudeBaroFt : 0;
-        const altMeters = Math.max(0, altitudeFt * 0.3048);
-        const newPos = Cartesian3.fromDegrees(ac.lon, ac.lat, altMeters);
-        const obsTime = new Date(ac.observedAt).getTime();
-        const staleMs = ac.staleAfter ? new Date(ac.staleAfter).getTime() : 0;
-        const iconName = resolveAircraftIconName(ac);
-        const image = getAircraftVisualImage(color, iconName);
-        const rotation = heading !== null ? headingToBillboardRotation(heading) : 0;
-        const speedKt = typeof (ac as any).speedKt === 'number' ? (ac as any).speedKt
-          : typeof ac.groundSpeedKt === 'number' ? ac.groundSpeedKt : 0;
-
-        const existing = map.get(key);
-        if (existing) {
-          existing.currPos = newPos;
-          existing.currLat = ac.lat;
-          existing.currLon = ac.lon;
-          existing.currAltM = altMeters;
-          existing.currTime = obsTime;
-          existing.staleAfter = staleMs;
-          existing.speedKt = speedKt;
-          existing.trackDeg = ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN;
-          existing.verticalRateFpm = ac.verticalRateFpm ?? 0;
-          existing.onGround = ac.onGround ?? false;
-          existing.billboard.position = newPos;
-          existing.billboard.image = image;
-          existing.billboard.color = Color.WHITE;
-          existing.billboard.rotation = rotation;
-          (existing.billboard.id as any)._aircraftData = ac;
-          updatedCount++;
-          if (shouldShowAircraftIcons()) {
-            getAircraftMarkerImageAsync(iconName, color).then((img) => {
-              if (existing.billboard && shouldShowAircraftIcons() && img !== image) existing.billboard.image = img;
-            });
-          }
-        } else {
-          const idObj: { _aircraftData: AircraftLatest } = { _aircraftData: ac };
-          const billboard = coll.add({
-            image, color: Color.WHITE, scale: AIRCRAFT_BILLBOARD_SCALE, rotation, alignedAxis: Cartesian3.ZERO,
-            position: newPos, id: idObj,
-          });
-          map.set(key, {
-            billboard,
-            currLat: ac.lat,
-            currLon: ac.lon,
-            currAltM: altMeters,
-            currPos: newPos,
-            currTime: obsTime,
-            staleAfter: staleMs,
-            speedKt,
-            trackDeg: ac.trackDeg ?? (ac as any).headingDeg ?? ac.headingTrueDeg ?? NaN,
-            verticalRateFpm: ac.verticalRateFpm ?? 0,
-            onGround: ac.onGround ?? false,
-          });
-          if (shouldShowAircraftIcons()) {
-            getAircraftMarkerImageAsync(iconName, color).then((img) => {
-              if (billboard && shouldShowAircraftIcons() && img !== image) billboard.image = img;
-            });
-          }
-          updatedCount++;
-        }
-      }
-
-      // Remove aircraft explicitly listed.
-      for (const key of removes) {
-        const rec = map.get(key);
-        if (rec) { coll.remove(rec.billboard); map.delete(key); }
-      }
-
-      if (updatedCount > 0 || removes.length > 0) {
-        viewerRef.current?.scene.requestRender();
-      }
-      onAircraftRenderedRef.current?.(map.size);
-    };
-    onAircraftDeltaRef.current = deltaHandler;
-    if (onDeltaCbRef) onDeltaCbRef.current = deltaHandler;
-  }, [viewerReady]);
-
-  // Dead reckoning animation loop (WO-080B).
-  // Runs at ~20 FPS when live aircraft layer is active.
-  // Moves each aircraft billboard along its track using speed/heading and elapsed time.
-  // Display-only: never writes predicted position back into AircraftRecord real data.
-  useEffect(() => {
-    if (!liveAircraftLayerActive || !viewerReady) {
-      if (drRafRef.current) { cancelAnimationFrame(drRafRef.current); drRafRef.current = 0; }
-      return;
-    }
-
-    const DR_MAX_SECS = 10;
-    const KNOTS_TO_MPS = 0.514444;
-    const FPM_TO_MPS = 0.00508;
-    let lastFrameMs = 0;
-    const FRAME_INTERVAL = 50; // ~20 FPS
-
-    function drFrame(ts: number) {
-      drRafRef.current = requestAnimationFrame(drFrame);
-      if (ts - lastFrameMs < FRAME_INTERVAL) return;
-      lastFrameMs = ts;
-
-      const coll = aircraftCollectionRef.current;
-      const map = aircraftMapRef.current;
-      if (!coll || map.size === 0) return;
-
-      const nowMs = Date.now();
-      let moved = 0;
-
-      for (const [, rec] of map) {
-        if (rec.onGround) continue;
-        if (!isFinite(rec.trackDeg) || rec.speedKt <= 0) continue;
-
-        const elapsedSecs = Math.min(DR_MAX_SECS, (nowMs - rec.currTime) / 1000);
-        if (elapsedSecs <= 0) continue;
-
-        // Compute dead-reckoned position from currPos along trackDeg.
-        const distM = rec.speedKt * KNOTS_TO_MPS * elapsedSecs;
-        const trackRad = (rec.trackDeg * Math.PI) / 180;
-        const cart = rec.currPos;
-        const lon = Math.atan2(cart.y, cart.x);
-        const lat = Math.atan2(cart.z, Math.sqrt(cart.x * cart.x + cart.y * cart.y));
-        const R = 6371000;
-        const dLat = (distM * Math.cos(trackRad)) / R;
-        const dLon = (distM * Math.sin(trackRad)) / (R * Math.cos(lat));
-        const newLat = lat + dLat;
-        const newLon = lon + dLon;
-        const altM = rec.currAltM;
-        const drAlt = Math.max(0, altM + rec.verticalRateFpm * FPM_TO_MPS * elapsedSecs);
-
-        const drPos = Cartesian3.fromRadians(newLon, newLat, drAlt);
-        if (rec.billboard.show !== false) {
-          rec.billboard.position = drPos;
-          moved++;
-        }
-      }
-
-      if (moved > 0) {
-        viewerRef.current?.scene.requestRender();
-      }
-    }
-
-    drRafRef.current = requestAnimationFrame(drFrame);
-    return () => { if (drRafRef.current) { cancelAnimationFrame(drRafRef.current); drRafRef.current = 0; } };
-  }, [liveAircraftLayerActive, viewerReady]);
-
+  // Live aircraft renderer (WO-079H) lives in apps/web/src/CesiumGlobe/
+  // useLiveAircraftRenderer.ts (W4-G). The hook is mounted near the
+  // top of the component body, right after useResidentAviationCache.
 
   // Layer 05: Render satellites and debris on the globe (WO-082E).
   // Dots (satellites) → PointPrimitiveCollection for performance.
