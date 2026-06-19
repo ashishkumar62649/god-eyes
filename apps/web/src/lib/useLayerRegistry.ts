@@ -4,16 +4,22 @@ import { fetchLayerRegistry } from './api';
 
 // Local fallback — mirrors MVP_LAYER_REGISTRY.md exactly.
 // Used when API is offline so the UI always renders all 11 layers (00-10).
+// WO-1-4: `category` values now match the canonical CapitalCase values
+// used by the API registry in apps/api/src/routes/layers.ts (Foundation,
+// Transportation, Geography, Natural Phenomena, Security, Space,
+// Intelligence, User Content, Infrastructure). `apiStatus` values are
+// aligned to the same vocabulary the API uses (ready / active /
+// coming_soon). Layer IDs, slugs, names, and other fields are unchanged.
 export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_00_globe_core',
     name: 'Globe Core',
-    category: 'core',
+    category: 'Foundation',
     status: 'active',
     dataStatus: 'static',
     description: '3D globe, camera, base map, layer registry, selection system',
     sourceRule: 'No external sources',
-    apiStatus: 'active',
+    apiStatus: 'ready',
     frontendStatus: 'active',
     safetyNotes: 'No data. No secrets.',
     isEnabled: true,
@@ -22,12 +28,12 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_01_aviation',
     name: 'Aviation',
-    category: 'transport',
+    category: 'Transportation',
     status: 'active',
     dataStatus: 'live',
     description: 'Aircraft positions, airports, flight routes, details panel',
     sourceRule: 'OurAirports, ADS-B Exchange',
-    apiStatus: 'active',
+    apiStatus: 'ready',
     frontendStatus: 'active',
     safetyNotes: 'Public civil aviation only',
     isEnabled: true,
@@ -36,7 +42,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_02_borders_boundaries',
     name: 'Borders & Boundaries',
-    category: 'geo',
+    category: 'Geography',
     status: 'active',
     dataStatus: 'static',
     description: 'Country borders, disputed territories',
@@ -50,7 +56,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_03_earth_events',
     name: 'Earth Events',
-    category: 'environment',
+    category: 'Natural Phenomena',
     status: 'active',
     dataStatus: 'live',
     description: 'Earthquakes, natural disasters, weather alerts',
@@ -64,12 +70,12 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_04_public_military_security',
     name: 'Public Military & Security',
-    category: 'security',
+    category: 'Security',
     status: 'coming_soon',
     dataStatus: 'static',
     description: 'Publicly known military installations (static only)',
     sourceRule: 'Public-domain sources only',
-    apiStatus: 'not_implemented',
+    apiStatus: 'coming_soon',
     frontendStatus: 'coming_soon',
     safetyNotes: 'Static-only permanently. No real-time tracking.',
     isEnabled: false,
@@ -78,7 +84,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_05_space_satellites',
     name: 'Space & Satellites',
-    category: 'space',
+    category: 'Space',
     status: 'active',
     dataStatus: 'live',
     description: 'Satellite positions, orbital paths',
@@ -92,7 +98,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_06_maritime',
     name: 'Maritime / Live Ships',
-    category: 'transport',
+    category: 'Transportation',
     status: 'active',
     dataStatus: 'live',
     description: 'Vessel positions, ports',
@@ -106,7 +112,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_07_weather',
     name: 'Weather / Live Weather',
-    category: 'environment',
+    category: 'Natural Phenomena',
     status: 'active',
     dataStatus: 'live',
     description: 'Live weather observations from Open-Meteo through the GOD EYES API.',
@@ -120,7 +126,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_08_news_osint',
     name: 'News & OSINT',
-    category: 'intelligence',
+    category: 'Intelligence',
     status: 'active',
     dataStatus: 'live',
     description: 'Geolocated disaster/news events from GDACS and GDELT. Globe markers for Point records; list for all records.',
@@ -134,12 +140,12 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_09_user_shapes',
     name: 'User Shapes',
-    category: 'user',
+    category: 'User Content',
     status: 'coming_soon',
     dataStatus: 'static',
     description: 'User-drawn polygons, lines, points',
     sourceRule: 'User-generated only',
-    apiStatus: 'not_implemented',
+    apiStatus: 'coming_soon',
     frontendStatus: 'coming_soon',
     safetyNotes: 'User-private by default',
     isEnabled: false,
@@ -148,7 +154,7 @@ export const LOCAL_LAYER_REGISTRY: LayerRegistryEntry[] = [
   {
     layerId: 'layer_10_energy_infrastructure',
     name: 'Energy Infrastructure',
-    category: 'infrastructure',
+    category: 'Infrastructure',
     status: 'active',
     dataStatus: 'static',
     description: 'Power plants, transmission lines, pipelines, terminals',
