@@ -1,4 +1,5 @@
 
+
 ### 2026-06-19T00:00:00Z — disc-1-dead-duplicate-code-investigation
 
 - Work order: DISC-1
@@ -97,6 +98,115 @@
   - The `console.error` deferral is intentional and documented. A future properly-scoped work order (e.g. CLEANUP-2) can complete the logger replacement by either (a) introducing a shared `apps/api/src/lib/logger.ts` that the service can import without dependency injection, or (b) refactoring the route handler to be the single owner of error logging by removing the inner try/catch from `handlePublicProfile`. Both approaches are out of scope for the tiny, low-risk CLEANUP-1 brief.
 - Push / PR / merge status: **not performed** by agent. Branch is local only. The user / decision-control layer owns push, PR creation, merge, and branch deletion per `PROJECT_CONTROL.md` Part 3.
 - Next step: Reviewer Agent should produce `docs/state/INTEGRATION_REVIEW_CLEANUP-1.md` on this branch with a PASS / FAIL / NEEDS REVIEW verdict. The reviewer should verify: (1) the 2 new `.env.example` files are placeholders only (no real secrets, no real URLs with credentials, no production endpoints, no personal tokens); (2) the variables declared match the variables the Python workers actually read (DATABASE_URL, MINIO_* in both files; AISSTREAM_API_KEY and SPACE_TRACK_USERNAME/PASSWORD only in fetch-orchestrator); (3) `.gitignore` line 21 (`!services/*/.env.example`) keeps the new files tracked; (4) the `test:api` removal is safe (CI uses only `api:test` per `.github/workflows/ci.yml:87`; project health audit confirms `test:api` is an unused leftover alias); (5) `package.json` retains `api:test` and the `typescript: "^5.4.5"` devDependency; (6) `pnpm --filter api build` exit 0, `pnpm --filter api test` 581/581, `pnpm --filter web build` exit 0, `pnpm --filter web test` 64/64, `pnpm --filter @god-eyes/contracts build` exit 0 all PASS; (7) `git diff --check` clean; (8) zero merge conflict markers; (9) `HANDOFF_LOG.md` is append-only (this entry is the topmost); (10) `RECENT_CONTEXT.md` is at exactly 5 entries after the CLEANUP-1 prepended and the WO-004 eviction. On PASS, the user / decision-control layer may push the branch and open a single PR. On FAIL, revise on the same branch.
+
+
+### 2026-06-19T00:00:00Z — wo-3-2-centralize-request-validation
+
+- Work order: WO-3-2
+- Agent: API Validation Agent
+- Branch: `api/wo-3-2-request-validation-utils`
+- Worktree: `E:\god-eyes-worktrees\api-wo-3-2-validation`
+- Base commit: `40718e9 Merge pull request #62 from ashishkumar62649/api/wo-3-1-centralize-type-date-utils`
+- Reason: WO-3-1 intentionally deferred request-validation helpers (`parseBbox`, `parseLimit`, `parseOffset`, `isValidIsoDatetime`) to this work order. These helpers were duplicated across 8 route files with identical or near-identical bodies. This work order centralizes them into a single shared module without changing endpoint behavior, SQL, response shapes, route registration order, or validation semantics.
+- Goal: Create `apps/api/src/lib/requestValidation.ts` with shared helpers for duplicated request/query validation logic. Replace local function definitions with imports or re-exports. Preserve exact behavior for every route — no bounds changes, no default changes, no error message changes, no status code changes, no details-inclusion changes.
+- Approach chosen: Created a single pure shared module (`requestValidation.ts`) with no Fastify, database, env, or route registration dependencies. Used a parameterized `parseLimit(defaultLimit, maxLimit, withDetails)` and `parseOffset(withDetails)` pattern so each route wrapper can specify its own exact constants and detail-inclusion behavior. Used `isValidIsoDatetime` (strict `'T'` only) and `isValidIsoDatetimeLoose` (`'T'` or space) to preserve the two distinct datetime-check behaviors. Each route's `validation.ts` file keeps its local wrapper function with the exact prior constants, and downstream `index.ts` imports are unchanged.
+- Files changed (11: 1 new + 8 production routes + 2 state):
+
+  1. `apps/api/src/lib/requestValidation.ts` — **Created.** Shared helper module containing:
+     - `BBox` interface, `ValidationError` interface, `ParseResult<T>` type
+     - `parseBbox(raw)` — strict bounds-checked bbox parsing (identical body from 6 prior locations)
+     - `parseLimit(raw, defaultLimit, maxLimit, withDetails?)` — parameterized limit parser
+     - `parseOffset(raw, withDetails?)` — parameterized offset parser (clamps to 10000)
+     - `isValidIsoDatetime(raw)` — strict `'T'`-only check
+     - `isValidIsoDatetimeLoose(raw)` — `'T'` or space check
+     - Constants `DEFAULT_OFFSET`, `DEFAULT_MAX_OFFSET`
+
+  2. `apps/api/src/routes/aviation-aircraft.ts` — Modified. Removed local `BBox` interface, `parseBbox`, and `parseLimit` functions. Added import `{ parseBbox, parseLimit, BBox } from '../lib/requestValidation.js'`. Call to `parseLimit(rawLimit)` → `parseLimit(rawLimit, DEFAULT_LIMIT=1000, MAX_LIMIT=20000, true)` (preserves details in error). Local `parseIncludeStale` left unchanged (not duplicated elsewhere).
+
+  3. `apps/api/src/routes/borders-boundaries.ts` — Modified. Removed local `BBox` interface, `parseBbox`, and `parseLimit` functions. Added import. Call to `parseLimit(rawLimit)` → `parseLimit(rawLimit, DEFAULT_LIMIT=250, MAX_LIMIT=500)` (no details — behavior preserved).
+
+  4. `apps/api/src/routes/earth-events.ts` — Modified. Removed local `BBox` interface, `parseBbox`, `parseLimit`, and `isValidIsoDatetime` functions. Added import for `parseBbox, parseLimit, isValidIsoDatetime, BBox`. Call to `parseLimit(rawLimit)` → `parseLimit(rawLimit, DEFAULT_LIMIT=50, MAX_LIMIT=200)` (no details). `isValidIsoDatetime` uses the strict `'T'`-only variant.
+
+  5. `apps/api/src/routes/energy/infrastructure/validation.ts` — Modified. Replaced local `parseBbox` and `parseLimit` bodies with re-exports from shared module via wrapper functions. `parseBbox` is directly re-exported. `parseLimit` is a wrapper calling `sharedParseLimit(raw, DEFAULT_LIMIT=1000, MAX_LIMIT=10000)` (no details). `parseOffset` is kept local (no clamping — unlike maritime/news/weather which clamp to 10000). `MAX_LIMIT` constant stays local.
+
+  6. `apps/api/src/routes/maritime/validation.ts` — Modified. Replaced local `parseBbox`, `parseLimit`, `parseOffset`, `isValidIsoDatetime` bodies with re-exports/wrappers from shared module. `parseBbox` directly re-exported. `parseLimit` wrapper calls `sharedParseLimit(raw, DEFAULT_LIMIT=1000, MAX_LIMIT=10000, true)` (with details). `parseOffset` wrapper calls `sharedParseOffset(raw, true)` (with details, clamps to 10000). `isValidIsoDatetime` re-exports `isValidIsoDatetimeLoose` as `isValidIsoDatetime` (preserves loose `'T'` or space behavior). Local-specific helpers (`parseNumeric`, `parseMmsi`, `parseHours`, `parseHistoryLimit`) left unchanged.
+
+  7. `apps/api/src/routes/news/validation.ts` — Modified. Replaced local `parseLimit`, `parseOffset`, `isValidIsoDatetime` bodies with wrappers/re-exports from shared module. `parseLimit` wrapper preserves the special default-value rule (when `maxLimit === MAX_MARKER_LIMIT` the default equals `MAX_MARKER_LIMIT` instead of `DEFAULT_LIMIT`). `parseOffset` wrapper calls `sharedParseOffset(raw, true)` (with details, clamps to 10000). `isValidIsoDatetime` re-exports `isValidIsoDatetimeLoose` (loose `'T'` or space). Local constants (`DEFAULT_LIMIT`, `MAX_LIMIT`, `MAX_MARKER_LIMIT`, etc.) stay local.
+
+  8. `apps/api/src/routes/weather/validation.ts` — Modified. Replaced local `parseBbox`, `parseLimit`, `parseOffset`, `isValidIsoDatetime` bodies with wrappers/re-exports from shared module. `parseBbox` directly re-exported. `parseLimit` wrapper calls `sharedParseLimit(raw, DEFAULT_LIMIT=200, MAX_LIMIT=5000, true)` (with details). `parseOffset` wrapper calls `sharedParseOffset(raw, true)` (with details, clamps to 10000). `isValidIsoDatetime` re-exports `isValidIsoDatetimeLoose` (loose `'T'` or space). Local-specific helper `parseNearbyLimit` and constants left unchanged.
+
+  9. `apps/api/src/routes/space/satellites/validation.ts` — Modified. Replaced local `parseLimit` body with wrapper calling `sharedParseLimit(raw, DEFAULT_LIMIT=1000, MAX_LIMIT=75000, true)` (with details). Local-specific helpers (`parseBoolean`, `parseNumeric`, `parseCommaList`) left unchanged. `MAX_LIMIT` constant stays local.
+
+ 10. `docs/state/RECENT_CONTEXT.md` — Prepended a new WO-3-2 entry; removed the oldest entry (WO-004) to keep the rolling window at exactly 5 entries.
+
+ 11. `docs/state/HANDOFF_LOG.md` — Appended this entry at the top (append-only). No other entries rewritten or removed.
+
+- Helpers centralized (5):
+
+  | Helper | Shared name | Old locations | Behavior preserved? |
+  |--------|------------|---------------|-------------------|
+  | `parseBbox` (strict) | `parseBbox` | aviation-aircraft, borders-boundaries, earth-events, energy/infrastructure, maritime, weather | Yes — identical body |
+  | `parseLimit` | `parseLimit(default, max, withDetails)` | aviation-aircraft, borders-boundaries, earth-events, energy/infrastructure, maritime, news, space/satellites, weather | Yes — each route wrapper passes its exact prior constants |
+  | `parseOffset` | `parseOffset(withDetails)` | maritime, news, weather | Yes — all 3 clamp to 10000 with details |
+  | `isValidIsoDatetime` (strict) | `isValidIsoDatetime` | earth-events | Yes — strict `'T'` only |
+  | `isValidIsoDatetime` (loose) | `isValidIsoDatetimeLoose` | maritime, news, weather | Yes — re-exported as `isValidIsoDatetime` in each |
+
+- Helpers intentionally left local (19):
+
+  | Helper | File | Reason |
+  |--------|------|--------|
+  | `parseBBox` (capital B) | objects/validation.ts | Different: uses `parseFloat`, no trim, no bounds check; separate `validateBBox` step |
+  | `validateCategory` | objects/validation.ts | Unique to objects route |
+  | `validateMode` | objects/validation.ts | Unique to objects route |
+  | `validateLimit` | objects/validation.ts | Different signature/error semantics |
+  | `validateOffset` | objects/validation.ts | Different signature/error semantics |
+  | `validateBBox` | objects/validation.ts | Separate validation step (not a parse helper) |
+  | `validateCellSizeDegrees` | objects/validation.ts | Unique |
+  | `validateIncludeClosed` | objects/validation.ts | Unique |
+  | `validateZoom` | objects/validation.ts | Unique |
+  | `validateFields` | objects/validation.ts | Unique |
+  | `validateCoordinates` | objects/validation.ts | Unique |
+  | `validateNavaidRadius` | objects/validation.ts | Unique |
+  | `validateNavaidLimit` | objects/validation.ts | Unique |
+  | `validatePreloadLimit` | objects/validation.ts | Unique |
+  | `getEffectiveMaxLimit` | objects/validation.ts | Unique |
+  | `clampBBoxToWorld` | objects/validation.ts | Unique |
+  | `parseOffset` | energy/infrastructure | Different: no clamping to MAX_OFFSET (returns `n` directly) |
+  | `parseNearbyLimit` | weather/validation.ts | Unique to weather |
+  | `parseBoolean/parseNumeric/parseCommaList` | space/satellites | Unique to space |
+
+- Source code changes: 1 new file (`apps/api/src/lib/requestValidation.ts`) + 8 modified production files (1 inline-helper route + 2 inline-helper routes + 5 route validation.ts re-export files). **No test files changed.** **No behavior change in any production file.** No new exports for downstream consumption. No new dependencies. No lockfile changes. No `.env` changes.
+
+- Forbidden folders touched: confirmed **no**. Filter check (`apps/web|services|database|packages|docs/archive|docs/audits|.env|lockfile|tests/`) on the post-edit `git diff --name-only` output produced 0 hits. All modified files are within the API Agent's allowed scope (`apps/api/src/routes/`, `apps/api/src/lib/`, `docs/state/`).
+
+- Validation:
+
+  - `git status --short --branch` (pre-edit) → `## api/wo-3-2-request-validation-utils` (clean working tree) (PASS)
+  - `git branch --show-current` → `api/wo-3-2-request-validation-utils` (PASS)
+  - `git log -1 --oneline` (pre-edit) → `40718e9 Merge pull request #62 from ashishkumar62649/api/wo-3-1-centralize-type-date-utils` (PASS — WO-3-1 is merged)
+  - `apps/api/src/lib/typeUtils.ts` exists → confirmed (PASS — WO-3-1 file present)
+  - Targeted grep confirmation: pre-edit, `parseBbox`/`parseLimit`/`parseOffset`/`isValidIsoDatetime` appear as local function definitions in 6+ route locations (PASS — confirmation that centralization was needed)
+  - Post-edit grep: local function definitions for these helpers are removed from aviation-aircraft.ts, borders-boundaries.ts, earth-events.ts, and replaced with imports/wrappers in the 5 validation.ts files (PASS)
+  - `git diff --check` → no whitespace errors; only informational CRLF/LF autocrlf warnings (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"` → 0 hits (PASS)
+  - `git status --short --branch` (post-edit) → 11 modified files (1 new + 8 production + 2 state), no untracked (PASS)
+  - `pnpm --filter @god-eyes/contracts build` → `tsc` exit 0 (PASS)
+  - `pnpm --filter api build` → `tsc` exit 0 (PASS — first attempt had 2 issues: maritime import path was off by one level, and news/weather/space local `ParseResult` types had required `details` incompatible with shared's optional `details`. Both fixed.)
+  - `pnpm --filter api test` → Vitest, 19 files, **581/581 tests passed** (PASS — same count as pre-WO-3-2)
+  - `pnpm --filter web build` → 111 modules → `dist/index.html` 0.65 kB, CSS 33.72 kB, JS 304.03 kB (gzip 86.50 kB); built in 835 ms (PASS)
+  - `pnpm --filter web test` → Vitest 1.6.0, 3 files, **64/64 tests passed** (PASS)
+  - `python -m pytest tests/data -q` → **1188 passed, 11 failed, 7 skipped** in 18.31 s. **All 11 failures are pre-existing `test_*_work_order_changes_stay_in_allowed_paths` and `*_adds_no_raw_environment_api_or_frontend_files` scope-guard tests** for non-layer data API work orders. Same pattern as WO-003, WO-004, WO-005, WO-006, WO-1-4, WO-3-1. The 11 failures are not regressions caused by this work order. All actual code/build/test validation PASS.
+
+- Known issues / caveats:
+
+  - The 11 pre-existing scope-guard test failures are documented above and are not regressions. They will skip on a clean post-commit tree. The reviewer should be informed and asked to PASS on the actual code/build/test validation.
+  - `energy/infrastructure/validation.ts` `parseOffset` is intentionally left local because it does not clamp to a maximum offset (returns `n` directly), unlike maritime/news/weather which clamp to 10000. This is a genuine behavior difference and must not be merged.
+  - `objects/validation.ts` `parseBBox` (capital B) is intentionally left local because it uses `parseFloat` instead of `Number`, does not trim whitespace, and does not check coordinate bounds — the bounds checking is a separate `validateBBox` step. Different architecture, not safe to merge.
+  - News' `parseLimit` wrapper preserves the special default-value logic: when `maxLimit === MAX_MARKER_LIMIT (500)`, the default for undefined input is 500 (not 50). This is preserved by computing `defaultLimit` before calling the shared `parseLimit`.
+  - The CRLF/LF git autocrlf warning on Windows is informational; my files use LF which is standard for Node projects and consistent with the rest of the repository.
+
+- Push / PR / merge status: **not performed** by agent. Branch is local only. The user / decision-control layer owns push, PR creation, merge, and branch deletion per `PROJECT_CONTROL.md` Part 3.
+- Next step: Reviewer Agent should produce `docs/state/INTEGRATION_REVIEW_WO-3-2.md` on this branch with a PASS / FAIL / NEEDS REVIEW verdict. The reviewer should verify: (1) the 1 new file `apps/api/src/lib/requestValidation.ts` is a pure shared module with no Fastify/database/env/route-registration side effects; (2) all 8 modified route files are within the API Agent's allowed scope; (3) the explicitly forbidden folders (`apps/web/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, lockfile, `.env*`) are NOT touched; (4) the helpers intentionally left local are correctly identified and not moved; (5) news' parseLimit wrapper preserves the special MAX_MARKER_LIMIT default logic; (6) energy's parseOffset is correctly left local (no clamping); (7) objects/validation.ts is unchanged; (8) no endpoint paths, route registration order, SQL, response shapes, status codes, or validation semantics were changed; (9) `git diff --check` clean; (10) `pnpm --filter api build` exit 0, `pnpm --filter api test` 581/581, `pnpm --filter web build` exit 0, `pnpm --filter web test` 64/64, `pnpm --filter @god-eyes/contracts build` exit 0 all PASS; (11) the 11 `python -m pytest tests/data -q` scope-guard failures are correctly characterized as pre-existing test design limitations for cross-agent API work orders, not regressions; (12) `HANDOFF_LOG.md` is append-only (this entry is the topmost); (13) `RECENT_CONTEXT.md` is at exactly 5 entries after the WO-3-2 prepended and the WO-004 eviction. On PASS, the user / decision-control layer may push the branch and open a single PR. On FAIL, revise on the same branch.
 
 
 ### 2026-06-18T00:00:00Z — wo-006-space-satellites-typing

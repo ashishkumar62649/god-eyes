@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { checkDatabaseStatus, query } from '../lib/db.js';
 import { toIsoString } from '../lib/typeUtils.js';
+import { parseBbox, parseLimit, BBox } from '../lib/requestValidation.js';
 import {
   AircraftLatestListResponseSchema,
   AircraftDetailResponseSchema,
@@ -21,13 +22,6 @@ interface LatestAircraftQuerystring {
 
 interface AircraftParams {
   sourceObjectId: string;
-}
-
-interface BBox {
-  minLon: number;
-  minLat: number;
-  maxLon: number;
-  maxLat: number;
 }
 
 interface AircraftLatestRow {
@@ -107,39 +101,6 @@ function rowToDetail(row: AircraftLatestRow) {
     detail.rawJson = row.rawJson;
   }
   return detail;
-}
-
-function parseBbox(raw: string): BBox | null {
-  const parts = raw.split(',').map((p) => p.trim());
-  if (parts.length !== 4) return null;
-
-  const [minLon, minLat, maxLon, maxLat] = parts.map(Number);
-
-  if (
-    isNaN(minLon) || isNaN(minLat) || isNaN(maxLon) || isNaN(maxLat) ||
-    minLon < -180 || minLon > 180 ||
-    maxLon < -180 || maxLon > 180 ||
-    minLat < -90 || minLat > 90 ||
-    maxLat < -90 || maxLat > 90 ||
-    minLon >= maxLon || minLat >= maxLat
-  ) {
-    return null;
-  }
-
-  return { minLon, minLat, maxLon, maxLat };
-}
-
-function parseLimit(raw: string | undefined): { value: number; error: { code: string; message: string; details: Record<string, unknown> } | null } {
-  if (raw === undefined || raw === '') {
-    return { value: DEFAULT_LIMIT, error: null };
-  }
-
-  const n = Number(raw);
-  if (isNaN(n) || !Number.isInteger(n) || n < 1) {
-    return { value: DEFAULT_LIMIT, error: { code: ErrorCodes.INVALID_LIMIT, message: 'Limit must be a positive integer.', details: { provided: raw } } };
-  }
-
-  return { value: Math.min(n, MAX_LIMIT), error: null };
 }
 
 function parseIncludeStale(raw: string | undefined): boolean {
@@ -283,7 +244,7 @@ export async function aviationAircraftRoutes(fastify: FastifyInstance) {
   const latestHandler = async (request: FastifyRequest<{ Querystring: LatestAircraftQuerystring }>, reply: FastifyReply) => {
     const { limit: rawLimit, bbox: rawBbox, includeStale: rawIncludeStale } = request.query;
 
-    const parsedLimit = parseLimit(rawLimit);
+    const parsedLimit = parseLimit(rawLimit, DEFAULT_LIMIT, MAX_LIMIT, true);
     if (parsedLimit.error) {
       reply.code(400);
       return { error: parsedLimit.error };
