@@ -217,38 +217,4 @@ export function headingToBillboardRotation(headingDeg: number): number {
   return -(headingDeg * Math.PI) / 180;
 }
 
-// ---------------------------------------------------------------------------
-// Legacy exports kept for any remaining callers
-// ---------------------------------------------------------------------------
-
-export { getAircraftAltitudeColor as getAircraftColor };
-
-/** @deprecated Use getAircraftMarkerImageAsync instead */
-export function getAircraftArrowSprite(): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = 16; canvas.height = 16;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#00e5ff';
-    ctx.beginPath();
-    ctx.moveTo(8, 1); ctx.lineTo(14, 14); ctx.lineTo(8, 11); ctx.lineTo(2, 14);
-    ctx.closePath(); ctx.fill();
-  }
-  return canvas;
-}
-
-/** @deprecated Use getAircraftMarkerImageAsync instead */
-export function getAircraftDotSprite(): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = 16; canvas.height = 16;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#00e5ff';
-    ctx.beginPath();
-    ctx.arc(8, 8, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  return canvas;
-}
-
 export const AIRCRAFT_BILLBOARD_SCALE = 0.70; // 16px source icon -> ~11px on screen.
