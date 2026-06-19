@@ -63,6 +63,16 @@ receive the **complete** handoff entry after every completed task.
 - Next: Reviewer Agent reviews WO-3-2. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3.
 
 
+## 2026-06-19 - WO-7-2 Frontend Layer Test Coverage
+
+- Agent: Frontend Layer Test Agent
+- Branch: web/wo-7-2-frontend-layer-tests
+- What changed: Added 102 new focused Vitest tests across 5 previously untested frontend layer folders (`layer_01_aviation`, `layer_02_borders_boundaries`, `layer_03_earth_events`, `layer_05_space_satellites`, `layer_10_energy_infrastructure`). Total web test count grew from 64 to 166 (+102). No production source code touched; only test files (`__tests__/*.test.ts`) under `apps/web/src/layers/**` were added. Cesium-dependent renderers, hooks that require browser globals, and any modules importing `cesium` were intentionally skipped.
+- Validation: pre-edit clean on `web/wo-7-2-frontend-layer-tests` (PASS); diff scoped to 5 new test files + 2 state docs (PASS); no `apps/api/**`, `services/**`, `database/**`, `packages/**`, `specs/**`, lockfile, or `.env*` changes (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter web build` PASS (111 modules; identical artifact sizes to pre-WO-7-2); `pnpm --filter api test` PASS (581/581 — same count as pre-WO-7-2); `pnpm --filter web test` PASS (166/166 — was 64, +102 new tests).
+- Known issues: `python -m pytest tests/data -q` reports 11 pre-existing dirty-tree scope-guard failures (`test_*_work_order_changes_stay_in_allowed_paths` and `*_adds_no_raw_environment_api_or_frontend_files` variants) for non-layer data work orders; the layer-scoped guards correctly reject my `apps/web/src/layers/**/__tests__/**/` changes as out-of-scope for any single layer's data work order. This is the same pre-existing test-design limitation documented in WO-003, WO-004, WO-005, WO-006, WO-1-4, and WO-3-1. The 11 failures are not regressions; all 5 new test files pass standalone, all builds pass, all other test suites pass. The same 11 dirty-tree scope-guard failures will skip on a clean post-commit tree. A CRLF/LF git autocrlf warning may appear on Windows when checking diffs of files written with LF (informational; git is configured to convert on commit and there are no whitespace errors).
+- Next: Reviewer Agent reviews WO-7-2 on this branch. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. **After commit on the clean tree**, run `python -m pytest tests/data -q` once more to confirm the 11 dirty-tree scope-guard failures revert to skip (no regressions). Recommended next WO after WO-7-2 lands: continue the Phase 4 cleanup lane per Spec 008 remaining-work queue; remaining frontend layer test gaps (if any) are limited to Cesium-coupled renderers and live WebSocket lifecycle tests that the Frontend agent may add in a future work order once a stable pattern is decided.
+
+
 ## 2026-06-19 - WO-3-1 Centralize API Type/Date Helper Functions
 
 - Agent: API Cleanup Agent
