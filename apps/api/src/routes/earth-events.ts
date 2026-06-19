@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { checkDatabaseStatus, query } from '../lib/db.js';
 import { toIsoString } from '../lib/typeUtils.js';
+import { parseBbox, parseLimit, isValidIsoDatetime, BBox } from '../lib/requestValidation.js';
 import {
   EarthEventsLatestResponseSchema,
   ErrorCodes,
@@ -17,51 +18,6 @@ interface EarthEventsLatestQuerystring {
   bbox?: string;
   event_type?: string;
   since?: string;
-}
-
-interface BBox {
-  minLon: number;
-  minLat: number;
-  maxLon: number;
-  maxLat: number;
-}
-
-function parseBbox(raw: string): BBox | null {
-  const parts = raw.split(',').map((p) => p.trim());
-  if (parts.length !== 4) return null;
-
-  const [minLon, minLat, maxLon, maxLat] = parts.map(Number);
-
-  if (
-    isNaN(minLon) || isNaN(minLat) || isNaN(maxLon) || isNaN(maxLat) ||
-    minLon < -180 || minLon > 180 ||
-    maxLon < -180 || maxLon > 180 ||
-    minLat < -90 || minLat > 90 ||
-    maxLat < -90 || maxLat > 90 ||
-    minLon >= maxLon || minLat >= maxLat
-  ) {
-    return null;
-  }
-
-  return { minLon, minLat, maxLon, maxLat };
-}
-
-function parseLimit(raw: string | undefined): { value: number; error: { code: string; message: string } | null } {
-  if (raw === undefined || raw === '') {
-    return { value: DEFAULT_LIMIT, error: null };
-  }
-
-  const n = Number(raw);
-  if (isNaN(n) || !Number.isInteger(n) || n < 1) {
-    return { value: DEFAULT_LIMIT, error: { code: ErrorCodes.INVALID_LIMIT, message: 'Limit must be a positive integer.' } };
-  }
-
-  return { value: Math.min(n, MAX_LIMIT), error: null };
-}
-
-function isValidIsoDatetime(raw: string): boolean {
-  const d = new Date(raw);
-  return d instanceof Date && !isNaN(d.getTime()) && raw.includes('T');
 }
 
 interface EarthEventRow {
@@ -122,7 +78,7 @@ export async function earthEventsRoutes(fastify: FastifyInstance) {
     const { limit: rawLimit, bbox: rawBbox, event_type: rawEventType, since: rawSince } = request.query;
 
     // Validate limit
-    const parsed = parseLimit(rawLimit);
+    const parsed = parseLimit(rawLimit, DEFAULT_LIMIT, MAX_LIMIT);
     if (parsed.error) {
       reply.code(400);
       return {
