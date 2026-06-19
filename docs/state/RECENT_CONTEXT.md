@@ -1,7 +1,7 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 This file is the short rolling context for agents.
 
@@ -33,6 +33,15 @@ receive the **complete** handoff entry after every completed task.
 ```
 
 ---
+
+## 2026-06-19 - WO-1-4 Layer Registry Enum Alignment
+
+- Agent: Registry Alignment Agent
+- Branch: architecture/wo-1-4-layer-registry-enums
+- What changed: Added strict Zod enums `LayerRegistryCategorySchema` (9 canonical CapitalCase values) and `LayerRegistryApiStatusSchema` (`active`/`ready`/`coming_soon`/`not_implemented`) in `packages/contracts/src/common/layer-status.ts` and used them in `LayerRegistryEntrySchema` (replacing loose `z.string()` for `category` and `apiStatus`). Aligned all 11 `LOCAL_LAYER_REGISTRY` entries in `apps/web/src/lib/useLayerRegistry.ts` to use the canonical CapitalCase `category` values and aligned 4 `apiStatus` values (layer_00, layer_01 `active`→`ready`; layer_04, layer_09 `not_implemented`→`coming_soon`) so the frontend fallback exactly matches the API registry (`apps/api/src/routes/layers.ts`, which was already canonical and was not modified). No endpoint paths, slugs, layer IDs, response shapes, or compatibility aliases changed.
+- Validation: pre-edit clean (PASS); post-edit diff scoped to 2 production files (contracts + frontend) + 2 state docs (PASS); no `apps/web/src/CesiumGlobe.tsx`, `apps/web/src/App.tsx`, `apps/web/src/components/`, `apps/web/src/layers/`, other `apps/api/src/routes/`, `services/`, `database/`, `packages/source-catalog/`, `packages/schemas/`, `tests/`, `scripts/`, `infra/`, `docs/control/`, `docs/audits/`, `docs/archive/`, `specs/`, lockfile, or `.env*` changes (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `git grep` confirms all 22 `category:` values across API and FE are now canonical CapitalCase and the 22 `apiStatus:` values across API and FE now match exactly per `layerId` (PASS); `git grep` confirms `category` and `apiStatus` in `LayerRegistryEntrySchema` are no longer loose `z.string()` (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter web build` PASS (111 modules; `dist/index.html` 0.65 kB, CSS 33.72 kB, JS 304.17 kB / gzip 86.66 kB; +0.03 kB vs pre-WO-1-4 due to strict enum emission); `pnpm --filter api test` PASS (581/581 — same count as pre-WO-1-4); `pnpm --filter web test` PASS (64/64 — same count as pre-WO-1-4; the 3 LOCAL_LAYER_REGISTRY consumer test files check `status`/`isImplemented`/`isEnabled`/`sourceRule`, none of which were touched).
+- Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures (`test_*_work_order_changes_stay_in_allowed_paths` and `*_adds_no_raw_environment_api_or_frontend_files` variants) for non-layer data work orders on the dirty tree (correctly rejecting my `apps/web/` and `packages/contracts/` changes as out-of-scope for any single layer's data work); this is the **same pre-existing test-design limitation** documented in WO-003, WO-004, WO-005, and WO-006 (an analogous Frontend/API-agent apps/ allowance does not exist in the scope-guard helpers — only the Orchestrator-docs allowance from WO-002 is granted). The 11 failures are not regressions; actual code/build/test validation all PASS (api 581/581, web 64/64, all 3 builds PASS). The same 11 dirty-tree scope-guard failures will skip on a clean post-commit tree. A CRLF/LF git autocrlf warning may appear on Windows when checking diffs of files written with LF (informational; git is configured to convert on commit and there are no whitespace errors).
+- Next: Reviewer Agent reviews WO-1-4 on this branch. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. **After commit on the clean tree**, run `python -m pytest tests/data -q` once more to confirm the 11 dirty-tree scope-guard failures revert to skip (no regressions). Recommended next WO after WO-1-4 lands: continue the Phase 4 cleanup lane per Spec 008 remaining-work queue (TODO/deprecated marker sweep is now partly done; remaining items include API route file-shape normalization final pass and the missing package-ownership-row decision).
 
 ## 2026-06-18 - WO-006 Space Satellites Route Handler Typing Normalization
 
@@ -69,32 +78,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); post-edit diff scoped to 3 production files (`apps/web/src/CesiumGlobe.tsx`, `apps/web/src/layers/layer_01_aviation/airports/aviationPreloader.ts`, `apps/api/src/routes/public-profile/service.ts`) + 2 state docs (RECENT_CONTEXT.md, HANDOFF_LOG.md) — 5 files total (PASS); no `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, lockfile, `.env*`, or test changes (PASS); `git diff --check` clean (PASS); re-run targeted cleanup searches confirm 0 `console.log`/`debugger` in the two target frontend files and 0 `TODO`/`FIXME`/`HACK` in public-profile/service.ts (PASS); `pnpm --filter web build` PASS (304.14 kB / 86.65 kB gzip, slightly smaller than pre-WO-003 due to removed logs); `pnpm --filter web test` PASS (64/64); `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (560/560); `pnpm --filter @god-eyes/contracts build` PASS.
 - Known issues: `python -m pytest tests/data -q` reports 11 failures (1188 passed, 7 skipped, 11 failed). All 11 failures are pre-existing `test_*_work_order_changes_stay_in_allowed_paths` scope-guard tests that correctly reject non-layer-data apps/ work. WO-002 added an Orchestrator-docs exemption (not applicable here — my changes are apps/, not docs/); an analogous Frontend/API-agent apps/ exemption does not exist in the scope-guard helpers. This is a known test-design limitation for cross-agent apps/ work orders, not a regression in my changes. The reviewer should be informed so the PR can be reviewed on the actual code/build/test validation (all PASS).
 - Next: Reviewer Agent reviews WO-003. If PASS, user / decision-control layer may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If FAIL, revise on the same branch. Recommended next WO after WO-003 lands: continue the Phase 4 cleanup lane per Spec 008 remaining-work queue (TODO/deprecated marker sweep is now partly done; remaining items include API route file-shape normalization final pass and the missing package-ownership-row decision).
-
-## 2026-06-18 - WO-002 Allow Orchestrator Docs/Spec Scope in Data Work-Order Guards
-
-- Agent: Database Agent
-- Branch: data/wo-002-orchestrator-scope-guards
-- What changed: Added a centralized `tests/data/scope_guard.py` helper with
-  `is_orchestrator_docs_scope_path()` and
-  `all_changed_paths_are_orchestrator_docs_scope()`, and taught all 8 per-layer
-  `test_*_work_order_changes_stay_in_allowed_paths` guards to grant an
-  allowance when the dirty tree is 100% approved Orchestrator docs/spec paths
-  (AGENTS.md, .specify/memory/constitution.md, docs/control/, docs/state/,
-  docs/work-orders/, specs/, docs/decisions/). The allowance only fires when
-  every dirty path qualifies, so mixed trees (orchestrator docs + any
-  non-approved path) and forbidden paths still fail. docs/archive/ and
-  docs/audits/ stay forbidden via an explicit deny list. Added 32 unit tests
-  in `tests/data/test_scope_guard.py`. Made `scope_guard` importable from all
-  layer tests by adding `tests/data` to sys.path in `tests/data/conftest.py`.
-- Validation: `git diff --check` clean (PASS); new helper unit tests 32 passed
-  (PASS); `python -m pytest tests/data -q` (deselecting the 8 dirty-tree
-  guards) 1191 passed, 7 skipped (PASS, matches WO-001 baseline + 32 new
-  tests); the 8 dirty-tree guards fail pre-commit only because this branch
-  touches all 8 layer test folders at once (expected cross-layer dirty-tree
-  behavior, documented in WO-001 background; they skip on a clean tree);
-  `pnpm --filter web/api/@god-eyes/contracts build` PASS.
-- Known issues: The 8 dirty-tree scope-guard failures are pre-commit-only and
-  expected; they are not a regression (documented in HANDOFF_LOG.md caveat).
-- Next: Reviewer Agent reviews WO-002. If PASS, user / decision-control layer
-  may push, open a single PR, and merge per `PROJECT_CONTROL.md` Part 3. If
-  FAIL, revise on the same branch.

@@ -78,15 +78,48 @@ export const LayerDataStatuses = {
 
 export type LayerDataStatus = typeof LayerDataStatuses[keyof typeof LayerDataStatuses];
 
+// WO-1-4: Canonical CapitalCase layer-category enum shared by the API
+// registry and the frontend fallback registry. The API registry in
+// apps/api/src/routes/layers.ts is the source of truth for these values;
+// the frontend fallback in apps/web/src/lib/useLayerRegistry.ts now uses
+// the same vocabulary so both sides cannot drift.
+export const LayerRegistryCategorySchema = z.enum([
+  'Foundation',
+  'Transportation',
+  'Geography',
+  'Natural Phenomena',
+  'Security',
+  'Space',
+  'Intelligence',
+  'User Content',
+  'Infrastructure',
+]);
+
+export type LayerRegistryCategory = z.infer<typeof LayerRegistryCategorySchema>;
+
+// WO-1-4: apiStatus enum shared by the API registry and the frontend
+// fallback registry. The API registry uses 'ready' / 'active' / 'coming_soon';
+// the frontend fallback previously used 'active' / 'not_implemented'. The
+// full union is preserved so existing payloads (including any stragglers
+// from the pre-alignment frontend fallback) still parse.
+export const LayerRegistryApiStatusSchema = z.enum([
+  'active',
+  'ready',
+  'coming_soon',
+  'not_implemented',
+]);
+
+export type LayerRegistryApiStatus = z.infer<typeof LayerRegistryApiStatusSchema>;
+
 export const LayerRegistryEntrySchema = z.object({
   layerId: z.string(),
   name: z.string(),
-  category: z.string(),
+  category: LayerRegistryCategorySchema,
   status: z.enum(['active', 'coming_soon', 'no_data']),
   dataStatus: z.enum(['static', 'live']),
   description: z.string(),
   sourceRule: z.string(),
-  apiStatus: z.string(),
+  apiStatus: LayerRegistryApiStatusSchema,
   frontendStatus: z.string(),
   safetyNotes: z.string(),
   isEnabled: z.boolean(),
