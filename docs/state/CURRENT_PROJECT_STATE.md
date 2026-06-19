@@ -1,19 +1,18 @@
 ﻿# Current Project State
 
 Classification: CURRENT_STATE
-Last updated: 2026-06-19 - Wave 3 State Sync Agent (Wave 3 Route Split Closeout)
+Last updated: 2026-06-20 - Wave 4 CesiumGlobe Planning Agent (Wave 4 Planning Started)
 
-## Phase: Wave 3 Complete
+## Phase: Wave 4 Planning
 
-Wave 1 and Wave 2 are fully merged into `main`. Wave 3 API route split cleanup
-is now complete. Three large single-file API routes (aviation aircraft, earth
-events, borders boundaries) have been split into the standard folder route
-structure, with the old top-level files preserved as 1-line compatibility
-shims. All public API paths, route registration, and existing tests continue
-to work unchanged. Repository state docs, layer registries (API + frontend),
-CI/dependency files, environment examples, and route documentation remain
-aligned with the current working code. No layer business logic is being
-redesigned in this phase.
+Wave 1, Wave 2, and Wave 3 are fully merged into `main`. Wave 4 has
+**started** in the planning phase. The Wave 4 CesiumGlobe Research Agent
+completed the read-only file map on branch
+`research/wave-4-cesium-globe-file-map` and review passed. The Wave 4
+CesiumGlobe Planning Agent has now produced the active planning spec at
+`specs/010-wave-4-cesium-globe-split/` (status: planning complete,
+awaiting Orchestrator review). Implementation packages W4-B through W4-I
+are queued and will land sequentially after the planning review passes.
 
 ### Current main includes (Wave 1, all merged)
 
@@ -97,11 +96,21 @@ lib, web, services, packages, or spec files were touched.
 - **Wave 3 complete** — three API route splits (aviation aircraft, earth events,
   borders boundaries) merged to `main` with compatibility shims preserved
   and all public API paths intact.
-- **Next wave** — Wave 4: frontend CesiumGlobe split planning / implementation.
-  The current `apps/web/src/components/CesiumGlobe.tsx` is the largest remaining
-  frontend file flagged in the Spec 008 cleanup lane and is the recommended
-  next target per `docs/control/PROJECT_CONTROL.md` and
-  `specs/008-structure-remediation-roadmap/`.
+- **Wave 4 — CesiumGlobe split — PLANNING in progress.** Research phase
+  complete and reviewed. Planning artifact now lives at
+  `specs/010-wave-4-cesium-globe-split/` (README + tasks). Implementation
+  will follow the sequenced W4-A through W4-I package plan from `tasks.md`.
+- **Wave 4 active target file (correct path):**
+  **`apps/web/src/CesiumGlobe.tsx`** (1436 lines, 57 144 bytes).
+  The path `apps/web/src/components/CesiumGlobe.tsx` referenced in some
+  historical and archived docs is **stale and incorrect** — the file is
+  not under `components/`. Active state docs now point at the real
+  path. Historical handoff entries that still mention the stale path are
+  preserved verbatim per the append-only rule; the Wave 4 closeout
+  (W4-I) will consolidate.
+- **Single runtime importer:** `apps/web/src/App.tsx` (default import).
+  The Wave 4 plan preserves this import path through a 1-line
+  compatibility shim at `apps/web/src/CesiumGlobe.tsx`.
 
 ## Authoritative Sources
 
@@ -213,10 +222,29 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJE
 
 ## Last Updated
 
-2026-06-19 - Wave 3 State Sync Agent (Wave 3 Route Split Closeout)
+2026-06-20 - Wave 4 CesiumGlobe Planning Agent (Wave 4 Planning Started)
 
 Change log for this file:
 
+- 2026-06-20 (Wave 4 Planning Started) - Wave 4 CesiumGlobe split moved
+  from "Planned later" to **planning**. Created
+  `specs/010-wave-4-cesium-globe-split/{README.md,tasks.md}` recording the
+  verified research facts, the target-folder decision
+  (`apps/web/src/CesiumGlobe/`), the 1-line compatibility-shim decision,
+  the picking-contract test requirement (W4-B, before any picking-logic
+  extraction), and the sequenced implementation plan (W4-A through W4-I,
+  all sequential, no parallel agents). Corrected the **stale target
+  path** in this file's "Current mode" subsection: the real target is
+  `apps/web/src/CesiumGlobe.tsx` (1436 lines, 57 144 bytes); the path
+  `apps/web/src/components/CesiumGlobe.tsx` referenced in some
+  historical and archived docs is **stale and incorrect**. The single
+  runtime importer (`apps/web/src/App.tsx`, default import) keeps the
+  same import path through the shim. Prepended the W4-A planning
+  entry to `HANDOFF_LOG.md` and a 5-bullet top entry to
+  `RECENT_CONTEXT.md`. No production code, test, package, spec, or
+  non-doc file was changed. Forbidden folders confirmed untouched via
+  `git diff --name-only` (zero hits for `apps/`, `services/`,
+  `database/`, `packages/`, `tests/`, lockfiles, env files).
 - 2026-06-19 (Wave 3 Route Split Closeout) - Recorded Wave 3 complete after the
   three API route splits (SR-005D aviation aircraft, SR-005F earth events,
   SR-005E borders boundaries) merged to `main`. Added a new "Wave 3 outcomes
