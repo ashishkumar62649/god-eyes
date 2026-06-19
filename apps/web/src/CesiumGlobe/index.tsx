@@ -36,9 +36,6 @@ import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes'
 import { getSatelliteColor, getSatellitePixelSize } from '../layers/layer_05_space_satellites/satellites/satelliteColors';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from '../layers/layer_05_space_satellites/satellites/satelliteFilters';
 
-import {
-  fetchAllAviationCategories,
-} from '../layers/layer_01_aviation/airports/aviationPreloader';
 import { isPositionVisible } from '../globe/cesiumVisibility';
 import {
   getAircraftAltitudeColor,
@@ -53,8 +50,6 @@ import {
 import { RENDER_CAP } from '../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
 import type { SnapshotCallback } from '../layers/layer_01_aviation/aircraft/useLiveAircraftSocket';
 import {
-  createGlobalDotCollection,
-  addAllDotsToCollection,
   isGlobalDot,
   getGlobalDotPosition,
   filterVisibleGlobalDots,
@@ -70,6 +65,7 @@ import { createViewerOptions } from '../globe/viewerOptions';
 import { AIRCRAFT_ICON_VIEW_HEIGHT_METERS } from './constants';
 import { airportFlyHeight } from './helpers';
 import { useCameraBboxReporter } from './useCameraBboxReporter';
+import { useResidentAviationCache } from './useResidentAviationCache';
 import type { AircraftRecord, CesiumGlobeProps } from './types';
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -224,46 +220,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return () => removeListener();
   }, [selectedAirport?.id, viewerReady]);
 
-  function emitStats(
-    renderMode: string,
-    preloadStatus?: string,
-    categoryCounts?: Record<string, number>,
-  ): void {
-    const allObjects = getAllObjects();
-    const visibleCount = globalDotCollectionRef.current?.length ?? 0;
-    onStatsChangeRef.current?.({
-      loaded: allObjects.length,
-      visible: visibleCount,
-      clustersActive: false,
-      renderMode,
-      fps: fpsRef.current,
-      preloadStatus,
-      categoryCounts,
-    });
-  }
-
-  function applyFiltersToDots(): void {
-    if (globalDotCollectionRef.current && viewerRef.current) {
-      const filters = aviationFiltersRef.current;
-      filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, filters);
-      const allObjects = getAllObjects();
-      let visibleCount = 0;
-      const length = globalDotCollectionRef.current.length;
-      for (let i = 0; i < length; i++) {
-        const p = globalDotCollectionRef.current.get(i);
-        if (p && p.show) visibleCount++;
-      }
-      onStatsChangeRef.current?.({
-        loaded: allObjects.length,
-        visible: visibleCount,
-        clustersActive: false,
-        renderMode: 'RESIDENT_GLOBAL',
-        fps: fpsRef.current,
-        preloadStatus: residentCacheActiveRef.current ? 'CACHE_READY' : undefined,
-      });
-    }
-  }
-
   function shouldShowAircraftIcons(): boolean {
     return cameraHeightRef.current <= AIRCRAFT_ICON_VIEW_HEIGHT_METERS;
   }
@@ -293,78 +249,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         });
       }
     }
-  }
-
-  async function startResidentPreload(): Promise<void> {
-    // 1. If cache already active, return immediately
-    if (residentCacheActiveRef.current) {
-      return;
-    }
-
-    // 2. If viewer not ready, return WITHOUT setting preloadingRef
-    // The viewerReady retry effect will handle this case
-    if (!viewerRef.current) {
-      return;
-    }
-
-    // 3. If already preloading, return
-    if (preloadingRef.current) {
-      return;
-    }
-
-    // 4. Only set flag AFTER we've passed all checks and are ready to start
-    preloadingRef.current = true;
-
-    const viewer = viewerRef.current;
-    let collection = globalDotCollectionRef.current;
-    if (!collection) {
-      collection = createGlobalDotCollection(viewer.scene);
-      globalDotCollectionRef.current = collection;
-    }
-
-    const ac = new AbortController();
-    abortControllerRef.current = ac;
-
-    emitStats('RESIDENT_GLOBAL', 'PRELOAD_STARTED');
-
-    const categoryCounts: Record<string, number> = {};
-
-    try {
-      await fetchAllAviationCategories(ac.signal, (batch, progress) => {
-        if (ac.signal.aborted) return;
-
-        if (batch.length > 0) {
-          addAllDotsToCollection(collection!, batch);
-          dotsCreatedRef.current = true;
-        }
-
-        categoryCounts[progress.category] = progress.categoryCount;
-
-        if (progress.allDone) {
-          residentCacheActiveRef.current = true;
-          emitStats('RESIDENT_GLOBAL', 'CACHE_READY', categoryCounts);
-          applyFiltersToDots();
-        } else {
-          emitStats(
-            'RESIDENT_GLOBAL',
-            `LOADING:${progress.displayLabel}(${progress.categoryCount})`,
-            categoryCounts,
-          );
-        }
-      });
-    } catch (err) {
-      console.error('Preload error:', err);
-      emitStats('RESIDENT_GLOBAL', 'ERROR: ' + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      // Always clear preloadingRef so retry can happen if needed
-      preloadingRef.current = false;
-    }
-
-    if (ac.signal.aborted) return;
-
-    residentCacheActiveRef.current = true;
-    emitStats('RESIDENT_GLOBAL', 'CACHE_READY', categoryCounts);
-    applyFiltersToDots();
   }
 
   // Viewer initialization
@@ -576,53 +460,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     };
   }, []);
 
-  // Layer ON/OFF handling
-  useEffect(() => {
-    if (!aviationLayerActive) {
-      // Layer OFF: hide dots but KEEP resident cache in memory
-      if (globalDotCollectionRef.current) {
-        globalDotCollectionRef.current.removeAll();
-        dotsCreatedRef.current = false;
-      }
-      // Reset preload state so toggle can restart
-      preloadingRef.current = false;
-      emitStats('RESIDENT_GLOBAL', residentCacheActiveRef.current ? 'CACHE_READY (HIDDEN)' : 'IDLE');
-    } else if (viewerRef.current) {
-      // Layer ON: start preload if not already cached, otherwise reuse cache
-      if (residentCacheActiveRef.current && getAllObjects().length > 0) {
-        // Reuse existing cache — recreate dots from cached objects
-        if (!dotsCreatedRef.current) {
-          let collection = globalDotCollectionRef.current;
-          if (!collection) {
-            collection = createGlobalDotCollection(viewerRef.current.scene);
-            globalDotCollectionRef.current = collection;
-          }
-          const allObjects = getAllObjects();
-          addAllDotsToCollection(collection, allObjects);
-          dotsCreatedRef.current = true;
-        }
-        emitStats('RESIDENT_GLOBAL', 'CACHE_READY');
-        applyFiltersToDots();
-      } else if (!preloadingRef.current) {
-        startResidentPreload();
-      }
-    }
-  }, [aviationLayerActive]);
-
-  // Retry preload when viewer becomes ready while aviation layer is active
-  useEffect(() => {
-    if (!viewerReady) return;
-    if (!aviationLayerActiveRef.current) return;
-    if (residentCacheActiveRef.current) return;
-    if (preloadingRef.current) return;
-    startResidentPreload();
-  }, [viewerReady]);
-
-  // Filter change handling — only update visibility, NO data fetching
-  useEffect(() => {
-    if (!aviationLayerActive || !residentCacheActiveRef.current) return;
-    applyFiltersToDots();
-  }, [aviationFilters, aviationLayerActive]);
+  // Resident aviation cache: layer ON/OFF, retry preload on viewerReady,
+  // and filter-change visibility update. Owned by useResidentAviationCache.
+  useResidentAviationCache({
+    viewerRef,
+    viewerReady,
+    aviationLayerActive,
+    aviationFilters,
+    globalDotCollectionRef,
+    aviationLayerActiveRef,
+    aviationFiltersRef,
+    residentCacheActiveRef,
+    preloadingRef,
+    dotsCreatedRef,
+    abortControllerRef,
+    onStatsChangeRef,
+    fpsRef,
+  });
 
   // Camera fly-to when a search result is selected
   useEffect(() => {
