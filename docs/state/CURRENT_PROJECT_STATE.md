@@ -1,13 +1,42 @@
 ﻿# Current Project State
 
 Classification: CURRENT_STATE
-Last updated: 2026-06-17 - Orchestrator Agent (post-WO-001 ownership docs alignment)
+Last updated: 2026-06-19 - State Sync Agent (post-Parallel Wave 1)
 
-## Phase: Repository Alignment In Progress
+## Phase: Parallel Wave 1 Complete — Wave 2 Ready to Start
 
-Documentation, layer registries (API + frontend), CI/dependency files, environment
-examples, and route documentation are being aligned with the current working code on
-the main branch. No layer business logic is being redesigned in this phase.
+Wave 1 is fully merged into `main`. Repository state docs, layer registries (API +
+frontend), CI/dependency files, environment examples, and route documentation are
+aligned with the current working code. No layer business logic is being redesigned in
+this phase.
+
+### Current main includes (Wave 1, all merged)
+
+- **WO-3-1** — Centralize API type/date helper functions (`apps/api/src/lib/typeUtils.ts`)
+- **DISC-1** — Dead/duplicate code investigation (audit only, no deletions yet)
+- **CLEANUP-1** — Tiny environment/config/security hygiene cleanup (2 new `.env.example` files, removed duplicate `test:api` root script)
+- **WO-3-2** — Centralize API request-validation helpers (`apps/api/src/lib/requestValidation.ts`)
+- **WO-7-2** — Frontend layer test coverage (5 new test files, 153/153 web tests; the `aviationTileCache` tests were removed in the revision after DISC-1 confirmed the module as dead code)
+
+### Current mode
+
+- **Wave 1 complete** — all 5 items are merged to `main`.
+- **Wave 2 ready to start** — see "Wave 2 Next Recommended Work" below.
+
+### Wave 2 Next Recommended Work
+
+1. **Remove confirmed dead frontend aviation files/exports from DISC-1** (lowest-risk first):
+   - `apps/web/src/layers/layer_01_aviation/airports/aviationTileCache.ts`
+   - `apps/web/src/layers/layer_01_aviation/airports/aviationTileLoader.ts`
+   - `apps/web/src/layers/layer_01_aviation/airports/globeCamera.ts`
+   - `apps/web/src/layers/layer_01_aviation/airports/airportViewport.ts`
+   - `apps/web/src/layers/layer_01_aviation/airports/aviationLayerRenderer.ts`
+   - 3 dead exports inside `apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts`
+     (`getAircraftArrowSprite`, `getAircraftDotSprite`, `getAircraftColor` legacy alias)
+2. **Decide `energyInfrastructureApi.ts` placeholder future** — DISC-1E product call:
+   keep as documented stub vs delete + drop dead `export *` from barrel.
+3. **Then continue API route structure cleanup** — remaining Spec 008 cleanup lane
+   items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
 
 ## Authoritative Sources
 
@@ -119,10 +148,16 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJE
 
 ## Last Updated
 
-2026-06-17 - Orchestrator Agent (post-WO-001 ownership docs alignment)
+2026-06-19 - State Sync Agent (post-Parallel Wave 1)
 
 Change log for this file:
 
+- 2026-06-19 (post-Parallel Wave 1 state sync) - Recorded that Wave 1 is fully merged
+  into `main` (WO-3-1, DISC-1, CLEANUP-1, WO-3-2, WO-7-2). Updated phase to "Wave 1
+  Complete — Wave 2 Ready to Start". Added a "Wave 2 Next Recommended Work" section
+  pointing at the DISC-1 follow-up deletions, the `energyInfrastructureApi.ts`
+  placeholder product decision, and the remaining API route structure cleanup
+  lane. No layer business logic was changed. No code was changed.
 - 2026-06-17 (WO-001 ownership docs alignment) - Marked `packages/ui/`,
   `packages/layers/`, and `packages/auth/` as planned/future in `AGENTS.md`,
   `.specify/memory/constitution.md`, and `docs/control/PROJECT_CONTROL.md`.
