@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 ### 2026-06-19T05:00:00Z — wave-3-sr-005d-aviation-aircraft-route-split (SR-005D)
 
 - Work order: WAVE-3-SR-005D-AVIATION-AIRCRAFT-ROUTE-SPLIT (split aviation aircraft route into standard folder structure with compatibility shim)
@@ -50,7 +50,7 @@
   - `python -m pytest tests/data -q` was **not** run by this worker — per the task brief ("Do not run `python -m pytest tests/data -q`; this worker does not touch data pipeline files"). All other validation gates listed in the task brief were run and passed.
 - Final status: COMPLETE on this branch. Local commit only — **no push, no PR, no merge, no branch delete**. Orchestrator Agent should review this branch; on PASS, the user / decision-control layer may push and open a single PR for this Wave 3 SR-005D work package.
 - Next step: (1) Orchestrator Agent reviews this branch and creates `docs/state/INTEGRATION_REVIEW_SR-005D.md` (active, archived under `docs/archive/` after the PR merges). (2) On reviewer PASS, the user / decision-control layer pushes the branch and opens one PR for this work package. (3) After merge, Wave 3 SR-005D closes the aviation aircraft route split and the remaining Wave 3 candidates (per Spec 008 cleanup lane) can continue per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
-=======
+
 ### 2026-06-19T22:36:00Z — sr-005f-earth-events-route-split
 
 - Work order: SR-005F
@@ -96,7 +96,50 @@
 - Final status: COMPLETE on this branch. Local commit only — **no push, no PR, no merge, no branch delete**. Orchestrator Agent should review this branch; on PASS, the user may push and open a PR for this work package.
 - Next step: (1) Orchestrator Agent reviews this branch and creates `docs/state/INTEGRATION_REVIEW_SR-005F.md` (active, archived under `docs/archive/` after the PR merges). (2) On reviewer PASS, the user pushes the branch and opens one PR for this work package. (3) After merge, the earth-events route split is fully closed on `main`. (4) Remaining Wave 3 route splits (aviation, borders) continue on their parallel branches.
 
->>>>>>> 5259010 (refactor(api): split earth events route)
+
+
+### 2026-06-19T22:38:00Z — sr-005e-borders-boundaries-route-split
+
+- Work order: SR-005E
+- Agent: Borders Route Split Agent
+- Worktree folder: `E:\god-eyes-worktrees\wave-3-sr-005e`
+- Branch: `api/sr-005e/borders-boundaries-route-split`
+- Base commit: `b19a4d6 Merge pull request #69 from ashishkumar62649/docs/wave-2-energy-decision-record` (current `main`; all Wave 1 + Wave 2 merged)
+- Reviewer decision: PENDING
+- Goal: Split the old single-file `apps/api/src/routes/borders-boundaries.ts` into the standard folder route structure under `apps/api/src/routes/borders-boundaries/` with 6 sub-modules (index, service, repository, mapper, validation, types), converting the old file to a compatibility shim.
+- Approach chosen: Each concern extracted into its own file following the established weather/maritime/news/energy split pattern. Validation uses shared helpers from `apps/api/src/lib/requestValidation.ts` (parseBbox, parseLimit). Local `parseSimplify` moved to validation.ts. SQL queries moved to repository.ts with exact parameter ordering preserved. GeoJSON FeatureCollection assembly moved to mapper.ts, preserving all response fields, metadata shape, and the CAVEAT string. Business orchestration (source name lookup + feature query + mapping) moved to service.ts. Route handler and Fastify registration remain in index.ts. The old file is reduced to a 1-line re-export shim.
+- Files changed (8):
+  1. `apps/api/src/routes/borders-boundaries.ts` — Modified: converted to compatibility shim (1 line)
+  2. `apps/api/src/routes/borders-boundaries/index.ts` — Created: Fastify route registration, handlers
+  3. `apps/api/src/routes/borders-boundaries/service.ts` — Created: business orchestration
+  4. `apps/api/src/routes/borders-boundaries/repository.ts` — Created: SQL queries
+  5. `apps/api/src/routes/borders-boundaries/mapper.ts` — Created: GeoJSON FeatureCollection assembly
+  6. `apps/api/src/routes/borders-boundaries/validation.ts` — Created: request validation (parseSimplify, parseLimit wrapper)
+  7. `apps/api/src/routes/borders-boundaries/types.ts` — Created: route-local TypeScript interfaces
+  8. `docs/state/HANDOFF_LOG.md` — Modified: this entry
+  9. `docs/state/RECENT_CONTEXT.md` — Modified: new rolling context entry
+- Changes NOT made:
+  - `apps/api/src/index.ts` — not modified; the shim preserves the import path
+  - `apps/api/tests/borders-boundaries.test.ts` — not modified; imports remain valid via shim
+  - All forbidden files/folders untouched (aviation, earth-events, weather, maritime, news, energy, space, shared libs, web, services, packages, specs, etc.)
+- Destructive changes: none. The old path `/api/borders-boundaries/countries` and the alias `/api/layers/borders-boundaries/countries` continue to work unchanged. Response shape, meta fields, error handling, SQL behavior, and parameterization are bit-for-bit identical.
+- Validation:
+  - `git diff --check` → no whitespace errors (PASS)
+  - `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)"` → 0 hits (PASS)
+  - `pnpm --filter @god-eyes/contracts build` → PASS
+  - `pnpm --filter api build` → PASS
+  - `pnpm --filter api test -- borders-boundaries.test.ts` → 18/18 pass (PASS)
+  - `pnpm --filter api test` → 581/581 pass (PASS)
+  - `git grep -nE "request: any|reply: any"` → exit code 1 (no matches, PASS)
+  - `git diff -- apps/api/src/routes/aviation-aircraft.ts apps/api/src/routes/earth-events.ts` → no output (PASS)
+  - `git diff -- apps/api/src/routes/aviation apps/api/src/routes/weather apps/api/src/routes/maritime apps/api/src/routes/news apps/api/src/routes/energy apps/api/src/routes/space` → no output (PASS)
+- Known issues / caveats:
+  - Wave 3 is running in parallel (Aviation Route Split Agent and Earth Events Route Split Agent may also be active). State-doc conflicts (HANDOFF_LOG.md, RECENT_CONTEXT.md) are expected during the parallel phase and will be resolved at PR/rebase time.
+  - This commit touches only the borders-boundaries route and state docs. No other routes, shared libs, or forbidden folders were touched.
+  - The `void LAYER_ID` suppression is preserved in the new index.ts for future metadata symmetry with other layer routes.
+- Secrets added: none.
+- Next step: Orchestrator Agent reviews this branch. On PASS, the user pushes and opens a single PR. After merge, the Wave 3 SR-005E borders-boundaries route split is complete. The other Wave 3 agents (Aviation, Earth Events) continue their parallel work.
+
 
 ### 2026-06-19T04:00:00Z — wave-2-energy-decision-record (DISC-1E)
 
