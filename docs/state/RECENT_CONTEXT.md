@@ -4,7 +4,6 @@ Classification: ROLLING_CONTEXT
 
 Last updated: 2026-06-20 - Wave 4 CesiumGlobe Planning Agent (Wave 4 Planning Started)
 
-
 This file is the short rolling context for agents.
 
 Agents read this file at session start instead of reading the full `docs/state/HANDOFF_LOG.md`.
@@ -23,7 +22,6 @@ receive the **complete** handoff entry after every completed task.
 
 ## Entry format
 
-```
 ## YYYY-MM-DD - short task name
 
 - Agent: [neutral role name]
@@ -32,10 +30,6 @@ receive the **complete** handoff entry after every completed task.
 - Validation: [pass/fail summary]
 - Known issues: [one line or None]
 - Next: [one line - what the next agent/task should do]
-```
-
----
-
 
 ## 2026-06-20 - Wave 4 CesiumGlobe Planning Started
 
@@ -81,4 +75,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter web test` PASS (153/153 â€” V8 cleanup crash after all tests pass, known Node/Vitest issue); `pnpm --filter api test` PASS (581/581); `pnpm --filter web build` PASS; `pnpm --filter api build` PASS; `pnpm --filter @god-eyes/contracts build` PASS.
 - Known issues: V8 `FatalError: v8::ToLocalChecked Empty MaybeLocal` after all 153 web tests pass (exit code 134) â€” known Node.js/Vitest cleanup-phase issue, not test-content related. `python -m pytest tests/data -q` reports 11 pre-existing dirty-tree scope-guard failures (same pattern documented in WO-003 through WO-3-1); not regressions, will skip on clean tree.
 - Next: Wave 1 complete. Wave 2 first task is to actually delete the confirmed dead aviation files (`aviationTileCache.ts`, `aviationTileLoader.ts`, `globeCamera.ts`, `airportViewport.ts`, `aviationLayerRenderer.ts`) and drop 3 dead `aircraftMarker.ts` exports, per the DISC-1 audit. Then decide `energyInfrastructureApi.ts` placeholder future (DISC-1E product call).
-
