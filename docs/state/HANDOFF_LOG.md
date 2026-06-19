@@ -1,6 +1,3 @@
-
-
-
 ### 2026-06-19T00:00:00Z — disc-1-dead-duplicate-code-investigation
 
 - Work order: DISC-1
@@ -208,6 +205,22 @@
 
 - Push / PR / merge status: **not performed** by agent. Branch is local only. The user / decision-control layer owns push, PR creation, merge, and branch deletion per `PROJECT_CONTROL.md` Part 3.
 - Next step: Reviewer Agent should produce `docs/state/INTEGRATION_REVIEW_WO-3-2.md` on this branch with a PASS / FAIL / NEEDS REVIEW verdict. The reviewer should verify: (1) the 1 new file `apps/api/src/lib/requestValidation.ts` is a pure shared module with no Fastify/database/env/route-registration side effects; (2) all 8 modified route files are within the API Agent's allowed scope; (3) the explicitly forbidden folders (`apps/web/`, `services/`, `database/`, `packages/`, `docs/archive/`, `docs/audits/`, lockfile, `.env*`) are NOT touched; (4) the helpers intentionally left local are correctly identified and not moved; (5) news' parseLimit wrapper preserves the special MAX_MARKER_LIMIT default logic; (6) energy's parseOffset is correctly left local (no clamping); (7) objects/validation.ts is unchanged; (8) no endpoint paths, route registration order, SQL, response shapes, status codes, or validation semantics were changed; (9) `git diff --check` clean; (10) `pnpm --filter api build` exit 0, `pnpm --filter api test` 581/581, `pnpm --filter web build` exit 0, `pnpm --filter web test` 64/64, `pnpm --filter @god-eyes/contracts build` exit 0 all PASS; (11) the 11 `python -m pytest tests/data -q` scope-guard failures are correctly characterized as pre-existing test design limitations for cross-agent API work orders, not regressions; (12) `HANDOFF_LOG.md` is append-only (this entry is the topmost); (13) `RECENT_CONTEXT.md` is at exactly 5 entries after the WO-3-2 prepended and the WO-004 eviction. On PASS, the user / decision-control layer may push the branch and open a single PR. On FAIL, revise on the same branch.
+
+
+### 2026-06-19T01:00:00Z — wo-7-2-frontend-layer-tests (revision)
+
+- Work order: WO-7-2 (revision)
+- Agent: Frontend Layer Test Agent
+- Branch: `web/wo-7-2-frontend-layer-tests`
+- Parent: `a3e2efc test(web): add frontend layer coverage`
+- Reviewer decision: NEEDS REVISION → revised. Cross-lane dead-code conflict found: `aviationTileCache.ts` is a confirmed DISC-1 deletion candidate with zero production importers. WO-7-2 added 13 tests for it, creating artificial usage for code scheduled for deletion. This revision removes those tests.
+- Files changed (3): `apps/web/src/layers/layer_01_aviation/__tests__/aviation.test.ts` (removed `aviationTileCache` import + 13-test describe block + `clearTileCache()`/`clearInFlightTiles()` from `beforeEach`; 445→331 lines), `docs/state/RECENT_CONTEXT.md` (updated counts), `docs/state/HANDOFF_LOG.md` (this entry).
+- Source code changes: 0 production files modified. Test file revised only.
+- Validation: `pnpm --filter web test` 153/153 PASS (V8 cleanup crash after pass, known issue); `pnpm --filter api test` 581/581 PASS; builds PASS.
+- Tests removed: 13 (`aviationTileCache` describe block — `TILE_DEGREES`, `makeTileKey`, `bboxToTileIds` ×3, `generateAllTileIds`, `tileIdToBbox`, `setTile`/`getTile`, `getTile` miss, `hasTile`, `isStale`, `markTileInFlight`/`markTileDone`, `clearTileCache`).
+- Tests kept: 33 `aviationCategories` + 5 `aviationObjectStore` + 9 `borders` + 10 `earthEvents` + 26 `satellites` + 11 `energyInfrastructure` = 94 new + 59 existing = 153 total.
+- Push / PR / merge status: **not performed**. Branch is local only.
+- Next step: Re-reviewer verifies no `aviationTileCache` references remain. On PASS, user may push, open a single PR, and merge.
 
 
 ### 2026-06-19T00:00:00Z — wo-7-2-frontend-layer-tests

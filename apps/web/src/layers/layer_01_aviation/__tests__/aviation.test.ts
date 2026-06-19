@@ -26,23 +26,6 @@ import {
   isSmartLODMode,
 } from '../airports/aviationCategories';
 import {
-  bboxToTileIds,
-  clearTileCache,
-  clearInFlightTiles,
-  generateAllTileIds,
-  getTile,
-  getTileCacheStats,
-  hasTile,
-  isStale,
-  isTileInFlight,
-  makeTileKey,
-  markTileDone,
-  markTileInFlight,
-  setTile,
-  TILE_DEGREES,
-  tileIdToBbox,
-} from '../airports/aviationTileCache';
-import {
   clearObjectStore,
   getAllObjects,
   getObject,
@@ -75,8 +58,6 @@ function mockAirport(overrides: Partial<AirportObject> = {}): AirportObject {
 
 describe('Aviation Layer (Layer 01) Tests', () => {
   beforeEach(() => {
-    clearTileCache();
-    clearInFlightTiles();
     clearObjectStore();
   });
 
@@ -306,101 +287,6 @@ describe('Aviation Layer (Layer 01) Tests', () => {
       expect(getBboxRoundingForTier(3)).toBe(BBOX_ROUNDING[3]);
       // unknown tier -> safe default
       expect(getBboxRoundingForTier(99)).toBe(0.1);
-    });
-  });
-
-  describe('aviationTileCache — pure helpers', () => {
-    it('TILE_DEGREES is documented as 30 degrees', () => {
-      expect(TILE_DEGREES).toBe(30);
-    });
-
-    it('makeTileKey encodes all 4 components in a stable order', () => {
-      const k1 = makeTileKey('large_airport', '-120_30', 'points', true);
-      const k2 = makeTileKey('large_airport', '-120_30', 'points', false);
-      expect(k1).toBe('large_airport:-120_30:points:c');
-      expect(k2).toBe('large_airport:-120_30:points:nc');
-      expect(k1).not.toBe(k2);
-    });
-
-    it('bboxToTileIds enumerates a single tile for a small bbox', () => {
-      const tiles = bboxToTileIds('10,20,12,22', 30);
-      expect(tiles).toEqual(['0_0']);
-    });
-
-    it('bboxToTileIds enumerates multiple tiles for a global bbox', () => {
-      const tiles = bboxToTileIds('-180,-90,180,90', 30);
-      // 12 latitude buckets (90/-90 = 6 ranges of 30 deg) * 12 longitude buckets (180/-180 = 6 ranges of 30 deg)
-      // Actually 360/30 = 12, 180/30 = 6, total = 72.
-      expect(tiles).toHaveLength(72);
-      expect(tiles[0]).toBe('-180_-90');
-    });
-
-    it('bboxToTileIds returns [] for invalid input', () => {
-      expect(bboxToTileIds('foo,bar,baz,qux')).toEqual([]);
-      expect(bboxToTileIds('a,b,c,d')).toEqual([]);
-    });
-
-    it('generateAllTileIds covers the full world', () => {
-      const all = generateAllTileIds(30);
-      expect(all).toHaveLength(72);
-      expect(all[0]).toBe('-180_-90');
-      expect(all[all.length - 1]).toBe('150_60');
-    });
-
-    it('tileIdToBbox returns the canonical 4-number bbox string', () => {
-      expect(tileIdToBbox('0_0', 30)).toBe('0,0,30,30');
-      expect(tileIdToBbox('-150_-60', 30)).toBe('-150,-60,-120,-30');
-    });
-
-    it('setTile + getTile round-trips data and increments hit counter', () => {
-      const key = makeTileKey('large_airport', '0_0', 'points', true);
-      const data = [mockAirport()];
-      const before = getTileCacheStats().hits;
-      setTile(key, data);
-      const entry = getTile(key);
-      expect(entry?.data).toBe(data);
-      expect(getTile(key)).toBeDefined();
-      const after = getTileCacheStats().hits;
-      expect(after).toBe(before + 2);
-    });
-
-    it('getTile returns undefined and increments miss counter for missing keys', () => {
-      const before = getTileCacheStats().misses;
-      expect(getTile('not-in-cache')).toBeUndefined();
-      expect(getTileCacheStats().misses).toBe(before + 1);
-    });
-
-    it('hasTile mirrors getTile for present / missing keys', () => {
-      const key = makeTileKey('large_airport', '30_30', 'points', false);
-      expect(hasTile(key)).toBe(false);
-      setTile(key, []);
-      expect(hasTile(key)).toBe(true);
-    });
-
-    it('isStale returns true for missing tiles and false for fresh ones', () => {
-      expect(isStale('nope')).toBe(true);
-      const key = makeTileKey('large_airport', '60_30', 'points', false);
-      setTile(key, []);
-      expect(isStale(key)).toBe(false);
-    });
-
-    it('markTileInFlight / markTileDone track in-flight state', () => {
-      const key = makeTileKey('large_airport', '90_30', 'points', false);
-      expect(isTileInFlight(key)).toBe(false);
-      markTileInFlight(key);
-      expect(isTileInFlight(key)).toBe(true);
-      markTileDone(key);
-      expect(isTileInFlight(key)).toBe(false);
-    });
-
-    it('clearTileCache resets hits, misses, and entries', () => {
-      setTile('k', []);
-      getTile('k');
-      clearTileCache();
-      const stats = getTileCacheStats();
-      expect(stats.entries).toBe(0);
-      expect(stats.hits).toBe(0);
-      expect(stats.misses).toBe(0);
     });
   });
 
