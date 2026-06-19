@@ -1,10 +1,10 @@
 import type { EnergyFeatureRow } from './types.js';
 
-export function toIsoString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string') return value;
-  return String(value);
-}
+// WO-3-1: use shared `toIsoString` helper from apps/api/src/lib/typeUtils.ts.
+// Local helper definition was removed. Re-export so existing imports from
+// './mapper.js' (e.g. energy/infrastructure/service.ts) keep working unchanged.
+import { toIsoString } from '../../../lib/typeUtils.js';
+export { toIsoString };
 
 export function rowToFeature(row: EnergyFeatureRow) {
   return {

@@ -1,37 +1,13 @@
 // Converts database row shapes to API response shapes for the weather route.
 import type { WeatherObservationRow, WeatherNearbyRow } from './types.js';
 
+// WO-3-1: use shared type/date conversion helpers from apps/api/src/lib/typeUtils.ts.
+// Local helper definitions were removed. Re-export so existing imports from
+// './mapper.js' (e.g. weather/service.ts) keep working unchanged.
+import { toIsoString, toNumber, toNumberOrNull, toIntegerOrNull } from '../../lib/typeUtils.js';
+export { toIsoString, toNumberOrNull, toIntegerOrNull };
+
 const LAYER_ID = 'layer_07_weather';
-
-export function toNumber(value: unknown): number {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const n = Number(value);
-    if (!isNaN(n) && isFinite(n)) return n;
-  }
-  return 0;
-}
-
-export function toNumberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const n = Number(value);
-    if (!isNaN(n) && isFinite(n)) return n;
-  }
-  return null;
-}
-
-export function toIntegerOrNull(value: unknown): number | null {
-  const n = toNumberOrNull(value);
-  return n === null ? null : Math.round(n);
-}
-
-export function toIsoString(value: unknown): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string') return value;
-  return String(value);
-}
 
 export function rowToObservationItem(row: WeatherObservationRow) {
   const surfacePressureHpa = toNumberOrNull(row.surfacePressureHpa);
