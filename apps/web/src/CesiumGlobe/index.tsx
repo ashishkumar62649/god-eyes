@@ -69,6 +69,7 @@ import { createViewerOptions } from '../globe/viewerOptions';
 
 import { AIRCRAFT_ICON_VIEW_HEIGHT_METERS } from './constants';
 import { airportFlyHeight } from './helpers';
+import { useCameraBboxReporter } from './useCameraBboxReporter';
 import type { AircraftRecord, CesiumGlobeProps } from './types';
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -1214,62 +1215,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
   }, [spaceSatellites, spaceSatellitesLayerActive, spaceSatelliteFilters]);
 
   // Camera view bounds tracking for Layer 06 Maritime polling
-  useEffect(() => {
-    if (!viewerReady || !maritimeLayerActive || !onMaritimeBboxChange) {
-      if (onMaritimeBboxChange) {
-        onMaritimeBboxChange(null);
-      }
-      return;
-    }
-
-    const viewer = viewerRef.current;
-    if (!viewer) return;
-
-    const reportBbox = () => {
-      try {
-        const rect = viewer.camera.computeViewRectangle();
-        if (!rect) {
-          onMaritimeBboxChange(null);
-          return;
-        }
-        const toDeg = (r: number) => r * (180 / Math.PI);
-        const minLon = toDeg(rect.west);
-        const minLat = toDeg(rect.south);
-        const maxLon = toDeg(rect.east);
-        const maxLat = toDeg(rect.north);
-
-        // Sanity check coordinates are finite and correct
-        if ([minLon, minLat, maxLon, maxLat].every(isFinite)) {
-          if (
-            minLon >= -180 && minLon <= 180 &&
-            maxLon >= -180 && maxLon <= 180 &&
-            minLat >= -90 && minLat <= 90 &&
-            maxLat >= -90 && maxLat <= 90 &&
-            minLat < maxLat &&
-            minLon < maxLon // Omit dateline crossings
-          ) {
-            const bboxStr = `${minLon.toFixed(6)},${minLat.toFixed(6)},${maxLon.toFixed(6)},${maxLat.toFixed(6)}`;
-            onMaritimeBboxChange(bboxStr);
-            return;
-          }
-        }
-        onMaritimeBboxChange(null); // Fallback to global query
-      } catch (e) {
-        console.warn('Failed to compute bbox for Maritime:', e);
-        onMaritimeBboxChange(null);
-      }
-    };
-
-    // Report initial bbox when layer becomes active
-    reportBbox();
-
-    viewer.camera.moveEnd.addEventListener(reportBbox);
-    return () => {
-      if (viewer && !viewer.isDestroyed()) {
-        viewer.camera.moveEnd.removeEventListener(reportBbox);
-      }
-    };
-  }, [viewerReady, maritimeLayerActive, onMaritimeBboxChange]);
+  useCameraBboxReporter({
+    viewerRef,
+    viewerReady,
+    maritimeLayerActive,
+    onMaritimeBboxChange,
+  });
 
   if (error) {
     return (
