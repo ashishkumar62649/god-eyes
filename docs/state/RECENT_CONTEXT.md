@@ -1,7 +1,11 @@
 # Recent Context
 
 Classification: ROLLING_CONTEXT
+<<<<<<< HEAD
 Last updated: 2026-06-19 - Aviation Route Split Agent (Wave 3 SR-005D)
+=======
+Last updated: 2026-06-19 - Earth Events Route Split Agent (Wave 3 SR-005F)
+>>>>>>> 5259010 (refactor(api): split earth events route)
 
 This file is the short rolling context for agents.
 
@@ -34,6 +38,7 @@ receive the **complete** handoff entry after every completed task.
 
 ---
 
+<<<<<<< HEAD
 ## 2026-06-19 - Wave 3 SR-005D Aviation Aircraft Route Split
 
 - Agent: Aviation Route Split Agent
@@ -42,6 +47,16 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS, single LF/CRLF informational warning on new shim); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test -- aviation-aircraft.test.ts` PASS (23/23); `pnpm --filter api test` PASS (581/581); scope guards clean (no `request: any|reply: any` in new aviation files, no diffs on forbidden files).
 - Known issues: CRLF/LF autocrlf informational warning on Windows for the new shim file (matches existing repo pattern). No test changes were needed because the test imports from `../src/routes/aviation-aircraft.js` and the shim re-exports `aviationAircraftRoutes` with the same name.
 - Next: Wave 3 SR-005D closes the aviation aircraft route split. Remaining Wave 3 candidates (per Spec 008 cleanup lane) can continue per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
+=======
+## 2026-06-19 - Wave 3 SR-005F Earth Events Route Split
+
+- Agent: Earth Events Route Split Agent
+- Branch: `api/sr-005f/earth-events-route-split`
+- What changed: Split `apps/api/src/routes/earth-events.ts` into standard folder route structure at `apps/api/src/routes/earth-events/` with 6 files: `index.ts`, `service.ts`, `repository.ts`, `mapper.ts`, `validation.ts`, `types.ts`. Old file reduced to compatibility shim re-exporting from the new folder. All 13 earth-events tests and full API suite (581/581 tests) pass unchanged. Both route paths preserved: `GET /api/earth-events/latest` and `GET /api/layers/earth-events/latest`.
+- Validation: `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test -- earth-events.test.ts` PASS (13/13); `pnpm --filter api test` PASS (581/581); scope guard diffs clean for aviation, borders, existing split folders, shared libs (PASS); no `request: any` / `reply: any` route handler types in earth-events files (PASS).
+- Known issues: State-doc rebase risk from Wave 3 parallel mode (Aviation Route Split Agent and Borders Route Split Agent may also be writing to state docs concurrently). CRLF/LF git autocrlf warning on Windows is informational.
+- Next: Orchestrator Agent reviews this branch and creates integration review. On PASS, the user pushes to origin and opens a PR for this work package.
+>>>>>>> 5259010 (refactor(api): split earth events route)
 
 ## 2026-06-19 - Wave 2 DISC-1E Energy Placeholder Decision
 
@@ -78,3 +93,7 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (581/581 — unchanged); `pnpm --filter web build` PASS (111 modules, 304.03 kB JS); `pnpm --filter web test` PASS (64/64 — unchanged).
 - Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures for non-layer data API work orders (same pattern as WO-003 through WO-3-1). Actual code/build/test all PASS. Will skip on clean tree after commit.
 - Next: Wave 1 complete. WO-3-2 closes the request-validation centralization follow-up explicitly deferred from WO-3-1. Wave 2 may continue with the remaining Spec 008 cleanup lane items.
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5259010 (refactor(api): split earth events route)
