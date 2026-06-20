@@ -571,3 +571,109 @@ Cross-references:
 > Implementation requires the picking-contract test (W4-B) before any
 > picking-logic extraction. No push, PR, merge, or branch deletion by
 > any agent.
+
+## Final Outcome (Wave 4 — Implemented)
+
+> **Wave 4 CesiumGlobe Split — Implementation complete.**
+> All 9 packages (W4-A through W4-I) landed on the existing
+> `frontend/wave-4-cesium-globe-split` branch per the task brief's
+> important branch rule. Final state: the original 1436-line
+> `apps/web/src/CesiumGlobe.tsx` is now a 1-line compatibility shim,
+> and the implementation lives in a 10-file module folder. Picking
+> contract is preserved and pinned by 17 dedicated test assertions.
+
+### Target path correction (locked in)
+
+| | Path | Status |
+|---|---|---|
+| Original target | `apps/web/src/CesiumGlobe.tsx` | **the real file** |
+| Stale (incorrect) | `apps/web/src/components/CesiumGlobe.tsx` | **does not exist; flagged in state docs** |
+| Final public shim | `apps/web/src/CesiumGlobe.tsx` | unchanged import path; 1-line re-export |
+| Final orchestrator | `apps/web/src/CesiumGlobe/index.tsx` | imports as `./CesiumGlobe/index` |
+| Final module folder | `apps/web/src/CesiumGlobe/` | 10 files + `__tests__/` |
+
+### Final module structure (10 files)
+
+```
+apps/web/src/CesiumGlobe/
+  index.tsx                       # orchestrator (the CesiumGlobe React.FC)
+  pickingFields.ts                # W4-B; 8-field contract constants + factory helpers
+  picking.ts                      # W4-F; createPickClickHandler factory
+  useCameraBboxReporter.ts        # W4-D; maritime camera.moveEnd + bbox validation
+  useResidentAviationCache.ts     # W4-E; layer ON/OFF + preload + filter change
+  useLiveAircraftRenderer.ts      # W4-G; snapshot apply + delta + DR loop
+  useCesiumViewer.ts              # W4-H; viewer init + scene + primitives + picking + cleanup
+  types.ts                        # W4-C; AviationStats, CesiumGlobeProps, AircraftRecord
+  constants.ts                    # W4-C; AIRCRAFT_ICON_VIEW_HEIGHT_METERS
+  helpers.ts                      # W4-C; airportFlyHeight
+  __tests__/pickingContract.test.ts  # W4-B; 17 contract assertions (still green)
+```
+
+`apps/web/src/CesiumGlobe.tsx` (shim, unchanged): `export { default } from './CesiumGlobe/index';`
+
+`apps/web/src/App.tsx` (consumer, unchanged): `import CesiumGlobe from './CesiumGlobe';`
+
+### Picking contract test added
+
+`apps/web/src/CesiumGlobe/__tests__/pickingContract.test.ts` — 17 assertions pinning
+the 8 picking field names (5 billboard + 3 entity property) used by W4-F's
+`createPickClickHandler` factory and W4-G's live aircraft renderer. Test runs
+pure in Node + Vitest with no Cesium / jsdom / browser setup. Grep over
+production code shows **zero magic-string picking literals** — every reads and
+writes goes through `PICKING_FIELDS.*` from `pickingFields.ts`.
+
+### Final validation snapshot
+
+| Command | Result |
+|---|---|
+| `pnpm --filter @god-eyes/contracts build` | PASS |
+| `pnpm --filter web build` | PASS (120 modules, 306.84 kB JS / 87.24 kB gzip) |
+| `pnpm --filter web test` | PASS (170/170 across 9 test files) |
+| `pnpm --filter web test -- pickingContract.test.ts` | PASS (17/17) |
+| `git diff --check` | clean |
+| `git grep` conflict markers | 0 hits |
+
+### Known caveats (carried forward unchanged)
+
+- **Pre-existing V8/Vitest post-green cleanup crash.** After all 170 tests
+  pass, Vitest prints `V8 FatalError: v8::ToLocalChecked Empty MaybeLocal` with
+  exit code 134. This is a known Node/Vitest cleanup-phase issue documented in
+  prior `HANDOFF_LOG` entries (WO-7-2, Wave 2 Batch A+B). Not a regression.
+  The picking-contract test passes 17/17 in 6 ms.
+- **Contracts package build-order quirk.** `pnpm --filter web build` initially
+  fails with `TS2307: Cannot find module '@god-eyes/contracts'` until
+  `pnpm --filter @god-eyes/contracts build` is run first. Pre-existing workspace
+  build-order quirk. Recorded for clarity.
+- **PowerShell `node.exe :` cosmetic noise** on Windows (informational,
+  not an error). The actual `tsc && vite build` and `vitest run` exit codes
+  are 0.
+- **No production layer files changed.** `apps/web/src/layers/**`,
+  `apps/web/src/globe/**`, `apps/web/src/components/**` were not modified.
+- **`App.tsx` import path unchanged.** `import CesiumGlobe from './CesiumGlobe';`
+  resolves through the 1-line shim to the new orchestrator module.
+
+### Commit stack on `frontend/wave-4-cesium-globe-split` (most recent first)
+
+```
+a01f878 refactor(web): extract cesium globe viewer lifecycle                   (W4-H)
+dd93421 refactor(web): extract cesium globe live aircraft renderer            (W4-G)
+ab4172f refactor(web): extract cesium globe picking handler                    (W4-F)
+b674842 refactor(web): extract cesium globe resident aviation cache             (W4-E)
+617c5e9 refactor(web): extract cesium globe camera bbox reporter              (W4-D)
+1836be1 refactor(web): introduce cesium globe module shell                     (W4-C)
+d895dfc test(web): add cesium globe picking contract                          (W4-B)
+f631de0 docs(state): trim recent context trailing blank line                  (state hygiene)
+6819803 docs(state): repair recent context formatting                        (state hygiene)
+a66611b docs(spec): plan wave 4 cesium globe split                            (W4-A)
+6006454 docs(state): close wave 3 route split cleanup                         (base on main)
+```
+
+### Next step
+
+The next agent is the **Orchestrator Agent** doing the Wave 4 final implementation
+review. The reviewer should create one consolidated
+`docs/state/INTEGRATION_REVIEW_W4.md` (covering W4-B through W4-H), since all
+implementation packages landed on the same branch. On PASS, the user /
+decision-control layer may push the consolidated branch and open one PR for the
+entire Wave 4 work package. No agent in Wave 4 is authorized to push, open PR,
+merge, or delete branches.

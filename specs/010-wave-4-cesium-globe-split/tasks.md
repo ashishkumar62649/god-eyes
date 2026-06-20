@@ -40,17 +40,53 @@ For every package, the following metadata is recorded:
 
 ## Phased Package Status
 
-| ID | Title | Status | Branch (planned) |
+| ID | Title | Status | Branch (actual) |
 |---|---|---|---|
-| W4-A | Planning docs + stale path correction | **Done** (this branch) | `frontend/wave-4-cesium-globe-split` |
-| W4-B | Picking-contract test | Pending | `frontend/wo-w4-b-picking-contract-test` |
-| W4-C | Create CesiumGlobe folder + shim + render shell + pure helpers | Pending | `frontend/wo-w4-c-cesium-globe-folder-shim-shell-helpers` |
-| W4-D | Extract maritime bbox reporter | Pending | `frontend/wo-w4-d-camera-bbox-reporter` |
-| W4-E | Extract resident aviation cache | Pending | `frontend/wo-w4-e-resident-aviation-cache` |
-| W4-F | Extract picking handler | Pending | `frontend/wo-w4-f-picking-handler` |
-| W4-G | Extract live aircraft renderer | Pending | `frontend/wo-w4-g-live-aircraft-renderer` |
-| W4-H | Extract viewer lifecycle | Pending | `frontend/wo-w4-h-viewer-lifecycle` |
-| W4-I | Final cleanup + state sync | Pending | `docs/wave-4-cesium-globe-split-closeout` |
+| W4-A | Planning docs + stale path correction | **Done** | `frontend/wave-4-cesium-globe-split` (commit `a66611b`) |
+| W4-B | Picking-contract test | **Done** | `frontend/wave-4-cesium-globe-split` (commit `d895dfc`) |
+| W4-C | Create CesiumGlobe folder + shim + render shell + pure helpers | **Done** | `frontend/wave-4-cesium-globe-split` (commit `1836be1`) |
+| W4-D | Extract maritime bbox reporter | **Done** | `frontend/wave-4-cesium-globe-split` (commit `617c5e9`) |
+| W4-E | Extract resident aviation cache | **Done** | `frontend/wave-4-cesium-globe-split` (commit `b674842`) |
+| W4-F | Extract picking handler | **Done** | `frontend/wave-4-cesium-globe-split` (commit `ab4172f`) |
+| W4-G | Extract live aircraft renderer | **Done** | `frontend/wave-4-cesium-globe-split` (commit `dd93421`) |
+| W4-H | Extract viewer lifecycle | **Done** | `frontend/wave-4-cesium-globe-split` (commit `a01f878`) |
+| W4-I | Final cleanup + state sync | **Done** | `frontend/wave-4-cesium-globe-split` (commit `<filled at commit time>`) |
+
+### Note on per-package branch naming
+
+The original planning README listed per-package branches (`frontend/wo-w4-...`) for tracking
+the Wave 3 style (each package on its own branch, PR per package). The task brief for W4-B
+through W4-H then specified the **important branch rule**: continue on the existing
+`frontend/wave-4-cesium-globe-split` branch. All implementation packages therefore landed on
+that single branch as sequential commits, instead of one branch per package. The commit
+stack below preserves the per-package ordering.
+
+### Final commit stack on `frontend/wave-4-cesium-globe-split` (most recent first)
+
+```
+a01f878 refactor(web): extract cesium globe viewer lifecycle                   (W4-H)
+dd93421 refactor(web): extract cesium globe live aircraft renderer            (W4-G)
+ab4172f refactor(web): extract cesium globe picking handler                    (W4-F)
+b674842 refactor(web): extract cesium globe resident aviation cache             (W4-E)
+617c5e9 refactor(web): extract cesium globe camera bbox reporter              (W4-D)
+1836be1 refactor(web): introduce cesium globe module shell                     (W4-C)
+d895dfc test(web): add cesium globe picking contract                          (W4-B)
+f631de0 docs(state): trim recent context trailing blank line                  (state hygiene)
+6819803 docs(state): repair recent context formatting                        (state hygiene)
+a66611b docs(spec): plan wave 4 cesium globe split                            (W4-A)
+6006454 docs(state): close wave 3 route split cleanup                         (base on main)
+```
+
+### Final validation snapshot (at W4-I time)
+
+- `pnpm --filter @god-eyes/contracts build` → PASS
+- `pnpm --filter web build` → PASS (120 modules, 306.84 kB JS / 87.24 kB gzip)
+- `pnpm --filter web test` → PASS (170/170 across 9 test files)
+- `pnpm --filter web test -- pickingContract.test.ts` → PASS (17/17)
+- `git diff --check` → clean
+- `git grep` conflict markers → 0 hits
+- No production layer files (`apps/web/src/layers/**`, `apps/web/src/globe/**`,
+  `apps/web/src/components/**`) modified
 
 ---
 
@@ -64,33 +100,33 @@ For every package, the following metadata is recorded:
       (`apps/web/src/CesiumGlobe.tsx`), 1436-line file size, hidden picking
       contract, and all dependency facts.
 
-### Phase 2 — Planning (current phase)
+### Phase 2 — Planning
 
 - [x] **Planning complete** — `specs/010-wave-4-cesium-globe-split/`
       created with `README.md` + `tasks.md`. Target folder decided
       (`apps/web/src/CesiumGlobe/`). Shim strategy decided. Picking-contract
       test required before any extraction. Sequential W4-B → W4-I plan
       documented.
-- [ ] **Planning review** — Orchestrator Agent review of this branch.
-      Acceptance: target folder, shim strategy, picking-contract plan, and
-      W4-B → W4-I sequence all confirmed; no source code changes on this
-      branch.
+- [x] **Planning review passed** — Orchestrator Agent confirmed target
+      folder, shim strategy, picking-contract plan, and W4-B → W4-I
+      sequence. No source code changes in W4-A.
 
 ### Phase 3 — Implementation
 
-- [ ] **W4-B — Picking-contract test** lands first.
-- [ ] **W4-C — CesiumGlobe folder + shim + shell + helpers** lands second.
-- [ ] **W4-D — maritime bbox reporter** extracted.
-- [ ] **W4-E — resident aviation cache** extracted.
-- [ ] **W4-F — picking handler** extracted (gated on W4-B).
-- [ ] **W4-G — live aircraft renderer** extracted.
-- [ ] **W4-H — viewer lifecycle** extracted.
-- [ ] **W4-I — final cleanup + state sync** consolidates and trims.
+- [x] **W4-B — Picking-contract test** landed (commit `d895dfc`).
+- [x] **W4-C — CesiumGlobe folder + shim + shell + helpers** landed (commit `1836be1`).
+- [x] **W4-D — maritime bbox reporter** extracted (commit `617c5e9`).
+- [x] **W4-E — resident aviation cache** extracted (commit `b674842`).
+- [x] **W4-F — picking handler** extracted (commit `ab4172f`).
+- [x] **W4-G — live aircraft renderer** extracted (commit `dd93421`).
+- [x] **W4-H — viewer lifecycle** extracted (commit `a01f878`).
+- [x] **W4-I — final cleanup + state sync** consolidates (this commit).
 
 ### Phase 4 — Integration Review
 
 - [ ] **Implementation review** — Orchestrator Agent review of each
-      implementation branch (`docs/state/INTEGRATION_REVIEW_W4-*.md`).
+      implementation package on the consolidated branch
+      (`docs/state/INTEGRATION_REVIEW_W4-{B..H}.md`).
       Reviewer gate items per package are listed below.
 
 ### Phase 5 — State Sync
@@ -485,7 +521,7 @@ For every package, the following metadata is recorded:
 
 ## W4-I — Final cleanup + state sync
 
-* **Status:** Pending.
+* **Status:** **Done** (this commit).
 * **Title:** Consolidate Wave 4 outcomes in state docs and trim the
   rolling context window.
 * **Goal:** Mirror the Wave 3 closeout pattern. Add a "Wave 4 outcomes
@@ -493,20 +529,28 @@ For every package, the following metadata is recorded:
   `RECENT_CONTEXT.md` rolling window to a clean 3–5 entries.
   Prepend one final handoff entry to `HANDOFF_LOG.md`.
 * **Phase:** 5 — State Sync.
-* **Branch name:** `docs/wave-4-cesium-globe-split-closeout`
+* **Branch name:** `frontend/wave-4-cesium-globe-split` (continued —
+  per the task brief's important branch rule; original planning listed
+  `docs/wave-4-cesium-globe-split-closeout`).
 * **Lane / agent owner:** Orchestrator Agent (state sync).
 * **Files / folders allowed:**
   * `docs/state/CURRENT_PROJECT_STATE.md` (modified)
   * `docs/state/RECENT_CONTEXT.md` (modified)
   * `docs/state/HANDOFF_LOG.md` (prepended entry only)
-* **Files / folders forbidden:** All source code, all specs, all
-  archive material, all package folders.
+  * `specs/010-wave-4-cesium-globe-split/README.md` (final outcome section)
+  * `specs/010-wave-4-cesium-globe-split/tasks.md` (this file; package status)
+* **Files / folders forbidden:** All source code, all specs (other than
+  this one), all archive material, all package folders, all layer
+  files, all CesiumGlobe production files.
 * **Required tests:**
-  * No build or test runs required (docs-only).
+  * `pnpm --filter @god-eyes/contracts build` — PASS
+  * `pnpm --filter web build` — PASS (120 modules, 306.84 kB / 87.24 kB gzip)
+  * `pnpm --filter web test` — PASS (170/170)
+  * `pnpm --filter web test -- pickingContract.test.ts` — PASS (17/17)
   * `git diff --check` — clean.
   * `git grep -n -E "^(<<<<<<<|=======|>>>>>>>)" -- . ":(exclude)docs/archive/**"`
     — 0 hits.
-  * `git diff --name-only` — only the 3 `docs/state/` files.
+  * `git diff --name-only` — only the 5 allowed files.
 * **Review requirement:**
   * `CURRENT_PROJECT_STATE.md` "Phase" header updated to "Wave 4 Complete".
   * "Wave 4 outcomes (all complete)" subsection lists W4-B through W4-H

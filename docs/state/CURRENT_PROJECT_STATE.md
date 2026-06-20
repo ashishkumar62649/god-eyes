@@ -1,18 +1,17 @@
 ﻿# Current Project State
 
 Classification: CURRENT_STATE
-Last updated: 2026-06-20 - Wave 4 CesiumGlobe Planning Agent (Wave 4 Planning Started)
+Last updated: 2026-06-20 - Wave 4 CesiumGlobe Working Agent (Wave 4 Implementation Complete)
 
-## Phase: Wave 4 Planning
+## Phase: Wave 4 Implementation Complete (Final Review Pending)
 
-Wave 1, Wave 2, and Wave 3 are fully merged into `main`. Wave 4 has
-**started** in the planning phase. The Wave 4 CesiumGlobe Research Agent
-completed the read-only file map on branch
-`research/wave-4-cesium-globe-file-map` and review passed. The Wave 4
-CesiumGlobe Planning Agent has now produced the active planning spec at
-`specs/010-wave-4-cesium-globe-split/` (status: planning complete,
-awaiting Orchestrator review). Implementation packages W4-B through W4-I
-are queued and will land sequentially after the planning review passes.
+Wave 1, Wave 2, Wave 3, and Wave 4 implementation are complete. Wave 4
+implementation packages W4-B through W4-H all landed on the consolidated
+branch `frontend/wave-4-cesium-globe-split` as sequential commits per the
+W4-A → W4-H task brief's important branch rule. W4-I (this update)
+consolidates the state docs. The Orchestrator Agent's final implementation
+review is the next step before the user / decision-control layer may push
+and open a single PR for the Wave 4 work package.
 
 ### Current main includes (Wave 1, all merged)
 
@@ -88,6 +87,104 @@ the import paths used by `apps/api/src/index.ts` and by the existing test
 files. No `request: any` / `reply: any` types were introduced. No shared
 lib, web, services, packages, or spec files were touched.
 
+### Wave 4 outcomes (all complete)
+
+Wave 4 split the legacy `apps/web/src/CesiumGlobe.tsx` (1436 lines, 57 144 bytes)
+into a 10-file module folder behind a 1-line compatibility shim. All eight
+implementation packages (W4-B through W4-H) landed on a single consolidated
+branch `frontend/wave-4-cesium-globe-split` as sequential commits, per the
+task brief's important branch rule. W4-I consolidated the state docs.
+
+#### Wave 4 commit stack (most recent first)
+
+```
+a01f878 refactor(web): extract cesium globe viewer lifecycle                   (W4-H)
+dd93421 refactor(web): extract cesium globe live aircraft renderer            (W4-G)
+ab4172f refactor(web): extract cesium globe picking handler                    (W4-F)
+b674842 refactor(web): extract cesium globe resident aviation cache             (W4-E)
+617c5e9 refactor(web): extract cesium globe camera bbox reporter              (W4-D)
+1836be1 refactor(web): introduce cesium globe module shell                     (W4-C)
+d895dfc test(web): add cesium globe picking contract                          (W4-B)
+f631de0 docs(state): trim recent context trailing blank line                  (state hygiene)
+6819803 docs(state): repair recent context formatting                        (state hygiene)
+a66611b docs(spec): plan wave 4 cesium globe split                            (W4-A)
+6006454 docs(state): close wave 3 route split cleanup                         (base on main)
+```
+
+#### Wave 4 module shape
+
+`apps/web/src/CesiumGlobe/` (10 files + `__tests__/`):
+
+```
+index.tsx                       # orchestrator (the CesiumGlobe React.FC)
+pickingFields.ts                # W4-B; 8-field picking contract constants + factory helpers
+picking.ts                      # W4-F; createPickClickHandler factory
+useCameraBboxReporter.ts        # W4-D; maritime camera.moveEnd + bbox validation
+useResidentAviationCache.ts     # W4-E; layer ON/OFF + preload + filter change
+useLiveAircraftRenderer.ts      # W4-G; snapshot apply + delta + DR loop
+useCesiumViewer.ts              # W4-H; viewer init + scene + primitives + picking + cleanup
+types.ts                        # W4-C; AviationStats, CesiumGlobeProps, AircraftRecord
+constants.ts                    # W4-C; AIRCRAFT_ICON_VIEW_HEIGHT_METERS
+helpers.ts                      # W4-C; airportFlyHeight
+__tests__/pickingContract.test.ts  # W4-B; 17 picking-contract assertions
+```
+
+`apps/web/src/CesiumGlobe.tsx` (1-line shim, unchanged since W4-C):
+`export { default } from './CesiumGlobe/index';`
+
+`apps/web/src/App.tsx` (consumer, unchanged since W3): `import CesiumGlobe from './CesiumGlobe';`
+
+#### Wave 4 path correction (locked in W4-A)
+
+| | Path | Status |
+|---|---|---|
+| Original target | `apps/web/src/CesiumGlobe.tsx` | **the real file** |
+| Stale (incorrect) | `apps/web/src/components/CesiumGlobe.tsx` | **does not exist** |
+| Final public shim | `apps/web/src/CesiumGlobe.tsx` | unchanged import path; 1-line re-export |
+
+#### Wave 4 hidden picking contract (locked in W4-B)
+
+`apps/web/src/CesiumGlobe/__tests__/pickingContract.test.ts` pins 17 assertions
+across 8 field names:
+
+| Field | Producer (writes) | Consumer (reads in CesiumGlobe click handler) |
+|---|---|---|
+| `_aircraftData` | CesiumGlobe billboard `id` (lines 957, 1106, 949, 1098) | CesiumGlobe click (lines 573, 574) |
+| `_vesselData` | `MaritimeLayer.tsx` lines 90, 94 | CesiumGlobe click (lines 579, 580) |
+| `_weatherData` | `WeatherLayer.tsx` lines 79, 82 | CesiumGlobe click (lines 585, 586) |
+| `_newsData` | `NewsLayer.tsx` lines 70, 73 | CesiumGlobe click (lines 591, 592) |
+| `_satelliteData` | CesiumGlobe `point.id` (line 1285) | (reserved; future picking) |
+| `earthquakeData` | CesiumGlobe `entity.properties` (line 860) | CesiumGlobe click (lines 613, 614) |
+| `satelliteData` | CesiumGlobe `entity.properties` (line 1300) | CesiumGlobe click (lines 619, 620) |
+| `rawData` | `EnergyInfrastructureLayer.tsx` line 53 | CesiumGlobe click (lines 627, 634, 635) |
+
+Production code reads every field through `PICKING_FIELDS.*` constants from
+`pickingFields.ts`. Zero magic-string picking literals in production.
+
+#### Wave 4 validation (final)
+
+- `pnpm --filter @god-eyes/contracts build` → PASS
+- `pnpm --filter web build` → PASS (120 modules, 306.84 kB JS / 87.24 kB gzip)
+- `pnpm --filter web test` → PASS (170/170 across 9 test files)
+- `pnpm --filter web test -- pickingContract.test.ts` → PASS (17/17)
+- `git diff --check` → clean
+- `git grep` conflict markers → 0 hits
+- No production layer files (`apps/web/src/layers/**`, `apps/web/src/globe/**`,
+  `apps/web/src/components/**`) modified at any point during Wave 4.
+
+#### Wave 4 known caveats (carried forward unchanged)
+
+- **Pre-existing V8/Vitest post-green cleanup crash** (exit 134). The
+  picking-contract test passes 17/17 in 6 ms before the crash. Documented
+  in prior `HANDOFF_LOG` entries; not a Wave 4 regression.
+- **Contracts package build-order quirk.** `pnpm --filter web build` initially
+  fails with `TS2307: Cannot find module '@god-eyes/contracts'` until
+  `pnpm --filter @god-eyes/contracts build` runs first. Pre-existing
+  workspace build-order quirk.
+- **PowerShell `node.exe :` cosmetic noise** on Windows (informational,
+  not an error). The actual `tsc && vite build` and `vitest run` exit
+  codes are 0.
+
 ### Current mode
 
 - **Wave 1 complete** — all 5 items are merged to `main`.
@@ -96,21 +193,17 @@ lib, web, services, packages, or spec files were touched.
 - **Wave 3 complete** — three API route splits (aviation aircraft, earth events,
   borders boundaries) merged to `main` with compatibility shims preserved
   and all public API paths intact.
-- **Wave 4 — CesiumGlobe split — PLANNING in progress.** Research phase
-  complete and reviewed. Planning artifact now lives at
-  `specs/010-wave-4-cesium-globe-split/` (README + tasks). Implementation
-  will follow the sequenced W4-A through W4-I package plan from `tasks.md`.
-- **Wave 4 active target file (correct path):**
-  **`apps/web/src/CesiumGlobe.tsx`** (1436 lines, 57 144 bytes).
-  The path `apps/web/src/components/CesiumGlobe.tsx` referenced in some
-  historical and archived docs is **stale and incorrect** — the file is
-  not under `components/`. Active state docs now point at the real
-  path. Historical handoff entries that still mention the stale path are
-  preserved verbatim per the append-only rule; the Wave 4 closeout
-  (W4-I) will consolidate.
-- **Single runtime importer:** `apps/web/src/App.tsx` (default import).
-  The Wave 4 plan preserves this import path through a 1-line
-  compatibility shim at `apps/web/src/CesiumGlobe.tsx`.
+- **Wave 4 complete — CesiumGlobe split.** All eight implementation
+  packages (W4-B through W4-H) landed on the consolidated branch
+  `frontend/wave-4-cesium-globe-split` as sequential commits per the
+  task brief's important branch rule. The original 1436-line
+  `apps/web/src/CesiumGlobe.tsx` is now a 1-line compatibility shim
+  pointing at `apps/web/src/CesiumGlobe/index.tsx`. See the
+  **Wave 4 outcomes (all complete)** section above for the full
+  commit stack, module structure, picking contract, and validation
+  snapshot. The next step is the Orchestrator Agent's final
+  implementation review (`docs/state/INTEGRATION_REVIEW_W4.md`);
+  on PASS, the user / decision-control layer may push and open one PR.
 
 ## Authoritative Sources
 
@@ -222,10 +315,38 @@ Build → Review/Test → Push → Next. See `AGENTS.md` and `docs/control/PROJE
 
 ## Last Updated
 
-2026-06-20 - Wave 4 CesiumGlobe Planning Agent (Wave 4 Planning Started)
+2026-06-20 - Wave 4 CesiumGlobe Working Agent (Wave 4 Implementation Complete)
 
 Change log for this file:
 
+- 2026-06-20 (Wave 4 Implementation Complete) - Wave 4 CesiumGlobe split
+  moved from **planning** to **implementation complete**. All eight
+  implementation packages (W4-B through W4-H) landed on the consolidated
+  branch `frontend/wave-4-cesium-globe-split` as sequential commits per
+  the task brief's important branch rule. The original 1436-line
+  `apps/web/src/CesiumGlobe.tsx` is now a 1-line compatibility shim
+  pointing at `apps/web/src/CesiumGlobe/index.tsx`. Final module
+  structure: 10 files in `apps/web/src/CesiumGlobe/` plus the picking-
+  contract test in `apps/web/src/CesiumGlobe/__tests__/`. Picking contract
+  pinned by 17 assertions; production code reads every picking field
+  through `PICKING_FIELDS.*` (zero magic-string literals). Validation:
+  `pnpm --filter web build` PASS (120 modules, 306.84 kB JS / 87.24 kB
+  gzip); `pnpm --filter web test` PASS (170/170 across 9 test files);
+  `pnpm --filter web test -- pickingContract.test.ts` PASS (17/17);
+  `git diff --check` clean; `git grep` conflict markers 0 hits. No
+  production layer files modified. `apps/web/src/CesiumGlobe.tsx` shim
+  and `apps/web/src/App.tsx` import unchanged. Pre-existing V8/Vitest
+  post-green cleanup crash and contracts build-order quirk carried
+  forward as documented caveats (not Wave 4 regressions). Added the
+  full Wave 4 outcomes section (commit stack, module shape, path
+  correction, picking contract table, validation snapshot, caveats)
+  above the Current mode subsection. Updated the Current mode bullet
+  from "Wave 4 planning in progress" to "Wave 4 complete" and pointed
+  to the Wave 4 outcomes section. Prepended W4-I closeout entry to
+  `HANDOFF_LOG.md` and a Wave 4 implementation complete top entry to
+  `RECENT_CONTEXT.md` (rolling window stays at 5 entries). No
+  production source, test, package, lockfile, env, or non-doc file
+  touched by this closeout.
 - 2026-06-20 (Wave 4 Planning Started) - Wave 4 CesiumGlobe split moved
   from "Planned later" to **planning**. Created
   `specs/010-wave-4-cesium-globe-split/{README.md,tasks.md}` recording the
