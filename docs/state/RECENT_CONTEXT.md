@@ -1,9 +1,8 @@
-# Recent Context
+﻿# Recent Context
 
 Classification: ROLLING_CONTEXT
 
-Last updated: 2026-06-19 - Wave 3 State Sync Agent (Wave 3 Route Split Closeout)
-
+Last updated: 2026-06-20 - Wave 4 CesiumGlobe Working Agent (Wave 4 Implementation Complete)
 
 This file is the short rolling context for agents.
 
@@ -23,7 +22,6 @@ receive the **complete** handoff entry after every completed task.
 
 ## Entry format
 
-```
 ## YYYY-MM-DD - short task name
 
 - Agent: [neutral role name]
@@ -32,10 +30,24 @@ receive the **complete** handoff entry after every completed task.
 - Validation: [pass/fail summary]
 - Known issues: [one line or None]
 - Next: [one line - what the next agent/task should do]
-```
 
----
+## 2026-06-20 - Wave 4 CesiumGlobe Implementation Complete
 
+- Agent: Wave 4 CesiumGlobe Working Agent
+- Branch: `frontend/wave-4-cesium-globe-split`
+- What changed: All eight implementation packages (W4-B through W4-H) landed on the consolidated branch as sequential commits per the task brief's important branch rule: W4-B picking-contract test (commit `d895dfc`); W4-C module shell + shim + helpers (`1836be1`); W4-D camera bbox reporter (`617c5e9`); W4-E resident aviation cache (`b674842`); W4-F picking handler (`ab4172f`); W4-G live aircraft renderer (`dd93421`); W4-H viewer lifecycle (`a01f878`). Final module shape: 10 files in `apps/web/src/CesiumGlobe/` plus `__tests__/pickingContract.test.ts`. The original 1436-line `apps/web/src/CesiumGlobe.tsx` is now a 1-line compatibility shim. W4-I consolidated the state docs.
+- Validation: `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter web build` PASS (120 modules, 306.84 kB JS / 87.24 kB gzip); `pnpm --filter web test` PASS (170/170 across 9 test files); `pnpm --filter web test -- pickingContract.test.ts` PASS (17/17). Forbidden folders confirmed untouched via `git diff --name-only` (zero hits for `apps/api/`, `services/`, `database/`, `packages/`, `apps/web/src/layers/**`, `apps/web/src/globe/**`, `apps/web/src/components/**`, `docs/archive/`, `specs/009-future-scaling-architecture/**`, lockfiles, env files). No production layer files modified at any point during Wave 4.
+- Known issues: Post-green V8 `FatalError: v8::ToLocalChecked Empty MaybeLocal` after all 170 tests pass (exit 134, known Node/Vitest cleanup-phase issue documented in prior `HANDOFF_LOG` entries; picking-contract test passes 17/17 in 6 ms before the crash). Contracts package build-order quirk: `pnpm --filter web build` requires `pnpm --filter @god-eyes/contracts build` first (pre-existing workspace quirk). PowerShell `node.exe :` cosmetic noise on Windows (informational, not an error).
+- Next: Orchestrator Agent final implementation review: create `docs/state/INTEGRATION_REVIEW_W4.md` consolidating review of all 7 implementation packages (W4-B through W4-H on the same branch). On PASS, the user / decision-control layer may push and open one PR for the Wave 4 work package.
+
+## 2026-06-20 - Wave 4 CesiumGlobe Planning Started
+
+- Agent: Wave 4 CesiumGlobe Planning Agent
+- Branch: `frontend/wave-4-cesium-globe-split`
+- What changed: Created `specs/010-wave-4-cesium-globe-split/{README.md,tasks.md}`. Recorded the verified research facts from the prior `research/wave-4-cesium-globe-file-map` branch (review passed), the target-folder decision (`apps/web/src/CesiumGlobe/`), the 1-line compatibility-shim decision (mirroring Wave 3), the picking-contract test requirement (W4-B, before any picking-logic extraction, pinning the 8 field names: `_aircraftData`, `_vesselData`, `_weatherData`, `_newsData`, `_satelliteData`, `earthquakeData`, `satelliteData`, `rawData`), and the sequenced W4-A through W4-I implementation plan (all sequential, no parallel agents). Corrected the stale target path in `CURRENT_PROJECT_STATE.md` "Current mode" subsection: real path is `apps/web/src/CesiumGlobe.tsx` (1436 lines); the `apps/web/src/components/CesiumGlobe.tsx` reference in some historical/archived docs is **stale and incorrect**.
+- Validation: docs-only validation — `git diff --check` clean (PASS); no merge conflict markers (PASS); `git diff --name-only` confirms only the 5 allowed files changed (PASS); no `pnpm` build/test re-runs needed (docs-only); pre-edit clean working tree confirmed (PASS); branch `frontend/wave-4-cesium-globe-split` based on `6006454 docs(state): close wave 3 route split cleanup` confirmed via `git log -8 --oneline` (PASS).
+- Known issues: None. Wave 4 research review already established that the 1436-line file has 0 direct tests, 1 runtime consumer (`apps/web/src/App.tsx`), and the hidden picking contract is the highest-risk hidden coupling. W4-B (picking-contract test) must land before W4-F (picking handler extraction). No `apps/api/`, `services/`, `database/`, `packages/`, `docs/control/`, `docs/audits/`, `docs/archive/`, lockfile, or env file was touched.
+- Next: Orchestrator Agent reviews this branch and creates `docs/state/INTEGRATION_REVIEW_W4-A.md`. On PASS, the user / decision-control layer may push and open a single PR for the W4-A planning work package. Then W4-B (picking-contract test) is the first implementation package.
 
 ## 2026-06-19 - Wave 3 State Sync / API Route Split Closeout
 
@@ -72,13 +84,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter web test` PASS (153/153 — V8 cleanup crash after all tests pass, known Node/Vitest issue); `pnpm --filter api test` PASS (581/581); `pnpm --filter web build` PASS; `pnpm --filter api build` PASS; `pnpm --filter @god-eyes/contracts build` PASS.
 - Known issues: V8 `FatalError: v8::ToLocalChecked Empty MaybeLocal` after all 153 web tests pass (exit code 134) — known Node.js/Vitest cleanup-phase issue, not test-content related. `python -m pytest tests/data -q` reports 11 pre-existing dirty-tree scope-guard failures (same pattern documented in WO-003 through WO-3-1); not regressions, will skip on clean tree.
 - Next: Wave 1 complete. Wave 2 first task is to actually delete the confirmed dead aviation files (`aviationTileCache.ts`, `aviationTileLoader.ts`, `globeCamera.ts`, `airportViewport.ts`, `aviationLayerRenderer.ts`) and drop 3 dead `aircraftMarker.ts` exports, per the DISC-1 audit. Then decide `energyInfrastructureApi.ts` placeholder future (DISC-1E product call).
-
-## 2026-06-19 - WO-3-2 Centralize API Request-Validation Helpers
-
-- Agent: API Validation Agent
-- Branch: `api/wo-3-2-request-validation-utils`
-- What changed: Created `apps/api/src/lib/requestValidation.ts` with 5 shared request-validation helpers (`parseBbox`, parameterized `parseLimit`/`parseOffset`, `isValidIsoDatetime` strict, `isValidIsoDatetimeLoose`). Centralized 5 duplicated request-validation helpers from 8 route files into 1 shared module. Each route's `validation.ts` retains a local wrapper that passes the exact prior constants, so public API and error response shapes are unchanged. Helpers intentionally left local: objects/validation.ts `parseBBox` (different architecture), `validateCategory`/`validateMode` (unique to objects), energy's `parseOffset` (no clamping), maritime/news/weather local-specific helpers, news' `parseLimit` wrapper (special MAX_MARKER_LIMIT default-value logic).
-- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter api build` PASS; `pnpm --filter api test` PASS (581/581 — unchanged); `pnpm --filter web build` PASS (111 modules, 304.03 kB JS); `pnpm --filter web test` PASS (64/64 — unchanged).
-- Known issues: `python -m pytest tests/data -q` reports 11 pre-existing scope-guard test failures for non-layer data API work orders (same pattern as WO-003 through WO-3-1). Actual code/build/test all PASS. Will skip on clean tree after commit.
-- Next: Wave 1 complete. WO-3-2 closes the request-validation centralization follow-up explicitly deferred from WO-3-1. Wave 2 may continue with the remaining Spec 008 cleanup lane items.
-
