@@ -6,8 +6,6 @@ import {
   Color,
   Entity,
   PolylineGraphics,
-  ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
   CustomDataSource,
   PointPrimitiveCollection,
   SceneTransforms,
@@ -33,17 +31,11 @@ import NewsLayer from '../layers/layer_08_news_osint/NewsLayer';
 import { getSatelliteColor, getSatellitePixelSize } from '../layers/layer_05_space_satellites/satellites/satelliteColors';
 import { getFilteredSatellites, DEFAULT_SATELLITE_FILTERS } from '../layers/layer_05_space_satellites/satellites/satelliteFilters';
 
-import {
-  filterVisibleGlobalDots,
-} from '../layers/layer_01_aviation/airports/aviationGlobalRenderer';
 import { useFpsCounter } from '../globe/useFpsCounter';
-import { setupCesiumToken } from '../globe/setupCesiumToken';
-import { configureViewerScene } from '../globe/configureViewerScene';
-import { createViewerOptions } from '../globe/viewerOptions';
 
 import { airportFlyHeight } from './helpers';
-import { createPickClickHandler } from './picking';
 import { useCameraBboxReporter } from './useCameraBboxReporter';
+import { useCesiumViewer } from './useCesiumViewer';
 import { useLiveAircraftRenderer } from './useLiveAircraftRenderer';
 import { useResidentAviationCache } from './useResidentAviationCache';
 import type { AircraftRecord, CesiumGlobeProps } from './types';
@@ -202,139 +194,33 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
   // Live aircraft renderer hooks are mounted below (W4-G).
   // The hook returns updateAircraftVisualMode, which the
-  // viewer-init camera listener calls whenever cameraHeightRef
-  // changes (the visual-mode switch is driven by camera height).
+  // viewer-init camera listener (now inside useCesiumViewer) calls
+  // whenever cameraHeightRef changes (the visual-mode switch is
+  // driven by camera height).
 
-  // Viewer initialization
-  useEffect(() => {
-    if (!setupCesiumToken()) {
-      setTokenMissing(true);
-    }
-
-    if (!containerRef.current) return;
-
-    let viewer: Viewer | undefined;
-    let stopFpsCounter: (() => void) | undefined;
-    let moveEndHandler: (() => void) | undefined;
-    let changedHandler: (() => void) | undefined;
-
-    try {
-      viewer = new Viewer(containerRef.current, createViewerOptions());
-      configureViewerScene(viewer);
-
-      viewerRef.current = viewer;
-      viewerReadyRef.current = true;
-      setViewerReady(true);
-
-      const dataSource = new CustomDataSource('aviation');
-      aviationDataSourceRef.current = dataSource;
-      viewer.dataSources.add(dataSource);
-
-      const layoutDataSource = new CustomDataSource('airport-layout');
-      layoutDataSourceRef.current = layoutDataSource;
-      viewer.dataSources.add(layoutDataSource);
-
-      const earthEventsDataSource = new CustomDataSource('earth-events');
-      earthEventsDataSourceRef.current = earthEventsDataSource;
-      viewer.dataSources.add(earthEventsDataSource);
-
-      const aircraftCollection = new BillboardCollection({ scene: viewer.scene });
-      viewer.scene.primitives.add(aircraftCollection);
-      aircraftCollectionRef.current = aircraftCollection;
-
-      // Layer 05: satellite dot collection + entity data source for triangles
-      const satDotCollection = new PointPrimitiveCollection();
-      viewer.scene.primitives.add(satDotCollection);
-      satelliteDotCollectionRef.current = satDotCollection;
-
-      const satEntityDs = new CustomDataSource('space-satellites');
-      satelliteEntityDataSourceRef.current = satEntityDs;
-      viewer.dataSources.add(satEntityDs);
-
-      // Layer 10: energy infrastructure data source
-      const energyInfrastructureDataSource = new CustomDataSource('energy-infrastructure');
-      energyInfrastructureDataSourceRef.current = energyInfrastructureDataSource;
-      viewer.dataSources.add(energyInfrastructureDataSource);
-
-      stopFpsCounter = startFpsCounter(viewer);
-
-      // Camera changed — debounced occlusion update only, NO data fetching
-      changedHandler = () => {
-        if (viewerRef.current) {
-          const height = viewerRef.current.camera.positionCartographic.height;
-          cameraHeightRef.current = height;
-          if (globalDotCollectionRef.current) {
-            filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
-          }
-          updateAircraftVisualMode();
-        }
-      };
-
-      // Camera moveEnd — NO data fetching, just update occlusion
-      moveEndHandler = () => {
-        if (viewerRef.current) {
-          const height = viewerRef.current.camera.positionCartographic.height;
-          cameraHeightRef.current = height;
-          if (globalDotCollectionRef.current) {
-            filterVisibleGlobalDots(globalDotCollectionRef.current, viewerRef.current.scene, aviationFiltersRef.current);
-          }
-          updateAircraftVisualMode();
-        }
-      };
-
-      viewer.camera.percentageChanged = 0.05;
-      viewer.camera.changed.addEventListener(changedHandler);
-      viewer.camera.moveEnd.addEventListener(moveEndHandler);
-
-      // Click handler — branch logic lives in apps/web/src/CesiumGlobe/picking.ts
-      // (W4-F). The ScreenSpaceEventHandler lifetime is bound to the
-      // viewer (implicit cleanup via viewer.destroy() in the effect
-      // cleanup below).
-      const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-      handler.setInputAction(
-        createPickClickHandler({
-          viewer,
-          onObjectSelectRef,
-          setSelectedAircraft,
-          setSelectedEarthquake,
-          setSelectedSatellite,
-          onWeatherSelectRef,
-          onNewsSelectRef,
-          onEnergyFeatureSelect,
-        }),
-        ScreenSpaceEventType.LEFT_CLICK,
-      );
-    } catch (err) {
-      console.error('Cesium failed to initialize:', err);
-      setError(err instanceof Error ? err.message : String(err));
-    }
-
-    return () => {
-      if (typeof stopFpsCounter !== 'undefined') stopFpsCounter();
-      if (typeof changedHandler !== 'undefined' && viewer) {
-        viewer.camera.changed.removeEventListener(changedHandler);
-      }
-      if (typeof moveEndHandler !== 'undefined' && viewer) {
-        viewer.camera.moveEnd.removeEventListener(moveEndHandler);
-      }
-      if (viewer && !viewer.isDestroyed()) {
-        viewer.destroy();
-        viewerRef.current = null;
-        viewerReadyRef.current = false;
-      }
-       if (abortControllerRef.current) {
-         abortControllerRef.current.abort();
-       }
-       // applyRafRef and drRafRef cleanup now lives in
-       // useLiveAircraftRenderer's own effect cleanups (W4-G).
-       aircraftMapRef.current.clear();
-       aircraftCollectionRef.current = null;
-      if (bordersDataSourceRef.current && viewerRef.current) {
-        viewerRef.current.scene.primitives.remove(bordersDataSourceRef.current);
-      }
-      bordersDataSourceRef.current = null;
-    };
-  }, []);
+  // Live aircraft renderer (W4-G): snapshot apply loop, delta handler,
+  // dead-reckoning animation, layer-OFF cleanup. Mounted before
+  // useCesiumViewer because the viewer hook needs the returned
+  // `updateAircraftVisualMode` function for its camera listener.
+  const { updateAircraftVisualMode } = useLiveAircraftRenderer({
+    viewerRef,
+    viewerReady,
+    liveAircraftLayerActive,
+    aircraftCollectionRef,
+    aircraftMapRef,
+    pendingSnapshotRef,
+    applyingRef,
+    applyRafRef,
+    drRafRef,
+    cameraHeightRef,
+    onAircraftSnapshotRef,
+    onAircraftDeltaRef,
+    onAircraftRenderedRef,
+    onGetBboxRef2,
+    onSnapshotCbRef,
+    onDeltaCbRef,
+    setSelectedAircraft,
+  });
 
   // Resident aviation cache: layer ON/OFF, retry preload on viewerReady,
   // and filter-change visibility update. Owned by useResidentAviationCache.
@@ -354,29 +240,40 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     fpsRef,
   });
 
-  // Live aircraft renderer (W4-G): snapshot apply loop, delta handler,
-  // dead-reckoning animation, layer-OFF cleanup. The returned
-  // `updateAircraftVisualMode` is invoked from the viewer-init camera
-  // listener (above) to swap each aircraft billboard between icon and
-  // dot modes when the camera height crosses the icon-view threshold.
-  const { updateAircraftVisualMode } = useLiveAircraftRenderer({
+  // Viewer lifecycle (W4-H): token setup, viewer construction,
+  // data source / primitive allocation, FPS counter, camera
+  // listeners, picking registration, cleanup ordering. Replaces the
+  // inline viewer-init useEffect. The hook receives all refs and
+  // setters it needs; it does NOT touch applyRafRef / drRafRef
+  // (W4-G owns those).
+  useCesiumViewer({
+    containerRef,
     viewerRef,
-    viewerReady,
-    liveAircraftLayerActive,
-    aircraftCollectionRef,
-    aircraftMapRef,
-    pendingSnapshotRef,
-    applyingRef,
-    applyRafRef,
-    drRafRef,
+    viewerReadyRef,
+    setViewerReady,
+    setError,
+    setTokenMissing,
     cameraHeightRef,
-    onAircraftSnapshotRef,
-    onAircraftDeltaRef,
-    onAircraftRenderedRef,
-    onGetBboxRef2,
-    onSnapshotCbRef,
-    onDeltaCbRef,
+    aviationFiltersRef,
+    aviationDataSourceRef,
+    layoutDataSourceRef,
+    earthEventsDataSourceRef,
+    energyInfrastructureDataSourceRef,
+    satelliteEntityDataSourceRef,
+    aircraftCollectionRef,
+    satelliteDotCollectionRef,
+    globalDotCollectionRef,
+    bordersDataSourceRef,
+    aircraftMapRef,
+    startFpsCounter,
+    updateAircraftVisualMode,
+    onObjectSelectRef,
     setSelectedAircraft,
+    setSelectedEarthquake,
+    setSelectedSatellite,
+    onWeatherSelectRef,
+    onNewsSelectRef,
+    onEnergyFeatureSelect,
   });
 
   // Camera fly-to when a search result is selected
