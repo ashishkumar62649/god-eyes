@@ -77,9 +77,7 @@ import type { SatelliteFrontendItem } from '../layers/layer_05_space_satellites/
 import type { WeatherRenderItem } from '../layers/layer_07_weather/weatherTypes';
 
 import { airportFlyHeight } from './helpers';
-import { PICKING_FIELDS } from './pickingFields';
-
-export interface CreatePickClickHandlerParams {
+import { PICKING_FIELDS } from './pickingFields';export interface CreatePickClickHandlerParams {
   /** Live Cesium Viewer (must be non-null; the factory is invoked after viewer init). */
   viewer: Viewer;
   /** Mutable ref of the `onObjectSelect` prop callback. */
@@ -98,8 +96,10 @@ export interface CreatePickClickHandlerParams {
   onNewsSelectRef: MutableRefObject<
     ((item: NewsRenderMarker | null) => void) | undefined
   >;
-  /** `onEnergyFeatureSelect` prop callback (may be undefined). */
-  onEnergyFeatureSelect?: (feature: EnergyFeature | null) => void;
+  /** Mutable ref of the `onEnergyFeatureSelect` prop callback (may be undefined). */
+  onEnergyFeatureSelectRef?: MutableRefObject<
+    ((feature: EnergyFeature | null) => void) | undefined
+  >;
 }
 
 /**
@@ -128,13 +128,26 @@ export function createPickClickHandler(
     setSelectedSatellite,
     onWeatherSelectRef,
     onNewsSelectRef,
-    onEnergyFeatureSelect,
+    onEnergyFeatureSelectRef,
   } = params;
 
   return (click: { position: Cartesian2 }) => {
     const pickedObject = viewer.scene.pick(click.position);
-    if (!pickedObject || !pickedObject.id) {
+    const pickingId = pickedObject?.id ?? pickedObject?.primitive?.id;
+
+    // Helper to clear local overlays safely
+    const clearLocalSelections = () => {
+      setSelectedAircraft(null);
+      setSelectedEarthquake(null);
+      setSelectedSatellite(null);
+    };
+
+    if (!pickedObject || !pickingId) {
       onObjectSelectRef.current(null);
+      clearLocalSelections();
+      onWeatherSelectRef.current?.(null);
+      onNewsSelectRef.current?.(null);
+      onEnergyFeatureSelectRef?.current?.(null);
       return;
     }
 
@@ -149,6 +162,7 @@ export function createPickClickHandler(
         if (airport) {
           onObjectSelectRef.current(airport);
         }
+        clearLocalSelections();
         viewer.camera.flyTo({
           destination: Cartesian3.fromDegrees(
             pos.longitude,
@@ -161,50 +175,56 @@ export function createPickClickHandler(
       return;
     }
 
-    if (!(pickedObject.id instanceof Entity)) {
+    if (!(pickingId instanceof Entity)) {
       // Check if it's a live aircraft billboard pick.
       if (
-        pickedObject.id &&
-        typeof pickedObject.id === 'object' &&
-        (pickedObject.id as { [k: string]: unknown })[PICKING_FIELDS.aircraftData]
+        pickingId &&
+        typeof pickingId === 'object' &&
+        (pickingId as { [k: string]: unknown })[PICKING_FIELDS.aircraftData]
       ) {
-        const ac = (pickedObject.id as { [k: string]: unknown })[
+        const ac = (pickingId as { [k: string]: unknown })[
           PICKING_FIELDS.aircraftData
         ] as AircraftLatest;
         const pos = Cartesian3.fromDegrees(ac.lon!, ac.lat!, 0);
         if (isPositionVisible(viewer, pos)) {
           setSelectedAircraft(ac);
+          onObjectSelectRef.current(null);
+          setSelectedEarthquake(null);
+          setSelectedSatellite(null);
         }
       } else if (
-        pickedObject.id &&
-        typeof pickedObject.id === 'object' &&
-        (pickedObject.id as { [k: string]: unknown })[PICKING_FIELDS.vesselData]
+        pickingId &&
+        typeof pickingId === 'object' &&
+        (pickingId as { [k: string]: unknown })[PICKING_FIELDS.vesselData]
       ) {
-        const vessel = (pickedObject.id as { [k: string]: unknown })[
+        const vessel = (pickingId as { [k: string]: unknown })[
           PICKING_FIELDS.vesselData
         ] as MaritimeVesselObject;
         const pos = Cartesian3.fromDegrees(vessel.longitude, vessel.latitude, 0);
         if (isPositionVisible(viewer, pos)) {
           onObjectSelectRef.current(vessel);
+          clearLocalSelections();
         }
       } else if (
-        pickedObject.id &&
-        typeof pickedObject.id === 'object' &&
-        (pickedObject.id as { [k: string]: unknown })[PICKING_FIELDS.weatherData]
+        pickingId &&
+        typeof pickingId === 'object' &&
+        (pickingId as { [k: string]: unknown })[PICKING_FIELDS.weatherData]
       ) {
-        const weatherItem = (pickedObject.id as { [k: string]: unknown })[
+        const weatherItem = (pickingId as { [k: string]: unknown })[
           PICKING_FIELDS.weatherData
         ] as WeatherRenderItem;
         const pos = Cartesian3.fromDegrees(weatherItem.longitude, weatherItem.latitude, 0);
         if (isPositionVisible(viewer, pos)) {
           onWeatherSelectRef.current?.(weatherItem);
+          onObjectSelectRef.current(null);
+          clearLocalSelections();
         }
       } else if (
-        pickedObject.id &&
-        typeof pickedObject.id === 'object' &&
-        (pickedObject.id as { [k: string]: unknown })[PICKING_FIELDS.newsData]
+        pickingId &&
+        typeof pickingId === 'object' &&
+        (pickingId as { [k: string]: unknown })[PICKING_FIELDS.newsData]
       ) {
-        const newsItem = (pickedObject.id as { [k: string]: unknown })[
+        const newsItem = (pickingId as { [k: string]: unknown })[
           PICKING_FIELDS.newsData
         ] as NewsRenderMarker;
         if (
@@ -214,18 +234,38 @@ export function createPickClickHandler(
           const pos = Cartesian3.fromDegrees(newsItem.longitude, newsItem.latitude, 0);
           if (isPositionVisible(viewer, pos)) {
             onNewsSelectRef.current?.(newsItem);
+            onObjectSelectRef.current(null);
+            clearLocalSelections();
           }
+        }
+      } else if (
+        pickingId &&
+        typeof pickingId === 'object' &&
+        (pickingId as { [k: string]: unknown })[PICKING_FIELDS.satelliteData]
+      ) {
+        const satItem = (pickingId as { [k: string]: unknown })[
+          PICKING_FIELDS.satelliteData
+        ] as SatelliteFrontendItem;
+        const altM = (satItem.altitudeKm ?? 0) * 1000;
+        const pos = Cartesian3.fromDegrees(satItem.longitude, satItem.latitude, altM);
+        if (isPositionVisible(viewer, pos)) {
+          setSelectedSatellite(satItem);
+          onObjectSelectRef.current(null);
+          setSelectedAircraft(null);
+          setSelectedEarthquake(null);
         }
       } else {
         onObjectSelectRef.current(null);
+        clearLocalSelections();
       }
       return;
     }
 
-    const entity = pickedObject.id;
+    const entity = pickingId;
     const position = entity.position?.getValue(viewer.clock.currentTime);
     if (position && !isPositionVisible(viewer, position)) {
       onObjectSelectRef.current(null);
+      clearLocalSelections();
       return;
     }
 
@@ -238,6 +278,9 @@ export function createPickClickHandler(
         PICKING_FIELDS.earthquakeEntityData
       ] as { getValue: () => unknown };
       setSelectedEarthquake(earthquakeDataProp.getValue() as EarthEvent);
+      onObjectSelectRef.current(null);
+      setSelectedAircraft(null);
+      setSelectedSatellite(null);
       return;
     }
 
@@ -250,6 +293,9 @@ export function createPickClickHandler(
         PICKING_FIELDS.satelliteEntityData
       ] as { getValue: () => unknown };
       setSelectedSatellite(satelliteDataProp.getValue() as SatelliteFrontendItem);
+      onObjectSelectRef.current(null);
+      setSelectedAircraft(null);
+      setSelectedEarthquake(null);
       return;
     }
 
@@ -264,7 +310,9 @@ export function createPickClickHandler(
       ] as { getValue: () => unknown } | undefined;
       const energyFeature = rawDataProp?.getValue() as EnergyFeature | undefined;
       if (energyFeature) {
-        onEnergyFeatureSelect?.(energyFeature);
+        onEnergyFeatureSelectRef?.current?.(energyFeature);
+        onObjectSelectRef.current(null);
+        clearLocalSelections();
       }
       return;
     }
@@ -277,6 +325,7 @@ export function createPickClickHandler(
         PICKING_FIELDS.rawData
       ] as { getValue: () => unknown };
       onObjectSelectRef.current(rawDataProp.getValue());
+      clearLocalSelections();
     }
   };
 }

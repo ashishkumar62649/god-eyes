@@ -171,8 +171,10 @@ export interface UseCesiumViewerParams {
   onNewsSelectRef: MutableRefObject<
     ((item: NewsRenderMarker | null) => void) | undefined
   >;
-  /** `onEnergyFeatureSelect` prop callback (may be undefined). */
-  onEnergyFeatureSelect?: (feature: EnergyFeature | null) => void;
+  /** Mutable ref of the `onEnergyFeatureSelect` prop callback (may be undefined). */
+  onEnergyFeatureSelectRef?: MutableRefObject<
+    ((feature: EnergyFeature | null) => void) | undefined
+  >;
 }
 
 /**
@@ -215,7 +217,7 @@ export function useCesiumViewer(params: UseCesiumViewerParams): void {
     setSelectedSatellite,
     onWeatherSelectRef,
     onNewsSelectRef,
-    onEnergyFeatureSelect,
+    onEnergyFeatureSelectRef,
   } = params;
 
   useEffect(() => {
@@ -229,6 +231,7 @@ export function useCesiumViewer(params: UseCesiumViewerParams): void {
     let stopFpsCounterFn: (() => void) | undefined;
     let moveEndHandler: (() => void) | undefined;
     let changedHandler: (() => void) | undefined;
+    let clickHandler: ScreenSpaceEventHandler | undefined;
 
     try {
       viewer = new Viewer(containerRef.current, createViewerOptions());
@@ -310,10 +313,9 @@ export function useCesiumViewer(params: UseCesiumViewerParams): void {
 
       // Click handler — branch logic lives in apps/web/src/CesiumGlobe/picking.ts
       // (W4-F). The ScreenSpaceEventHandler lifetime is bound to the
-      // viewer (implicit cleanup via viewer.destroy() in the effect
-      // cleanup below).
-      const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-      handler.setInputAction(
+      // viewer.
+      clickHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+      clickHandler.setInputAction(
         createPickClickHandler({
           viewer,
           onObjectSelectRef,
@@ -322,7 +324,7 @@ export function useCesiumViewer(params: UseCesiumViewerParams): void {
           setSelectedSatellite,
           onWeatherSelectRef,
           onNewsSelectRef,
-          onEnergyFeatureSelect,
+          onEnergyFeatureSelectRef,
         }),
         ScreenSpaceEventType.LEFT_CLICK,
       );
@@ -338,6 +340,9 @@ export function useCesiumViewer(params: UseCesiumViewerParams): void {
       }
       if (typeof moveEndHandler !== 'undefined' && viewer) {
         viewer.camera.moveEnd.removeEventListener(moveEndHandler);
+      }
+      if (clickHandler && !clickHandler.isDestroyed()) {
+        clickHandler.destroy();
       }
       if (viewer && !viewer.isDestroyed()) {
         viewer.destroy();
@@ -380,6 +385,6 @@ export function useCesiumViewer(params: UseCesiumViewerParams): void {
     setSelectedSatellite,
     onWeatherSelectRef,
     onNewsSelectRef,
-    onEnergyFeatureSelect,
+    onEnergyFeatureSelectRef,
   ]);
 }

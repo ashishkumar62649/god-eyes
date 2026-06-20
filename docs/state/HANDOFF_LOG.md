@@ -1,4 +1,25 @@
 
+### 2026-06-20T14:00:00Z — cesium-globe-flash-picking-bugfix
+
+- Work order: alignment (Cesium Globe flash and picking bugfix)
+- Agent: Frontend Agent
+- Worktree folder: `E:\god-eyes`
+- Branch: `frontend/bugfix/cesium-globe-flash-picking`
+- Base commit (main): `6006454 docs(state): close wave 3 route split cleanup`
+- Reviewer decision: PENDING (Orchestrator Agent review required before push)
+- Reason: Resolve viewer flashes/camera resets on layer toggles/picking and enable satellite dot primitive picking.
+- Approach:
+  - Stabilized hook callback `updateAircraftVisualMode` in `useLiveAircraftRenderer.ts` using `useCallback`.
+  - Converted `onEnergyFeatureSelect` to `onEnergyFeatureSelectRef` in `index.tsx`, `useCesiumViewer.ts`, and `picking.ts`.
+  - Added support for satellite dot primitive picking using `pickingId = pickedObject?.id ?? pickedObject?.primitive?.id` in `picking.ts`.
+  - Audited `useCesiumViewer.ts` dependency list to ensure all 27 dependencies are stable.
+  - Implemented ScreenSpaceEventHandler cleanup (`clickHandler.destroy()`) before `viewer.destroy()`.
+  - Wrote a new test file `pickingHandler.test.ts` to test click picking, and verified all 175 tests pass.
+- Validation:
+  - `pnpm --filter web build` → PASS (120 modules; 307.71 kB JS / 87.55 kB gzip).
+  - `pnpm --filter web test` → PASS (10 test files; 175/175 tests pass).
+  - Manual verification confirmed that construction of the Cesium viewer is logged exactly once, and destruction is never logged during normal operations (layer toggles, click picking, zooming).
+
 ### 2026-06-20T01:00:00Z — wave-4-cesium-globe-implementation-complete (W4-I)
 
 - Work order: WAVE-4-CESIUM-GLOBE-IMPLEMENTATION-COMPLETE (state docs closeout for Wave 4)

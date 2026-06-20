@@ -273,7 +273,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     setSelectedSatellite,
     onWeatherSelectRef,
     onNewsSelectRef,
-    onEnergyFeatureSelect,
+    onEnergyFeatureSelectRef,
   });
 
   // Camera fly-to when a search result is selected

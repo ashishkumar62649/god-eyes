@@ -1,4 +1,4 @@
-﻿# Recent Context
+# Recent Context
 
 Classification: ROLLING_CONTEXT
 
@@ -30,6 +30,15 @@ receive the **complete** handoff entry after every completed task.
 - Validation: [pass/fail summary]
 - Known issues: [one line or None]
 - Next: [one line - what the next agent/task should do]
+
+## 2026-06-20 - Cesium Globe Flash and Picking Fixes
+
+- Agent: Frontend Agent
+- Branch: `frontend/bugfix/cesium-globe-flash-picking`
+- What changed: Stabilized aircraft visual mode callback with `useCallback`; audited `useCesiumViewer` dependencies and converted `onEnergyFeatureSelect` to ref to prevent viewer recreation during layer toggles and entity selection; implemented robust satellite dot picking via `primitive?.id` check in `picking.ts`; added handler cleanup and created `pickingHandler.test.ts` unit tests.
+- Validation: `pnpm --filter web build` PASS; `pnpm --filter web test` PASS (175/175). Checked viewer stability (no recreation) and selection clearing manually.
+- Known issues: None
+- Next: Orchestrator Agent integration review and PR merge to main.
 
 ## 2026-06-20 - Wave 4 CesiumGlobe Implementation Complete
 
@@ -66,15 +75,6 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); 3 `docs/state/` files updated only; `git diff --name-only` confirms zero hits for `apps/`, `services/`, `database/`, `packages/`, `tests/`, `specs/`, lockfile, or `.env*`. No `pnpm` build/test runs needed (docs-only state sync).
 - Known issues: None. `energyInfrastructureApi.ts` is a documented tested placeholder, not dead-by-accident; the test file relies on its existence, so the decision to keep it is the correct outcome of DISC-1E.
 - Next: Wave 2 closes. Next wave moves to the remaining Spec 008 cleanup lane / API route structure cleanup items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
-
-## 2026-06-19 - Wave 2 Batch A + B Dead-Code Removal (DISC-1B/C/D/F)
-
-- Agent: Frontend Dead Code Removal Agent
-- Branch: `frontend/wo-wave2/batch-a-b-dead-code-removal`
-- What changed: Deleted 5 confirmed dead aviation files (`aviationTileCache.ts` 163 lines, `aviationTileLoader.ts` 237 lines, `globeCamera.ts` 27 lines, `airportViewport.ts` 49 lines, `aviationLayerRenderer.ts` 254 lines; ≈730 lines removed) and trimmed 3 dead exports from `aircraftMarker.ts` (`getAircraftArrowSprite`, `getAircraftDotSprite`, `getAircraftColor` legacy alias, plus the "Legacy exports kept for any remaining callers" comment block; -34 lines from 254→220). Active exports preserved: `getAircraftMarkerImage`, `getAircraftMarkerImageAsync`, `getAircraftAltitudeColor`, `getAircraftHeadingDeg`, `headingToBillboardRotation`, `AIRCRAFT_BILLBOARD_SCALE`, plus `resolveAircraftIconName` and `getAircraftDotMarkerImage` (both actively used by `CesiumGlobe.tsx`). **Deferred (out of scope):** `energyInfrastructureApi.ts` placeholder is left intact — requires a separate product decision (DISC-1E) per the Wave 2 task brief.
-- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter @god-eyes/contracts build` PASS; `pnpm --filter web build` PASS (111 modules, 304.03 kB JS — identical bundle size); `pnpm --filter api build` PASS; `pnpm --filter web test` PASS (153/153); `pnpm --filter api test` PASS (581/581); `python -m pytest tests/data -q` pre-commit dirty-tree → 11 pre-existing scope-guard failures (same pattern as WO-3-1 / WO-3-2 / CLEANUP-1 / WO-7-2), will pass on clean tree.
-- Known issues: PowerShell `node.exe : $ tsc && vite build` cosmetic noise on Windows (informational, not an error). `python -m pytest tests/data -q` dirty-tree scope-guard failures are the documented pre-existing test-design limitation, not regressions. V8 `FatalError` after all 153 web tests pass (known Node/Vitest cleanup-phase issue).
-- Next: Wave 2 next step is the DISC-1E product decision on `energyInfrastructureApi.ts` (keep as documented stub vs delete + drop dead `export *` from barrel). Then continue the remaining Spec 008 cleanup lane items.
 
 ## 2026-06-19 - WO-7-2 Frontend Layer Test Coverage
 
