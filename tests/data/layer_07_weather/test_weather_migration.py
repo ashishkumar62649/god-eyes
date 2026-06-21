@@ -261,8 +261,8 @@ def test_weather_work_order_changes_stay_in_allowed_paths():
         "services/fetch-orchestrator/src/layers/layer_07_weather/",
         "tests/data/layer_07_weather/",
         "docs/state/HANDOFF_LOG.md",
-        "specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md",
-        "specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md",
+        "docs/archive/2026-06-16-implemented-specs/006-layer-07-weather/DATABASE_PLANNING.md",
+        "docs/archive/2026-06-16-implemented-specs/006-layer-07-weather/OPEN_QUESTIONS.md",
     )
     assert all(path.startswith(allowed_prefixes) for path in changed_paths), changed_paths
 

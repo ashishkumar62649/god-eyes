@@ -23,7 +23,7 @@ Data quality rules enforced:
   - Deduplication by image_url
   - Rate-limited external requests (default 1.5s sleep)
   - 429/503 backoff with diagnostics
-  - MVP limited to small batch only
+  - Current build limited to small batch only
 
 Sources used:
   1. Local DB: aviation_airports, airport_source_links

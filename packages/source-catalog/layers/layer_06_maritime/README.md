@@ -9,7 +9,7 @@ This directory contains source research and catalog entries for Layer 06 Maritim
 | File | Purpose |
 |------|---------|
 | `README.md` | This file — directory overview |
-| `aisstream_source.json` | AISStream source catalog entry (primary MVP source) |
+| `aisstream_source.json` | AISStream source catalog entry (primary current-build source) |
 | `maritime_source_research_summary.md` | Human-readable research summary |
 | `maritime_source_research_summary.json` | Machine-readable research summary |
 | `sample_subscriptions.md` | Example subscription payloads |

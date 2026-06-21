@@ -13,7 +13,7 @@
 > **Superseded status (2026-06-16).**
 > This report described the move from many control files (`PROJECT_RULES.md`,
 > `LAYER_AND_DATA_CONTRACT.md`, `GIT_WORKFLOW_POLICY.md`, `WORK_ORDER_TEMPLATE.md`,
-> `MVP_LAYER_REGISTRY.md`, `LLM_OWNERSHIP_MATRIX.md`, `LAYER_ID_CONVENTIONS.md`,
+> The single consolidated active project control file `docs/control/PROJECT_CONTROL.md` (4 parts) replaced the previously active filenames listed in the structure-consolidation amendment history of `.specify/memory/constitution.md` (e.g. the legacy `LAYER_REGISTRY` / `LAYER_AND_DATA_CONTRACT` / `WORK_ORDER_TEMPLATE` pointers that are now retired).
 > `LAYER_ARCHITECTURE.md`, `SOURCE_TO_FRONTEND_CONTRACT.md`,
 > `ENGINEERING_STRUCTURE_RULES.md`, `DATA_LOCATION_RULES.md`,
 > `PIPELINE_HANDOFF_RULES.md`) to a smaller consolidated set.
@@ -131,7 +131,7 @@ Then the agent should search only as needed:
 | Documentation Agent | Orchestrator Agent |
 | Reviewer Agent | Orchestrator Agent |
 | Contract Agent | API Agent |
-| `MVP_LAYER_REGISTRY.md` as active authority | `LAYER_AND_DATA_CONTRACT.md` |
+| Legacy layer-registry filename (retired) cited as active authority | `docs/control/PROJECT_CONTROL.md` Part 2 §4 |
 | `ENGINEERING_STRUCTURE_RULES.md` as active authority | `PROJECT_RULES.md` |
 | "normalise" / "normalised" in active rule text | "normalize" / "normalized" |
 

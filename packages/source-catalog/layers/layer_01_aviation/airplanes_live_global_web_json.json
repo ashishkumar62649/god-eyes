@@ -1,0 +1,108 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "airplanes_live_global_web_json",
+  "source_name": "Airplanes.live global web JSON snapshot (globe.airplanes.live/data/aircraft.json.gz)",
+  "status": "active",
+  "source_type": "live_aircraft_tracking",
+  "access_type": "rest_poll_gzip_json",
+  "owner": "Aviation live aircraft pipeline (Fetcher Agent)",
+  "license": {
+    "name": "Non-commercial / no SLA / experimental",
+    "attribution": "Airplanes.live globe web snapshot. Non-commercial only; no SLA; no completeness claims.",
+    "terms_url": "https://globe.airplanes.live/",
+    "license_type_in_db": "non_commercial",
+    "caveat": "This is the experimental globe web JSON consumed by globe.airplanes.live. It is a derived snapshot of the same upstream ADS-B/MLAT receiver network, with no documented SLA, no completeness claims, and no formal agreement for non-commercial embedding. Use the canonical Airplanes.live REST API v2 (source_id 'airplanes_live_v2') for production-grade live tracking."
+  },
+  "requires_api_key": false,
+  "payment_required": false,
+  "attribution_required": "Appreciated; no formal requirement. UI must still display the non-commercial / no-SLA caveat (see ADR-002).",
+  "source_urls": {
+    "snapshot_url": "https://globe.airplanes.live/data/aircraft.json.gz",
+    "web_origin": "https://globe.airplanes.live/"
+  },
+  "what_it_provides": "Global gzip-compressed JSON snapshot of all currently visible aircraft on the globe.airplanes.live site. Carries the same per-aircraft fields as the REST v2 endpoints but in a single global payload. Used for low-latency global visibility when the global view is required (not just camera-region /point).",
+  "fields_collected": [
+    "Same shape as the per-record REST v2 payload (hex / flight / r / t / lat / lon / alt_baro / alt_geom / gs / track / mag_heading / true_heading / baro_rate / geom_rate / squawk / emergency / seen / seen_pos / type / dbFlags)",
+    "Payload metadata: 'now' (snapshot epoch), 'messages' (cumulative count), 'aircraft' (or 'ac') array"
+  ],
+  "refresh_policy": {
+    "cadence": "every_5_seconds_minimum (GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS = 5)",
+    "manual_refresh_allowed": true,
+    "loop_interval_default_seconds": 5,
+    "history_every_n_cycles_default": 12,
+    "schedule_note": "Worker supports --loop with a fixed-rate 5-second cycle. The cycle is split into Phase A (fetch), Phase B (build compact payload), Phase C (publish live snapshot — high priority), and Phase D (write raw/latest/observations — lower priority, every N cycles). 403/429/500/502/503/504 responses trigger a 30s backoff (GLOBAL_WEB_JSON_BACKOFF_SECONDS). Polling more aggressively than every 5s may be blocked or rate-limited by the upstream; this is the documented minimum."
+  },
+  "freshness_policy": {
+    "fresh_for_seconds": 30,
+    "stale_fade_after_seconds": 90,
+    "stale_purge_after_seconds": 300,
+    "notes": "Same staleness thresholds as airplanes_live_v2 (STALE_ACTIVE_THRESHOLD=30, STALE_FADE_THRESHOLD=90, STALE_PURGE_THRESHOLD=300)."
+  },
+  "raw_storage": {
+    "bucket": "n/a (no raw blob persisted; per-record JSONB in aviation_aircraft_raw_batches.raw_sample)",
+    "path_pattern": "not applicable — see aviation_aircraft_raw_batches table instead",
+    "notes": "fetch_params JSONB stores {\"sourceMode\": \"global-web-json\"} and the upstream 'messages' counter so the snapshot provenance is preserved."
+  },
+  "collector": {
+    "name": "aviation_live_aircraft_worker (global-web-json mode)",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py",
+    "manual_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py --source-mode global-web-json --persist",
+    "loop_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py --source-mode global-web-json --loop --interval-seconds 5 --history-every-n-cycles 12 --persist",
+    "source_modes_supported": ["rest", "global-web-json"],
+    "mode_constant": "GLOBAL_WEB_JSON_SOURCE_ID = 'airplanes_live_global_web_json'",
+    "db_writes_use_source_id": "airplanes_live_v2 (DEFAULT_SOURCE_ID) — the worker intentionally aligns DB rows with the REST source id so the API/WebSocket contract is single-sourced; sourceMode is preserved in fetch_params / snapshot metadata."
+  },
+  "normalizer": {
+    "name": "normalize_aircraft (inline in worker)",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py::normalize_aircraft",
+    "notes": "Live aircraft normalization is performed inline in the worker. The compact payload for the live snapshot table is also built inline (avoids a round trip through services/normalizer/)."
+  },
+  "validator": {
+    "name": "aviation_aircraft_latest / aviation_aircraft_observations CHECK constraints",
+    "path": "database/migrations/layers/layer_01_aviation/012_aviation_live_aircraft_tables.sql"
+  },
+  "target_tables": [
+    "aviation_aircraft_sources (no separate row; DB writes use source_id='airplanes_live_v2')",
+    "aviation_aircraft_latest",
+    "aviation_aircraft_observations",
+    "aviation_aircraft_raw_batches",
+    "aviation_aircraft_live_snapshots (per-snapshot row; snapshot_metadata records sourceMode=global-web-json)"
+  ],
+  "api_endpoints": {
+    "rest": [
+      "GET /api/aviation/aircraft/latest",
+      "GET /api/aviation/aircraft/:sourceObjectId",
+      "GET /api/layers/aviation/aircraft/latest",
+      "GET /api/layers/aviation/aircraft/:sourceObjectId"
+    ],
+    "websocket": [
+      "ws://<host>/ws/aviation/aircraft/live"
+    ],
+    "notes": "The REST and WebSocket surfaces are single-sourced on source_id='airplanes_live_v2' even when the worker is running in global-web-json mode. The sourceMode distinction is preserved in fetch_params and snapshot metadata for provenance."
+  },
+  "frontend_usage": {
+    "layer_folder": "apps/web/src/layers/layer_01_aviation/aircraft/",
+    "files": [
+      "apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts",
+      "apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts"
+    ],
+    "transport": "WebSocket (snapshot + delta) for live, REST for latest-list / detail",
+    "notes": "The frontend does not branch on sourceMode; the visible aircraft set is whatever the worker last persisted to aviation_aircraft_latest and pushed into the broadcaster."
+  },
+  "tests": [
+    "tests/data/layer_01_aviation/test_aviation_live_aircraft_migration.py",
+    "tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py"
+  ],
+  "known_limitations": [
+    "Experimental / dev source. No SLA, no completeness claim. The snapshot may be rate-limited or blocked; the worker must respect 30s backoff on 403/429/5xx.",
+    "Polling faster than every 5 seconds is unsafe — upstream may block. GLOBAL_WEB_JSON_MIN_INTERVAL_SECONDS=5 is enforced.",
+    "DB rows are intentionally written with source_id='airplanes_live_v2' (not this catalog source_id) to keep the API/WebSocket contract single-sourced. SourceMode is preserved in fetch_params and snapshot metadata only.",
+    "Not for production-grade live tracking; use airplanes_live_v2 (REST mode) for that. This mode exists for low-latency global snapshots where the global view is required."
+  ],
+  "ui_caveat": "When this source is active, the same non-commercial / no-SLA caveat as airplanes_live_v2 applies. The frontend does not need a separate 'sourceMode' badge in the current build.",
+  "notes": [
+    "Treated as a distinct upstream source/mode at the source-catalog level so future agents can see it separately from the REST v2 source.",
+    "Internally the worker uses GLOBAL_WEB_JSON_SOURCE_ID = 'airplanes_live_global_web_json' for parameter naming, but DB writes go to source_id='airplanes_live_v2' (DEFAULT_SOURCE_ID).",
+    "If a future build decides to expose this source as a distinct source_id in the API/WebSocket contract, an additional DB row in aviation_aircraft_sources and a corresponding migration will be needed; today the sourceMode is provenance only."
+  ]
+}

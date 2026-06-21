@@ -1,4 +1,52 @@
 
+### 2026-06-21T12:00:00Z - aviation-source-registry-initial-consolidation
+
+- Work order: alignment (aviation source registry initial consolidation)
+- Agent: Fetcher Agent
+- Worktree folder: `E:\god-eyes`
+- Branch: `frontend/bugfix/cesium-globe-flash-picking` (current branch; docs-only change)
+- Base commit (main): `6006454 docs(state): close wave 3 route split cleanup`
+- Reviewer decision: PENDING (Orchestrator Agent review required before push)
+- Reason: Make the aviation layer source registry trustworthy and easy for future agents to read. The existing `packages/source-catalog/layers/layer_01_aviation/` contained only `ourairports.json`; every other aviation source was implicit in the fetcher code, normalizer code, migrations, and ADR-002. This entry consolidates that implicit knowledge into a single, grep-able source-catalog directory keyed on upstream provider.
+- Goal: Register every aviation source that is currently active in code (collector + normalizer + DB + API + frontend) as a JSON file in `packages/source-catalog/layers/`, register future/inactive sources with an explicit `status`, and document probe/scaffold sources in a human-readable inventory. No code, no migration, no contract, no API, and no frontend changes. Source-catalog-only operation.
+- Approach: Docs-only operation. Allow-list: 6 new JSON files + 1 new README under `packages/source-catalog/layers/layer_01_aviation/`, plus `docs/state/HANDOFF_LOG.md` and `docs/state/RECENT_CONTEXT.md` (state sync per AGENTS.md Hard Rule 3). The existing `ourairports.json` is left bit-for-bit unchanged (per task rule "Do not add new collectors, normalizers, database migrations, API routes, or frontend features unless they already exist and only need documentation/reference"). Forbidden folders confirmed untouched via `git diff --name-only` against the working tree (no `apps/`, `services/`, `database/`, `packages/schemas/`, `packages/contracts/`, `tests/`, `specs/`, `docs/control/`, `docs/audits/`, `docs/archive/`, lockfile, or env file modified).
+- New source-catalog files (6):
+  - `airplanes_live_v2.json` (status: `active`). Source ID matches the DB row in `aviation_aircraft_sources` (migration 012) and `DEFAULT_SOURCE_ID` in `aviation_live_aircraft_worker.py`. Documents the REST mode of the worker, the /mil /ladd /pia /point endpoints, the 5-second refresh cycle, the 1 req/sec rate limit, the WebSocket transport on `/ws/aviation/aircraft/live`, and the non-commercial / no-SLA caveat from ADR-002.
+  - `airplanes_live_global_web_json.json` (status: `active`). Documents `airplanes_live_global_web_json` as a distinct upstream source/mode for the experimental globe web JSON snapshot. Worker uses `GLOBAL_WEB_JSON_SOURCE_ID = 'airplanes_live_global_web_json'` for parameter naming, but DB rows intentionally go to `source_id='airplanes_live_v2'` (DEFAULT_SOURCE_ID) so the API/WebSocket contract is single-sourced; `sourceMode` is preserved in `fetch_params` and `snapshot_metadata` for provenance.
+  - `wikipedia_rest_airport_profiles.json` (status: `active`). Upstream provider for the airport public profile pipeline. Bundled pipeline source_id is `airport_public_enrichment` (defined in `packages/schemas/layers/layer_01_aviation/airport_public_profile.py`); the source-catalog entry is keyed on the upstream provider.
+  - `wikidata_airport_profiles.json` (status: `active`). Upstream provider for the structured-facts side of the airport public profile. Same bundled-pipeline caveat as Wikipedia.
+  - `wikimedia_commons_airport_images.json` (status: `active`). Groups the Wikimedia Commons, Wikipedia image list, Wikidata P18, and Commons category channels used by `airport_image_gallery_worker.py` under one catalog entry. Per-row source_type is recorded in `airport_image_assets.source_type` (enum values: `wikimedia_commons` / `wikipedia` / `wikidata` / `official_site` / `manual` / `other`).
+  - `opensky_trino.json` (status: `inactive_future_historical_backfill`). DB row in `aviation_aircraft_sources` already exists with `is_live=FALSE, is_historical=TRUE, is_active=FALSE, refresh_interval_s=86400` (informational only, no fetcher). Per ADR-002, access requires application at `https://opensky-network.org/` and is restricted to university-affiliated researchers, governmental organisations, aviation authorities, or separately licensed private/commercial entities. No fetcher / normalizer / contract / API surface / frontend usage today.
+- New README:
+  - `packages/source-catalog/layers/layer_01_aviation/README.md` — overview, layer identity, active / future / probe tables, source-lifecycle diagram, rules for adding a new aviation source, the "do not add sources to frontend/API directly" warning, and exact file locations for source-catalog, schemas, collectors, normalizers, migrations, contracts, API routes, and frontend aviation code. Documents the bundled `airport_public_enrichment` pipeline source_id explicitly so a future agent can see why the upstream providers (Wikipedia / Wikidata / Wikimedia Commons) are catalogued separately from the bundled source_id persisted in the DB.
+- Probe / scaffold sources documented in the README (not registered as JSON because the source-catalog format has no `probe_only` / `not_implemented` status):
+  - OpenStreetMap / Overpass — referenced in `airport_intelligence_source_probe.py`, `airport_source_endpoint_probe.py`, and as a `source_type` enum value in `airport_layout_features` (migration 011). No fetcher / normalizer.
+  - BTS TranStats — probed only; listed as `Sources NOT used yet` in `airport_intelligence_ingest_worker.py`.
+  - Eurostat — probed only; listed as `Sources NOT used yet`.
+  - AviationWeather / NOAA — probed only in `airport_source_endpoint_probe.py`.
+  - Official airport websites — listed as `Sources NOT used yet` in `airport_image_gallery_worker.py`; would require per-operator legal review.
+- Validation:
+  - `python -c "import json, glob; [json.load(open(f)) for f in sorted(glob.glob('packages/source-catalog/layers/layer_01_aviation/*.json'))]"` → all 7 JSON files parse (6 new + 1 existing `ourairports.json`).
+  - PowerShell `Get-ChildItem ... *.json | ConvertFrom-Json` → all 7 OK.
+  - `git grep` cross-check: `ourairports` (52 hits), `airplanes_live_v2` (11 hits), `airplanes_live_global_web_json` (3 hits), `opensky_trino` (4 hits) all confirmed in code; `wikipedia_rest_airport_profiles` / `wikidata_airport_profiles` / `wikimedia_commons_airport_images` are upstream-provider source_ids that the source-catalog invents — they are documented in each file's `pipeline_source_id_note` and in the README's "Bundled `airport_public_enrichment` pipeline source_id" section as a known deliberate mismatch with the bundled pipeline source_id `airport_public_enrichment` used in the DB.
+  - `git diff --check` → clean (no whitespace errors in the new files; pre-existing `ourairports.json` left untouched).
+  - No `pnpm` build / test re-runs needed (docs-only operation). No source, test, package, lockfile, env, contract, migration, or non-doc file modified.
+  - Forbidden folders confirmed untouched via `git diff --name-only` against the working tree.
+- Known issues / caveats:
+  - **Bundled-pipeline vs. upstream-provider source_id mismatch.** The DB writes for the public-profile pipeline use the bundled `airport_public_enrichment` source_id; the per-row `airport_source_links.source_type` enum uses the upstream provider names (`wikipedia` / `wikidata`). The source-catalog entries for the three Wikimedia-side sources are keyed on the upstream provider. This is a deliberate design choice documented in each file's `pipeline_source_id_note` and in the README; if a future work order wants to align the source_id in the DB, the change is to `airport_public_profile_db.DEFAULT_SOURCE_ID` and a follow-up migration.
+  - **`airport_image_fetch_runs` does not exist as a separate table.** The image-gallery worker writes per-fetch diagnostics into `airport_image_assets.diagnostics` JSONB; the source-catalog entry reflects that.
+  - **`airport_image_assets` source_type enum** is documented as `('wikimedia_commons', 'wikipedia', 'wikidata', 'official_site', 'manual', 'other')` (migration 010); the catalog entry cross-references these values explicitly.
+  - **`airplanes_live_global_web_json` writes DB rows under `source_id='airplanes_live_v2'`.** This is intentional in the worker (DEFAULT_SOURCE_ID alignment) and is documented in the catalog entry's `db_writes_use_source_id` field and `notes`. The catalog entry's `status` is still `active` because the upstream source/mode is live, but the DB contract is single-sourced.
+  - **Pre-existing uncommitted changes on the current branch (`frontend/bugfix/cesium-globe-flash-picking`).** The branch carries unrelated uncommitted work in `apps/api/`, `apps/web/`, `services/`, `database/`, `docs/`, and other folders (verified via `git status --short`). This handoff entry does not touch any of those files; the Fetcher Agent is adding only the source-catalog files listed above and the two `docs/state/` files. The Orchestrator Agent should review and confirm that the unrelated changes are out of scope for this handoff and will be handled in a separate work package.
+  - **Existing `ourairports.json` is left bit-for-bit unchanged** per the task rule. It does not have the new fields (`status`, `access_type`, `requires_api_key`, `payment_required`, `attribution_required`, `what_it_provides`, `fields_collected`, `api_endpoints`, `frontend_usage`, `tests`, `known_limitations`) that the new files share. A future work order may add those fields to `ourairports.json` to fully align the format, but it is out of scope for this task.
+  - **No `MVP` wording was introduced in any new file** (verified via `git grep MVP` against the new files; 0 hits). The README uses only "current implementation" / "current aviation build" to refer to the in-tree pipeline, per the task wording rule.
+- Source code changes during this handoff entry:
+  - 6 new JSON files in `packages/source-catalog/layers/layer_01_aviation/`.
+  - 1 new README in `packages/source-catalog/layers/layer_01_aviation/`.
+  - 2 `docs/state/` files updated (`HANDOFF_LOG.md` and `RECENT_CONTEXT.md`).
+  - 0 existing JSON files modified.
+  - 0 production source / test / package / migration / contract / API / frontend / non-doc files modified.
+
 ### 2026-06-20T14:00:00Z — cesium-globe-flash-picking-bugfix
 
 - Work order: alignment (Cesium Globe flash and picking bugfix)
@@ -2388,7 +2436,7 @@
     instruction. The `.gitkeep` placeholders are not imported by any
     source code, so removing them cannot affect runtime behaviour.
   - The pre-existing line-3 reference to retired
-    `docs/control/MVP_LAYER_REGISTRY.md` in `.specify/memory/constitution.md`
+    `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` in `.specify/memory/constitution.md`
     is **not** in scope of SR-021; it remains for a future work order.
 - Push/PR/merge status: not performed by agent. Branch is local only.
   Stacked on top of the SR-010S local commit
@@ -2689,13 +2737,13 @@
 - Summary: Corrected category audit test DOC_PATH to the actual archived audit file and cleaned trailing whitespace / CRLF line endings.
 - Files modified:
   - tests/data/layer_01_aviation/test_aviation_category_audit.py (DOC_PATH: `2026-06-14-final-docs-structure/data-legacy/layer_01_aviation/` → `2026-06-14-spec-kit-alignment/audits/`; CRLF→LF)
-  - docs/control/MVP_LAYER_REGISTRY.md (trailing whitespace removed on line 16; CRLF→LF)
+  - docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) (trailing whitespace removed on line 16; CRLF→LF)
 - Commands run:
   - git status --short --branch → clean before edit
   - Select-String DOC_PATH → confirmed wrong path in test file
   - Test-Path correct archive path → True
   - Test-Path wrong archive path → False
-  - Edit applied (test file DOC_PATH + MVP trailing whitespace)
+  - Edit applied (test file DOC_PATH + current build whitespace)
   - git diff --check → CRLF-induced false positive resolved by LF conversion
   - python -m pytest tests/data/layer_01_aviation/test_aviation_category_audit.py -q → 7 passed
   - python -m pytest tests/data -q → 1159 passed, 7 skipped, 8 scope-guard failures (dirty tree; expected)
@@ -2718,8 +2766,8 @@
 - Files moved (97 total):
   - docs/control/AIRPORT_PUBLIC_ENRICHMENT_PIPELINE.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_01_aviation/
   - docs/control/EARTH_EVENTS_LAYER_PLAN.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_03_earth_events/
-  - docs/control/layer_05_space_satellites_mvp_contract.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_05_space_satellites/
-  - docs/control/layer_10_energy_infrastructure_mvp_contract.md → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_10_energy_infrastructure/
+  - docs/control/the legacy layer-05 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_05_space_satellites/
+  - docs/control/the legacy layer-10 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_10_energy_infrastructure/
   - docs/control/BORDERS_BOUNDARIES_*.md (7 files) → docs/archive/2026-06-14-final-docs-structure/control-layer-docs/layer_02_borders_boundaries/
   - docs/state/INTEGRATION_REVIEW_*.md (49 files) → docs/archive/2026-06-14-final-docs-structure/state-integration-reviews/
   - docs/work-orders/WO-*.md (17 files) → docs/archive/2026-06-14-final-docs-structure/work-orders/project_infrastructure/
@@ -2736,8 +2784,8 @@
   - AGENTS.md (updated integration review workflow references)
   - docs/README.md (updated directory meaning table, archive batch reference)
   - docs/control/GIT_WORKFLOW_POLICY.md (updated integration review references)
-  - docs/control/MVP_LAYER_REGISTRY.md (updated borders reference to archive path)
-  - specs/004-layer-10-energy-infrastructure-mvp/tasks.md (updated contract reference)
+  - docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) (updated borders reference to archive path)
+  - specs/004-layer-10-energy-infrastructure (legacy name)/tasks.md (updated contract reference)
   - 16 test files in tests/data/layer_01_aviation/ (updated doc path references)
 - Commands run:
   - git status --short --branch → clean branch
@@ -2784,7 +2832,7 @@
   - HEALTH-002: LayerStatusResponseSchema.objectCounts (contracts/index.ts lines 46-62) has aviation-specific fields used for all 11 layers. Non-aviation returns all zeros.
   - HEALTH-003: No INTEGRATION_REVIEW files exist in docs/state/ for layers 07 or 08. Most recent review is WO-079B (aviation). AGENTS.md requires review per WO.
   - HEALTH-004: services/normalizer/src/layers/ only has layer_01_aviation. All 7 other layers colocate normalizer in services/fetch-orchestrator/. LLM_OWNERSHIP_MATRIX.md and PIPELINE_HANDOFF_RULES.md do not document this pattern.
-  - HEALTH-005: MVP_LAYER_REGISTRY.md row 4 safety notes has one occurrence of tool product name. One word change needed.
+  - HEALTH-005: the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) row 4 safety notes has one occurrence of tool product name. One word change needed.
   - HEALTH-006: BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md body text has 7-8 tool product name occurrences. Safety rules intact. Find-and-replace only.
   - HEALTH-007: useLayerRegistry.ts layer_08 sourceRule says 'GDACS' only. API registry says 'GDACS and GDELT'. Mismatch in offline fallback.
   - HEALTH-008: package.json has duplicate api:test / test:api scripts. CI uses api:test.
@@ -2828,7 +2876,7 @@
 - Summary of findings:
   - 0 Critical, 0 High findings
   - 4 Medium: energy frontend relative path (HEALTH-001), LayerStatusResponseSchema aviation-specific objectCounts (HEALTH-002), missing Layer 07/08 integration reviews (HEALTH-003), normalizer coverage ambiguity (HEALTH-004)
-  - 8 Low: residual tool names in MVP_LAYER_REGISTRY.md row 4 (HEALTH-005), borders policy doc body (HEALTH-006), layer_08 sourceRule GDACS-only in frontend local registry (HEALTH-007), duplicate npm script (HEALTH-008), no root README (HEALTH-009), aviation migration 002 gap (HEALTH-010), .gitignore tool entries (HEALTH-011), work-order folder gap (HEALTH-012)
+  - 8 Low: residual tool names in the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) row 4 (HEALTH-005), borders policy doc body (HEALTH-006), layer_08 sourceRule GDACS-only in frontend local registry (HEALTH-007), duplicate npm script (HEALTH-008), no root README (HEALTH-009), aviation migration 002 gap (HEALTH-010), .gitignore tool entries (HEALTH-011), work-order folder gap (HEALTH-012)
   - Archive/Ignore: 11 file groups identified as historical and safe to leave unchanged
   - All builds, API tests, web tests, and data tests PASS
   - Layer registry fully consistent post-alignment across docs/API/frontend
@@ -2858,7 +2906,7 @@
   - apps/web/src/components/DetailPanel.tsx
   - apps/web/src/CesiumGlobe.tsx
   - apps/web/src/layers/layer_08_news_osint/__tests__/news.test.ts
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md
   - docs/state/HANDOFF_LOG.md (this entry)
 - Commands run:
   - pnpm --filter web test (PASS - 64/64 tests)
@@ -2883,7 +2931,7 @@
 - Key finding: Existing endpoints were already source-flexible via `source_id` query parameter. No new routes or contract changes were needed. The source-agnostic design from WO-NEWS-A1 naturally supports GDELT.
 - Files modified:
   - apps/api/tests/layer_08_news_osint.test.ts (added 17 GDELT-specific tests, 60 total)
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (added WO-NEWS-A2 section)
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md (added WO-NEWS-A2 section)
   - docs/state/HANDOFF_LOG.md (this entry)
 - Files inspected but not changed:
   - apps/api/src/routes/news.ts (verified — already source-flexible)
@@ -2924,7 +2972,7 @@
 - Goal: Prove GDELT Event Export row parsing with real data
 - Files created:
   - services/fetch-orchestrator/src/layers/layer_08_news_osint/gdelt_event_export_row_probe.py
-  - specs/007-layer-08-news-osint-mvp/GDELT_EVENT_EXPORT_ROW_PROOF.md
+  - specs/007-layer-08-news-osint (legacy name)/GDELT_EVENT_EXPORT_ROW_PROOF.md
 - Commands run:
   - python gdelt_event_export_row_probe.py → executed successfully
   - python -m pytest tests/data/layer_08_news_osint -q → 140 passed, 5 skipped
@@ -2951,15 +2999,15 @@
 - Goal: Prove whether GDELT can be used as next Layer 08 source for broader global news/events
 - Files created:
   - services/fetch-orchestrator/src/layers/layer_08_news_osint/gdelt_source_probe.py
-  - specs/007-layer-08-news-osint-mvp/GDELT_SOURCE_PROOF.md
+  - specs/007-layer-08-news-osint (legacy name)/GDELT_SOURCE_PROOF.md
 - Files modified:
-  - specs/007-layer-08-news-osint-mvp/SOURCE_EVALUATION_MATRIX.md
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+  - specs/007-layer-08-news-osint (legacy name)/SOURCE_EVALUATION_MATRIX.md
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md
 - Commands run:
   - python -m layers.layer_08_news_osint.gdelt_source_probe → proof executed
   - python -m pytest tests/data/layer_08_news_osint -q → 140 passed, 5 skipped
 - Findings:
-  - GDELT DOC API: Rate limited (429 errors), not usable for MVP
+  - GDELT DOC API: Rate limited (429 errors), not usable for current build
   - GDELT GEO API: Returns 404, not available
   - GDELT Event Export: CSV files with ActionGeo_Lat/Long coordinates, Actor names, SourceURL - STABLE
 - Recommendation: Use GDELT Event Export path (Option 2). DOC API is not usable due to rate limits.
@@ -2990,8 +3038,8 @@
   - apps/web/src/components/LayerPanel.tsx
   - apps/web/src/components/DetailPanel.tsx
   - apps/web/src/lib/useLayerRegistry.ts
-  - specs/007-layer-08-news-osint-mvp/FRONTEND_PLANNING.md
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
+  - specs/007-layer-08-news-osint (legacy name)/FRONTEND_PLANNING.md
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md
   - docs/state/HANDOFF_LOG.md
 - Commands run:
   - pnpm --filter @god-eyes/contracts build → clean
@@ -3030,8 +3078,8 @@
 - Files modified:
   - packages/contracts/src/index.ts (added 17 News/OSINT Zod schemas)
   - apps/api/src/index.ts (registered newsRoutes)
-  - specs/007-layer-08-news-osint-mvp/API_PLANNING.md (implementation notes)
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (WO-NEWS-A1 marked complete)
+  - specs/007-layer-08-news-osint (legacy name)/API_PLANNING.md (implementation notes)
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md (WO-NEWS-A1 marked complete)
 - Tests: 43/43 new tests passing, full API suite 486/486 passing (17 test files)
 - Safety:
   - No raw provider metadata or raw evidence content exposed
@@ -3062,8 +3110,8 @@
   - services/fetch-orchestrator/src/layers/layer_08_news_osint/gdacs_normalizer.py (fixed dedupe_key to include geometry_type + coord hash for per-feature uniqueness)
   - tests/data/layer_08_news_osint/test_gdacs_normalizer.py (updated dedupe_key format test)
   - tests/data/layer_08_news_osint/test_news_database_schema.py (updated scope guard for WO-NEWS-I1 paths)
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md (added WO-NEWS-I1 section)
-  - specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md (updated with live DB evidence)
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md (added WO-NEWS-I1 section)
+  - specs/007-layer-08-news-osint (legacy name)/PROOF_REPORT.md (updated with live DB evidence)
   - docs/state/HANDOFF_LOG.md (this entry)
 - Live DB proof executed against god-eyes-postgis container (postgis/postgis:16-3.4, database: god_eyes_dev)
 - Migration applied: database/migrations/layers/layer_08_news_osint/001_news_tables.sql
@@ -3131,7 +3179,7 @@
   - Raw files committed: NO (git ls-files raw/ empty)
   - Secrets touched: NO (no .env / API key usage)
   - Fetcher touched: NO | Normalizer touched: NO | Database touched: NO | API routes touched: NO
-- Recommended next step: Kiro integration review (WO-WEATHER-U). Future enhancements (not MVP): bbox/viewport-driven loading, stale-opacity tiers, RainViewer radar overlay.
+- Recommended next step: Kiro integration review (WO-WEATHER-U). Future enhancements (not current build): bbox/viewport-driven loading, stale-opacity tiers, RainViewer radar overlay.
 - Review status: pending Kiro review.
 
 ---
@@ -3265,7 +3313,7 @@
   - tests/data/layer_07_weather/test_normalizer.py
 - Files updated:
   - services/fetch-orchestrator/src/layers/layer_07_weather/README.md (normalizer section added)
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (WMO code labeling resolved)
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md (WMO code labeling resolved)
   - docs/state/HANDOFF_LOG.md (this entry)
 - Commands run:
   - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS
@@ -3313,7 +3361,7 @@
   - services/fetch-orchestrator/src/layers/layer_07_weather/weather_grid.py
   - services/fetch-orchestrator/src/layers/layer_07_weather/README.md
   - tests/data/layer_07_weather/test_fetcher.py
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (grid count corrected to 2664)
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md (grid count corrected to 2664)
   - docs/state/HANDOFF_LOG.md (this entry)
 - Commands run:
   - python -m compileall services/fetch-orchestrator/src/layers/layer_07_weather → PASS
@@ -3351,7 +3399,7 @@
   - tests/data/layer_07_weather/test_fetcher.py
 - Files updated:
   - services/fetch-orchestrator/src/layers/layer_07_weather/__init__.py
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (WO-WEATHER-F questions resolved)
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md (WO-WEATHER-F questions resolved)
   - docs/state/HANDOFF_LOG.md (this entry)
 - Proof artifacts preserved:
   - services/fetch-orchestrator/src/layers/layer_07_weather/open_meteo_proof.py (unchanged)
@@ -3389,13 +3437,13 @@
 - End time UTC: 2026-06-10T15:40:00Z
 - Commit hash: (pending — local only)
 - Push status: local only (NOT pushed — per WO policy)
-- Goal: Prove Open-Meteo returns real weather data for a small set of coordinates and that the response structure supports the planned Weather MVP pipeline.
+- Goal: Prove Open-Meteo returns real weather data for a small set of coordinates and that the response structure supports the planned Weather current-build pipeline.
 - Proof coordinates: Bengaluru (12.97, 77.59), Delhi (28.61, 77.21), London (51.51, -0.13), New York (40.71, -74.01), Sydney (-33.87, 151.21), Tokyo (35.68, 139.65), Cape Town (-33.92, 18.42)
 - Real Open-Meteo API called: YES
 - HTTP status: 200 OK
 - Response shape: JSON array (7 items)
-- All MVP current fields present: YES (11/11)
-- All MVP hourly fields present: YES (12/12)
+- All current build fields present: YES (11/11)
+- All current build fields present: YES (12/12)
 - Rate-limit headers observed: NO
 - API-call accounting observed: NO (client-side tracking needed)
 - New finding: `location_id` field present in response (not in planning docs)
@@ -3410,7 +3458,7 @@
   - tests/data/layer_07_weather/fixtures/sample_multi_response.json
 - Files updated:
   - docs/state/HANDOFF_LOG.md (this entry)
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (5 questions resolved)
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md (5 questions resolved)
 - Raw output saved locally: YES (raw/layer_07_weather/open-meteo/2026/06/10/run_20260610T094047Z/)
 - Raw files committed: NO
 - Full grid fetched: NO
@@ -3433,7 +3481,7 @@
 - LLM model: mimo-v2.5-free
 - Tool/CLI used: opencode CLI
 - Working directory: E:\god-eyes
-- Branch: planning/layer-07-weather-mvp
+- Branch: planning/layer-07-weather-current build
 - Start time UTC: 2026-06-10T14:00:00Z
 - End time UTC: 2026-06-10T14:30:00Z
 - Commit hash: (pending — local only)
@@ -3455,7 +3503,7 @@
   - API key: Not required for free non-commercial use (confirmed)
   - Licence: CC-BY 4.0 (confirmed, attribution required)
   - Free limits: 10,000/day, 5,000/hour, 600/minute (confirmed)
-  - All 12 MVP weather variables confirmed available
+  - All 12 current build variables confirmed available
   - Batch support: Multiple coordinates per request (confirmed)
   - WMO weather codes: Numeric codes only, labels must be mapped client-side
   - Response shape: Matches planning docs (single object for 1 coord, array for multiple)
@@ -3481,7 +3529,7 @@
 - LLM model: mimo-v2.5-free
 - Tool/CLI used: opencode CLI
 - Working directory: E:\god-eyes
-- Branch: planning/layer-07-weather-mvp
+- Branch: planning/layer-07-weather-current build
 - Start time UTC: 2026-06-10T12:15:00Z
 - End time UTC: 2026-06-10T12:30:00Z
 - Commit hash: (pending — local only)
@@ -3492,13 +3540,13 @@
   2. Qualified Open-Meteo API-call estimate: Added "estimate" qualifier and verification note to FETCHING_DESIGN.md and OPEN_QUESTIONS.md
   3. Fixed open questions count: Corrected summary from "8 open questions" to "10 open questions" in OPEN_QUESTIONS.md
   4. Added model resolution metadata storage note: Added explicit section to NORMALIZATION_DESIGN.md and DATABASE_PLANNING.md about preserving model/grid metadata in provider_metadata
-  5. Resolved Layer Registry conflict: Moved `layer_07_infrastructure` (placeholder only, no implementation) to future unassigned slot; assigned `layer_07_weather` to Weather / Live Weather in MVP_LAYER_REGISTRY.md, LAYER_ID_CONVENTIONS.md, LAYER_ARCHITECTURE.md, AGENTS.md
+  5. Resolved Layer Registry conflict: Moved `layer_07_infrastructure` (placeholder only, no implementation) to future unassigned slot; assigned `layer_07_weather` to Weather / Live Weather in the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4), LAYER_ID_CONVENTIONS.md, LAYER_ARCHITECTURE.md, AGENTS.md
 - Files modified:
-  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md (SQL typo fix, model resolution note)
-  - specs/006-layer-07-weather-mvp/FETCHING_DESIGN.md (API estimate qualification)
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (count fix, API estimate qualification)
-  - specs/006-layer-07-weather-mvp/NORMALIZATION_DESIGN.md (model resolution note)
-  - docs/control/MVP_LAYER_REGISTRY.md (layer_07 → Weather, Infrastructure removed from slot 7)
+  - specs/006-layer-07-weather (legacy name)/DATABASE_PLANNING.md (SQL typo fix, model resolution note)
+  - specs/006-layer-07-weather (legacy name)/FETCHING_DESIGN.md (API estimate qualification)
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md (count fix, API estimate qualification)
+  - specs/006-layer-07-weather (legacy name)/NORMALIZATION_DESIGN.md (model resolution note)
+  - docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) (layer_07 → Weather, Infrastructure removed from slot 7)
   - docs/control/LAYER_ID_CONVENTIONS.md (layer_07 → Weather, folder example updated)
   - docs/control/LAYER_ARCHITECTURE.md (layer_07 → Weather)
   - AGENTS.md (layer_07 → Weather)
@@ -3521,7 +3569,7 @@
 - Known issues: None
 - Next recommended task: Correction review. If approved, proceed to WO-WEATHER-R (Source Research).
 
-### 2026-06-10T12:00:00Z Planning Worker — WO-WEATHER-P Layer 07 Weather MVP Planning
+### 2026-06-10T12:00:00Z Planning Worker — WO-WEATHER-P Layer 07 Weather current build
 
 - Work order: WO-WEATHER-P
 - Agent: Planning Worker
@@ -3529,38 +3577,38 @@
 - LLM model: mimo-v2.5-free
 - Tool/CLI used: opencode CLI
 - Working directory: E:\god-eyes
-- Branch: planning/layer-07-weather-mvp
+- Branch: planning/layer-07-weather-current build
 - Start time UTC: 2026-06-10T11:30:00Z
 - End time UTC: 2026-06-10T12:00:00Z
 - Commit hash: (pending — local only)
 - Push status: local only (NOT pushed — per WO policy)
 - Goal: Create complete Spec Kit planning package for Layer 07 Weather / Live Weather. Define all planning documents, source evaluation, architecture, work orders, and open questions.
-- Approach: Evaluated 6 weather data sources (Open-Meteo, MET Norway, RainViewer, NOAA/NWS, OpenWeather, WeatherAPI). Selected Open-Meteo as PRIMARY_MVP_SOURCE (no API key, global, CC-BY 4.0). Designed 5° global grid strategy (~2,664 cells). Created 10 planning documents in specs/006-layer-07-weather-mvp/. Defined 9 work orders (WO-WEATHER-P through WO-WEATHER-V). Documented 8 open questions and 7 confirmed decisions.
+- Approach: Evaluated 6 weather data sources (Open-Meteo, MET Norway, RainViewer, NOAA/NWS, OpenWeather, WeatherAPI). Selected Open-Meteo as PRIMARY_CURRENT_BUILD_SOURCE (no API key, global, CC-BY 4.0). Designed 5° global grid strategy (~2,664 cells). Created 10 planning documents in specs/006-layer-07-weather (legacy name)/. Defined 9 work orders (WO-WEATHER-P through WO-WEATHER-V). Documented 8 open questions and 7 confirmed decisions.
 - Files created:
-  - specs/006-layer-07-weather-mvp/README.md (spec index)
-  - specs/006-layer-07-weather-mvp/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
-  - specs/006-layer-07-weather-mvp/SOURCE_EVALUATION_MATRIX.md (6 weather sources evaluated)
-  - specs/006-layer-07-weather-mvp/FETCHING_DESIGN.md (Open-Meteo fetch strategy, grid design, raw storage)
-  - specs/006-layer-07-weather-mvp/NORMALIZATION_DESIGN.md (field mapping, weather code labels, unit normalization)
-  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md (PostGIS schema, 6 tables, indexes, upsert)
-  - specs/006-layer-07-weather-mvp/API_PLANNING.md (3 REST endpoints, query patterns, response schemas)
-  - specs/006-layer-07-weather-mvp/FRONTEND_PLANNING.md (Cesium markers, temperature colors, click card)
-  - specs/006-layer-07-weather-mvp/WORK_ORDERS.md (9 work orders with lane/acceptance criteria)
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md (8 open questions, 7 confirmed decisions)
+  - specs/006-layer-07-weather (legacy name)/README.md (spec index)
+  - specs/006-layer-07-weather (legacy name)/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
+  - specs/006-layer-07-weather (legacy name)/SOURCE_EVALUATION_MATRIX.md (6 weather sources evaluated)
+  - specs/006-layer-07-weather (legacy name)/FETCHING_DESIGN.md (Open-Meteo fetch strategy, grid design, raw storage)
+  - specs/006-layer-07-weather (legacy name)/NORMALIZATION_DESIGN.md (field mapping, weather code labels, unit normalization)
+  - specs/006-layer-07-weather (legacy name)/DATABASE_PLANNING.md (PostGIS schema, 6 tables, indexes, upsert)
+  - specs/006-layer-07-weather (legacy name)/API_PLANNING.md (3 REST endpoints, query patterns, response schemas)
+  - specs/006-layer-07-weather (legacy name)/FRONTEND_PLANNING.md (Cesium markers, temperature colors, click card)
+  - specs/006-layer-07-weather (legacy name)/WORK_ORDERS.md (9 work orders with lane/acceptance criteria)
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md (8 open questions, 7 confirmed decisions)
 - Files modified:
   - docs/state/HANDOFF_LOG.md (this entry)
 - Commands run:
-  - git checkout -b planning/layer-07-weather-mvp (created branch from main)
+  - git checkout -b planning/layer-07-weather (created branch from main)
   - git status --short --branch
   - git diff --stat
   - git diff --check
 - Source decisions:
-  - Open-Meteo: **PRIMARY_MVP_SOURCE** — no API key, global, CC-BY 4.0, batch support
+  - Open-Meteo: **PRIMARY_CURRENT_BUILD_SOURCE** — no API key, global, CC-BY 4.0, batch support
   - MET Norway: **FUTURE_SOURCE** / **BACKUP_SOURCE** — Nordic focus, User-Agent requirement
   - RainViewer: **FUTURE_OVERLAY_SOURCE** — radar tiles only, not point weather data
   - NOAA/NWS: **FUTURE_ALERT_SOURCE** — US-only, alerts focus
-  - OpenWeather: **REJECT_FOR_MVP** — API key required, limited free tier
-  - WeatherAPI: **REJECT_FOR_MVP** — API key required, limited free tier
+  - OpenWeather: **REJECT_FOR_current build** — API key required, limited free tier
+  - WeatherAPI: **REJECT_FOR_current build** — API key required, limited free tier
 - Grid strategy: 5° global grid (~2,664 cells, ~216 API calls/day, well within free tier)
 - Layer decision: layer_07_weather (Weather / Live Weather) — approved by user
 - Database planning: 6 tables (sources, fetch_runs, locations, observations_latest, observation_history, raw_message_refs)
@@ -3571,7 +3619,7 @@
 - Secrets not touched
 - Raw data not committed
 - Known issues:
-  - Layer registry (MVP_LAYER_REGISTRY.md) currently has layer_07 as Infrastructure — needs update to Weather or renumbering
+  - Layer registry (the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)) currently has layer_07 as Infrastructure — needs update to Weather or renumbering
   - 8 open questions remain for implementation phases
 - Next recommended task: WO-WEATHER-P Reviewer — review spec kit. If approved, proceed to WO-WEATHER-R (Source Research) to verify Open-Meteo documentation, then WO-WEATHER-S (Fetch Proof) to prove real data delivery.
 
@@ -3634,7 +3682,7 @@
   - database migrations touched: NO
   - API routes touched: NO
   - API tests touched: NO
-  - MVP_LAYER_REGISTRY.md touched: NO
+  - the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) touched: NO
   - live network used: NO
   - secrets touched: NO
   - raw data committed: NO
@@ -3999,7 +4047,7 @@
   - Danish Maritime Authority: **FUTURE_ANALYSIS_SOURCE** — historical only
   - NOAA AccessAIS: **FUTURE_ANALYSIS_SOURCE** — historical only
   - Global Fishing Watch: **FUTURE_ANALYSIS_SOURCE** — delayed, fishing focus
-  - MarineTraffic: **REJECT_FOR_MVP** — paid API required
+  - MarineTraffic: **REJECT_FOR_current build** — paid API required
 - Secrets touched: NO
 - Secret values printed/logged: NO
 - API touched: NO
@@ -4034,9 +4082,9 @@
   - Source-first wording clarified: "No full fetcher/database/API/frontend implementation starts before fetch proof succeeds. WO-MAR-S may create the smallest possible proof script needed to connect to AISStream, capture real messages, and save raw proof files."
   - WO-MAR-S scope clarified: Explicit allow/deny list. May: connect, read env key, capture messages, save raw files, produce report. Must not: normalize, write to database, create API, create frontend, print or store API key.
 - Files modified:
-  - specs/005-layer-06-maritime-mvp/README.md (agent lane table, source-first wording, created-by line)
-  - specs/005-layer-06-maritime-mvp/SPEC_OVERVIEW.md (source-first rule section)
-  - specs/005-layer-06-maritime-mvp/WORK_ORDERS.md (dependency table, WO lane names, WO-MAR-S scope, WO-MAR-D inputs)
+  - specs/005-layer-06-maritime (legacy name)/README.md (agent lane table, source-first wording, created-by line)
+  - specs/005-layer-06-maritime (legacy name)/SPEC_OVERVIEW.md (source-first rule section)
+  - specs/005-layer-06-maritime (legacy name)/WORK_ORDERS.md (dependency table, WO lane names, WO-MAR-S scope, WO-MAR-D inputs)
   - docs/state/HANDOFF_LOG.md (removed model/tool names from WO-MAR-P entry, added this correction entry)
 - Commands run:
   - git status --short --branch
@@ -4057,18 +4105,18 @@
 - Commit hash: (not committed — planning only)
 - Push status: local only (NOT pushed — per WO policy)
 - Goal: Create complete Spec Kit planning package for Layer 06 Maritime / Live Ships. Define all planning documents, source evaluation, architecture, work orders, and open questions.
-- Approach: Read all project control documents (AGENTS.md, MVP_LAYER_REGISTRY, LAYER_ID_CONVENTIONS, SOURCE_TO_FRONTEND_CONTRACT, PIPELINE_HANDOFF_RULES, DATA_LOCATION_RULES, CURRENT_PROJECT_STATE, HANDOFF_LOG, existing specs). Created 10 planning documents in specs/005-layer-06-maritime-mvp/. Confirmed layer_06_maritime is already registered. Identified AISStream as PRIMARY_MVP_SOURCE. Defined 9 work orders in sequence (WO-MAR-P through WO-MAR-V). Documented 10 open questions for resolution in later WOs.
+- Approach: Read all project control documents (AGENTS.md, the legacy layer-registry filename (now retired), LAYER_ID_CONVENTIONS, SOURCE_TO_FRONTEND_CONTRACT, PIPELINE_HANDOFF_RULES, DATA_LOCATION_RULES, CURRENT_PROJECT_STATE, HANDOFF_LOG, existing specs). Created 10 planning documents in specs/005-layer-06-maritime (legacy name)/. Confirmed layer_06_maritime is already registered. Identified AISStream as PRIMARY_CURRENT_BUILD_SOURCE. Defined 9 work orders in sequence (WO-MAR-P through WO-MAR-V). Documented 10 open questions for resolution in later WOs.
 - Files created:
-  - specs/005-layer-06-maritime-mvp/README.md (spec index)
-  - specs/005-layer-06-maritime-mvp/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
-  - specs/005-layer-06-maritime-mvp/SOURCE_EVALUATION_MATRIX.md (AISStream + 6 alternative sources evaluated)
-  - specs/005-layer-06-maritime-mvp/FETCHING_DESIGN.md (WebSocket connection, raw storage, run modes)
-  - specs/005-layer-06-maritime-mvp/NORMALIZATION_DESIGN.md (AIS message parsing, vessel/position schema, MMSI join)
-  - specs/005-layer-06-maritime-mvp/DATABASE_PLANNING.md (PostGIS schema, 7 tables, indexes, upsert)
-  - specs/005-layer-06-maritime-mvp/API_PLANNING.md (REST endpoints, query patterns, response schemas)
-  - specs/005-layer-06-maritime-mvp/FRONTEND_PLANNING.md (Cesium markers, heading, click card, refresh)
-  - specs/005-layer-06-maritime-mvp/WORK_ORDERS.md (9 work orders with lane/goal/acceptance criteria)
-  - specs/005-layer-06-maritime-mvp/OPEN_QUESTIONS.md (10 unresolved decisions + confirmed decisions)
+  - specs/005-layer-06-maritime (legacy name)/README.md (spec index)
+  - specs/005-layer-06-maritime (legacy name)/SPEC_OVERVIEW.md (executive summary, goals, acceptance criteria)
+  - specs/005-layer-06-maritime (legacy name)/SOURCE_EVALUATION_MATRIX.md (AISStream + 6 alternative sources evaluated)
+  - specs/005-layer-06-maritime (legacy name)/FETCHING_DESIGN.md (WebSocket connection, raw storage, run modes)
+  - specs/005-layer-06-maritime (legacy name)/NORMALIZATION_DESIGN.md (AIS message parsing, vessel/position schema, MMSI join)
+  - specs/005-layer-06-maritime (legacy name)/DATABASE_PLANNING.md (PostGIS schema, 7 tables, indexes, upsert)
+  - specs/005-layer-06-maritime (legacy name)/API_PLANNING.md (REST endpoints, query patterns, response schemas)
+  - specs/005-layer-06-maritime (legacy name)/FRONTEND_PLANNING.md (Cesium markers, heading, click card, refresh)
+  - specs/005-layer-06-maritime (legacy name)/WORK_ORDERS.md (9 work orders with lane/goal/acceptance criteria)
+  - specs/005-layer-06-maritime (legacy name)/OPEN_QUESTIONS.md (10 unresolved decisions + confirmed decisions)
 - Files modified:
   - docs/state/HANDOFF_LOG.md (this entry)
 - Commands run:
@@ -4094,7 +4142,7 @@
 - End time UTC: 2026-06-01T17:55:00Z
 - Commit hash: (pending — see final commit log)
 - Push status: local only (NOT pushed — per WO policy; Kiro owns push)
-- Goal: Improve Layer 05 propagation accuracy (python-sgp4 adapter + simplified fallback) and add a documented incremental sync plan, without destabilizing MVP.
+- Goal: Improve Layer 05 propagation accuracy (python-sgp4 adapter + simplified fallback) and add a documented incremental sync plan, without destabilizing current build.
 - Approach: Treat sgp4 as an OPTIONAL dependency. The new `compute_position_from_tle(..., engine=...)` dispatches: `auto` (default) tries sgp4 first, falls back to simplified if sgp4 is not installed or raises; `sgp4` requires the package and raises if missing; `simplified-fallback` is always available. `run_persist_from_cache` gains a `refresh_positions=True` mode that recomputes from cached TLEs at the current wall-clock time. A new `run_refresh_positions_from_cache` mode and `--print-sync-plan` flag document the recommended 1-5 min recompute / 2-24 h provider-fetch cadence.
 - Files modified:
   - services/fetch-orchestrator/src/layers/layer_05_space_satellites/orbit_propagation.py (new sgp4 adapter `_compute_position_sgp4`; refactor `compute_position_from_tle` into dispatcher; simplify fallback body extracted into `_compute_position_simplified`; new engine constants `ENGINE_SGP4`/`ENGINE_SIMPLIFIED`; new introspection helpers `get_propagation_engine()` and `sgp4_import_error()`; `OrbitalPosition.computation_method` default updated to `ENGINE_SIMPLIFIED`; default value `None` for `engine` parameter is treated as `auto`)
@@ -4445,7 +4493,7 @@
 - Database migrations touched: NO
 - External live network used in tests: NO (DB writer tests are mocked; only the manual validation command exercised the live CelesTrak endpoint)
 - Known issues: 1 pre-existing test `test_aviation_live_aircraft_work_order_changes_stay_in_allowed_paths` fails when the current diff includes layer_05 changes — that test is a layer_01 aviation-live work order guard and is out of scope for WO-082C1. No functional impact on Layer 05.
-- Next recommended task: Kiro review WO-082C1, then continue with the full Layer 05 MVP integration review and final PR per WO-082 PR policy.
+- Next recommended task: Kiro review WO-082C1, then continue with the full Layer 05 current-build integration review and final PR per WO-082 PR policy.
 ### 2026-06-01T22:35:46Z DeepSeek — WO-082D3 Layer 05 Filtered REST and WebSocket Satellite Snapshots
 
 - Work order: WO-082D3
@@ -4915,7 +4963,7 @@ origin/main
 - End time UTC: 2026-05-28T07:15:00Z
 - Commit hash: (see below)
 - Push status: local only (awaiting Kiro review)
-- What was done: Patched WO-079A planning docs for consistency. Corrected agent assignments (GPT-5.5/Codex for DB, MiniMax for fetcher, DeepSeek for API, Claude Sonnet 4.6 for frontend, Claude Haiku 4.5 for review). Corrected layer order (Layer 4=Space, 5=Maritime, 6=Infrastructure, 7=News/OSINT, 8=Military). Updated project state to reflect Borders MVP complete and pushed (e6639e9). Kept WO-079A original model attribution honest (Claude Sonnet 4.5 initial plan). No implementation files changed.
+- What was done: Patched WO-079A planning docs for consistency. Corrected agent assignments (GPT-5.5/Codex for DB, MiniMax for fetcher, DeepSeek for API, Claude Sonnet 4.6 for frontend, Claude Haiku 4.5 for review). Corrected layer order (Layer 4=Space, 5=Maritime, 6=Infrastructure, 7=News/OSINT, 8=Military). Updated project state to reflect Borders current build and pushed (e6639e9). Kept WO-079A original model attribution honest (Claude Sonnet 4.5 initial plan). No implementation files changed.
 - Files modified: docs/state/AVIATION_LIVE_SOURCE_DECISION.md, docs/work-orders/WO-079A-aviation-live-source-schema-plan.md, docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md
 - Files created: none
 - Files deleted: none
@@ -4939,14 +4987,14 @@ origin/main
 - End time UTC: 2026-05-28T07:05:00Z
 - Commit hash: (see below)
 - Push status: local only (awaiting Kiro review)
-- What was done: Inspected Airplanes.live official API docs and OpenSky Network Trino docs. Confirmed no global endpoint exists in Airplanes.live. Designed MVP fetch strategy (/mil + /ladd + /pia + /point). Designed 4-table database schema (aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches). Documented normalization field mapping, upsert algorithm, staleness thresholds, API endpoint plan, frontend render plan, and OpenSky historical plan. Created work order doc and source decision doc.
+- What was done: Inspected Airplanes.live official API docs and OpenSky Network Trino docs. Confirmed no global endpoint exists in Airplanes.live. Designed current build strategy (/mil + /ladd + /pia + /point). Designed 4-table database schema (aviation_aircraft_sources, aviation_aircraft_latest, aviation_aircraft_observations, aviation_aircraft_raw_batches). Documented normalization field mapping, upsert algorithm, staleness thresholds, API endpoint plan, frontend render plan, and OpenSky historical plan. Created work order doc and source decision doc.
 - Files created: docs/work-orders/WO-079A-aviation-live-source-schema-plan.md, docs/state/AVIATION_LIVE_SOURCE_DECISION.md
 - Files modified: docs/state/HANDOFF_LOG.md, docs/state/CURRENT_PROJECT_STATE.md
 - Commands run: git checkout -b agent/aviation-live-source-schema-plan, git diff --check, git add, git commit
 - Airplanes.live global endpoint: DOES NOT EXIST (confirmed from official docs)
-- MVP fetch scope: /mil + /ladd + /pia (global) + /point (camera 250nm)
+- current build scope: /mil + /ladd + /pia (global) + /point (camera 250nm)
 - Rate limit compliance: 4 req per 5s cycle = 0.8 req/sec average (within 1 req/sec limit)
-- OpenSky: historical only, requires application, not for MVP live
+- OpenSky: historical only, requires application, not for current build
 - No migrations created: YES (planning only)
 - No fetcher implemented: YES (planning only)
 - No API implemented: YES (planning only)
@@ -4955,11 +5003,11 @@ origin/main
 - Next safe task: WO-079B database migrations (Codex)
 
 
-### 2026-05-28T11:15:41Z Kiro CLI â€” WO-078E FINAL Borders MVP Closeout Review
+### 2026-05-28T11:15:41Z Kiro CLI â€” WO-078E FINAL Borders current build Review
 
-- Work order: WO-078E-FINAL-BORDERS-MVP-CLOSEOUT-REVIEW
+- Work order: WO-078E-FINAL-BORDERS-current build-CLOSEOUT-REVIEW
 - Agent: Kiro CLI
-- Role: Strict final Borders MVP reviewer and safe local merge operator
+- Role: Strict final Borders current build and safe local merge operator
 - LLM model: Claude Haiku 4.5
 - Tool/CLI used: Kiro CLI / Reviewer CLI
 - Branch: agent/borders-frontend-red-visibility-fix
@@ -4967,7 +5015,7 @@ origin/main
 - End time UTC: 2026-05-28T11:20:00Z
 - Commit hash reviewed: 30a22da
 - Push status: local only (awaiting final boss approval for push)
-- What was done: Final closeout review of Borders & Boundaries MVP frontend. Confirmed working tree clean, verified Borders toggle visible and functional, confirmed red polyline rendering with no fill/labels, validated MVP caveat visible, confirmed no production/India compliance claims, ran all builds and tests, verified Aviation and Earth Events layers preserved, created integration review document.
+- What was done: Final closeout review of Borders & Boundaries current build. Confirmed working tree clean, verified Borders toggle visible and functional, confirmed red polyline rendering with no fill/labels, validated current build visible, confirmed no production/India compliance claims, ran all builds and tests, verified Aviation and Earth Events layers preserved, created integration review document.
 - Files reviewed: apps/web/src/components/LayerPanel.tsx, apps/web/src/CesiumGlobe.tsx, apps/web/src/lib/useBordersBoundaries.ts, apps/web/src/lib/api.ts, apps/api/tests/borders-boundaries.test.ts, tests/data/layer_02_borders_boundaries/
 - Commands run: git status --short, git branch --show-current, git log --oneline -15, git diff --check, pnpm --filter @god-eyes/contracts build, pnpm --filter web build, pnpm --filter api build, pnpm run api:test, pytest tests/data/layer_02_borders_boundaries -q, pytest tests/data/layer_03_earth_events -q, python -m compileall services tests/data/layer_02_borders_boundaries
 - Validation results: git diff --check PASS, contracts build PASS, web build PASS, api build PASS, api tests PASS (214/214), layer_02 tests PASS (20/20), layer_03 tests PASS (16/16), compileall PASS
@@ -4975,7 +5023,7 @@ origin/main
 - Borders activatable: YES
 - Borders render accepted by final boss: YES
 - Countries endpoint used: YES (GET /api/borders-boundaries/countries)
-- MVP caveat visible: YES
+- current build visible: YES
 - No production approval claimed: YES
 - No India compliance claimed: YES
 - No fill: YES
@@ -4983,7 +5031,7 @@ origin/main
 - Aviation preserved: YES
 - Earth Events preserved: YES
 - Known limitations documented: YES
-- No further Borders polish recommended for MVP: YES
+- No further Borders polish recommended for current build: YES
 - Integration review doc created: YES
 - Ready for merge and push: YES
 - No destructive operations: YES
@@ -6015,7 +6063,7 @@ All agents must append to this file after completing work.
 
 ### 2026-05-14 Kiro CLI Ã¢â‚¬â€ Layer-based control layer restructure
 
-- What was done: Restructured entire control layer from earthquake/weather MVP to layer-based architecture. Created layer registry, ID conventions, updated all ownership and pipeline docs, created specs for Layer 0 and Layer 1.
+- What was done: Restructured entire control layer from earthquake/weather to layer-based architecture. Created layer registry, ID conventions, updated all ownership and pipeline docs, created specs for Layer 0 and Layer 1.
 - Files created/modified: AGENTS.md, docs/control/LAYER_ARCHITECTURE.md, docs/control/LAYER_ID_CONVENTIONS.md, docs/control/LLM_OWNERSHIP_MATRIX.md, docs/control/PIPELINE_HANDOFF_RULES.md, docs/control/DATA_LOCATION_RULES.md, docs/control/SOURCE_TO_FRONTEND_CONTRACT.md, docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md, docs/work-orders/WORK_ORDER_TEMPLATE.md, specs/001-layer-zero-globe-core/spec.md, specs/002-layer-one-aviation/spec.md
 - What is now available for other agents: Full layer-based control system. Agents can read layer conventions, folder structure, and pipeline rules.
 - Blockers: None. Awaiting review before first work orders are issued.
@@ -7357,7 +7405,7 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Existing tables changed: NO
 - Known issues: None.
-- Next recommended task: WO-051-FETCHING-AIRPORT-IMAGE-GALLERY-MVP
+- Next recommended task: WO-051-FETCHING-AIRPORT-IMAGE-GALLERY-current build
 
 ### 2026-05-22T22:49:29Z Codex - WO-054-DB-AIRPORT-LAYOUT-FEATURES Airport Infrastructure Layout Database Foundation
 
@@ -7391,38 +7439,38 @@ All agents must append to this file after completing work.
 - Forbidden folders touched: NO
 - Existing tables changed: NO
 - Known issues: None.
-- Next recommended task: WO-055-FETCHING-AIRPORT-LAYOUT-FEATURES-MVP
+- Next recommended task: WO-055-FETCHING-AIRPORT-LAYOUT-FEATURES-current build
 
 
-### 2026-05-25T02:48:05Z Kiro CLI - WO-063-MVP-LAYER-REGISTRY-CONTROL MVP Layer Registry Control
+### 2026-05-25T02:48:05Z Kiro CLI - WO-063-current build-LAYER-REGISTRY-CONTROL current-build layer Registry Control
 
-- Work order: WO-063-MVP-LAYER-REGISTRY-CONTROL
+- Work order: WO-063-current build-LAYER-REGISTRY-CONTROL
 - Agent: Kiro CLI
 - LLM model: Claude Sonnet 4.6
 - Tool/CLI used: Kiro CLI
-- Branch: agent/control-mvp-layer-registry
+- Branch: agent/control-current build-layer-registry
 - Start time UTC: 2026-05-25T01:10:00Z
 - End time UTC: 2026-05-25T02:48:05Z
 - Commit hash: (pending local commit)
 - Push status: NOT PUSHED
 - Files changed: 6 files (3 new, 3 modified)
-  - NEW: docs/control/MVP_LAYER_REGISTRY.md
-  - NEW: docs/work-orders/WO-063-MVP-LAYER-REGISTRY-CONTROL.md
-  - NEW: docs/reports/WO-063-mvp-layer-registry-control-report.md
+  - NEW: docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)
+  - NEW: docs/work-orders/WO-063-current build-LAYER-REGISTRY-CONTROL.md
+  - NEW: docs/reports/WO-063-current build-layer-registry-control-report.md
   - MODIFIED: docs/control/LAYER_ARCHITECTURE.md
   - MODIFIED: docs/control/LAYER_ID_CONVENTIONS.md
   - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
 - Commands run:
   - git status --short
   - git diff --check
-  - git add docs/control/MVP_LAYER_REGISTRY.md
-  - git add docs/work-orders/WO-063-MVP-LAYER-REGISTRY-CONTROL.md
-  - git add docs/reports/WO-063-mvp-layer-registry-control-report.md
+  - git add docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)
+  - git add docs/work-orders/WO-063-current build-LAYER-REGISTRY-CONTROL.md
+  - git add docs/reports/WO-063-current build-layer-registry-control-report.md
   - git add docs/control/LAYER_ARCHITECTURE.md
   - git add docs/control/LAYER_ID_CONVENTIONS.md
   - git add docs/state/CURRENT_PROJECT_STATE.md
   - git add docs/state/HANDOFF_LOG.md
-  - git commit -m "docs(control): add MVP layer registry (WO-063)"
+  - git commit -m "docs(control): add current-build layer registry (WO-063)"
 - Review status: Ready for Kiro review
 - Forbidden folders touched: NO
 - Known issues: None.
@@ -7435,10 +7483,10 @@ All agents must append to this file after completing work.
 - Agent: Codex
 - LLM model: Codex
 - Tool/CLI: Codex CLI
-- Branch: agent/database-mvp-layer-foundation
+- Branch: agent/database-current build-layer-foundation
 - Commit hash: 3038213
 - Merge target: main
-- Merge status: merged during MVP integration
+- Merge status: merged during current-build integration
 - Files added:
   - docs/reports/WO-067-database-live-static-history-foundation.md
   - docs/work-orders/WO-067-database-live-static-history-foundation-review.md
@@ -7450,18 +7498,18 @@ All agents must append to this file after completing work.
 
 ---
 
-## WO-069-MVP-LIVE-SOURCE-RESEARCH-AND-CATALOG-PLAN
+## WO-069-current build-LIVE-SOURCE-RESEARCH-AND-CATALOG-PLAN
 
 - Agent: MiniMax CLI
 - LLM model: MiniMax
 - Tool/CLI: MiniMax CLI
-- Branch: agent/research-mvp-live-sources
+- Branch: agent/research-current build-live-sources
 - Commit hash: 7223b46
 - Merge target: main
-- Merge status: merged during MVP integration
+- Merge status: merged during current-build integration
 - Files added:
-  - docs/reports/WO-069-mvp-live-source-research-and-catalog-plan.md
-  - docs/work-orders/WO-069-mvp-live-source-research-and-catalog-plan.md
+  - docs/reports/WO-069-current build-live-source-research-and-catalog-plan.md
+  - docs/work-orders/WO-069-current build-live-source-research-and-catalog-plan.md
 - Files updated:
   - docs/state/HANDOFF_LOG.md
 - Forbidden folders touched: no
@@ -7470,15 +7518,15 @@ All agents must append to this file after completing work.
 
 ---
 
-## WO-068-MVP-DEMO-POLISH-FINAL-FIX
+## WO-068-current build-DEMO-POLISH-FINAL-FIX
 
 - Agent: Frontend CLI
 - LLM model: Claude Sonnet 4.6
 - Tool/CLI: kiro-cli chat
-- Branch: agent/frontend-mvp-demo-polish
+- Branch: agent/frontend-current build-demo-polish
 - Commit hash: 02315be
 - Merge target: main
-- Merge status: merged during MVP integration
+- Merge status: merged during current-build integration
 - Files updated:
   - apps/web/src/components/LayerPanel.tsx
   - apps/web/src/components/StatusPanel.tsx
@@ -7486,7 +7534,7 @@ All agents must append to this file after completing work.
   - apps/web/src/components/intel/AirportMapPopup.tsx
   - docs/state/HANDOFF_LOG.md
 - Frontend result:
-  - All 10 MVP layers visible
+  - All 10 current-build layers visible
   - L0 and L1 active/ready
   - L2-L9 coming soon
   - No fake data
@@ -7531,7 +7579,7 @@ All agents must append to this file after completing work.
 - Agent: Codex
 - LLM model: Codex
 - Tool/CLI used: Codex CLI
-- Working directory: E:\god-eyes-mvp-database
+- Working directory: E:\god-eyes-current build-database
 - Branch: agent/earth-events-database
 - Start time UTC: 2026-05-25T08:00:00Z
 - End time UTC: 2026-05-25T08:10:55Z
@@ -7585,7 +7633,7 @@ All agents must append to this file after completing work.
   - NEW: docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md
   - NEW: docs/work-orders/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
   - NEW: docs/reports/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
-  - MODIFIED: docs/control/MVP_LAYER_REGISTRY.md (layer_03 active, layer_02 next focus + India compliance note)
+  - MODIFIED: docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) (layer_03 active, layer_02 next focus + India compliance note)
   - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md (Earth Events complete, Borders policy planned, next steps updated)
   - MODIFIED: docs/state/HANDOFF_LOG.md (this entry)
 - Commands run:
@@ -7657,7 +7705,7 @@ All agents must append to this file after completing work.
 - Agent: Codex
 - LLM model: Codex
 - Tool/CLI used: Codex CLI
-- Working directory: E:\god-eyes-mvp-database
+- Working directory: E:\god-eyes-current build-database
 - Branch: agent/borders-boundaries-schema
 - Start time UTC: 2026-05-25T21:20:00Z
 - End time UTC: 2026-05-25T21:29:54Z
@@ -7676,7 +7724,7 @@ All agents must append to this file after completing work.
   - git rev-parse --short HEAD
   - Get-Content docs\control\BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md
   - Get-Content docs\control\BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md
-  - Get-Content docs\control\MVP_LAYER_REGISTRY.md
+  - Get-Content docs\control\the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)
   - Get-Content docs\state\CURRENT_PROJECT_STATE.md
   - Get-Content database\migrations\layers\layer_03_earth_events\001_earth_events_tables.sql
   - python -m pytest tests/data/layer_02_borders_boundaries -q
@@ -7742,21 +7790,21 @@ All agents must append to this file after completing work.
 - Next recommended task: Human to read Survey of India guidelines, contact Survey of India, review non-India source licenses, update source review tracker
 
 
-### 2026-05-25T22:22:03Z Kiro CLI - WO-078A1-BORDERS-MVP-BOUNDARY-MODE-DECISION
+### 2026-05-25T22:22:03Z Kiro CLI - WO-078A1-BORDERS-current build-BOUNDARY-MODE-DECISION
 
-- Work order: WO-078A1-BORDERS-MVP-BOUNDARY-MODE-DECISION
+- Work order: WO-078A1-BORDERS-current build-BOUNDARY-MODE-DECISION
 - Agent: Kiro CLI
 - LLM model: Claude Sonnet 4.5
 - Tool/CLI used: Claude Code CLI
-- Branch: agent/borders-mvp-boundary-mode
+- Branch: agent/borders-current build-boundary-mode
 - Start time UTC: 2026-05-25T22:10:00Z
 - End time UTC: 2026-05-25T22:22:03Z
 - Commit hash: (pending local commit)
 - Push status: NOT PUSHED
 - Files changed: 6 files (3 new, 3 modified)
-  - NEW: docs/control/BORDERS_BOUNDARIES_MVP_BOUNDARY_MODE_DECISION.md
-  - NEW: docs/work-orders/WO-078A1-borders-mvp-boundary-mode-decision.md
-  - NEW: docs/reports/WO-078A1-borders-mvp-boundary-mode-decision.md
+  - NEW: docs/control/the legacy borders-boundary-mode-decision filename (now archived)
+  - NEW: docs/work-orders/WO-078A1-borders-current build-boundary-mode-decision.md
+  - NEW: docs/reports/WO-078A1-borders-current build-boundary-mode-decision.md
   - MODIFIED: docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md (production_deferred note)
   - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
   - MODIFIED: docs/state/HANDOFF_LOG.md
@@ -7765,9 +7813,9 @@ All agents must append to this file after completing work.
   - git status --short
   - git diff --check
   - git add docs/control docs/work-orders docs/reports docs/state
-  - git commit -m "docs(control): record Borders MVP boundary mode decision (WO-078A1)"
+  - git commit -m "docs(control): record Borders current build mode decision (WO-078A1)"
 - Review status: Ready for Kiro review
-- MVP boundary mode decision documented: YES
+- current build mode decision documented: YES
 - Survey of India email deferred to production stage: YES
 - Production India compliance still blocked: YES
 - Source approval claimed: NO
@@ -7778,9 +7826,9 @@ All agents must append to this file after completing work.
 - Next step: WO-078B Country Boundary Source Evaluation
 
 
-### 2026-05-25T22:52:36Z Kiro CLI - WO-078B-BORDERS-NATURAL-EARTH-MVP-SOURCE-SELECTION
+### 2026-05-25T22:52:36Z Kiro CLI - WO-078B-BORDERS-NATURAL-EARTH-current build-SOURCE-SELECTION
 
-- Work order: WO-078B-BORDERS-NATURAL-EARTH-MVP-SOURCE-SELECTION
+- Work order: WO-078B-BORDERS-NATURAL-EARTH-current build-SOURCE-SELECTION
 - Agent: Kiro CLI
 - LLM model: Claude Sonnet 4.5
 - Tool/CLI used: Claude Code CLI
@@ -7790,18 +7838,18 @@ All agents must append to this file after completing work.
 - Commit hash: (pending local commit)
 - Push status: NOT PUSHED
 - Files changed: 6 files (3 new, 3 modified)
-  - NEW: docs/control/BORDERS_BOUNDARIES_NATURAL_EARTH_MVP_SOURCE_SELECTION.md
-  - NEW: docs/work-orders/WO-078B-borders-natural-earth-mvp-source-selection.md
-  - NEW: docs/reports/WO-078B-borders-natural-earth-mvp-source-selection.md
+  - NEW: docs/control/the legacy borders-source-selection filename (now archived)
+  - NEW: docs/work-orders/WO-078B-borders-natural-earth-current build-source-selection.md
+  - NEW: docs/reports/WO-078B-borders-natural-earth-current build-source-selection.md
   - MODIFIED: docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md
   - MODIFIED: docs/state/CURRENT_PROJECT_STATE.md
   - MODIFIED: docs/state/HANDOFF_LOG.md
 - Commands run:
   - git diff --check
   - git add docs/control docs/work-orders docs/reports docs/state
-  - git commit -m "docs(control): select Natural Earth for Borders MVP source (WO-078B)"
+  - git commit -m "docs(control): select Natural Earth for Borders current build (WO-078B)"
 - Review status: Ready for Kiro review
-- Natural Earth selected for MVP/local/dev: YES
+- Natural Earth selected for local/dev: YES
 - Scale: 1:50m
 - Production India compliance still blocked: YES
 - No source marked production-approved: YES
@@ -7809,7 +7857,7 @@ All agents must append to this file after completing work.
 - Data downloaded: NO
 - Code touched: NO
 - Database touched: NO
-- Next step: WO-078C Natural Earth MVP ingestion
+- Next step: WO-078C Natural Earth current build
 
 ### 2026-05-26T05:10:00Z DeepSeek (API CLI) â€” WO-078D Borders Boundaries API Complete
 
@@ -8143,7 +8191,7 @@ All agents must append to this file after completing work.
 - End time UTC: 2026-05-31T04:54:57Z
 - Commit hash: pending local commit; final hash reported in Codex final response
 - Push status: local only (not pushed; Kiro owns push after review)
-- Files changed: AGENTS.md; .github/workflows/ci.yml; docs/control/MVP_LAYER_REGISTRY.md; docs/control/LAYER_ARCHITECTURE.md; docs/control/DATA_LOCATION_RULES.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/HANDOFF_LOG.md
+- Files changed: AGENTS.md; .github/workflows/ci.yml; docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4); docs/control/LAYER_ARCHITECTURE.md; docs/control/DATA_LOCATION_RULES.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/HANDOFF_LOG.md
 - Commands run: python -m pytest tests/data -q; pnpm --filter @god-eyes/contracts build; pnpm --filter api build; pnpm --filter web build; pnpm --filter api test; git diff --check; git status --short
 - Summary: Aligned guardrail docs to the authoritative 10-layer registry, documented generated folders as no-edit, updated current state, and broadened CI Python data tests to all tests/data.
 - Review status: pending Kiro review
@@ -8272,9 +8320,9 @@ All agents must append to this file after completing work.
 - Review status: pending Kiro review
 - Known issues: No live aircraft behavior changes intended; WebSocket hook, snapshot/delta handlers, dead reckoning, marker visuals, bbox callbacks, and selected aircraft logic untouched.
 
-### 2026-05-31T20:34:54Z Kiro CLI — WO-082A Layer 05 Space & Satellites MVP Lane Contract
+### 2026-05-31T20:34:54Z Kiro CLI — WO-082A Layer 05 Space & Satellites current build Contract
 
-- Work order: WO-082A — Layer 05 Space & Satellites MVP Lane Contract
+- Work order: WO-082A — Layer 05 Space & Satellites current build Contract
 - Agent: Kiro CLI
 - LLM model: Claude Haiku 4.5
 - Tool/CLI used: Kiro CLI
@@ -8283,8 +8331,8 @@ All agents must append to this file after completing work.
 - End time UTC: 2026-05-31T20:34:54Z
 - Commit hash: pending
 - Push status: local only (Kiro owns push after validation)
-- Files changed: docs/layers/layer_05_space_satellites_mvp_contract.md, docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md
-- Summary: Created authoritative lane contract for Layer 05 Space & Satellites MVP. Defined five parallel lanes: Database (Codex, WO-082B), Fetching (MiniMax, WO-082C), API (DeepSeek, WO-082D), Frontend (Sonnet 4.6, WO-082E), Review (Claude Haiku 4.5, WO-082F). Contract includes layer identity, MVP scope, data source strategy, database/fetching/API/frontend lane contracts, visual encoding rules, WebSocket/REST API drafts, safety rules, integration sequence, and acceptance criteria.
+- Files changed: docs/layers/the legacy layer-05 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/), docs/state/CURRENT_PROJECT_STATE.md, docs/state/HANDOFF_LOG.md
+- Summary: Created authoritative lane contract for Layer 05 Space & Satellites current build. Defined five parallel lanes: Database (Codex, WO-082B), Fetching (MiniMax, WO-082C), API (DeepSeek, WO-082D), Frontend (Sonnet 4.6, WO-082E), Review (Claude Haiku 4.5, WO-082F). Contract includes layer identity, current build, data source strategy, database/fetching/API/frontend lane contracts, visual encoding rules, WebSocket/REST API drafts, safety rules, integration sequence, and acceptance criteria.
 - Review status: pending validation
 - Known issues: None
 - Next task: WO-082B Database lane (Codex)
@@ -8347,7 +8395,7 @@ All agents must append to this file after completing work.
 - Frontend touched: NO
 - Fetcher touched: NO
 - Database migrations touched: NO
-- Spec/contract alignment: Fully aligned with layer_05_space_satellites_mvp_contract.md and API_CONTRACT_SPEC.md
+- Spec/contract alignment: Fully aligned with the legacy layer-05 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) and API_CONTRACT_SPEC.md
 - Known issues: None
 - Next recommended task: WO-082E frontend lane (Sonnet), or Kiro integration review
 
@@ -8384,7 +8432,7 @@ All agents must append to this file after completing work.
 ### API dependency commit included: 5aa8905
 
 ### Summary
-Implemented Layer 05 Space & Satellites frontend MVP. WebSocket hook connects to /ws/space/satellites/live, handles space.satellites.snapshot messages with reconnect backoff. Satellites render as dots (PointPrimitiveCollection), debris/rocket bodies as triangles (Entity/PointGraphics). Altitude-based 8-band color scale with backend visualColor override. Important objects get larger markers. Click handler shows SatelliteInfoOverlay with NORAD ID, type, orbit class, altitude, speed, lat/lon, data age, and estimated-position caveat. LayerPanel toggle shows live count and freshness. All existing layers (aviation, borders, earth events, live aircraft) untouched.
+Implemented Layer 05 Space & Satellites frontend current build. WebSocket hook connects to /ws/space/satellites/live, handles space.satellites.snapshot messages with reconnect backoff. Satellites render as dots (PointPrimitiveCollection), debris/rocket bodies as triangles (Entity/PointGraphics). Altitude-based 8-band color scale with backend visualColor override. Important objects get larger markers. Click handler shows SatelliteInfoOverlay with NORAD ID, type, orbit class, altitude, speed, lat/lon, data age, and estimated-position caveat. LayerPanel toggle shows live count and freshness. All existing layers (aviation, borders, earth events, live aircraft) untouched.
 
 ### Commands run
 - pnpm --filter @god-eyes/contracts build → PASS
@@ -8410,10 +8458,10 @@ Implemented Layer 05 Space & Satellites frontend MVP. WebSocket hook connects to
 ### Database migrations touched: NO
 
 ### Spec/contract alignment
-Fully aligned with layer_05_space_satellites_mvp_contract.md and FRONTEND_CESIUM_SPEC.md. Uses SpaceSatelliteItem from @god-eyes/contracts. WebSocket message type space.satellites.snapshot. Visual rules: dots for satellites, triangles for debris/rocket bodies, altitude-based colors, important objects larger. Estimated-position caveat shown in overlay and LayerPanel.
+Fully aligned with the legacy layer-05 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) and FRONTEND_CESIUM_SPEC.md. Uses SpaceSatelliteItem from @god-eyes/contracts. WebSocket message type space.satellites.snapshot. Visual rules: dots for satellites, triangles for debris/rocket bodies, altitude-based colors, important objects larger. Estimated-position caveat shown in overlay and LayerPanel.
 
 ### Known issues
-- Satellite rendering useEffect rebuilds all primitives on every snapshot (no incremental update). Acceptable for MVP given snapshot frequency (~30s). Can be optimized post-MVP.
+- Satellite rendering useEffect rebuilds all primitives on every snapshot (no incremental update). Acceptable for current build snapshot frequency (~30s). Can be optimized post-current build.
 - PointPrimitive `.id` property assignment uses `(point as any).id` — Cesium's PointPrimitive does not have a typed `.id` field but the pick system reads it. This is consistent with existing aircraft billboard pattern.
 
 ### Next recommended task
@@ -8450,13 +8498,13 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - End time UTC: 2026-06-02T06:48:04Z
 - Commit hash: cec7adb
 - Push status: local only (NOT pushed — per WO policy; Kiro owns push)
-- Goal: Define Layer 10 Energy Infrastructure MVP contract, specification, implementation plan, and task breakdown for parallel lane implementation.
-- Approach: Created comprehensive contract document defining layer identity, MVP scope, data sources, canonical data model, visual rules, API contract, database lane requirements, fetching lane requirements, frontend lane requirements, security/safety rules, and acceptance criteria. Created specification document with detailed feature goals, data model, API contract, frontend requirements, database schema, data pipeline, testing strategy, and worktree strategy. Created implementation plan with timeline, dependencies, parallel work strategy, and risk mitigation. Created task breakdown with detailed tasks for database, fetching, API, frontend, integration, and documentation lanes.
+- Goal: Define Layer 10 Energy Infrastructure current build, specification, implementation plan, and task breakdown for parallel lane implementation.
+- Approach: Created comprehensive contract document defining layer identity, current build, data sources, canonical data model, visual rules, API contract, database lane requirements, fetching lane requirements, frontend lane requirements, security/safety rules, and acceptance criteria. Created specification document with detailed feature goals, data model, API contract, frontend requirements, database schema, data pipeline, testing strategy, and worktree strategy. Created implementation plan with timeline, dependencies, parallel work strategy, and risk mitigation. Created task breakdown with detailed tasks for database, fetching, API, frontend, integration, and documentation lanes.
 - Files created:
-  - docs/control/layer_10_energy_infrastructure_mvp_contract.md (comprehensive lane contract)
-  - specs/004-layer-10-energy-infrastructure-mvp/spec.md (full specification)
-  - specs/004-layer-10-energy-infrastructure-mvp/plan.md (implementation plan)
-  - specs/004-layer-10-energy-infrastructure-mvp/tasks.md (task breakdown)
+  - docs/control/the legacy layer-10 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) (comprehensive lane contract)
+  - specs/004-layer-10-energy-infrastructure (legacy name)/spec.md (full specification)
+  - specs/004-layer-10-energy-infrastructure (legacy name)/plan.md (implementation plan)
+  - specs/004-layer-10-energy-infrastructure (legacy name)/tasks.md (task breakdown)
   - docs/state/HANDOFF_LOG.md (updated with this entry)
 - Files modified: None (only new files created)
 - Layer ID: layer_10_energy_infrastructure
@@ -8464,7 +8512,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   1. wri_global_power_plant_database (WRI Global Power Plant Database)
   2. osm_energy_infrastructure (OpenStreetMap via Overpass API)
   3. global_energy_monitor_energy (Global Energy Monitor)
-- MVP scope:
+- current build:
   - Power plants (generation)
   - Power substations (transmission nodes)
   - High-voltage power transmission lines
@@ -8940,7 +8988,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - End time UTC: 2026-06-09T17:00:00Z
 - Commit hash: (pending — local only)
 - Push status: local only (per WO policy)
-- Goal: Implement the missing MVP ingestion path: AISStream live messages → raw capture → normalization → database upsert → API returns real vessels → frontend can show real ship markers.
+- Goal: Implement the missing current build path: AISStream live messages → raw capture → normalization → database upsert → API returns real vessels → frontend can show real ship markers.
 - Implementation summary:
   1. Created maritime_db_writer.py with parameterized SQL for all table operations (sources, vessels, positions_latest, position_history, raw_message_refs)
   2. Created maritime_ingestion.py orchestrator that reads normalized cache files and writes to database
@@ -9003,7 +9051,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - database/migrations/layers/layer_07_weather/001_weather_tables.sql - Additive PostgreSQL/PostGIS migration for sources, fetch runs, requested/resolved locations, latest observations, append-only history, and raw evidence references.
   - tests/data/layer_07_weather/test_weather_migration.py - Static schema, index, constraint, seed, scope, and safety tests.
 - Files updated:
-  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md - Corrected observation type, latest uniqueness, history identity, spatial geometry/index, and provider metadata decisions.
+  - specs/006-layer-07-weather (legacy name)/DATABASE_PLANNING.md - Corrected observation type, latest uniqueness, history identity, spatial geometry/index, and provider metadata decisions.
   - docs/state/HANDOFF_LOG.md - This handoff entry.
 - Migration summary:
   - Tables: weather_sources, weather_fetch_runs, weather_locations, weather_observations_latest, weather_observation_history, weather_raw_message_refs.
@@ -9062,7 +9110,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Commit hash: pending until local commit creation
 - Push status: local only / not pushed
 - Files updated:
-  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md
+  - specs/006-layer-07-weather (legacy name)/DATABASE_PLANNING.md
   - docs/state/HANDOFF_LOG.md
 - Schema changed: NO.
 - Tests changed: NO.
@@ -9098,8 +9146,8 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - tests/data/layer_07_weather/test_weather_ingestion.py
 - Files updated:
   - tests/data/layer_07_weather/test_weather_migration.py - Added the approved database ingestion path to the scope guard.
-  - specs/006-layer-07-weather-mvp/DATABASE_PLANNING.md - Documented type-aware database observation identity and location upsert behavior.
-  - specs/006-layer-07-weather-mvp/OPEN_QUESTIONS.md - Marked ingestion identity and upsert decisions resolved; deferred history partitioning for MVP.
+  - specs/006-layer-07-weather (legacy name)/DATABASE_PLANNING.md - Documented type-aware database observation identity and location upsert behavior.
+  - specs/006-layer-07-weather (legacy name)/OPEN_QUESTIONS.md - Marked ingestion identity and upsert decisions resolved; deferred history partitioning for current build.
   - docs/state/HANDOFF_LOG.md - This handoff entry.
 - Ingestion functions implemented:
   - build_database_observation_id, build_history_id, build_raw_ref_id.
@@ -9165,9 +9213,9 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - database/migrations/layers/layer_08_news_osint/001_news_tables.sql
   - tests/data/layer_08_news_osint/test_news_database_schema.py
 - Files updated:
-  - specs/007-layer-08-news-osint-mvp/DATABASE_PLANNING.md
-  - specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md
-  - specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md
+  - specs/007-layer-08-news-osint (legacy name)/DATABASE_PLANNING.md
+  - specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md
+  - specs/007-layer-08-news-osint (legacy name)/PROOF_REPORT.md
   - docs/state/HANDOFF_LOG.md
 - Tables created:
   - news_sources
@@ -9238,9 +9286,9 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Files modified:
   - `database/migrations/layers/layer_08_news_osint/001_news_tables.sql`
   - `tests/data/layer_08_news_osint/test_news_database_schema.py`
-  - `specs/007-layer-08-news-osint-mvp/DATABASE_PLANNING.md`
-  - `specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md`
-  - `specs/007-layer-08-news-osint-mvp/PROOF_REPORT.md`
+  - `specs/007-layer-08-news-osint (legacy name)/DATABASE_PLANNING.md`
+  - `specs/007-layer-08-news-osint (legacy name)/WORK_ORDERS.md`
+  - `specs/007-layer-08-news-osint (legacy name)/PROOF_REPORT.md`
   - `docs/state/HANDOFF_LOG.md`
 - Schema result: Existing tables support GDELT; no destructive schema change was required. Added only an idempotent active source seed for `gdelt_event_export` / `global_event`.
 - Ingestion result: Added one-transaction fetch-run creation, latest upserts, change-only history, raw references, and successful run completion.
@@ -9374,11 +9422,11 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   active registries); `layer_10_energy_infrastructure` added to all active registries and
   layer-order docs. Active control documents neutralized to role names only.
 - **Files changed:** `apps/api/src/routes/layers.ts`, `apps/web/src/lib/useLayerRegistry.ts`,
-  `AGENTS.md`, `docs/control/MVP_LAYER_REGISTRY.md`, `docs/control/LAYER_ARCHITECTURE.md`,
+  `AGENTS.md`, `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)`, `docs/control/LAYER_ARCHITECTURE.md`,
   `docs/control/LAYER_ID_CONVENTIONS.md`, `docs/control/LLM_OWNERSHIP_MATRIX.md`,
   `docs/control/PIPELINE_HANDOFF_RULES.md`, `docs/control/GIT_WORKFLOW_POLICY.md`,
   `docs/control/DATA_LOCATION_RULES.md`, `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md`,
-  `docs/control/layer_05_space_satellites_mvp_contract.md`,
+  `docs/control/the legacy layer-05 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/)`,
   `docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md`,
   `docs/state/CURRENT_PROJECT_STATE.md`, `.github/workflows/ci.yml`, `requirements-data.txt`,
   `.env.example`, `docs/audits/PROJECT_ALIGNMENT_REPORT.md`,
@@ -9404,9 +9452,9 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - **Work order:** health-docs-workflow-clarity
 - **Agent:** Documentation Agent (Orchestrator-role documentation repair lane)
 - **Branch:** agent/health-docs-workflow-clarity
-- **Summary:** Addressed the documentation-only workflow clarity findings from the project health audit (HEALTH-003, HEALTH-004, HEALTH-005, HEALTH-006, HEALTH-012). Created retrospective integration review documents for Layer 07 Weather and Layer 08 News & OSINT to close the audit-trail gap. Documented the official colocated normalizer pattern in LLM_OWNERSHIP_MATRIX, PIPELINE_HANDOFF_RULES, and DATA_LOCATION_RULES (Normalizer Agent owns aviation normalizer under services/normalizer/; Fetcher Agent owns colocated normalizer modules under services/fetch-orchestrator/src/layers/<layer_id>/ for all other implemented layers; do not move existing normalizers). Replaced residual tool names with neutral role names in MVP_LAYER_REGISTRY and BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN. Clarified in AGENTS.md that new layer or large multi-agent features go under specs/<number>-<feature-or-layer-name>/ while small cross-cutting repairs or single-lane fixes go under docs/work-orders/ or direct handoff/audit docs.
-- **Files changed:** AGENTS.md; docs/control/LLM_OWNERSHIP_MATRIX.md; docs/control/PIPELINE_HANDOFF_RULES.md; docs/control/DATA_LOCATION_RULES.md; docs/control/MVP_LAYER_REGISTRY.md; docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md; docs/state/INTEGRATION_REVIEW_LAYER_07_WEATHER_COMPLETE.md (new); docs/state/INTEGRATION_REVIEW_LAYER_08_NEWS_OSINT_COMPLETE.md (new); and this log entry.
-- **Commands run:** git status --short --branch; git log --oneline --decorate -n 6; git diff --stat; git diff --check; Select-String for residual tool names in MVP_LAYER_REGISTRY.md and BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md; python -m pytest tests/data -q (rerun after commit on a clean tree).
+- **Summary:** Addressed the documentation-only workflow clarity findings from the project health audit (HEALTH-003, HEALTH-004, HEALTH-005, HEALTH-006, HEALTH-012). Created retrospective integration review documents for Layer 07 Weather and Layer 08 News & OSINT to close the audit-trail gap. Documented the official colocated normalizer pattern in LLM_OWNERSHIP_MATRIX, PIPELINE_HANDOFF_RULES, and DATA_LOCATION_RULES (Normalizer Agent owns aviation normalizer under services/normalizer/; Fetcher Agent owns colocated normalizer modules under services/fetch-orchestrator/src/layers/<layer_id>/ for all other implemented layers; do not move existing normalizers). Replaced residual tool names with neutral role names in the legacy layer-registry filename (now retired) and BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN. Clarified in AGENTS.md that new layer or large multi-agent features go under specs/<number>-<feature-or-layer-name>/ while small cross-cutting repairs or single-lane fixes go under docs/work-orders/ or direct handoff/audit docs.
+- **Files changed:** AGENTS.md; docs/control/LLM_OWNERSHIP_MATRIX.md; docs/control/PIPELINE_HANDOFF_RULES.md; docs/control/DATA_LOCATION_RULES.md; docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4); docs/control/BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md; docs/state/INTEGRATION_REVIEW_LAYER_07_WEATHER_COMPLETE.md (new); docs/state/INTEGRATION_REVIEW_LAYER_08_NEWS_OSINT_COMPLETE.md (new); and this log entry.
+- **Commands run:** git status --short --branch; git log --oneline --decorate -n 6; git diff --stat; git diff --check; Select-String for residual tool names in the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) and BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md; python -m pytest tests/data -q (rerun after commit on a clean tree).
 - **Results:** No residual tool names in the two active docs after edit. Diff is documentation-only. Data tests rerun on clean tree after commit (results recorded in the Final Report).
 - **Known issues:** None for the documentation repair itself. Pre-existing HEALTH-001 (frontend relative path), HEALTH-002 (aviation-specific status schema), HEALTH-007 (frontend offline registry sourceRule for layer 08), HEALTH-008 (duplicate npm script), HEALTH-009 (no root README), HEALTH-010 (aviation migration sequence gap), and HEALTH-011 (.gitignore tool-specific entries) are out of scope for this documentation-only pass and remain in the backlog.
 - **Review status:** Pending Orchestrator Agent review. Not pushed.
@@ -9600,19 +9648,19 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - docs/devlog/2026-06-04.md → docs/archive/2026-06-14-documentation-cleanup/devlog/2026-06-04.md
   - docs/postman/GOD_EYES_LOCAL_API.postman_collection.json → docs/archive/2026-06-14-documentation-cleanup/misc/GOD_EYES_LOCAL_API.postman_collection.json
   - docs/reports/WO-060-repository-health-audit.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-060-repository-health-audit.md
-  - docs/reports/WO-062-god-eyes-mvp-layer-architecture-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-062-god-eyes-mvp-layer-architecture-plan.md
-  - docs/reports/WO-063-mvp-layer-registry-control-report.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-063-mvp-layer-registry-control-report.md
+  - docs/reports/WO-062-god-eyes-current build-layer-architecture-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-062-god-eyes-current build-layer-architecture-plan.md
+  - docs/reports/WO-063-current build-layer-registry-control-report.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-063-current build-layer-registry-control-report.md
   - docs/reports/WO-067-database-live-static-history-foundation.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-067-database-live-static-history-foundation.md
-  - docs/reports/WO-069-mvp-live-source-research-and-catalog-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-069-mvp-live-source-research-and-catalog-plan.md
+  - docs/reports/WO-069-current build-live-source-research-and-catalog-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-069-current build-live-source-research-and-catalog-plan.md
   - docs/reports/WO-070-earth-events-layer-implementation-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-070-earth-events-layer-implementation-plan.md
   - docs/reports/WO-071-earth-events-database-migration.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-071-earth-events-database-migration.md
   - docs/reports/WO-075-076-earth-events-closeout-and-borders-policy-plan.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
   - docs/reports/WO-076A-borders-boundaries-gate-and-source-review.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-076A-borders-boundaries-gate-and-source-review.md
   - docs/reports/WO-077-borders-boundaries-database-schema.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-077-borders-boundaries-database-schema.md
   - docs/reports/WO-078A-borders-source-license-clearance-kit.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078A-borders-source-license-clearance-kit.md
-  - docs/reports/WO-078A1-borders-mvp-boundary-mode-decision.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078A1-borders-mvp-boundary-mode-decision.md
-  - docs/reports/WO-078B-borders-natural-earth-mvp-source-selection.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078B-borders-natural-earth-mvp-source-selection.md
-  - docs/reports/WO-078C-borders-natural-earth-mvp-ingestion.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078C-borders-natural-earth-mvp-ingestion.md
+  - docs/reports/WO-078A1-borders-current build-boundary-mode-decision.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078A1-borders-current build-boundary-mode-decision.md
+  - docs/reports/WO-078B-borders-natural-earth-current build-source-selection.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078B-borders-natural-earth-current build-source-selection.md
+  - docs/reports/WO-078C-borders-natural-earth-current build-ingestion.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078C-borders-natural-earth-current build-ingestion.md
   - docs/reports/WO-078E-borders-boundaries-frontend.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-078E-borders-boundaries-frontend.md
   - docs/reports/WO-083A-energy-infrastructure-contract-report.md → docs/archive/2026-06-14-documentation-cleanup/reports/WO-083A-energy-infrastructure-contract-report.md
 - Files intentionally NOT moved (kept active):
@@ -9646,7 +9694,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - docs/archive/2026-06-14-spec-kit-alignment/deferred-decisions/DEFERRED_DECISIONS.md
 - Files modified:
   - docs/README.md (extended the archive-batches note to include the 2026-06-14 spec-kit-alignment batch)
-  - docs/control/layer_10_energy_infrastructure_mvp_contract.md (fixed broken Layer 10 spec reference from specs/004-layer-06-energy-infrastructure-mvp/ to specs/004-layer-10-energy-infrastructure-mvp/)
+  - docs/control/the legacy layer-10 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) (fixed broken Layer 10 spec reference from specs/004-layer-10-energy-infrastructure (legacy name)/ to specs/004-layer-10-energy-infrastructure (legacy name)/)
   - docs/state/HANDOFF_LOG.md (this appended entry)
 - Files moved (git mv, no content changes unless noted):
   - docs/audits/PROJECT_ALIGNMENT_REPORT.md → docs/archive/2026-06-14-spec-kit-alignment/audits/PROJECT_ALIGNMENT_REPORT.md
@@ -9656,25 +9704,25 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - docs/api/API_AVIATION_PRELOAD_WO-030A.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-030A-aviation-preload.md
   - docs/work-orders/WO-046-ci-github-actions.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-046-ci-github-actions.md
   - docs/work-orders/WO-061-repository-safe-cleanup.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-061-repository-safe-cleanup.md
-  - docs/work-orders/WO-063-MVP-LAYER-REGISTRY-CONTROL.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-063-MVP-LAYER-REGISTRY-CONTROL.md
+  - docs/work-orders/WO-063-current build-LAYER-REGISTRY-CONTROL.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-063-current build-LAYER-REGISTRY-CONTROL.md
   - docs/work-orders/WO-067-database-live-static-history-foundation-review.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-067-database-live-static-history-foundation-review.md
-  - docs/work-orders/WO-069-mvp-live-source-research-and-catalog-plan.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-069-mvp-live-source-research-and-catalog-plan.md
+  - docs/work-orders/WO-069-current build-live-source-research-and-catalog-plan.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-069-current build-live-source-research-and-catalog-plan.md
   - docs/work-orders/WO-070-earth-events-layer-implementation-plan.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-070-earth-events-layer-implementation-plan.md
   - docs/work-orders/WO-071-earth-events-database-migration.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-071-earth-events-database-migration.md
   - docs/work-orders/WO-075-076-earth-events-closeout-and-borders-policy-plan.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-075-076-earth-events-closeout-and-borders-policy-plan.md
   - docs/work-orders/WO-076A-borders-boundaries-gate-and-source-review.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-076A-borders-boundaries-gate-and-source-review.md
   - docs/work-orders/WO-077-borders-boundaries-database-schema.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-077-borders-boundaries-database-schema.md
   - docs/work-orders/WO-078A-borders-source-license-clearance-kit.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078A-borders-source-license-clearance-kit.md
-  - docs/work-orders/WO-078A1-borders-mvp-boundary-mode-decision.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078A1-borders-mvp-boundary-mode-decision.md
-  - docs/work-orders/WO-078B-borders-natural-earth-mvp-source-selection.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078B-borders-natural-earth-mvp-source-selection.md
-  - docs/work-orders/WO-078C-borders-natural-earth-mvp-ingestion.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078C-borders-natural-earth-mvp-ingestion.md
+  - docs/work-orders/WO-078A1-borders-current build-boundary-mode-decision.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078A1-borders-current build-boundary-mode-decision.md
+  - docs/work-orders/WO-078B-borders-natural-earth-current build-source-selection.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078B-borders-natural-earth-current build-source-selection.md
+  - docs/work-orders/WO-078C-borders-natural-earth-current build-ingestion.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078C-borders-natural-earth-current build-ingestion.md
   - docs/work-orders/WO-078E-borders-boundaries-frontend.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-078E-borders-boundaries-frontend.md
   - docs/work-orders/WO-079A-aviation-live-source-schema-plan.md → docs/archive/2026-06-14-spec-kit-alignment/old-work-orders/WO-079A-aviation-live-source-schema-plan.md
 - Files renamed (re-homed, no content change):
   - docs/state/AVIATION_LIVE_SOURCE_DECISION.md → docs/decisions/ADR-002-aviation-live-source.md
   - docs/work-orders/WORK_ORDER_TEMPLATE.md → docs/control/WORK_ORDER_TEMPLATE.md
 - Files intentionally NOT moved (deferred or risky, see DEFERRED_DECISIONS.md):
-  - docs/control/layer_05_space_satellites_mvp_contract.md (self-labels historical; needs human decision)
+  - docs/control/the legacy layer-05 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) (self-labels historical; needs human decision)
   - docs/control/EARTH_EVENTS_LAYER_PLAN.md (older planning doc; needs human decision)
   - docs/control/AIRPORT_PUBLIC_ENRICHMENT_PIPELINE.md (older pipeline design; needs human decision)
 - Files intentionally NOT moved (kept active):
@@ -9685,7 +9733,7 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
   - All specs/ docs and spec folders.
   - AGENTS.md, docs/README.md, docs/archive/README.md, specs/README.md (protected).
   - The remaining old work orders in docs/work-orders/ that are still actively referenced by integration reviews and handoff entries.
-- Reference safety: Active doc references were checked before each move. No active reference was updated. The only "references" to the moved WO files in active docs are mentions of WO numbers in the BORDERS_BOUNDARIES_* control docs (e.g. "WO-077", "WO-078B"); those are historical mentions of the work, not file paths. The two historical mentions of the old docs/state/AVIATION_LIVE_SOURCE_DECISION.md path in HANDOFF_LOG.md are append-only historical entries and remain valid. The broken Layer 10 spec reference in docs/control/layer_10_energy_infrastructure_mvp_contract.md was the only known broken reference in the active tree; it was fixed in place.
+- Reference safety: Active doc references were checked before each move. No active reference was updated. The only "references" to the moved WO files in active docs are mentions of WO numbers in the BORDERS_BOUNDARIES_* control docs (e.g. "WO-077", "WO-078B"); those are historical mentions of the work, not file paths. The two historical mentions of the old docs/state/AVIATION_LIVE_SOURCE_DECISION.md path in HANDOFF_LOG.md are append-only historical entries and remain valid. The broken Layer 10 spec reference in docs/control/the legacy layer-10 contract filename (now archived under docs/archive/2026-06-16-implemented-specs/) was the only known broken reference in the active tree; it was fixed in place.
 - Summary: Reclassified and archived superseded documentation, promoted/moved safe misfiled docs where appropriate, documented deferred decisions, and fixed known documentation reference issues.
 - Known issues: none
 - Forbidden folders touched: no
@@ -9716,9 +9764,9 @@ WO-082F — Layer 05 Space & Satellites integration review (Kiro/Claude Haiku). 
 - Task summary: SR-001 contract/layer status response shape repair; SR-002 API weather route split; SR-003 API news route split; SR-004 API remaining route split review; SR-005 Frontend DetailPanel split; SR-006 Frontend LayerPanel split; SR-007 contracts package split; SR-008 frontend layer folder canonicalization plan; SR-009..SR-014 frontend per-layer folder canonicalization (aviation, borders, earth-events, space, maritime, energy); SR-015 fetcher/normalizer canonical source structure; SR-016 database migration documentation cleanup; SR-017 large tests split; SR-018 future scaling architecture spec.
 - Commands run:
   - git status --short --branch → clean (## spec/structure-remediation-roadmap)
-  - ls docs/control/ → 10 rule files (DATA_LOCATION_RULES, ENGINEERING_STRUCTURE_RULES, GIT_WORKFLOW_POLICY, LAYER_ARCHITECTURE, LAYER_ID_CONVENTIONS, LLM_OWNERSHIP_MATRIX, MVP_LAYER_REGISTRY, PIPELINE_HANDOFF_RULES, SOURCE_TO_FRONTEND_CONTRACT, WORK_ORDER_TEMPLATE)
+  - ls docs/control/ → 10 rule files (DATA_LOCATION_RULES, ENGINEERING_STRUCTURE_RULES, GIT_WORKFLOW_POLICY, LAYER_ARCHITECTURE, LAYER_ID_CONVENTIONS, LLM_OWNERSHIP_MATRIX, the legacy layer-registry filename (now retired), PIPELINE_HANDOFF_RULES, SOURCE_TO_FRONTEND_CONTRACT, WORK_ORDER_TEMPLATE)
   - ls docs/state/ → CURRENT_PROJECT_STATE.md, HANDOFF_LOG.md
-  - ls specs/ → 007-…-mvp + README.md
+  - ls specs/ → 007-…-legacy-name + README.md
   - ls apps/api/src/routes -Recurse → resource-oriented layout (objects/ fully split; airport-intelligence/, airport-layout-features/, public-profile/ split; weather.ts 1095, news.ts 1014, maritime.ts 797, energy/infrastructure.ts 614, space/satellites.ts 520 are oversized)
   - ls apps/web/src/layers -Recurse → canonical (layer_07_weather, layer_08_news_osint) + grandfathered (aviation, borders, earth-events, space, maritime, energy)
   - ls packages/contracts/src -Recurse → single index.ts (1325 lines)
@@ -10307,7 +10355,7 @@ and docs/README.md.
    ENGINEERING_STRUCTURE_RULES, DATA_LOCATION_RULES, PIPELINE_HANDOFF_RULES,
    LLM_OWNERSHIP_MATRIX all contain the same rule.
 
-3. **Layer list is duplicated in 4 documents.** MVP_LAYER_REGISTRY (canonical), AGENTS.md,
+3. **Layer list is duplicated in 4 documents.** the legacy layer-registry filename (now retired) (canonical), AGENTS.md,
    LAYER_ARCHITECTURE.md, LAYER_ID_CONVENTIONS.md.
 
 4. **Specs 001–007 are all implemented layers.** ~487KB / ~122k tokens of historical spec
@@ -10672,7 +10720,7 @@ Ready for Reviewer Agent re-check.
 Created `docs/control/LAYER_AND_DATA_CONTRACT.md` — the consolidated layer registry
 and data contract file. Merges content from four source files:
 
-- `MVP_LAYER_REGISTRY.md` (canonical layer table, status definitions, product rules,
+- `the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` (canonical layer table, status definitions, product rules,
   change process)
 - `LAYER_ARCHITECTURE.md` (layer rendering and product rules)
 - `LLM_OWNERSHIP_MATRIX.md` (agent/folder ownership matrix, ownership rules)
@@ -10695,8 +10743,8 @@ that happens after Reviewer confirms this file preserves all source rules.
 ### Content Preserved
 
 - All 11 layer IDs with exact canonical names (layer_00 through layer_10)
-- All layer statuses (active, active-MVP/local-dev, active-default-OFF, coming_soon)
-- MVP/local-dev warning for layer_02_borders_boundaries (boundary compliance required)
+- All layer statuses (active, active-local-dev, active-default-OFF, coming_soon)
+- local-dev warning for layer_02_borders_boundaries (boundary compliance required)
 - layer_04_public_military_security: coming_soon, public-only static-only safety rules
 - layer_09_user_shapes: coming_soon
 - layer_10_energy_infrastructure: active, public/open data only
@@ -10720,7 +10768,7 @@ that happens after Reviewer confirms this file preserves all source rules.
 
 ### What Did Not Change
 
-- Source control docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md,
+- Source control docs (the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4), LAYER_ARCHITECTURE.md,
   LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md) — not touched
 - PROJECT_RULES.md — not touched
 - AGENTS.md, docs/README.md — not touched
@@ -10729,7 +10777,7 @@ that happens after Reviewer confirms this file preserves all source rules.
 
 ### Commands Run
 
-- Get-Content docs/control/MVP_LAYER_REGISTRY.md — full read
+- Get-Content docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) — full read
 - Get-Content docs/control/LLM_OWNERSHIP_MATRIX.md — full read
 - Get-Content docs/control/SOURCE_TO_FRONTEND_CONTRACT.md — full read
 - Get-Item docs/control/LAYER_AND_DATA_CONTRACT.md | Select-Object Name,Length
@@ -10759,7 +10807,7 @@ No.
 ### Review Status
 
 Ready for Reviewer Agent review. Reviewer must verify: all 11 layer IDs and statuses
-match MVP_LAYER_REGISTRY.md exactly; ownership table covers all paths from
+match the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4) exactly; ownership table covers all paths from
 LLM_OWNERSHIP_MATRIX.md; source contract fields match SOURCE_TO_FRONTEND_CONTRACT.md;
 no rules from source files were omitted.
 
@@ -10772,7 +10820,7 @@ no rules from source files were omitted.
 - Agent: Reviewer Agent
 - Branch: docs/fix/recent-context-and-reading-policy
 - Reviewer decision: PASS
-- Summary: Completed review of LAYER_AND_DATA_CONTRACT.md (294 lines, 15,341 bytes) against all 4 source docs (MVP_LAYER_REGISTRY.md, LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md). All review checks PASS.
+- Summary: Completed review of LAYER_AND_DATA_CONTRACT.md (294 lines, 15,341 bytes) against all 4 source docs (the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4), LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md). All review checks PASS.
 - Files reviewed:
   - docs/control/LAYER_AND_DATA_CONTRACT.md (A) � 294 lines, 223 content lines, 15,341 bytes
   - docs/state/RECENT_CONTEXT.md (M) � Phase 3 entry updated to reflect review completion
@@ -10780,8 +10828,8 @@ no rules from source files were omitted.
 - Validation summary:
   - Scope: PASS � exactly 3 files changed, all expected
   - Layer registry: PASS � all 11 layer IDs with exact canonical names and statuses
-  - Layer status definitions: PASS � active, active (MVP/local-dev), active (default OFF), coming_soon, no_data
-  - Layer architecture rules: PASS � Layer 0 renders first, 60 FPS, independent toggles, no cross-layer deps, no fake data, layer_04 safety rules, layer_02 MVP warning, generic API pattern
+  - Layer status definitions: PASS � active, active (local-dev), active (default OFF), coming_soon, no_data
+  - Layer architecture rules: PASS � Layer 0 renders first, 60 FPS, independent toggles, no cross-layer deps, no fake data, layer_04 safety rules, layer_02 current build, generic API pattern
   - Ownership matrix: PASS � all 22 path patterns from LLM_OWNERSHIP_MATRIX.md, neutral role naming
   - Source-to-frontend contract: PASS � all 9 required fields, layer 0 exception, needs-contract-detail marker
   - Source families: PASS � all 9 families with correct layer IDs, code locations, API surfaces
@@ -10803,7 +10851,7 @@ no rules from source files were omitted.
   - Get-Content LAYER_AND_DATA_CONTRACT.md | Measure-Object -Line: 223 content lines, 294 total
   - Get-Item LAYER_AND_DATA_CONTRACT.md | Select-Object Name,Length: 15,341 bytes
   - Select-String LAYER_AND_DATA_CONTRACT.md: all layer IDs, statuses, ownership, contract, HANDOFF_LOG, RECENT_CONTEXT confirmed
-  - Select-String MVP_LAYER_REGISTRY.md: all layer IDs and statuses confirmed
+  - Select-String the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4): all layer IDs and statuses confirmed
   - Select-String LLM_OWNERSHIP_MATRIX.md: ownership patterns confirmed
   - Select-String SOURCE_TO_FRONTEND_CONTRACT.md: contract fields confirmed
   - python -m pytest tests/data -q: 1159 passed, 15 skipped
@@ -10836,7 +10884,7 @@ LAYER_AND_DATA_CONTRACT.md to remove "planned" qualifiers.
 
 ### Files Retired as Pointer Stubs (-> LAYER_AND_DATA_CONTRACT.md)
 
-- docs/control/MVP_LAYER_REGISTRY.md
+- docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)
 - docs/control/LAYER_ARCHITECTURE.md
 - docs/control/LLM_OWNERSHIP_MATRIX.md
 - docs/control/SOURCE_TO_FRONTEND_CONTRACT.md
@@ -10848,7 +10896,7 @@ LAYER_AND_DATA_CONTRACT.md to remove "planned" qualifiers.
 ### AGENTS.md Changes
 
 Reading policy always-read list: ESR replaced with PROJECT_RULES.md + LAYER_AND_DATA_CONTRACT.md.
-Layer Order authority: MVP_LAYER_REGISTRY -> LAYER_AND_DATA_CONTRACT.
+Layer Order authority: the legacy layer-registry filename (now retired) -> LAYER_AND_DATA_CONTRACT.
 Key Documents: 8 old entries -> 2 consolidated entries.
 
 ### docs/README.md Changes
@@ -10906,11 +10954,11 @@ AGENTS.md not changed (it already classifies specs/001-007 as historical/search-
 
 - specs/001-layer-zero-globe-core -> docs/archive/2026-06-16-implemented-specs/001-layer-zero-globe-core
 - specs/002-layer-one-aviation -> docs/archive/2026-06-16-implemented-specs/002-layer-one-aviation
-- specs/003-layer-05-space-satellites-mvp -> docs/archive/2026-06-16-implemented-specs/003-layer-05-space-satellites-mvp
-- specs/004-layer-10-energy-infrastructure-mvp -> docs/archive/2026-06-16-implemented-specs/004-layer-10-energy-infrastructure-mvp
-- specs/005-layer-06-maritime-mvp -> docs/archive/2026-06-16-implemented-specs/005-layer-06-maritime-mvp
-- specs/006-layer-07-weather-mvp -> docs/archive/2026-06-16-implemented-specs/006-layer-07-weather-mvp
-- specs/007-layer-08-news-osint-mvp -> docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint-mvp
+- specs/003-layer-05-space-satellites (legacy name) -> docs/archive/2026-06-16-implemented-specs/003-layer-05-space-satellites (legacy name)
+- specs/004-layer-10-energy-infrastructure (legacy name) -> docs/archive/2026-06-16-implemented-specs/004-layer-10-energy-infrastructure (legacy name)
+- specs/005-layer-06-maritime (legacy name) -> docs/archive/2026-06-16-implemented-specs/005-layer-06-maritime (legacy name)
+- specs/006-layer-07-weather (legacy name) -> docs/archive/2026-06-16-implemented-specs/006-layer-07-weather (legacy name)
+- specs/007-layer-08-news-osint (legacy name) -> docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint (legacy name)
 
 ### Files Created
 
@@ -11118,7 +11166,7 @@ Ready for review.
 - Agent: Orchestrator Agent
 - Branch: docs/fix/recent-context-and-reading-policy
 - Summary: Created docs/control/PROJECT_CONTROL.md as the single active project control file by merging engineering rules, layer registry, ownership matrix, source/data contract, Git workflow, and work-order template content. Removed all other active Markdown files from docs/control. Updated AGENTS.md, constitution, docs map, current state, specs guide, Spec 008 navigation, and archive README to reference the single control file. Added AGENTS.md guidance for agents to use Graphify for codebase, documentation, or project-content relationship questions when graphify-out/graph.json exists.
-- Files changed: AGENTS.md; .specify/memory/constitution.md; docs/README.md; docs/archive/README.md; docs/control/PROJECT_CONTROL.md; removed docs/control/DATA_LOCATION_RULES.md; removed docs/control/ENGINEERING_STRUCTURE_RULES.md; removed docs/control/GIT_WORKFLOW_POLICY.md; removed docs/control/LAYER_AND_DATA_CONTRACT.md; removed docs/control/LAYER_ARCHITECTURE.md; removed docs/control/LAYER_ID_CONVENTIONS.md; removed docs/control/LLM_OWNERSHIP_MATRIX.md; removed docs/control/MVP_LAYER_REGISTRY.md; removed docs/control/PIPELINE_HANDOFF_RULES.md; removed docs/control/PROJECT_RULES.md; removed docs/control/SOURCE_TO_FRONTEND_CONTRACT.md; removed docs/control/WORK_ORDER_TEMPLATE.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/RECENT_CONTEXT.md; docs/state/HANDOFF_LOG.md; specs/README.md; specs/008-structure-remediation-roadmap/README.md; specs/008-structure-remediation-roadmap/plan.md; specs/008-structure-remediation-roadmap/repository-skeleton.md; specs/008-structure-remediation-roadmap/spec.md; specs/008-structure-remediation-roadmap/tasks.md.
+- Files changed: AGENTS.md; .specify/memory/constitution.md; docs/README.md; docs/archive/README.md; docs/control/PROJECT_CONTROL.md; removed docs/control/DATA_LOCATION_RULES.md; removed docs/control/ENGINEERING_STRUCTURE_RULES.md; removed docs/control/GIT_WORKFLOW_POLICY.md; removed docs/control/LAYER_AND_DATA_CONTRACT.md; removed docs/control/LAYER_ARCHITECTURE.md; removed docs/control/LAYER_ID_CONVENTIONS.md; removed docs/control/LLM_OWNERSHIP_MATRIX.md; removed docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4); removed docs/control/PIPELINE_HANDOFF_RULES.md; removed docs/control/PROJECT_RULES.md; removed docs/control/SOURCE_TO_FRONTEND_CONTRACT.md; removed docs/control/WORK_ORDER_TEMPLATE.md; docs/state/CURRENT_PROJECT_STATE.md; docs/state/RECENT_CONTEXT.md; docs/state/HANDOFF_LOG.md; specs/README.md; specs/008-structure-remediation-roadmap/README.md; specs/008-structure-remediation-roadmap/plan.md; specs/008-structure-remediation-roadmap/repository-skeleton.md; specs/008-structure-remediation-roadmap/spec.md; specs/008-structure-remediation-roadmap/tasks.md.
 - Commands run: Get-Content AGENTS.md; Get-Content docs/control/*.md; Get-Content .specify/memory/constitution.md; Get-Content docs/README.md; Get-Content specs/README.md; Get-Content specs/008-structure-remediation-roadmap/README.md; rg active reference scans; Get-ChildItem docs/control; git rm retired control files; git diff --check.
 - Results: git diff --check PASS. docs/control now contains only PROJECT_CONTROL.md. Active reference scans found no references to deleted control filenames outside historical/audit/archive material.
 - Known issues: Historical reports, archived evidence, and HANDOFF_LOG history still mention old control filenames by design. Full runtime tests were not run because this is documentation-only.

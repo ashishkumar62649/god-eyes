@@ -218,7 +218,7 @@ Production code reads every field through `PICKING_FIELDS.*` constants from
 |----------|------|-------|
 | `layer_00_globe_core` | Globe Core | Frontend-only foundation; always on. |
 | `layer_01_aviation` | Aviation | Airports + live aircraft; default ON. |
-| `layer_02_borders_boundaries` | Borders & Boundaries | MVP/local-dev (Natural Earth); default ON; **not production-approved**. |
+| `layer_02_borders_boundaries` | Borders & Boundaries | local-dev (Natural Earth); default ON; **not production-approved**. |
 | `layer_03_earth_events` | Earth Events | USGS earthquakes; default ON. |
 | `layer_05_space_satellites` | Space & Satellites | Implemented; UI toggle default OFF. |
 | `layer_06_maritime` | Maritime | Implemented; UI toggle default OFF. |
@@ -239,7 +239,7 @@ Production code reads every field through `PICKING_FIELDS.*` constants from
 - **Layer 1 — Aviation:** ~85k airports with resident global cache, category filters, intel
   detail panel, public profile/intelligence/image/layout enrichment, and live aircraft
   rendering over WebSocket when the aviation worker is running.
-- **Layer 2 — Borders & Boundaries:** Natural Earth Admin-0 outlines (MVP/local-dev only).
+- **Layer 2 — Borders & Boundaries:** Natural Earth Admin-0 outlines (local-dev only).
   Not Survey of India compliant; not production-approved.
 - **Layer 3 — Earth Events:** USGS earthquake markers, color-coded by severity.
 - **Layer 5 — Space & Satellites:** Satellite catalog/orbit endpoints + WebSocket; renders

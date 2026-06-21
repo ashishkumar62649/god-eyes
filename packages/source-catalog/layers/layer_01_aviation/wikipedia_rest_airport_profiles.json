@@ -1,0 +1,112 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "wikipedia_rest_airport_profiles",
+  "source_name": "English Wikipedia REST API — page summary for airport public profiles",
+  "status": "active",
+  "source_type": "wikipedia_rest",
+  "access_type": "rest_poll",
+  "owner": "Airport public profile pipeline (Fetcher Agent)",
+  "license": {
+    "name": "CC BY-SA 4.0",
+    "attribution": "Text from English Wikipedia is licensed under CC BY-SA 4.0. The airport_public_profiles table stores a WikipediaAttribution (title, page id, revision id, content url) per row.",
+    "terms_url": "https://en.wikipedia.org/api/rest_v1/",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "license_type_in_db": "wikipedia"
+  },
+  "requires_api_key": false,
+  "payment_required": false,
+  "attribution_required": true,
+  "source_urls": {
+    "summary_base": "https://en.wikipedia.org/api/rest_v1/page/summary",
+    "example_url": "https://en.wikipedia.org/api/rest_v1/page/summary/Dubai_International_Airport",
+    "search_base": "https://en.wikipedia.org/w/rest.php/v1/search/page"
+  },
+  "what_it_provides": "Short structured summary (title, pageid, revision, description, extract, thumbnail url, content_urls, optional wikibase_item) for an English Wikipedia article, used to build an airport's public profile (summary, short description, thumbnail). The QID returned in 'wikibase_item' is then used to drive a Wikidata fetch for structured facts.",
+  "fields_collected": [
+    "title",
+    "pageid (page_id)",
+    "revision (revision_id)",
+    "description (short_description)",
+    "extract (summary)",
+    "thumbnail.source (thumbnail_url)",
+    "content_urls.desktop.page (content_url / wikipedia_url)",
+    "wikibase_item (qid for the linked Wikidata entity)",
+    "tid (optional)"
+  ],
+  "refresh_policy": {
+    "cadence": "lazy_on_profile_request_with_30_day_ttl",
+    "manual_refresh_allowed": true,
+    "schedule_note": "Profiles are fetched on demand when a user opens the airport public-profile panel. Cached for 30 days (TTL set by airport_public_profile_normalizer). Subsequent fetches are gated by the airport_public_profile_fetch_runs claim/lock flow."
+  },
+  "freshness_policy": {
+    "fresh_for_days": 30,
+    "stale_after_days": 30,
+    "notes": "30-day TTL is enforced both in the payload (expires_at) and in the worker claim/reuse path. Versions are recorded in airport_public_profile_versions regardless of whether the content hash changed."
+  },
+  "raw_storage": {
+    "bucket": "n/a (no raw blob persisted; response is parsed inline and stored as normalized fields in airport_public_profiles / airport_public_profile_versions)",
+    "path_pattern": "not applicable — see airport_public_profiles + airport_public_profile_versions tables instead"
+  },
+  "collector": {
+    "name": "wikimedia_wikidata_fetcher.fetch_wikipedia_summary (and fetch_airport_public_data)",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/wikimedia_wikidata_fetcher.py",
+    "user_agent": "god-eyes/1.0 (https://github.com/anomalyco/god-eyes; god-eyes@example.com) WikipediaEnrichmentFetcher/1.0 — required by Wikimedia policy; do NOT anonymize",
+    "timeout_seconds": 10,
+    "max_retries": 2,
+    "backoff_base_seconds": 1.0,
+    "manual_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/airport_public_profile_worker.py --airport-id <uuid> --show-raw --dry-run"
+  },
+  "normalizer": {
+    "name": "parse_wikipedia_summary_response + normalize_airport_public_profile",
+    "path": "packages/schemas/layers/layer_01_aviation/airport_public_profile.py (parsers) + services/normalizer/src/layers/layer_01_aviation/airport_public_profile_normalizer.py (orchestrator)",
+    "manual_command": "python services/normalizer/src/layers/layer_01_aviation/airport_public_profile_normalizer.py (called by the worker)"
+  },
+  "validator": {
+    "name": "airport_public_profiles / airport_public_profile_versions schema (migration 005)",
+    "path": "database/migrations/layers/layer_01_aviation/005_airport_public_profile_cache.sql"
+  },
+  "target_tables": [
+    "airport_public_profiles",
+    "airport_public_profile_versions",
+    "airport_public_profile_fetch_runs",
+    "airport_source_links (source_type='wikipedia')"
+  ],
+  "api_endpoints": {
+    "rest": [
+      "GET /api/airports/:airportId/public-profile"
+    ],
+    "implementation_paths": [
+      "apps/api/src/routes/public-profile/ (canonical)",
+      "apps/api/src/lib/db.ts (checkDatabaseStatus helper)"
+    ]
+  },
+  "frontend_usage": {
+    "layer_folder": "apps/web/src/layers/layer_01_aviation/airports/",
+    "files": [
+      "apps/web/src/layers/layer_01_aviation/airports/useAirportPublicProfile.ts",
+      "apps/web/src/layers/layer_01_aviation/airports/airportPublicProfileTypes.ts"
+    ],
+    "barrel": "apps/web/src/layers/layer_01_aviation/index.ts re-exports useAirportPublicProfile and the profile types",
+    "notes": "Frontend only knows the API response shape (consumed via the public-profile endpoint), not the upstream provider. The bundled source_id 'airport_public_enrichment' is the pipeline-level identifier — Wikipedia and Wikidata are registered separately in the source catalog."
+  },
+  "tests": [
+    "tests/data/layer_01_aviation/test_airport_public_profile_worker.py",
+    "tests/data/layer_01_aviation/test_airport_public_profile_normalizer.py",
+    "tests/data/layer_01_aviation/test_airport_public_profile_cache_migration.py",
+    "tests/data/layer_01_aviation/fixtures/wikipedia_summary_dubai.json",
+    "tests/data/layer_01_aviation/fixtures/wikipedia_summary_kjfk.json",
+    "tests/data/layer_01_aviation/fixtures/wikipedia_summary_kbdl.json",
+    "tests/data/layer_01_aviation/fixtures/wikipedia_summary_lhr.json"
+  ],
+  "known_limitations": [
+    "English Wikipedia only (no other language Wikipedias); canonical decision enforced in the fetcher docstring and the airport_intelligence_normalizer.",
+    "User-Agent is mandatory per Wikimedia policy; the documented UA in airport_public_profile.py is a placeholder email that may be replaced by a real ops contact before production.",
+    "Wikimedia uses a 'tid' header for client-side caching; the fetcher currently does not propagate If-None-Match / If-Modified-Since.",
+    "The full Wikipedia page is never stored; only the summary payload fields and attribution metadata."
+  ],
+  "pipeline_source_id_note": "The fetcher and normalizer write rows with the bundled pipeline source_id 'airport_public_enrichment' (defined in packages/schemas/layers/layer_01_aviation/airport_public_profile.py as SOURCE_ID). The airport_source_links table also records source_type='wikipedia' for cross-references; this catalog entry is keyed on the upstream provider.",
+  "notes": [
+    "This catalog source_id ('wikipedia_rest_airport_profiles') identifies the upstream provider only; it is not the value persisted in the DB. The pipeline-level source_id is 'airport_public_enrichment' (see pipeline_source_id_note).",
+    "The bundled pipeline also pulls the 'wikibase_item' (QID) from this endpoint to drive the Wikidata fetch. That QID is recorded on the profile (wikidata_qid) and the linked airport_source_links row."
+  ]
+}

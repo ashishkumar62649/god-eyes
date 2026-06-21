@@ -12,7 +12,7 @@ AUDIT_REPORT
 
 | Audit finding | Post-Phase 6 status |
 |---------------|---------------------|
-| P1: Active authority drift (PROJECT_RULES.md, LAYER_AND_DATA_CONTRACT.md, GIT_WORKFLOW_POLICY.md, WORK_ORDER_TEMPLATE.md, MVP_LAYER_REGISTRY.md, LAYER_ID_CONVENTIONS.md, LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md referenced as active) | **RESOLVED.** All of the above were merged into `docs/control/PROJECT_CONTROL.md` (4 parts). The `docs/control/` directory now contains only that one active file. |
+| P1: Active authority drift (PROJECT_RULES.md, LAYER_AND_DATA_CONTRACT.md, GIT_WORKFLOW_POLICY.md, WORK_ORDER_TEMPLATE.md, the legacy layer-registry filename (now retired), LAYER_ID_CONVENTIONS.md, LAYER_ARCHITECTURE.md, LLM_OWNERSHIP_MATRIX.md, SOURCE_TO_FRONTEND_CONTRACT.md referenced as active) | **RESOLVED.** All of the above were merged into `docs/control/PROJECT_CONTROL.md` (4 parts). The `docs/control/` directory now contains only that one active file. |
 | P1: Work-order template conflicts with neutral metadata rules | **RESOLVED.** The template is now in `docs/control/PROJECT_CONTROL.md` Part 4. It does not request `LLM model` or `Tool/CLI used`; it requires neutral fields (Agent, Work Order, Branch, Summary, Commands, Known Issues, Forbidden Folders, Secrets Added). |
 | P1: Neutral role terminology inconsistent (Documentation Agent, Reviewer Agent, Planning Agent, Contract Agent) | **PARTIALLY RESOLVED.** `AGENTS.md` was de-duplicated to a pure entry-point pointer and now lists only the six neutral roles. Remaining occurrences are in archived `RECENT_CONTEXT.md` history (replace on next 6th-entry rotation) and the Spec 008 evidence folder. New entries must use the six neutral roles. |
 | P2: Spec 008 is structurally useful but stale after Phase 4-6 | **PARTIALLY RESOLVED.** A "Status after Phase 6" banner was added to `specs/008-structure-remediation-roadmap/README.md`. Pre-consolidation research/plan files in Spec 008 remain as historical evidence per the spec README. |
@@ -95,17 +95,17 @@ But these active files still point readers back to retired files:
 
 | File | Evidence | Issue |
 |------|----------|-------|
-| `docs/control/PROJECT_RULES.md` | Lines 58, 67, 93 | Still says or implies `MVP_LAYER_REGISTRY.md` is authoritative/canonical for layer IDs. |
-| `docs/state/CURRENT_PROJECT_STATE.md` | Line 9 | Says `docs/control/MVP_LAYER_REGISTRY.md` is authoritative. |
+| `docs/control/PROJECT_RULES.md` | Lines 58, 67, 93 | Still says or implies `the legacy layer-registry filename (now retired)` is authoritative/canonical for layer IDs. |
+| `docs/state/CURRENT_PROJECT_STATE.md` | Line 9 | Says `docs/control/the legacy layer-registry filename (now retired)` is authoritative. |
 | `docs/control/GIT_WORKFLOW_POLICY.md` | Line 18 | Says folder ownership comes from `LLM_OWNERSHIP_MATRIX.md`, now retired. |
 | `docs/control/WORK_ORDER_TEMPLATE.md` | Constraint section | Still points to `LAYER_ID_CONVENTIONS.md`, now retired as an active source. |
-| `specs/008-structure-remediation-roadmap/README.md` | Line 108 | Says `MVP_LAYER_REGISTRY.md` is authoritative. |
-| `specs/008-structure-remediation-roadmap/spec.md` | Lines 324-327 | Lists `MVP_LAYER_REGISTRY.md`, `LAYER_ID_CONVENTIONS.md`, `LAYER_ARCHITECTURE.md`, and `LLM_OWNERSHIP_MATRIX.md` as active source docs. |
+| `specs/008-structure-remediation-roadmap/README.md` | Line 108 | Says `the legacy layer-registry filename (now retired)` is authoritative. |
+| `specs/008-structure-remediation-roadmap/spec.md` | Lines 324-327 | Lists `the legacy layer-registry filename (now retired)`, `LAYER_ID_CONVENTIONS.md`, `LAYER_ARCHITECTURE.md`, and `LLM_OWNERSHIP_MATRIX.md` as active source docs. |
 | `specs/008-structure-remediation-roadmap/repository-skeleton.md` | Lines 206-209 | Marks retired control docs as `[KEEP]` authoritative/active files. |
 
 Recommendation:
 
-- Replace active authority references to `MVP_LAYER_REGISTRY.md`, `LLM_OWNERSHIP_MATRIX.md`, `LAYER_ID_CONVENTIONS.md`, `LAYER_ARCHITECTURE.md`, and `SOURCE_TO_FRONTEND_CONTRACT.md` with `docs/control/LAYER_AND_DATA_CONTRACT.md` or `docs/control/PROJECT_RULES.md`, depending on the topic.
+- Replace active authority references to `the legacy layer-registry filename (now retired)`, `LLM_OWNERSHIP_MATRIX.md`, `LAYER_ID_CONVENTIONS.md`, `LAYER_ARCHITECTURE.md`, and `SOURCE_TO_FRONTEND_CONTRACT.md` with `docs/control/LAYER_AND_DATA_CONTRACT.md` or `docs/control/PROJECT_RULES.md`, depending on the topic.
 - Leave the retired files themselves as pointer stubs unless the decision-control layer wants them moved to archive.
 
 ### P1 - Work-order template conflicts with neutral metadata rules
@@ -166,7 +166,7 @@ Recommendation:
 
 Examples:
 
-- `README.md` still says `MVP_LAYER_REGISTRY.md` is authoritative.
+- `README.md` still says `the legacy layer-registry filename (now retired)` is authoritative.
 - `spec.md` still lists old control docs as source documents.
 - `repository-skeleton.md` still marks old control docs as `[KEEP]`.
 - `documentation-context-compression-research.md` and `documentation-architecture-compression-plan.md` are useful historical planning evidence, but their recommendations have partly been implemented.
@@ -210,7 +210,7 @@ Exact duplicate normalized-content groups:
 | Duplicate group | Assessment |
 |-----------------|------------|
 | `docs/control/DATA_LOCATION_RULES.md`, `docs/control/ENGINEERING_STRUCTURE_RULES.md`, `docs/control/PIPELINE_HANDOFF_RULES.md` | Intentional retired pointer stubs to `PROJECT_RULES.md`. Low risk, but repetitive. |
-| `docs/control/LAYER_ARCHITECTURE.md`, `docs/control/LLM_OWNERSHIP_MATRIX.md`, `docs/control/MVP_LAYER_REGISTRY.md`, `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` | Intentional retired pointer stubs to `LAYER_AND_DATA_CONTRACT.md`. Low risk, but repetitive. |
+| `docs/control/LAYER_ARCHITECTURE.md`, `docs/control/LLM_OWNERSHIP_MATRIX.md`, `docs/control/the legacy layer-registry filename (now retired)`, `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` | Intentional retired pointer stubs to `LAYER_AND_DATA_CONTRACT.md`. Low risk, but repetitive. |
 
 Near-duplicates:
 
@@ -314,7 +314,7 @@ Correct:
 
 Incorrect or stale:
 
-- `PROJECT_RULES.md` still points to `MVP_LAYER_REGISTRY.md`.
+- `PROJECT_RULES.md` still points to `the legacy layer-registry filename (now retired)`.
 - `GIT_WORKFLOW_POLICY.md` still points to `LLM_OWNERSHIP_MATRIX.md`.
 - `WORK_ORDER_TEMPLATE.md` still requests model/tool metadata.
 

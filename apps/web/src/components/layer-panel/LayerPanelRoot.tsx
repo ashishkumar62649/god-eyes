@@ -105,7 +105,7 @@ export const LayerPanelRoot: React.FC<LayerPanelProps> = ({
                       {bordersStatusText(bordersLayerActive, bordersPhase)}
                     </span>
                   </div>
-                  {bordersLayerActive && <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>Natural Earth MVP/local/dev boundaries. Not production-approved. Not Survey of India compliant.</div>}
+                  {bordersLayerActive && <div style={{ fontSize: '0.5rem', color: '#ffab00', opacity: 0.65, marginTop: '3px', lineHeight: 1.4 }}>Natural Earth local/dev boundaries. Not production-approved. Not Survey of India compliant.</div>}
                 </div>
               );
             }

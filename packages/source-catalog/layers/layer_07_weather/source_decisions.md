@@ -2,7 +2,7 @@
 
 ## Overview
 
-Final source decisions for the GOD EYES Weather layer MVP.
+Final source decisions for the GOD EYES Weather layer current build.
 
 ---
 
@@ -10,26 +10,26 @@ Final source decisions for the GOD EYES Weather layer MVP.
 
 | Source | Status | Reason |
 |--------|--------|--------|
-| **Open-Meteo** | **PRIMARY_MVP_SOURCE** | No API key, global, rich variables, batch support, CC-BY 4.0 |
+| **Open-Meteo** | **PRIMARY_CURRENT_BUILD_SOURCE** | No API key, global, rich variables, batch support, CC-BY 4.0 |
 | **MET Norway** | **FUTURE_SOURCE** / **BACKUP_SOURCE** | Nordic focus, User-Agent requirement, good backup if Open-Meteo fails |
 | **RainViewer** | **FUTURE_OVERLAY_SOURCE** | Radar tiles only, not point weather data, future overlay |
 | **NOAA/NWS** | **FUTURE_ALERT_SOURCE** | US-only, alerts focus, not global forecast data |
-| **OpenWeather** | **REJECT_FOR_MVP** | API key required, limited free tier (1K/day), commercial |
-| **WeatherAPI** | **REJECT_FOR_MVP** | API key required, limited free tier, commercial |
+| **OpenWeather** | **REJECT_FOR_CURRENT_BUILD** | API key required, limited free tier (1K/day), commercial |
+| **WeatherAPI** | **REJECT_FOR_CURRENT_BUILD** | API key required, limited free tier, commercial |
 
 ---
 
-## Open-Meteo: PRIMARY_MVP_SOURCE
+## Open-Meteo: PRIMARY_CURRENT_BUILD_SOURCE
 
 ### Decision
 
-**Open-Meteo is APPROVED as the PRIMARY_MVP_SOURCE for Layer 07 Weather.**
+**Open-Meteo is APPROVED as the PRIMARY_CURRENT_BUILD_SOURCE for Layer 07 Weather.**
 
 ### Rationale
 
 1. **No API key required** for free non-commercial use
 2. **Global coverage** with WGS84 coordinate support
-3. **All MVP weather variables confirmed available** (temperature, wind, humidity, pressure, precipitation, cloud cover, weather code)
+3. **All current-build weather variables confirmed available** (temperature, wind, humidity, pressure, precipitation, cloud cover, weather code)
 4. **Batch request support** confirmed (multiple coordinates per call)
 5. **CC-BY 4.0 licence** (permissive, attribution required)
 6. **Well-documented API** with clear response format
@@ -40,7 +40,7 @@ Final source decisions for the GOD EYES Weather layer MVP.
 
 ### Key Limitations
 
-- Free tier: 10,000 API calls/day (sufficient for 5° grid MVP)
+- Free tier: 10,000 API calls/day (sufficient for 5° grid current build)
 - Non-commercial use only on free tier
 - Grid-cell resolution varies by model (9-25 km)
 - No real-time observation data (forecast model output only)
@@ -59,7 +59,7 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 
 ### Decision
 
-**MET Norway is reserved as a FUTURE_SOURCE and BACKUP_SOURCE. Not needed for MVP if Open-Meteo works.**
+**MET Norway is reserved as a FUTURE_SOURCE and BACKUP_SOURCE. Not needed for the current build if Open-Meteo works.**
 
 ### Rationale
 
@@ -82,7 +82,7 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 
 ### Decision
 
-**RainViewer is reserved as a FUTURE_OVERLAY_SOURCE for radar precipitation overlay. NOT suitable for MVP weather data.**
+**RainViewer is reserved as a FUTURE_OVERLAY_SOURCE for radar precipitation overlay. NOT suitable for current-build weather data.**
 
 ### Rationale
 
@@ -93,9 +93,9 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 - Updates every 5 minutes
 - Free for personal/educational use, attribution required
 
-### Why Not MVP
+### Why Not for the current build
 
-- MVP needs point/grid weather data, not radar imagery
+- Current build needs point/grid weather data, not radar imagery
 - RainViewer data is fundamentally different from forecast model output
 - Future overlay: RainViewer radar tiles on top of weather markers
 
@@ -105,7 +105,7 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 
 ### Decision
 
-**NOAA/NWS is reserved as a FUTURE_ALERT_SOURCE for US weather alerts. NOT suitable for global MVP.**
+**NOAA/NWS is reserved as a FUTURE_ALERT_SOURCE for US weather alerts. NOT suitable for global current build.**
 
 ### Rationale
 
@@ -115,19 +115,19 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 - 40 requests/minute recommended rate limit
 - Provides forecasts, observations, alerts, warnings
 
-### Why Not MVP
+### Why Not for the current build
 
 - GOD EYES requires global weather data
-- Alert/warning focus does not match MVP need for global forecast data
+- Alert/warning focus does not match current-build need for global forecast data
 - Future use: US-specific severe weather alerts overlay
 
 ---
 
-## OpenWeather: REJECT_FOR_MVP
+## OpenWeather: REJECT_FOR_CURRENT_BUILD
 
 ### Decision
 
-**OpenWeather is REJECTED for MVP.**
+**OpenWeather is REJECTED for the current build.**
 
 ### Rationale
 
@@ -138,11 +138,11 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 
 ---
 
-## WeatherAPI: REJECT_FOR_MVP
+## WeatherAPI: REJECT_FOR_CURRENT_BUILD
 
 ### Decision
 
-**WeatherAPI is REJECTED for MVP.**
+**WeatherAPI is REJECTED for the current build.**
 
 ### Rationale
 
@@ -157,7 +157,7 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 
 ### Primary Source
 
-**Open-Meteo** — PRIMARY_MVP_SOURCE
+**Open-Meteo** — PRIMARY_CURRENT_BUILD_SOURCE
 
 ### Backup Source
 
@@ -168,7 +168,7 @@ Weather data provided by Open-Meteo (https://open-meteo.com/) under CC-BY 4.0 li
 - **RainViewer** — radar precipitation overlay (separate imagery layer)
 - **NOAA/NWS** — US weather alerts (separate alert layer)
 
-### Rejected for MVP
+### Rejected for current build
 
 - **OpenWeather** — API key required, limited free tier
 - **WeatherAPI** — API key required, limited free tier

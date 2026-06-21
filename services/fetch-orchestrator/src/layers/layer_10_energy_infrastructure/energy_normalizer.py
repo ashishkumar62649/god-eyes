@@ -386,7 +386,7 @@ def _osm_element_to_feature(el: dict[str, Any]) -> dict[str, Any] | None:
             return None
     elif el_type == "relation":
         # Conservative: use the first member's center as a point. A full
-        # multipolygon decoder is out of scope for the MVP.
+        # multipolygon decoder is out of scope for the current build.
         members = el.get("members") or []
         center = _relation_center(members)
         if center is None:

@@ -1540,7 +1540,7 @@ def print_sync_plan() -> None:
     print("  - Position recompute: 60-300 s (sgp4 from cached TLEs, no provider)")
     print("  - Provider fetch:    2-24 h (CelesTrak / Space-Track full pull)")
     print()
-    print("  Practical rollout for this MVP:")
+    print("  Practical rollout for this build:")
     print("    1. Bootstrap full catalog once via --download-only /")
     print("       --normalize-only / --persist-from-cache (one-time).")
     print("    2. Run --refresh-positions-from-cache every 1-5 min to")

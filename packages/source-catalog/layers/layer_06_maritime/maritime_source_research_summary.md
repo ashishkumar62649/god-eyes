@@ -7,7 +7,7 @@
 
 ---
 
-## AISStream — PRIMARY MVP SOURCE
+## AISStream — PRIMARY CURRENT-BUILD SOURCE
 
 ### Verification Status: VERIFIED
 
@@ -112,7 +112,7 @@ Every AISStream message wraps the actual AIS data in a standard envelope:
 - MMSI filter max: 50 values
 - API models may change without notice (BETA)
 
-### Risks for MVP
+### Risks for the current build
 
 1. **BETA service** — no SLA, no uptime guarantee
 2. **Unstable API** — object models may change without notice
@@ -140,7 +140,7 @@ AISStream is suitable for WO-MAR-S fetch proof. The connection shape, message ty
 | **Docs** | https://www.barentswatch.no/en/geoservices/ (returned 404) |
 | **Type** | REST API |
 | **Coverage** | Regional (Norway) |
-| **Decision** | **FUTURE_SOURCE** — Regional fallback only; not global enough for MVP |
+| **Decision** | **FUTURE_SOURCE** — Regional fallback only; not global enough for the current build |
 
 ### AISHub
 

@@ -260,8 +260,8 @@ prescribe it.
 **Related files:**
 - `docs/state/HANDOFF_LOG.md` (contains work entries for WO-NEWS-G1, G1.5, G2, G3, A1, A2, U1, U2 but no review companion)
 - `docs/state/INTEGRATION_REVIEW_WO-079B.md` (most recent review — for aviation)
-- `specs/006-layer-07-weather-mvp/` (weather spec dir — no companion review in docs/state/)
-- `specs/007-layer-08-news-osint-mvp/` (news spec dir — no companion review in docs/state/)
+- `docs/archive/2026-06-16-implemented-specs/006-layer-07-weather/` (weather spec dir — no companion review in docs/state/)
+- `docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint/` (news spec dir — no companion review in docs/state/)
 - `AGENTS.md` (workflow section, step 7: "The Orchestrator Agent reviews and creates `docs/state/INTEGRATION_REVIEW_[WO].md`")
 
 **Current evidence:**
@@ -469,7 +469,7 @@ avoid conflicting patterns
 **Category:** Documentation clarity risk — residual tool name in active doc
 
 **Primary files:**
-- `docs/control/MVP_LAYER_REGISTRY.md` (row 4, Safety Notes column)
+- `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` (row 4, Safety Notes column)
 
 **Related files:**
 - `AGENTS.md` (rule: "No model, provider, assistant, or tool product names are used
@@ -477,14 +477,14 @@ avoid conflicting patterns
 
 **Current evidence:**
 
-`MVP_LAYER_REGISTRY.md` row 4 Safety Notes cell (exact text):
+`the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` row 4 Safety Notes cell (exact text):
 > **HIGH SAFETY:** Public-only. Static-only. No real-time tracking. No sensitive
 > coordinate data. No drone/UAV paths. All data must be from open, published, verifiable
 > sources. **Any new source requires explicit Kiro approval.** Must include disclaimer in
 > UI: "Publicly available information only."
 
 This is the only remaining occurrence of a tool/product name in any active control
-document after the alignment pass. All other occurrences in `MVP_LAYER_REGISTRY.md`,
+document after the alignment pass. All other occurrences in `the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)`,
 `AGENTS.md`, `GIT_WORKFLOW_POLICY.md`, `LLM_OWNERSHIP_MATRIX.md`, and
 `PIPELINE_HANDOFF_RULES.md` were removed in the alignment fix.
 
@@ -511,7 +511,7 @@ Not worth deferring.
 **Recommended owner:** Orchestrator Agent
 
 **Suggested repair shape:**
-In `docs/control/MVP_LAYER_REGISTRY.md`, row 4 Safety Notes column, change:
+In `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)`, row 4 Safety Notes column, change:
 ```
 Any new source requires explicit Kiro approval.
 ```
@@ -522,7 +522,7 @@ Any new source requires explicit Orchestrator Agent approval.
 One word substitution in one cell. No other files need changing.
 
 **Suggested verification:**
-- `grep -ri "kiro" docs/control/MVP_LAYER_REGISTRY.md` should return no matches after fix
+- `grep -ri "kiro" docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` should return no matches after fix
 - No build or test commands needed — documentation only
 
 **Blocks next planning:** NO
@@ -780,7 +780,7 @@ Remove the `test:api` entry from `package.json`. Keep `api:test` as the canonica
 
 **Related files:**
 - `AGENTS.md` (functions as the landing document)
-- `docs/control/MVP_LAYER_REGISTRY.md` (authoritative registry)
+- `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` (authoritative registry)
 
 **Current evidence:**
 
@@ -823,7 +823,7 @@ Create `README.md` at repo root with:
 - "See AGENTS.md for multi-agent control rules and layer registry"
 - Quick start: `pnpm install`, `pnpm api`, `pnpm dev`, `python -m pytest tests/data -q`
 - Required `.env` vars: `DATABASE_URL`, `VITE_CESIUM_ION_ACCESS_TOKEN`, `VITE_API_BASE_URL`
-- Link to `docs/control/MVP_LAYER_REGISTRY.md`
+- Link to `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)`
 
 Do not duplicate `AGENTS.md` content. The README is navigation only.
 
@@ -1010,7 +1010,7 @@ This preserves the ignore patterns while removing product names from the comment
 
 **Primary files:**
 - `docs/work-orders/` directory (newest: `WO-079A-aviation-live-source-schema-plan.md`)
-- `specs/003-layer-05-space-satellites-mvp/` through `specs/007-layer-08-news-osint-mvp/`
+- `docs/archive/2026-06-16-implemented-specs/003-layer-05-space-satellites/` through `docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint/`
 
 **Related files:**
 - `AGENTS.md` (workflow step 1: "The Orchestrator Agent creates work orders in `docs/work-orders/`")
@@ -1026,11 +1026,11 @@ layers 05, 06, 07, 08, or 10.
 ```
 specs/001-layer-zero-globe-core/
 specs/002-layer-one-aviation/
-specs/003-layer-05-space-satellites-mvp/    ← layer 05 (no WO in docs/work-orders/)
-specs/004-layer-10-energy-infrastructure-mvp/  ← layer 10 (no WO)
-specs/005-layer-06-maritime-mvp/            ← layer 06 (no WO)
-specs/006-layer-07-weather-mvp/             ← layer 07 (no WO)
-specs/007-layer-08-news-osint-mvp/          ← layer 08 (no WO)
+docs/archive/2026-06-16-implemented-specs/003-layer-05-space-satellites/    ← layer 05 (no WO in docs/work-orders/)
+docs/archive/2026-06-16-implemented-specs/004-layer-10-energy-infrastructure/  ← layer 10 (no WO)
+docs/archive/2026-06-16-implemented-specs/005-layer-06-maritime/            ← layer 06 (no WO)
+docs/archive/2026-06-16-implemented-specs/006-layer-07-weather/             ← layer 07 (no WO)
+docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint/          ← layer 08 (no WO)
 ```
 
 `AGENTS.md` step 1:
@@ -1043,7 +1043,7 @@ in `docs/work-orders/` at all.
 
 Within each `specs/<n>-*/` directory there is typically a `WORK_ORDERS.md` file that
 enumerates the sub-work-orders for that spec (e.g.,
-`specs/007-layer-08-news-osint-mvp/WORK_ORDERS.md` lists WO-NEWS-G1, G1.5, G2, A1, A2,
+`docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint/WORK_ORDERS.md` lists WO-NEWS-G1, G1.5, G2, A1, A2,
 U1, U2). These are not in the format of `docs/work-orders/*.md` files.
 
 **Why it matters:**
@@ -1106,7 +1106,7 @@ names. They exist as immutable evidence of past work and decisions:
 | `docs/work-orders/WO-001` through `WO-079A` (38 files) | Completed work orders. Historical planning records. The work they describe is done. |
 | `docs/control/AIRPORT_PUBLIC_ENRICHMENT_PIPELINE.md` | Historical aviation enrichment design doc. Contains tool names in authorship/WO-owner fields only. Implementation is complete. No active workflow depends on it. |
 | `docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md` | Historical gate review. Contains "Reviewer: Kiro CLI" header and model reference. Compliance requirements are enforced by the active policy plan. |
-| `docs/control/BORDERS_BOUNDARIES_NATURAL_EARTH_MVP_SOURCE_SELECTION.md` and related | Source decision docs with "Author: Kiro CLI" headers. Decisions are settled. Not active workflow instructions. |
+| `docs/control/the legacy borders-source-selection filename (now archived)` and related | Source decision docs with "Author: Kiro CLI" headers. Decisions are settled. Not active workflow instructions. |
 | `docs/reports/` (all WO report files) | Historical work summaries. Same rationale as work orders. |
 | `docs/audits/PROJECT_ALIGNMENT_REPORT.md` | Pre-alignment audit report produced before the neutral-name policy was fully applied. Contains agent name references as historical context. The alignment fix neutralized active docs. |
 
@@ -1117,7 +1117,7 @@ Every file in this list must be kept neutral:
 | File | Status |
 |---|---|
 | `AGENTS.md` | PASS — fully neutral |
-| `docs/control/MVP_LAYER_REGISTRY.md` | PARTIAL — one cell (HEALTH-005, one word change needed) |
+| `docs/control/the legacy layer-registry filename (now retired; canonical layer registry is docs/control/PROJECT_CONTROL.md Part 2 �4)` | PARTIAL — one cell (HEALTH-005, one word change needed) |
 | `docs/control/LAYER_ARCHITECTURE.md` | PASS — fully neutral |
 | `docs/control/LAYER_ID_CONVENTIONS.md` | PASS — fully neutral |
 | `docs/control/LLM_OWNERSHIP_MATRIX.md` | PASS — fully neutral |

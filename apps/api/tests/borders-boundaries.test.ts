@@ -183,7 +183,7 @@ describe('Borders & Boundaries API', () => {
     expect(body.error.code).toBe('INVALID_QUERY');
   });
 
-  it('8. Returned meta includes MVP/local/dev caveat', async () => {
+  it('8. Returned meta includes local/dev caveat', async () => {
     vi.mocked(query).mockResolvedValueOnce(MOCK_SOURCE);
     vi.mocked(query).mockResolvedValueOnce(MOCK_FEATURES);
 
@@ -194,8 +194,8 @@ describe('Borders & Boundaries API', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.meta.mvpLocalDevOnly).toBe(true);
-    expect(body.meta.caveat).toContain('MVP/local/dev only');
+    expect(body.meta.localDevOnly).toBe(true);
+    expect(body.meta.caveat).toContain('local/dev only');
   });
 
   it('9. Returned meta includes productionApproved false and indiaCompliant false', async () => {
@@ -331,10 +331,10 @@ describe('Borders & Boundaries API', () => {
       limit: 250,
       sourceId: 'natural_earth_admin0_50m',
       sourceName: 'Natural Earth Admin-0 Countries 1:50m',
-      mvpLocalDevOnly: true,
+      localDevOnly: true,
       productionApproved: false,
       indiaCompliant: false,
-      caveat: expect.stringContaining('MVP/local/dev only'),
+      caveat: expect.stringContaining('local/dev only'),
     });
   });
 

@@ -3,7 +3,7 @@
 The Global Energy Monitor (GEM) publishes several open datasets that
 cover oil/gas pipelines, LNG terminals, and major oil/gas terminals.
 Each GEM dataset has its own license page, and per-dataset
-verification has not yet been completed for the MVP. To stay
+verification has not yet been completed for the current build. To stay
 defensible, the live download path is **disabled by default** and the
 client fails fast with a clear, recorded message.
 

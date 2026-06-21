@@ -1,0 +1,122 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "wikimedia_commons_airport_images",
+  "source_name": "Wikimedia Commons + Wikipedia image API + Wikidata P18 + Commons category — airport image gallery",
+  "status": "active",
+  "source_type": "image_gallery",
+  "access_type": "rest_poll",
+  "owner": "Airport image gallery pipeline (Fetcher Agent)",
+  "license": {
+    "name": "Mixed (per-file licenses preserved on each airport_image_assets row)",
+    "attribution": "Per-file license + author metadata are preserved in airport_image_assets.extmetadata and exposed via the API as licenseShortName / artist / creditLine. Most airport photos on Commons are CC BY-SA; some are public domain. The worker does not insert fake images and only writes one is_hero=true per airport.",
+    "terms_url": "https://commons.wikimedia.org/",
+    "license_type_in_db": "wikimedia_commons"
+  },
+  "requires_api_key": false,
+  "payment_required": false,
+  "attribution_required": true,
+  "source_urls": {
+    "wikipedia_images_api": "https://en.wikipedia.org/w/api.php?action=query&prop=images",
+    "commons_imageinfo_api": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo",
+    "commons_category_api": "https://commons.wikimedia.org/w/api.php?action=query&list=categorymembers",
+    "wikidata_entity_data": "https://www.wikidata.org/wiki/Special:EntityData"
+  },
+  "what_it_provides": "Image candidates for an airport's image gallery: (1) the Wikipedia article's image list (titles), (2) Commons imageinfo (url / thumburl / mime / size / extmetadata), (3) Commons category members for the airport's Commons category, and (4) Wikidata P18 (main image) plus the P373 Commons-category hint. Candidates are normalized, ranked, deduplicated by image_url, and one is selected as the hero image (is_hero=true).",
+  "fields_collected": [
+    "image_url (canonical)",
+    "thumbnail_url",
+    "source_page_url (Commons file page or article)",
+    "mime / size (width, height)",
+    "licenseShortName / licenseUrl (from extmetadata)",
+    "artist / creditLine (from extmetadata)",
+    "source_type (wikimedia_commons / wikipedia / wikidata)",
+    "content_hash (compute_content_hash(image_url, source_type))",
+    "is_hero (one per airport)",
+    "rank / score"
+  ],
+  "refresh_policy": {
+    "cadence": "on_demand_per_airport",
+    "manual_refresh_allowed": true,
+    "schedule_note": "Worker is invoked by --airport-id / --icao / --batch-test-airports. Default throttle is 1.5s between requests (DEFAULT_SLEEP_SECONDS=1.5) and 2.0s backoff on 429/503. Dry-run by default; --persist required for DB writes.",
+    "current_build_limit": "Small batch only — all-airport backfill is intentionally not implemented yet."
+  },
+  "freshness_policy": {
+    "fresh_for_days": "not time-bound (images are reference material, not live data)",
+    "notes": "Deduplication is by image_url + content_hash; the worker never overwrites an existing image row in a way that loses attribution. Re-runs are safe (deterministic content hash)."
+  },
+  "raw_storage": {
+    "bucket": "n/a (no raw blob persisted; candidate dicts are normalized in-memory and inserted as airport_image_assets rows)",
+    "path_pattern": "not applicable — see airport_image_assets table instead"
+  },
+  "collector": {
+    "name": "airport_image_gallery_worker",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/airport_image_gallery_worker.py",
+    "user_agent": "GodEyes/0.1 (dev/test; https://github.com/anomalyco/god-eyes)",
+    "manual_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/airport_image_gallery_worker.py --icao KBDL --show-raw",
+    "persist_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/airport_image_gallery_worker.py --icao KBDL --persist",
+    "batch_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/airport_image_gallery_worker.py --batch-test-airports --max-airports 10 --persist",
+    "internal_helpers": [
+      "fetch_wikipedia_images",
+      "fetch_commons_imageinfo",
+      "fetch_commons_category",
+      "fetch_wikidata_entity"
+    ]
+  },
+  "normalizer": {
+    "name": "airport_image_gallery_normalizer (candidate normalization + ranking + hero selection)",
+    "path": "services/normalizer/src/layers/layer_01_aviation/airport_image_gallery_normalizer.py",
+    "public_functions": [
+      "normalize_wikimedia_imageinfo",
+      "normalize_wikipedia_image_list",
+      "normalize_commons_category_members",
+      "normalize_wikidata_image",
+      "classify_image_kind",
+      "select_hero",
+      "candidate_to_db_dict"
+    ]
+  },
+  "validator": {
+    "name": "airport_image_assets CHECK constraints (source_type IN ('wikimedia_commons','wikipedia','wikidata','official_site','manual','other'))",
+    "path": "database/migrations/layers/layer_01_aviation/010_airport_image_assets.sql"
+  },
+  "target_tables": [
+    "airport_image_assets (run-style metadata for image fetches is recorded in airport_image_assets.diagnostics JSONB; there is no separate airport_image_fetch_runs table — see known_limitations)",
+    "airport_source_links (image sources are also cross-referenced via source_type='wikimedia_commons' / 'wikipedia' / 'wikidata')"
+  ],
+  "api_endpoints": {
+    "rest": [
+      "GET /api/airports/:airportId/intelligence (gallery surfaced through the airport intelligence endpoint)"
+    ],
+    "implementation_paths": [
+      "apps/api/src/routes/airport-intelligence/ (canonical)"
+    ],
+    "needs_contract_detail": "Whether a dedicated GET /api/airports/:airportId/images endpoint exists; the airport-intelligence route currently serves gallery + profile + modules. Confirm before any frontend work assumes a dedicated images route."
+  },
+  "frontend_usage": {
+    "layer_folder": "apps/web/src/layers/layer_01_aviation/airports/",
+    "files": [
+      "apps/web/src/layers/layer_01_aviation/airports/useAirportIntelligence.ts",
+      "apps/web/src/layers/layer_01_aviation/airports/airportIntelligenceTypes.ts"
+    ],
+    "barrel": "apps/web/src/layers/layer_01_aviation/index.ts re-exports useAirportIntelligence and the intelligence types"
+  },
+  "tests": [
+    "tests/data/layer_01_aviation/test_airport_image_gallery_worker.py",
+    "tests/data/layer_01_aviation/test_airport_image_assets_migration.py"
+  ],
+  "known_limitations": [
+    "Dry-run is the default; --persist must be explicit.",
+    "Only one is_hero=true per airport (enforced by the unique partial index idx_airport_image_assets_single_hero).",
+    "Image candidates are capped at 8 per airport (max_images default) to bound DB writes and request volume.",
+    "All-airport backfill is intentionally not implemented yet (see worker docstring: 'Sources NOT used yet — All-airport backfill').",
+    "Social media / official airport websites / Flickr / aviation photography sites are explicitly NOT used yet (per worker docstring).",
+    "Test airport list is hard-coded: TEST_AIRPORTS = ['KBDL', 'KBOS', 'KPVD', 'KJFK', 'KLAX', 'EGLL', 'OMDB', 'VIDP', 'WSSS', 'RJTT'].",
+    "The 429/503 backoff loop is the only documented retry strategy; no general exponential backoff for non-rate-limit errors.",
+    "There is no separate airport_image_fetch_runs table; per-fetch diagnostics land in airport_image_assets.diagnostics JSONB (constraint permits, but the worker today does not write a row per fetch attempt — it writes per asset)."
+  ],
+  "pipeline_source_id_note": "The image-gallery worker does not write a single bundled source_id; each airport_image_assets row carries a source_type enum ('wikimedia_commons' / 'wikipedia' / 'wikidata' / 'official_site' / 'manual' / 'other') and per-row attribution. This catalog entry groups the Wikimedia-side providers (Commons + Wikipedia image list + Wikidata P18 + Commons category) under a single 'source' for the source-catalog.",
+  "notes": [
+    "This catalog source_id ('wikimedia_commons_airport_images') groups Wikimedia Commons, Wikipedia image lists, and Wikidata P18 under one logical source for catalog purposes. The DB rows record the actual source_type per image.",
+    "Worker docstring lists 'Wikimedia Commons: imageinfo for file metadata' and 'Wikimedia Commons category: category members' alongside the Wikipedia image list and Wikidata P18 as the four Wikimedia-side channels. Wikipedia REST and Wikidata are registered separately in the source-catalog for the public-profile pipeline."
+  ]
+}

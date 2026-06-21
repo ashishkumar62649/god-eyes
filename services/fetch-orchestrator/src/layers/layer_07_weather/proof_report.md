@@ -60,8 +60,8 @@ Fetch proof for Layer 07 Weather / Live Weather. Real Open-Meteo API call with 7
 | Hourly block present | **YES** |
 | Current units present | **YES** |
 | Hourly units present | **YES** |
-| All MVP current fields present | **YES** (11/11) |
-| All MVP hourly fields present | **YES** (12/12) |
+| All current-build current fields present | **YES** (11/11) |
+| All current-build hourly fields present | **YES** (12/12) |
 | Weather code numeric only | **YES** (WMO codes: 0, 2, 3, 61, 80, etc.) |
 | Generationtime_ms present | **YES** (0.1–0.5 ms range) |
 | Timezone metadata present | **YES** |
@@ -201,7 +201,7 @@ No `X-RateLimit-*`, `Retry-After`, or similar headers present. Rate-limit tracki
 | Parameter | Recommendation |
 |-----------|----------------|
 | Batch size | **50 coordinates per request** (confirmed safe, 7 worked fine) |
-| Forecast days | **3** for MVP (proof used 1; 3 days = 72 hourly timestamps) |
+| Forecast days | **3** for current build (proof used 1; 3 days = 72 hourly timestamps) |
 | Concurrent requests | **Max 5** with delay between batches |
 | Rate-limit tracking | **Count HTTP requests client-side** (no server headers) |
 | Retry on 429 | **Exponential backoff** starting at 30 seconds |
@@ -237,4 +237,4 @@ No `X-RateLimit-*`, `Retry-After`, or similar headers present. Rate-limit tracki
 
 **WO-WEATHER-S Fetch Proof: PASS**
 
-Open-Meteo successfully returns real weather data for 7 global coordinates. All MVP fields confirmed present. Response structure matches planning docs with one new field (`location_id`). Coordinate resolution behavior confirmed (grid cell center). No rate-limit headers observed. Safe to proceed to WO-WEATHER-F (Full Fetcher Implementation).
+Open-Meteo successfully returns real weather data for 7 global coordinates. All current-build fields confirmed present. Response structure matches planning docs with one new field (`location_id`). Coordinate resolution behavior confirmed (grid cell center). No rate-limit headers observed. Safe to proceed to WO-WEATHER-F (Full Fetcher Implementation).

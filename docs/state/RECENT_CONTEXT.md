@@ -2,7 +2,7 @@
 
 Classification: ROLLING_CONTEXT
 
-Last updated: 2026-06-20 - Wave 4 CesiumGlobe Working Agent (Wave 4 Implementation Complete)
+Last updated: 2026-06-21 - Aviation Source Registry Initial Consolidation
 
 This file is the short rolling context for agents.
 
@@ -30,6 +30,15 @@ receive the **complete** handoff entry after every completed task.
 - Validation: [pass/fail summary]
 - Known issues: [one line or None]
 - Next: [one line - what the next agent/task should do]
+
+## 2026-06-21 - Aviation Source Registry Initial Consolidation
+
+- Agent: Fetcher Agent
+- Branch: `frontend/bugfix/cesium-globe-flash-picking` (current branch; docs-only change)
+- What changed: Created 6 new source-catalog JSON files (`airplanes_live_v2.json`, `airplanes_live_global_web_json.json`, `wikipedia_rest_airport_profiles.json`, `wikidata_airport_profiles.json`, `wikimedia_commons_airport_images.json`, `opensky_trino.json`) and one README under `packages/source-catalog/layers/layer_01_aviation/`. Active sources registered with `status: active`; OpenSky Trino with `status: inactive_future_historical_backfill`; probe-only sources (OpenStreetMap / BTS / Eurostat / AviationWeather / official airport websites) documented in the README's "Probe / scaffold / not implemented" section. Existing `ourairports.json` left bit-for-bit unchanged. No code, no migration, no contract, no API, no frontend changes.
+- Validation: All 7 aviation JSON files parse via `python -c "import json; json.load(...)"` and PowerShell `ConvertFrom-Json`. Cross-checked via `git grep` that the `ourairports` (52), `airplanes_live_v2` (11), `airplanes_live_global_web_json` (3), and `opensky_trino` (4) source IDs all exist in code; the three Wikimedia-side source IDs are deliberate upstream-provider identifiers documented in each file's `pipeline_source_id_note` and in the README. `git diff --check` clean. No `pnpm` build / test re-runs needed (docs-only operation).
+- Known issues: Bundled-pipeline vs. upstream-provider source_id mismatch (deliberate; documented). Existing `ourairports.json` does not have the new fields (`status`, `access_type`, `requires_api_key`, `payment_required`, `attribution_required`, `what_it_provides`, `fields_collected`, `api_endpoints`, `frontend_usage`, `tests`, `known_limitations`) that the new files share; out of scope to modify. The current branch carries unrelated uncommitted work that the Fetcher Agent did not touch (verified via `git status --short`).
+- Next: Orchestrator Agent reviews this branch and confirms the unrelated uncommitted changes are out of scope; the source-catalog handoff can be staged and committed separately, with the user / decision-control layer pushing the resulting commit per the standard Build → Review/Test → Push → Next flow.
 
 ## 2026-06-20 - Cesium Globe Flash and Picking Fixes
 
@@ -75,12 +84,3 @@ receive the **complete** handoff entry after every completed task.
 - Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); 3 `docs/state/` files updated only; `git diff --name-only` confirms zero hits for `apps/`, `services/`, `database/`, `packages/`, `tests/`, `specs/`, lockfile, or `.env*`. No `pnpm` build/test runs needed (docs-only state sync).
 - Known issues: None. `energyInfrastructureApi.ts` is a documented tested placeholder, not dead-by-accident; the test file relies on its existence, so the decision to keep it is the correct outcome of DISC-1E.
 - Next: Wave 2 closes. Next wave moves to the remaining Spec 008 cleanup lane / API route structure cleanup items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
-
-## 2026-06-19 - WO-7-2 Frontend Layer Test Coverage
-
-- Agent: Frontend Layer Test Agent
-- Branch: `web/wo-7-2-frontend-layer-tests`
-- What changed: Added 102 frontend tests across 5 new test files (borders, earth events, energy infrastructure, satellites, aviation) under `apps/web/src/layers/**/__tests__/**` covering the 5 previously untested active layers. **Revision (post-DISC-1 cross-lane coordination):** removed 13 `aviationTileCache` tests and the related import/`beforeEach` reset from `aviation.test.ts` (46→33 aviation tests) because DISC-1 confirmed `aviationTileCache.ts` is dead code with zero production importers — keeping those tests would have created artificial usage for code already scheduled for deletion. Final test count: **153/153 web tests** (was 166 pre-revision). Production source code is bit-for-bit unchanged.
-- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); `pnpm --filter web test` PASS (153/153 — V8 cleanup crash after all tests pass, known Node/Vitest issue); `pnpm --filter api test` PASS (581/581); `pnpm --filter web build` PASS; `pnpm --filter api build` PASS; `pnpm --filter @god-eyes/contracts build` PASS.
-- Known issues: V8 `FatalError: v8::ToLocalChecked Empty MaybeLocal` after all 153 web tests pass (exit code 134) — known Node.js/Vitest cleanup-phase issue, not test-content related. `python -m pytest tests/data -q` reports 11 pre-existing dirty-tree scope-guard failures (same pattern documented in WO-003 through WO-3-1); not regressions, will skip on clean tree.
-- Next: Wave 1 complete. Wave 2 first task is to actually delete the confirmed dead aviation files (`aviationTileCache.ts`, `aviationTileLoader.ts`, `globeCamera.ts`, `airportViewport.ts`, `aviationLayerRenderer.ts`) and drop 3 dead `aircraftMarker.ts` exports, per the DISC-1 audit. Then decide `energyInfrastructureApi.ts` placeholder future (DISC-1E product call).

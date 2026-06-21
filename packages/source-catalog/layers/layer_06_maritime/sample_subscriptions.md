@@ -86,11 +86,11 @@
 **Notes**:
 - Filter to specific message types
 - Reduces message volume
-- Useful for MVP to focus on positions only
+- Useful for the current build to focus on positions only
 
 ---
 
-## 6. MVP Proof Subscription (Recommended for WO-MAR-S)
+## 6. Current-Build Proof Subscription (Recommended for WO-MAR-S)
 
 ```json
 {

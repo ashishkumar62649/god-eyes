@@ -32,11 +32,11 @@
     "note": "BoundingBoxes is marked Required in docs. Global subscription uses [[-90, -180], [90, 180]]."
   },
   "message_types": {
-    "primary_for_mvp": [
+    "primary_for_current_build": [
       "PositionReport",
       "ShipStaticData"
     ],
-    "secondary_for_mvp": [
+    "secondary_for_current_build": [
       "StandardClassBPositionReport",
       "ExtendedClassBPositionReport",
       "LongRangeAisBroadcastMessage"
@@ -251,7 +251,7 @@
     "Connection may drop if message queue grows too large",
     "No explicit reconnect documentation"
   ],
-  "mvp_decision": "READY_FOR_FETCH_PROOF",
+  "current_build_decision": "READY_FOR_FETCH_PROOF",
   "ready_for_fetch_proof": true,
   "verified_at": "2026-06-09T17:12:00Z",
   "verified_by": "Fetching Worker (WO-MAR-R)"

@@ -35,11 +35,11 @@ Standard class A position reports.
 | AISStream Field | Type | Our Normalized Field | Notes |
 |-----------------|------|---------------------|-------|
 | `MessageID` | integer | `ais_message_type` | 1, 2, or 3 |
-| `RepeatIndicator` | integer | — | Not used in MVP |
+| `RepeatIndicator` | integer | — | Not used in current build |
 | `UserID` | integer | `mmsi` | **Primary vessel identifier** |
 | `Valid` | boolean | — | Validation flag |
 | `NavigationalStatus` | integer | `navigation_status` | 0-15, see code map below |
-| `RateOfTurn` | integer | — | Not used in MVP |
+| `RateOfTurn` | integer | — | Not used in current build |
 | `Sog` | double | `speed_over_ground` | **Knots** |
 | `PositionAccuracy` | boolean | `position_accuracy` | |
 | `Longitude` | double | `longitude` | **Degrees, E positive** |
@@ -47,10 +47,10 @@ Standard class A position reports.
 | `Cog` | double | `course_over_ground` | **Degrees** |
 | `TrueHeading` | integer | `true_heading` | **0-359, 511 = not available** |
 | `Timestamp` | integer | `timestamp` | **Seconds since minute start** (0-59) |
-| `SpecialManoeuvreIndicator` | integer | — | Not used in MVP |
+| `SpecialManoeuvreIndicator` | integer | — | Not used in current build |
 | `Spare` | integer | — | Reserved |
-| `Raim` | boolean | — | Not used in MVP |
-| `CommunicationState` | integer | — | Not used in MVP |
+| `Raim` | boolean | — | Not used in current build |
+| `CommunicationState` | integer | — | Not used in current build |
 
 ### Timestamp Interpretation
 
@@ -73,10 +73,10 @@ Static vessel information. Sent periodically (typically every 6 minutes for clas
 | AISStream Field | Type | Our Normalized Field | Notes |
 |-----------------|------|---------------------|-------|
 | `MessageID` | integer | `ais_message_type` | 5 |
-| `RepeatIndicator` | integer | — | Not used in MVP |
+| `RepeatIndicator` | integer | — | Not used in current build |
 | `UserID` | integer | `mmsi` | **Primary vessel identifier** |
 | `Valid` | boolean | — | Validation flag |
-| `AisVersion` | integer | — | Not used in MVP |
+| `AisVersion` | integer | — | Not used in current build |
 | `ImoNumber` | integer | `imo` | **IMO number (may be 0)** |
 | `CallSign` | string | `callsign` | **Vessel callsign** |
 | `Name` | string | `vessel_name` | **Vessel name** |
@@ -85,14 +85,14 @@ Static vessel information. Sent periodically (typically every 6 minutes for clas
 | `Dimension.B` | integer | `stern_to_antenna` | Stern to mast/antenna (meters) |
 | `Dimension.C` | integer | `port_to_center` | Port to centerline (meters) |
 | `Dimension.D` | integer | `starboard_to_center` | Starboard to centerline (meters) |
-| `FixType` | integer | — | Not used in MVP |
+| `FixType` | integer | — | Not used in current build |
 | `Eta.Day` | integer | `eta_day` | ETA day |
 | `Eta.Hour` | integer | `eta_hour` | ETA hour |
 | `Eta.Minute` | integer | `eta_minute` | ETA minute |
 | `Eta.Month` | integer | `eta_month` | ETA month |
 | `MaximumStaticDraught` | double | `draught` | **Meters** |
 | `Destination` | string | `destination` | **Destination port** |
-| `Dte` | boolean | — | Not used in MVP |
+| `Dte` | boolean | — | Not used in current build |
 | `Spare` | boolean | — | Reserved |
 
 ### Dimension Computation

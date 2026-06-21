@@ -1,7 +1,7 @@
 """Open-Meteo Fetch Proof - WO-WEATHER-S
 
 Minimal proof that Open-Meteo returns real weather data for a small set of coordinates
-and that the response structure supports the planned Weather MVP pipeline.
+and that the response structure supports the planned Weather pipeline.
 
 Usage:
     python -m layers.layer_07_weather.open_meteo_proof

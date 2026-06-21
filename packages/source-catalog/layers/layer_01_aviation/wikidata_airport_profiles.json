@@ -1,0 +1,113 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "wikidata_airport_profiles",
+  "source_name": "Wikidata Entity Data API — structured facts for airport public profiles",
+  "status": "active",
+  "source_type": "wikidata_rest",
+  "access_type": "rest_poll",
+  "owner": "Airport public profile pipeline (Fetcher Agent)",
+  "license": {
+    "name": "CC0 1.0",
+    "attribution": "Wikidata structured data is released under CC0 1.0. The airport_public_profiles table stores a WikidataAttribution (qid, url) per row.",
+    "terms_url": "https://www.wikidata.org/wiki/Special:EntityData",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "license_type_in_db": "wikidata"
+  },
+  "requires_api_key": false,
+  "payment_required": false,
+  "attribution_required": true,
+  "source_urls": {
+    "entity_base": "https://www.wikidata.org/wiki/Special:EntityData",
+    "example_url": "https://www.wikidata.org/wiki/Special:EntityData/Q44426.json",
+    "sparql_endpoint": "https://query.wikidata.org/sparql"
+  },
+  "what_it_provides": "Structured facts (opened/inception, operator, owner, official website, main image, ICAO/IATA, coordinate location) for the Wikidata entity linked to an airport article. The airport_public_profile normalizer extracts interesting facts from a fixed property map (P571 / P137 / P127 / P856 / P18 / P239 / P238 / P625) and stores them with property_id and source='wikidata'.",
+  "fields_collected": [
+    "id (QID)",
+    "labels.en.value (label)",
+    "descriptions.en.value (description)",
+    "claims.P571 (inception / opened date)",
+    "claims.P137 (operator)",
+    "claims.P127 (owned by)",
+    "claims.P856 (official website)",
+    "claims.P18 (main image)",
+    "claims.P239 (ICAO code)",
+    "claims.P238 (IATA code)",
+    "claims.P625 (coordinate location)"
+  ],
+  "refresh_policy": {
+    "cadence": "lazy_on_profile_request_with_30_day_ttl",
+    "manual_refresh_allowed": true,
+    "schedule_note": "Wikidata is fetched on demand when an airport public profile is built or refreshed. Throttled to 1 request every 2 seconds (WIKIDATA_THROTTLE_SECONDS=2.0) when used by the airport_intelligence_ingest_worker. Cached for 30 days."
+  },
+  "freshness_policy": {
+    "fresh_for_days": 30,
+    "stale_after_days": 30,
+    "notes": "Same 30-day TTL as the Wikipedia side; both feed the same airport_public_profiles row and the same airport_public_profile_versions chain."
+  },
+  "raw_storage": {
+    "bucket": "n/a (no raw blob persisted; response is parsed inline and stored as normalized fields in airport_public_profiles / airport_public_profile_versions)",
+    "path_pattern": "not applicable — see airport_public_profiles + airport_public_profile_versions tables instead"
+  },
+  "collector": {
+    "name": "wikimedia_wikidata_fetcher.fetch_wikidata_entity (and fetch_airport_public_data)",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/wikimedia_wikidata_fetcher.py",
+    "user_agent": "god-eyes/1.0 (https://github.com/anomalyco/god-eyes; god-eyes@example.com) WikipediaEnrichmentFetcher/1.0 — required by Wikimedia policy; do NOT anonymize",
+    "timeout_seconds": 10,
+    "max_retries": 2,
+    "backoff_base_seconds": 1.0,
+    "qid_resolver_helpers": [
+      "icao_to_wikidata_qid(icao_code)",
+      "iata_to_wikidata_qid(iata_code)"
+    ],
+    "manual_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/airport_public_profile_worker.py --airport-id <uuid> --show-raw --dry-run"
+  },
+  "normalizer": {
+    "name": "parse_wikidata_entity_response + build_interesting_facts_from_wikidata + normalize_airport_public_profile",
+    "path": "packages/schemas/layers/layer_01_aviation/airport_public_profile.py (parsers + WIKIDATA_PROPERTY_MAP) + services/normalizer/src/layers/layer_01_aviation/airport_public_profile_normalizer.py",
+    "manual_command": "python services/normalizer/src/layers/layer_01_aviation/airport_public_profile_normalizer.py (called by the worker)"
+  },
+  "validator": {
+    "name": "airport_public_profiles / airport_public_profile_versions schema (migration 005)",
+    "path": "database/migrations/layers/layer_01_aviation/005_airport_public_profile_cache.sql"
+  },
+  "target_tables": [
+    "airport_public_profiles",
+    "airport_public_profile_versions",
+    "airport_public_profile_fetch_runs",
+    "airport_source_links (source_type='wikidata')"
+  ],
+  "api_endpoints": {
+    "rest": [
+      "GET /api/airports/:airportId/public-profile"
+    ],
+    "implementation_paths": [
+      "apps/api/src/routes/public-profile/ (canonical)"
+    ]
+  },
+  "frontend_usage": {
+    "layer_folder": "apps/web/src/layers/layer_01_aviation/airports/",
+    "files": [
+      "apps/web/src/layers/layer_01_aviation/airports/useAirportPublicProfile.ts",
+      "apps/web/src/layers/layer_01_aviation/airports/airportPublicProfileTypes.ts"
+    ],
+    "barrel": "apps/web/src/layers/layer_01_aviation/index.ts re-exports useAirportPublicProfile and the profile types"
+  },
+  "tests": [
+    "tests/data/layer_01_aviation/test_airport_public_profile_worker.py",
+    "tests/data/layer_01_aviation/test_airport_public_profile_normalizer.py",
+    "tests/data/layer_01_aviation/test_airport_public_profile_cache_migration.py",
+    "tests/data/layer_01_aviation/fixtures/wikidata_entity_dubai.json"
+  ],
+  "known_limitations": [
+    "User-Agent is mandatory per Wikimedia policy; the documented UA in airport_public_profile.py is a placeholder email that may be replaced by a real ops contact before production.",
+    "QID resolution from ICAO/IATA is best-effort; low-confidence matches are recorded in profile.match with match_confidence != 'high'.",
+    "The interesting_facts list is limited to the WIKIDATA_PROPERTY_MAP in airport_public_profile.py; additional properties are not currently surfaced to the frontend.",
+    "When the airport_intelligence_ingest_worker falls back to ICAO-based QID resolution, a failed lookup is recorded with match_method='wikidata_icao_lookup_failed' and match_confidence='medium'."
+  ],
+  "pipeline_source_id_note": "The fetcher and normalizer write rows with the bundled pipeline source_id 'airport_public_enrichment' (defined in packages/schemas/layers/layer_01_aviation/airport_public_profile.py as SOURCE_ID). The airport_source_links table also records source_type='wikidata' for cross-references; this catalog entry is keyed on the upstream provider.",
+  "notes": [
+    "This catalog source_id ('wikidata_airport_profiles') identifies the upstream provider only; it is not the value persisted in the DB. The pipeline-level source_id is 'airport_public_enrichment' (see pipeline_source_id_note).",
+    "Wikidata is also used by the airport_intelligence_ingest_worker (WO-043) to fill airport intelligence modules (inception, operator, owner, official website, image, ICAO/IATA). The WIKIDATA_THROTTLE_SECONDS=2.0 throttle in that worker is a separate concern from the public-profile path."
+  ]
+}

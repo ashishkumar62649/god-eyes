@@ -12,10 +12,10 @@
 
 | Question | Decision |
 |----------|----------|
-| Live source for MVP | **Airplanes.live official REST API** |
-| Historical source | **OpenSky Network Trino** (future only, not MVP) |
+| Live source for the current build | **Airplanes.live official REST API** |
+| Historical source | **OpenSky Network Trino** (future only, not for the current build) |
 | Global endpoint available? | **NO** — does not exist in Airplanes.live API |
-| MVP fetch scope | **/mil + /ladd + /pia (global) + /point (camera region)** |
+| current-build fetch scope | **/mil + /ladd + /pia (global) + /point (camera region)** |
 | Fetch cadence | **5-second cycle, 1 req/sec hard limit** |
 | Dead reckoning | **NO** — interpolation between real positions only |
 | Frontend direct API calls | **NO** — backend fetcher only |
@@ -23,7 +23,7 @@
 
 ---
 
-## Source 1: Airplanes.live (Live — MVP)
+## Source 1: Airplanes.live (Live — current build)
 
 **Base URL:** `http://api.airplanes.live/v2/`  
 **Source:** https://airplanes.live/api-guide/ (inspected 2026-05-28)  
@@ -58,7 +58,7 @@ Available endpoints:
 
 There is no `/all`, `/global`, or equivalent endpoint. Civil aircraft can only be retrieved via `/point`.
 
-### MVP Fetch Strategy
+### Current-Build Fetch Strategy
 
 ```
 Cycle every 5 seconds (4 active requests, 1 req/sec):
@@ -74,7 +74,7 @@ Cycle every 5 seconds (4 active requests, 1 req/sec):
 
 ### Non-Commercial Caveat
 
-GOD EYES MVP is non-commercial/testing only. If GOD EYES ever becomes a commercial product, a new data agreement with Airplanes.live is required before continuing to use this API.
+GOD EYES current build is non-commercial/testing only. If GOD EYES ever becomes a commercial product, a new data agreement with Airplanes.live is required before continuing to use this API.
 
 ---
 
@@ -92,7 +92,7 @@ GOD EYES MVP is non-commercial/testing only. If GOD EYES ever becomes a commerci
 - Private/commercial entities must contact for licence
 - Access is granted based on application review; may be declined
 
-### Why NOT for MVP Live
+### Why NOT for the current build
 
 - REST API is heavily rate-limited for anonymous users (not suitable for 5s refresh)
 - Trino access requires application and approval (not immediately available)
@@ -105,7 +105,7 @@ GOD EYES MVP is non-commercial/testing only. If GOD EYES ever becomes a commerci
 - Enable timeline playback for past aircraft positions
 - Research/analysis of historical flight patterns
 
-**Do not block MVP on OpenSky access. Implement when access is granted.**
+**Do not block the current build on OpenSky access. Implement when access is granted.**
 
 ---
 
@@ -116,8 +116,8 @@ GOD EYES MVP is non-commercial/testing only. If GOD EYES ever becomes a commerci
 | Tiling globe with /point calls | Would require ~500+ calls/cycle, violates 1 req/sec limit |
 | OpenSky REST API for live | Too rate-limited for anonymous; not suitable for 5s refresh |
 | Website scraping | Not allowed; no explicit legal/allowed confirmation |
-| FlightAware / FlightRadar24 | Commercial APIs; not suitable for non-commercial MVP |
-| ADS-B Exchange | Not evaluated for MVP; Airplanes.live preferred |
+| FlightAware / FlightRadar24 | Commercial APIs; not suitable for a non-commercial current build |
+| ADS-B Exchange | Not evaluated for the current build; Airplanes.live preferred |
 
 ---
 

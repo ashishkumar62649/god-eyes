@@ -1,6 +1,6 @@
 # GOD EYES Constitution
 
-This Constitution defines the non-negotiable principles that govern all code, configuration, data, and agent behavior in the GOD EYES project. It supersedes ad-hoc decisions. The authoritative source of truth for layer IDs and layer order remains `docs/control/MVP_LAYER_REGISTRY.md`.
+This Constitution defines the non-negotiable principles that govern all code, configuration, data, and agent behavior in the GOD EYES project. It supersedes ad-hoc decisions. The authoritative source of truth for layer IDs and layer order remains `docs/control/PROJECT_CONTROL.md` Part 2 §4.
 
 Classification: ACTIVE_PRINCIPLES
 Version: 1.3.0
@@ -15,7 +15,7 @@ Docs-only clarification applied 2026-06-17 (WO-001): §II rewritten to mark `pac
   work-order template were merged into a single active project control file
   at `docs/control/PROJECT_CONTROL.md` (4 parts). The earlier active control
   filenames (`PROJECT_RULES.md`, `LAYER_AND_DATA_CONTRACT.md`,
-  `GIT_WORKFLOW_POLICY.md`, `WORK_ORDER_TEMPLATE.md`, `MVP_LAYER_REGISTRY.md`,
+  `GIT_WORKFLOW_POLICY.md`, `WORK_ORDER_TEMPLATE.md`, the legacy layer-registry filename (now retired),
   `LAYER_ID_CONVENTIONS.md`, `LAYER_ARCHITECTURE.md`, `LLM_OWNERSHIP_MATRIX.md`,
   `SOURCE_TO_FRONTEND_CONTRACT.md`, `ENGINEERING_STRUCTURE_RULES.md`,
   `DATA_LOCATION_RULES.md`, `PIPELINE_HANDOFF_RULES.md`) are retired. `AGENTS.md`
@@ -28,22 +28,22 @@ Docs-only clarification applied 2026-06-17 (WO-001): §II rewritten to mark `pac
 
 ## Authority
 
-## Preamble — MVP Focus
+## Preamble — Current Implementation Focus
 
-The current project phase is **MVP** (minimum viable product). The MVP goal: take data from a **provider or organization** that has the data, **fetch and store** it in the database, **normalize** it, expose it through the **API**, and render it on the **frontend**. Not everything is organized yet. The MVP must just work. The Constitution applies to all layers in principle; layers that are already implemented will be brought into compliance **after the MVP is complete**.
+The current project phase is the **initial implementation** build. The goal: take data from a **provider or organization** that has the data, **fetch and store** it in the database, **normalize** it, expose it through the **API**, and render it on the **frontend**. Not everything is organized yet. The current build must just work. The Constitution applies to all layers in principle; layers that are already implemented will be brought into compliance **after the current implementation phase**.
 
 ---
 
 ## Core Principles
 
 ### I. Layer Integrity (NON-NEGOTIABLE)
-Every entity in GOD EYES — data source, database table, API route, frontend component, fetch job, normalizer — must declare which `layer_id` it belongs to. No orphans. Every layer has a unique `layer_id` and authoritative entry in the layer registry. The layer order in `MVP_LAYER_REGISTRY.md` is binding; if any document or code disagrees with the registry, the registry wins.
+Every entity in GOD EYES — data source, database table, API route, frontend component, fetch job, normalizer — must declare which `layer_id` it belongs to. No orphans. Every layer has a unique `layer_id` and authoritative entry in the layer registry. The layer order in `docs/control/PROJECT_CONTROL.md` Part 2 §4 is binding; if any document or code disagrees with the registry, the registry wins.
 
 ### II. Strict Agent Boundaries (NON-NEGOTIABLE)
 Frontend code lives in `apps/web/`. API code lives in `apps/api/`, `packages/contracts/`. Data pipeline lives in `services/`, `packages/source-catalog/`, `packages/schemas/`. Database lives in `database/`. The following package folders are referenced historically but are **planned / future, not currently present** in the repository: `packages/ui/`, `packages/layers/` (planned for Frontend Agent), `packages/auth/` (planned for API Agent). See `AGENTS.md` and `docs/control/PROJECT_CONTROL.md` Part 2 §8 for the authoritative ownership matrix. **Frontend never connects directly to the database** — it must call the API. The API is the only component that talks to the database.
 
 ### III. Data Provenance and Pipeline Order
-Fetchers always store **raw data first** (path includes `layer_id` and `source_id` per `docs/control/DATA_LOCATION_RULES.md`), then normalizers read raw object metadata (never random files) to produce normalized records. Raw storage is immutable; normalization is reproducible. For the MVP, this means: pull from provider → write raw to disk → normalize → write to DB.
+Fetchers always store **raw data first** (path includes `layer_id` and `source_id` per the canonical data-location rules in `docs/control/PROJECT_CONTROL.md` Part 1 §13), then normalizers read raw object metadata (never random files) to produce normalized records. Raw storage is immutable; normalization is reproducible. For the current implementation phase, this means: pull from provider → write raw to disk → normalize → write to DB.
 
 ### IV. Secrets and Configuration Safety
 Real API keys and credentials **must never be committed**. `.env.example` files contain placeholders only. Production secrets are injected at runtime via environment variables or secret managers. BYOK (Bring Your Own Key) sources require user-provided keys at runtime, never in code.
@@ -64,7 +64,7 @@ Every work order produces a handoff entry in `docs/state/HANDOFF_LOG.md` with: W
 New features and layers use the Spec-Kit workflow: `constitution` → `specify` → `clarify` → `plan` → `tasks` → `analyze` → `implement`. Specifications live in `specs/NNN-feature-name/` and contain `spec.md`, `plan.md`, `tasks.md` at minimum. The `NNN` prefix is a zero-padded sequential number.
 
 ### VIII. Test-First and Scope-Guard Discipline (NON-NEGOTIABLE)
-Tests are written before or alongside implementation. Scope-guard tests verify that a worker's changes do not bleed outside its assigned folder. Pre-merge diff checks must pass. Failing tests or scope-guard violations block the merge, not the commit. The MVP adopts the **progressive integration workflow** (see Section 3) where each lane is tested in isolation before merge, and the full system is tested after all merges.
+Tests are written before or alongside implementation. Scope-guard tests verify that a worker's changes do not bleed outside its assigned folder. Pre-merge diff checks must pass. Failing tests or scope-guard violations block the merge, not the commit. The current build adopts the **progressive integration workflow** (see Section 3) where each lane is tested in isolation before merge, and the full system is tested after all merges.
 
 ### IX. Source and Safety Discipline
 Every data source is registered in the source catalog with a layer assignment. Sources that handle user-generated content (news, OSINT) must implement: source attribution, content moderation rules, no private data, no doxxing, no targeting. Sources are open-source-first; BYOK is the optional path for premium sources.
@@ -85,7 +85,7 @@ Every data source is registered in the source catalog with a layer assignment. S
 
 ### Per-Lane Work Order Lifecycle (Progressive Integration)
 
-The MVP uses a **progressive integration** workflow. Each lane is tested in isolation, merged to the local main folder, and then the full system is tested after all lanes merge.
+The current build uses a **progressive integration** workflow. Each lane is tested in isolation, merged to the local main folder, and then the full system is tested after all lanes merge.
 
 1. Kiro creates a work order in `docs/work-orders/WO-XXX-{name}.md` listing scope, allowed folders, deliverables, and worker assignment.
 2. The assigned worker opens a cloned worktree (e.g. `E:\god-eyes-{lane}\`) on a branch `agent/wo-XXX-{lane}-{name}`.
@@ -129,7 +129,7 @@ All handoff and commit timestamps are in **UTC**. Local time is for humans only.
 
 ## Section 5: Migration Path For Existing Layers
 
-The Constitution applies to all layers, including those already implemented (Layers 00–04 and any others). Existing layers will be brought into compliance **after the MVP is complete**, in a dedicated work order series. The MVP focuses on the **data ingestion pipeline** (provider → fetcher → DB → normalizer → API → frontend) and is not blocked on retrofitting existing layers.
+The Constitution applies to all layers, including those already implemented (Layers 00–04 and any others). Existing layers will be brought into compliance **after the current implementation phase**, in a dedicated work order series. The current build focuses on the **data ingestion pipeline** (provider → fetcher → DB → normalizer → API → frontend) and is not blocked on retrofitting existing layers.
 
 ---
 

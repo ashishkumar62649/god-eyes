@@ -2,7 +2,7 @@
 import type { BorderBoundaryRow } from './types.js';
 
 const LAYER_ID = 'layer_02_borders_boundaries';
-const CAVEAT = 'Natural Earth Admin-0 Countries 1:50m is MVP/local/dev only; not production-approved; not Survey of India / Government of India compliant.';
+const CAVEAT = 'Natural Earth Admin-0 Countries 1:50m is local/dev only; not production-approved; not Survey of India / Government of India compliant.';
 
 export function rowsToFeatureCollection(rows: BorderBoundaryRow[], params: {
   limit: number;
@@ -41,7 +41,7 @@ export function rowsToFeatureCollection(rows: BorderBoundaryRow[], params: {
       limit,
       sourceId,
       sourceName,
-      mvpLocalDevOnly: true,
+      localDevOnly: true,
       productionApproved: false,
       indiaCompliant: false,
       caveat: CAVEAT,
