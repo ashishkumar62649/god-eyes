@@ -14,10 +14,10 @@ function mockCollection(
       limit: 250,
       sourceId: 'natural-earth',
       sourceName: 'Natural Earth',
-      mvpLocalDevOnly: true,
+      localDevOnly: true,
       productionApproved: false,
       indiaCompliant: false,
-      caveat: 'Local dev MVP only. Disputed territories labeled.',
+      caveat: 'Local dev only. Disputed territories labeled.',
     },
     ...overrides,
   } as BordersBoundariesFeatureCollection;

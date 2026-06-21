@@ -1,0 +1,82 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "opensky_trino",
+  "source_name": "OpenSky Network Trino historical query interface",
+  "status": "inactive_future_historical_backfill",
+  "source_type": "historical_aircraft_tracking",
+  "access_type": "trino_sql",
+  "owner": "Aviation live aircraft pipeline (Fetcher Agent) — not yet implemented",
+  "license": {
+    "name": "Research-restricted / not open by default",
+    "attribution": "OpenSky Network data is accessible to university-affiliated researchers, governmental organisations, aviation authorities, or separately licensed private/commercial entities. Commercial / private entities must contact OpenSky for a licence. Not authorised for use until access is approved and a separate work order is filed.",
+    "terms_url": "https://opensky-network.org/",
+    "license_url": "https://openskynetwork.github.io/opensky-api/trino.html",
+    "license_type_in_db": "research_restricted"
+  },
+  "requires_api_key": true,
+  "payment_required": false,
+  "attribution_required": true,
+  "source_urls": {
+    "network_home": "https://opensky-network.org/",
+    "trino_docs": "https://openskynetwork.github.io/opensky-api/trino.html",
+    "data_access_request": "https://opensky-network.org/ → My OpenSky → Request Data Access"
+  },
+  "what_it_provides": "Historical aircraft state vectors via a Trino SQL interface (table: state_vectors_data4). Retention is unlimited. Not a live feed; this is for backfilling aviation_aircraft_observations with historical tracks and enabling timeline playback / research analysis.",
+  "fields_collected": "Not yet collected — no fetcher or normalizer is implemented in the current code. When the future work order lands, the expected fields will mirror aviation_aircraft_latest / aviation_aircraft_observations (icao24 hex, callsign, origin_country, time_position, last_contact, lon, lat, baro_altitude, on_ground, velocity, true_track, vertical_rate, sensors, etc.).",
+  "refresh_policy": {
+    "cadence": "not yet scheduled",
+    "manual_refresh_allowed": false,
+    "schedule_note": "No fetcher runs today. When access is approved, refresh cadence will be set by a dedicated work order."
+  },
+  "freshness_policy": {
+    "fresh_for_days": "n/a (historical)",
+    "notes": "Historical data has no freshness policy in the usual sense. Backfill runs are expected to be one-shot or rare (e.g. a single 5-year backfill), not recurring."
+  },
+  "raw_storage": {
+    "bucket": "needs contract detail — propose god-eyes-raw (same as the rest of the pipeline) and a per-OpenSky source key once the fetcher lands",
+    "path_pattern": "raw/layer_01_aviation/opensky_trino/{yyyy}/{mm}/{dd}/{fetch_run_id}/payload.{ext} (per PROJECT_CONTROL.md §13 raw path pattern; not yet used in code)"
+  },
+  "collector": {
+    "name": "not implemented yet",
+    "path": "needs contract detail — no file currently exists under services/fetch-orchestrator/src/layers/layer_01_aviation/ for this source",
+    "manual_command": "not implemented yet"
+  },
+  "normalizer": {
+    "name": "not implemented yet",
+    "path": "needs contract detail — no normalizer exists yet",
+    "notes": "When implemented, a new normalizer should live in services/normalizer/src/layers/layer_01_aviation/ alongside the other aviation normalizers."
+  },
+  "validator": {
+    "name": "not implemented yet",
+    "path": "needs contract detail"
+  },
+  "target_tables": [
+    "aviation_aircraft_observations (write target once fetcher lands; today the row in aviation_aircraft_sources is informational only)",
+    "aviation_aircraft_sources (one row already exists: source_id='opensky_trino', layer_id='layer_01_aviation', license_type='research_restricted', is_live=FALSE, is_historical=TRUE, is_active=FALSE — see migration 012)"
+  ],
+  "api_endpoints": {
+    "rest": [],
+    "websocket": [],
+    "notes": "No API or WebSocket surface is defined for this source today. Historical backfill would land in aviation_aircraft_observations, which is already exposed indirectly via the latest-aircraft API once writes begin. No new API surface is planned for the backfill itself."
+  },
+  "frontend_usage": {
+    "layer_folder": "n/a",
+    "files": [],
+    "notes": "No frontend changes are planned for the historical backfill itself. Once written, the data would surface through the existing /api/aviation/aircraft/* endpoints, but the frontend does not currently distinguish OpenSky from Airplanes.live data."
+  },
+  "tests": [
+    "tests/data/layer_01_aviation/test_aviation_live_aircraft_migration.py (only verifies the aviation_aircraft_sources DB row exists; no functional fetcher tests)"
+  ],
+  "known_limitations": [
+    "No fetcher, normalizer, or runtime pipeline is implemented. The DB row in aviation_aircraft_sources is informational only.",
+    "Access requires an application at https://opensky-network.org/ and may be declined; eligibility is restricted to university-affiliated researchers, governmental organisations, aviation authorities, or separately licensed private/commercial entities.",
+    "OpenSky REST API is not a viable substitute — it is heavily rate-limited for anonymous users and not suitable for the 5s refresh cadence the current build requires (per ADR-002).",
+    "Per ADR-002, this source must not block the current build. The decision is 'Implement when access is granted'."
+  ],
+  "decision_reference": "docs/decisions/ADR-002-aviation-live-source.md (status: DECIDED).",
+  "notes": [
+    "DB source row pre-registered in migration 012_aviation_live_aircraft_tables.sql with is_live=FALSE, is_historical=TRUE, is_active=FALSE, refresh_interval_s=86400.",
+    "This file documents the future-only status without pretending it is active. The schema supports a future backfill, but no source code, contract, or migration outside the source row exists today.",
+    "Adding a fetcher requires a dedicated work order that covers (a) access approval evidence, (b) a new fetcher module, (c) a new normalizer, (d) any contract changes, and (e) the appropriate 'needs contract detail' resolution before any code is written."
+  ]
+}

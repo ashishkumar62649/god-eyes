@@ -35,7 +35,7 @@ export const BordersBoundariesMetaSchema = z.object({
   limit: z.number().int().nonnegative(),
   sourceId: z.string(),
   sourceName: z.string().nullable(),
-  mvpLocalDevOnly: z.literal(true),
+  localDevOnly: z.literal(true),
   productionApproved: z.literal(false),
   indiaCompliant: z.literal(false),
   caveat: z.string(),

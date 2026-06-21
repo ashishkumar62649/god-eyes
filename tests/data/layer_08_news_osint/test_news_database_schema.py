@@ -475,7 +475,7 @@ def test_news_work_order_changes_stay_in_allowed_paths():
         "database/migrations/layers/layer_08_news_osint/",
         "database/ingestion/layers/layer_08_news_osint/",
         "tests/data/layer_08_news_osint/",
-        "specs/007-layer-08-news-osint-mvp/",
+        "docs/archive/2026-06-16-implemented-specs/007-layer-08-news-osint/",
         "docs/state/HANDOFF_LOG.md",
         "services/fetch-orchestrator/src/layers/layer_08_news_osint/",
     )

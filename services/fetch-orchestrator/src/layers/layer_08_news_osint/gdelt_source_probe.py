@@ -154,7 +154,7 @@ def _test_doc_api(query: str) -> dict[str, Any]:
     
     result = _make_request(url)
     if not result["success"]:
-        return {"endpoint": "GDELT DOC API", "query": query, "usable_for_mvp": "no", **result}
+        return {"endpoint": "GDELT DOC API", "query": query, "usable_for_build": "no", **result}
     
     content = result.get("content", b"")
     if isinstance(content, bytes):
@@ -204,7 +204,7 @@ def _test_doc_api(query: str) -> dict[str, Any]:
     return {
         "endpoint": "GDELT DOC API",
         "query": query,
-        "usable_for_mvp": usable,
+        "usable_for_build": usable,
         "display_mode": display_mode,
         "reliability": "rate_limited" if result.get("status_code") == 429 else "stable",
         "item_count": len(items),
@@ -229,7 +229,7 @@ def _test_geo_api(query: str) -> dict[str, Any]:
     
     result = _make_request(url)
     if not result["success"]:
-        return {"endpoint": "GDELT GEO API", "query": query, "usable_for_mvp": "no", **result}
+        return {"endpoint": "GDELT GEO API", "query": query, "usable_for_build": "no", **result}
     
     content = result.get("content", b"")
     if isinstance(content, bytes):
@@ -267,7 +267,7 @@ def _test_geo_api(query: str) -> dict[str, Any]:
     return {
         "endpoint": "GDELT GEO API",
         "query": query,
-        "usable_for_mvp": usable,
+        "usable_for_build": usable,
         "display_mode": display_mode,
         "reliability": "rate_limited" if result.get("status_code") == 429 else "stable",
         "item_count": len(items),
@@ -284,7 +284,7 @@ def _test_event_export() -> dict[str, Any]:
     result = _make_request(GDELT_EVENT_URL, timeout=30)
     
     if not result["success"]:
-        return {"endpoint": "GDELT Event Export", "usable_for_mvp": "no", **result}
+        return {"endpoint": "GDELT Event Export", "usable_for_build": "no", **result}
     
     content = result.get("content", b"")
     if isinstance(content, bytes):
@@ -297,7 +297,7 @@ def _test_event_export() -> dict[str, Any]:
     if not export_urls:
         return {
             "endpoint": "GDELT Event Export",
-            "usable_for_mvp": "no",
+            "usable_for_build": "no",
             "item_count": 0,
             "note": "No export files found in listing",
             **result,
@@ -365,7 +365,7 @@ def _test_event_export() -> dict[str, Any]:
     
     return {
         "endpoint": "GDELT Event Export",
-        "usable_for_mvp": usable,
+        "usable_for_build": usable,
         "display_mode": display_mode,
         "reliability": "stable",
         "item_count": len(export_urls),
@@ -398,7 +398,7 @@ def run_gdelt_proof() -> dict[str, Any]:
         print(f"  Query: {q['label']}")
         r = _test_doc_api(q["query"])
         doc_results.append(r)
-        print(f"    Status: {r.get('status_code')}, Items: {r.get('item_count')}, Usable: {r.get('usable_for_mvp')}")
+        print(f"    Status: {r.get('status_code')}, Items: {r.get('item_count')}, Usable: {r.get('usable_for_build')}")
         time.sleep(1)  # Be nice to the API
     
     results["doc_api"] = doc_results
@@ -410,7 +410,7 @@ def run_gdelt_proof() -> dict[str, Any]:
         print(f"  Query: {q['label']}")
         r = _test_geo_api(q["query"])
         geo_results.append(r)
-        print(f"    Status: {r.get('status_code')}, Items: {r.get('item_count')}, Usable: {r.get('usable_for_mvp')}")
+        print(f"    Status: {r.get('status_code')}, Items: {r.get('item_count')}, Usable: {r.get('usable_for_build')}")
         time.sleep(1)
     
     results["geo_api"] = geo_results
@@ -419,16 +419,16 @@ def run_gdelt_proof() -> dict[str, Any]:
     print("\nTesting GDELT Event Export...")
     event_result = _test_event_export()
     results["event_export"] = event_result
-    print(f"  Status: {event_result.get('status_code')}, Usable: {event_result.get('usable_for_mvp')}")
+    print(f"  Status: {event_result.get('status_code')}, Usable: {event_result.get('usable_for_build')}")
     
     # Generate summary
-    all_doc_usable = sum(1 for r in doc_results if r.get("usable_for_mvp") == "yes")
-    all_geo_usable = sum(1 for r in geo_results if r.get("usable_for_mvp") == "yes")
+    all_doc_usable = sum(1 for r in doc_results if r.get("usable_for_build") == "yes")
+    all_geo_usable = sum(1 for r in geo_results if r.get("usable_for_build") == "yes")
     
     results["summary"] = {
         "doc_api_usable": all_doc_usable > 0,
         "geo_api_usable": all_geo_usable > 0,
-        "event_export_usable": event_result.get("usable_for_mvp") in ("yes", "partial"),
+        "event_export_usable": event_result.get("usable_for_build") in ("yes", "partial"),
         "recommendation": _get_recommendation(doc_results, geo_results, event_result),
     }
     
@@ -442,10 +442,10 @@ def run_gdelt_proof() -> dict[str, Any]:
 
 
 def _get_recommendation(doc_results: list, geo_results: list, event_result: dict) -> str:
-    """Determine recommended MVP path."""
-    doc_usable = any(r.get("usable_for_mvp") == "yes" for r in doc_results)
-    geo_usable = any(r.get("usable_for_mvp") == "yes" for r in geo_results)
-    event_usable = event_result.get("usable_for_mvp") in ("yes", "partial")
+    """Determine recommended build path."""
+    doc_usable = any(r.get("usable_for_build") == "yes" for r in doc_results)
+    geo_usable = any(r.get("usable_for_build") == "yes" for r in geo_results)
+    event_usable = event_result.get("usable_for_build") in ("yes", "partial")
     
     if event_usable:
         return "Option 2: GDELT Event Database with marker-capable event records"

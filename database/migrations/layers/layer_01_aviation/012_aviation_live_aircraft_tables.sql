@@ -196,7 +196,7 @@ VALUES
     TRUE,
     FALSE,
     TRUE,
-    'MVP live source. Fetch /mil, /ladd, /pia, and one /point camera-region request per 5-second cycle; do not tile the globe.'
+    'Current-build live source. Fetch /mil, /ladd, /pia, and one /point camera-region request per 5-second cycle; do not tile the globe.'
   ),
   (
     'opensky_trino',
@@ -204,13 +204,13 @@ VALUES
     'OpenSky Network Trino',
     'https://opensky-network.org/',
     'research_restricted',
-    'OpenSky Network Trino is historical/future-only for GOD EYES and requires application approval. Access is intended for university-affiliated researchers, governmental organisations, aviation authorities, or separately licensed private/commercial entities. Not used for MVP live tracking.',
+    'OpenSky Network Trino is historical/future-only for GOD EYES and requires application approval. Access is intended for university-affiliated researchers, governmental organisations, aviation authorities, or separately licensed private/commercial entities. Not used for current-build live tracking.',
     1,
     86400,
     FALSE,
     TRUE,
     FALSE,
-    'Future historical backfill source for state_vectors_data4 after access approval; not a live MVP dependency.'
+    'Future historical backfill source for state_vectors_data4 after access approval; not a live current-build dependency.'
   )
 ON CONFLICT (source_id) DO UPDATE SET
   layer_id = EXCLUDED.layer_id,

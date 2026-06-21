@@ -87,7 +87,7 @@
     {
       "name": "BarentsWatch Live AIS",
       "decision": "FUTURE_SOURCE",
-      "reason": "Regional fallback only; not global enough for MVP"
+      "reason": "Regional fallback only; not global enough for the current build"
     },
     {
       "name": "AISHub",

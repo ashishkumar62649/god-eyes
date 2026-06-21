@@ -1,0 +1,137 @@
+{
+  "layer_id": "layer_01_aviation",
+  "source_id": "airplanes_live_v2",
+  "source_name": "Airplanes.live REST API v2",
+  "status": "active",
+  "source_type": "live_aircraft_tracking",
+  "access_type": "rest_poll",
+  "owner": "Aviation live aircraft pipeline (Fetcher Agent)",
+  "license": {
+    "name": "Non-commercial / no SLA",
+    "attribution": "Airplanes.live ADS-B + MLAT data. Attribution appreciated; not formally required for non-commercial use.",
+    "terms_url": "https://airplanes.live/api-guide/",
+    "license_type_in_db": "non_commercial"
+  },
+  "requires_api_key": false,
+  "payment_required": false,
+  "attribution_required": "Appreciated; no formal requirement. UI must display the non-commercial / no-SLA caveat (see ADR-002).",
+  "source_urls": {
+    "base_url": "http://api.airplanes.live/v2/",
+    "endpoints": {
+      "mil": "http://api.airplanes.live/v2/mil",
+      "ladd": "http://api.airplanes.live/v2/ladd",
+      "pia": "http://api.airplanes.live/v2/pia",
+      "point": "http://api.airplanes.live/v2/point/{lat}/{lon}/{radius_nm}",
+      "hex": "http://api.airplanes.live/v2/hex/{hex}",
+      "callsign": "http://api.airplanes.live/v2/callsign/{callsign}",
+      "reg": "http://api.airplanes.live/v2/reg/{reg}",
+      "type": "http://api.airplanes.live/v2/type/{type}",
+      "squawk": "http://api.airplanes.live/v2/squawk/{squawk}"
+    }
+  },
+  "what_it_provides": "Live global ADS-B + MLAT aircraft positions. Military, LADD, and PIA aircraft globally via dedicated endpoints. Civil aircraft only within a camera-region /point call (max 250 nm radius). No global civil endpoint exists. No SLA; no uptime guarantee. Non-commercial use only.",
+  "fields_collected": [
+    "source_object_id (icao hex)",
+    "callsign (flight)",
+    "registration (r)",
+    "aircraft_type (t)",
+    "db_flags (is_military / is_interesting / is_pia / is_ladd)",
+    "source_message_type",
+    "lat / lon",
+    "altitude_baro_ft (handles 'ground' string)",
+    "altitude_geom_ft",
+    "ground_speed_kt",
+    "track_deg",
+    "heading_mag_deg",
+    "heading_true_deg",
+    "vertical_rate_fpm",
+    "geom_rate_fpm",
+    "squawk",
+    "emergency",
+    "seen_seconds / seen_pos_seconds",
+    "observed_at / received_at / stale_after"
+  ],
+  "refresh_policy": {
+    "cadence": "every_5_seconds_per_cycle",
+    "manual_refresh_allowed": true,
+    "schedule_note": "5-second cycle: /mil, /ladd, /pia, and one /point (camera region) per cycle. Hard rate limit 1 request/second (RATE_LIMIT_SECONDS = 1.0). Do not tile the globe with /point calls."
+  },
+  "freshness_policy": {
+    "fresh_for_seconds": 30,
+    "stale_fade_after_seconds": 90,
+    "stale_purge_after_seconds": 300,
+    "notes": "STALE_ACTIVE_THRESHOLD=30s, STALE_FADE_THRESHOLD=90s, STALE_PURGE_THRESHOLD=300s. Frontend fades then drops aircraft past these thresholds."
+  },
+  "raw_storage": {
+    "bucket": "n/a (no raw blob persisted; per-record JSONB in aviation_aircraft_raw_batches.raw_sample)",
+    "path_pattern": "not applicable — see aviation_aircraft_raw_batches table instead",
+    "notes": "Live aircraft raw evidence is stored in the aviation_aircraft_raw_batches table (with http_status, source_now_ts, source_ctime_ts, source_ptime_ms, and a small raw_sample). The canonical raw path pattern from PROJECT_CONTROL.md §13 is not used for this live stream; raw-sample payloads are capped to the first 5 records per batch."
+  },
+  "collector": {
+    "name": "aviation_live_aircraft_worker",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py",
+    "manual_command": "python services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py --source-mode rest --persist",
+    "source_modes_supported": ["rest", "global-web-json"],
+    "default_source_mode": "rest",
+    "default_source_id_in_worker": "airplanes_live_v2",
+    "ingests_normalized_rows_inline": true
+  },
+  "normalizer": {
+    "name": "normalize_aircraft (inline in worker)",
+    "path": "services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py::normalize_aircraft",
+    "notes": "Live aircraft normalization is performed inline in the worker. There is no separate normalizer module under services/normalizer/ for this source."
+  },
+  "validator": {
+    "name": "aviation_aircraft_latest / aviation_aircraft_observations CHECK constraints",
+    "path": "database/migrations/layers/layer_01_aviation/012_aviation_live_aircraft_tables.sql"
+  },
+  "target_tables": [
+    "aviation_aircraft_sources",
+    "aviation_aircraft_latest",
+    "aviation_aircraft_observations",
+    "aviation_aircraft_raw_batches",
+    "aviation_aircraft_live_snapshots (per migration 013 — used by the broadcaster for the WebSocket payload)"
+  ],
+  "api_endpoints": {
+    "rest": [
+      "GET /api/aviation/aircraft/latest",
+      "GET /api/aviation/aircraft/:sourceObjectId",
+      "GET /api/layers/aviation/aircraft/latest",
+      "GET /api/layers/aviation/aircraft/:sourceObjectId"
+    ],
+    "websocket": [
+      "ws://<host>/ws/aviation/aircraft/live"
+    ],
+    "implementation_paths": [
+      "apps/api/src/routes/aviation/aircraft/ (canonical)",
+      "apps/api/src/routes/aviation-aircraft.ts (1-line compatibility shim — Wave 3 SR-005D)"
+    ]
+  },
+  "frontend_usage": {
+    "layer_folder": "apps/web/src/layers/layer_01_aviation/aircraft/",
+    "files": [
+      "apps/web/src/layers/layer_01_aviation/aircraft/useLiveAircraftSocket.ts",
+      "apps/web/src/layers/layer_01_aviation/aircraft/aircraftMarker.ts"
+    ],
+    "transport": "WebSocket (snapshot + delta) for live, REST for latest-list / detail",
+    "barrel": "apps/web/src/layers/layer_01_aviation/index.ts re-exports the aircraft hooks/components"
+  },
+  "tests": [
+    "tests/data/layer_01_aviation/test_aviation_live_aircraft_migration.py",
+    "tests/data/layer_01_aviation/test_aviation_live_aircraft_worker.py"
+  ],
+  "known_limitations": [
+    "No global civil aircraft endpoint — civil coverage is limited to a single /point call per 5s cycle (max 250 nm radius).",
+    "No SLA; non-commercial only; documented in ADR-002.",
+    "The 'ground' string sentinel in alt_baro is normalised to on_ground=true and altitude_baro_ft=null.",
+    "Airplanes.live returns the most recent batch; the WebSocket broadcaster currently exposes a single-source stream keyed on source_id='airplanes_live_v2' (see global-web-json mode for a separate dev source id).",
+    "No 30-day retention on observations; this is a live snapshot stream."
+  ],
+  "ui_caveat": "Live aircraft data: Airplanes.live (non-commercial / no SLA). Civil aircraft shown within camera region only. Military / LADD / PIA shown globally. Not authoritative aviation data. Coverage may be incomplete.",
+  "notes": [
+    "Source decision and selection rationale: docs/decisions/ADR-002-aviation-live-source.md (status: DECIDED).",
+    "The source row in aviation_aircraft_sources uses license_type='non_commercial', is_live=TRUE, is_historical=FALSE, is_active=TRUE, refresh_interval_s=5, rate_limit_per_sec=1.",
+    "DB source_id is the primary key and matches this catalog source_id: 'airplanes_live_v2'.",
+    "If a future build ever becomes commercial, a new agreement with Airplanes.live is required before continuing to use this API."
+  ]
+}

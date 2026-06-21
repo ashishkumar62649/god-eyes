@@ -62,7 +62,7 @@
  * teardown — that is W4-H territory).
  */
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
 import { Cartesian3, Color } from 'cesium';
 import type { Viewer, BillboardCollection } from 'cesium';
@@ -193,18 +193,18 @@ export function useLiveAircraftRenderer(
     setSelectedAircraft,
   } = params;
 
-  function shouldShowAircraftIcons(): boolean {
+  const shouldShowAircraftIcons = useCallback((): boolean => {
     return cameraHeightRef.current <= AIRCRAFT_ICON_VIEW_HEIGHT_METERS;
-  }
+  }, [cameraHeightRef]);
 
-  function getAircraftVisualImage(color: string, iconName: string): string {
+  const getAircraftVisualImage = useCallback((color: string, iconName: string): string => {
     if (!shouldShowAircraftIcons()) {
       return getAircraftDotMarkerImage(color);
     }
     return getAircraftMarkerImage(iconName, color);
-  }
+  }, [shouldShowAircraftIcons]);
 
-  function updateAircraftVisualMode(): void {
+  const updateAircraftVisualMode = useCallback((): void => {
     if (!aircraftMapRef.current.size) return;
     for (const record of aircraftMapRef.current.values()) {
       const ac = (record.billboard.id as { [k: string]: unknown })[
@@ -230,7 +230,7 @@ export function useLiveAircraftRenderer(
         });
       }
     }
-  }
+  }, [aircraftMapRef, getAircraftVisualImage, shouldShowAircraftIcons]);
 
   // (No internal onGetBboxRef2 declaration — the ref is owned by the
   // orchestrator and passed in. The orchestrator's prop-sync writes

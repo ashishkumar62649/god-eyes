@@ -20,7 +20,7 @@ feature structure, file and function size, frontend organization, API route cont
 layout, database/migration structure, transport/live-data readiness, raw storage, object storage, and import
 boundaries.
 
-**What was audited.** All eleven MVP layer folders (00 through 10), the API routes folder, the
+**What was audited.** All eleven active layer folders (00 through 10), the API routes folder, the
 fetch-orchestrator and normalizer services, the database migrations and ingestion trees, and the
 `tests/data` tree. The audit also reviewed a sample of API source files, frontend layer folders,
 `packages/contracts/`, and the shared `apps/web/src/lib` and `apps/web/src/components` trees.
@@ -82,7 +82,7 @@ The following rule documents were used as the audit baseline:
 * `AGENTS.md` — entry point: roles, layer registry, hard rules, workflow cycle, git rules
 * `docs/control/ENGINEERING_STRUCTURE_RULES.md` — **the master engineering rulebook** (the
   authoritative source for this audit)
-* `docs/control/MVP_LAYER_REGISTRY.md` — authoritative layer registry, IDs, statuses
+* `docs/control/PROJECT_CONTROL.md Part 2 �4` — authoritative layer registry, IDs, statuses
 * `docs/control/LLM_OWNERSHIP_MATRIX.md` — agent ownership matrix; includes the Normalizer
   Location Rule
 * `docs/control/PIPELINE_HANDOFF_RULES.md` — pipeline handoff and data flow rules
@@ -164,10 +164,10 @@ The audit inspected the following folders and files by category:
 | ESA-019 | Spatial naming consistency | Low | Next | Database | All `geom` columns are `geometry(Geometry, 4326)`. Latitude/longitude column names are consistent (`latitude`, `longitude`) across the inspected migrations. The `energy_infrastructure_geometry_type_matches_geom_check` constraint enforces geometry type ↔ category consistency. | None. PASS. |
 | ESA-020 | JSONB / JSON usage | Low | Next | Database | JSONB is used in `airport_public_profile.profile_payload`, `airport_intelligence.module_status`, and `raw_source_json` columns. All inspected cases are provider metadata or raw evidence — consistent with Section 10 allowed uses. No `attributes JSONB` dumping ground. | None. PASS. |
 | ESA-021 | Migration category declaration | Low | Later | Database | The rulebook requires every new table to declare a category in its migration comment block (`reference`, `latest_state`, `history_timeseries`, `raw_reference`, `source_registry`, `fetch_run`, `derived_cache`, `user_owned`, `audit`). Spot-checked migrations: `earth_events_latest` and `energy_infrastructure` use such category comments. Not every migration was exhaustively checked in this audit. | Spot-check remaining migrations; flag any missing category header in a follow-up work order. |
-| ESA-022 | Time-series readiness | Low | Later | Database | Live layers currently use `*_history` PostgreSQL tables. The rulebook explicitly states: "Do not introduce new time-series database technology in this task or any feature task without an explicit work order and Orchestrator Agent approval." The current approach is appropriate for MVP volume. Aviation history table is implemented; maritime position history exists; weather history exists. | None for MVP. Plan dedicated work order when daily volume justifies specialized time-series storage. |
+| ESA-022 | Time-series readiness | Low | Later | Database | Live layers currently use `*_history` PostgreSQL tables. The rulebook explicitly states: "Do not introduce new time-series database technology in this task or any feature task without an explicit work order and Orchestrator Agent approval." The current approach is appropriate for current-build volume. Aviation history table is implemented; maritime position history exists; weather history exists. | None for current build. Plan dedicated work order when daily volume justifies specialized time-series storage. |
 | ESA-023 | Raw storage path consistency | Low | Next | Fetcher | The fetcher worker `weather_raw_storage.py` (and equivalent raw storage modules in other layers) write to `raw/{layer_id}/{source_id}/{yyyy}/{mm}/{dd}/{fetch_run_id}/payload.{ext}`. Matches Section 15. `raw/` is gitignored. | None. PASS. |
 | ESA-024 | Generated folder hygiene | Low | Next | Cross-lane | `__pycache__/`, `*.pyc`, `dist/`, `node_modules/`, `.pytest_cache/`, `apps/api/dist/`, `apps/web/dist/`, `packages/contracts/dist/` exist locally but are gitignored and never committed. | None. PASS. |
-| ESA-025 | Object storage readiness | Low | Later | Orchestrator | Raw payload storage is currently filesystem. The rulebook allows object storage "later through a dedicated work order." No blocking gap at MVP volume. | Plan object-storage-readiness work order when total raw payload volume exceeds local disk budget. |
+| ESA-025 | Object storage readiness | Low | Later | Orchestrator | Raw payload storage is currently filesystem. The rulebook allows object storage "later through a dedicated work order." No blocking gap at current-build volume. | Plan object-storage-readiness work order when total raw payload volume exceeds local disk budget. |
 | ESA-026 | Background job model | Low | Later | Orchestrator | Layer 01–08 and 10 workers are Python CLIs run manually. The rulebook says "Do not implement a job queue or job orchestration system in this task or any feature task without an explicit work order." | Plan unified scheduler work order when operational visibility is required. |
 | ESA-027 | Import boundary risks | Low | Next | Cross-lane | Searched the full source tree for forbidden cross-imports: `apps/web` → `services/`, `apps/api` → `apps/web/` or `services/`, `services/` → `apps/`. None found. Frontend imports `apps/web/src/lib/api.ts` only; services import their own layer folder and `urllib`/`requests` for external providers. | None. PASS. |
 | ESA-028 | Transport for live data | Low | Later | API | Aviation aircraft and space satellites already use WebSocket transport (`ws://.../ws/aviation/aircraft/live`, `ws://.../ws/space/satellites/live`). Maritime, weather, news, earth events, energy all use REST polling. The rulebook allows REST for "current" data and recommends streaming only when polling is insufficient. | Plan a streaming transport work order for maritime and weather when poll frequency becomes a bandwidth concern. |
@@ -179,7 +179,7 @@ The audit inspected the following folders and files by category:
 ## 5. Folder and Layer Structure Findings
 
 The audit inspected the following layer folders and compared them against the canonical
-`layer_NN_name/` naming pattern from `MVP_LAYER_REGISTRY.md`:
+`layer_NN_name/` naming pattern from `PROJECT_CONTROL.md Part 2 �4`:
 
 ### 5.1 Frontend (`apps/web/src/layers/`)
 
@@ -321,7 +321,7 @@ The audit reviewed feature subfolder structure for the larger layers:
 * The aviation fetcher side (`services/fetch-orchestrator/src/layers/layer_01_aviation/`) is
   also flat with prefixed file names (no `sources/<name>/` subfolders). Same comment as 5.3.
 
-**Verdict.** **Reasonably structured** for an MVP. Future feature-split is a **Later** item.
+**Verdict.** **Reasonably structured** for an initial implementation build. Future feature-split is a **Later** item.
 
 ### 6.2 Maritime (`apps/web/src/layers/maritime/`)
 
@@ -671,13 +671,13 @@ the API refactor is planned.
 * No `cors`, `helmet`, `limiter`, or `requireAuth` patterns in the inspected source.
 * The API is **unauthenticated** and **rate-unlimited** at the application layer. There
   is no documented `Cache-Control` header strategy in the routes.
-* Layer 09 (`layer_09_user_shapes`) is the first layer that will require auth. The MVP
+* Layer 09 (`layer_09_user_shapes`) is the first layer that will require auth. The current build
   layer registry says "User Shapes" must "authenticate all writes" and "rate-limit per
   user". These requirements are documented but not yet implemented because layer 09 is
   `coming_soon`.
 * Aviation and space satellites use WebSocket transport. The broadcaster
   (`apps/api/src/lib/live-aircraft-broadcaster.ts`, 250 lines) is a simple in-process
-  Pub/Sub. This is fine for MVP but is a single-process scaling limit. The rulebook
+  Pub/Sub. This is fine for the current build but is a single-process scaling limit. The rulebook
   allows "in-memory TTL" cache; the broadcaster is a form of in-process state.
 
 **Verdict.** No current rule violation. Plan a deployment-scale work order for cache
@@ -881,7 +881,7 @@ the API is exposed beyond localhost.
   scales. The rulebook explicitly says: "Do not introduce new time-series database
   technology in this task or any feature task without an explicit work order and
   Orchestrator Agent approval."
-* Current approach (PostgreSQL `*_history` tables) is appropriate for MVP volume.
+* Current approach (PostgreSQL `*_history` tables) is appropriate for current-build volume.
 
 ### 11.9 Database shapes that may be too coupled to API/frontend assumptions
 
@@ -892,7 +892,7 @@ the API is exposed beyond localhost.
   endpoints (`/api/layers/<layer_id>/objects`) are the recommended future pattern.
 * Energy and weather have their own table names that match the route handler
   assumptions. There is no general "layer objects" abstraction in the database
-  itself, which is the right choice for MVP. The Database Agent has not been
+  itself, which is the right choice for current build. The Database Agent has not been
   forced to over-generalize.
 * **PASS** with respect to Section 10 ("Database design must not couple directly
   to API or frontend shapes").
@@ -953,20 +953,20 @@ the API is exposed beyond localhost.
 * Cache headers — no `Cache-Control` is set in the inspected source. For
   `latest`-snapshot endpoints, a short `max-age` (e.g., 60 seconds) is appropriate.
   For `history` endpoints, no cache or long cache is appropriate.
-* Async job pattern for bulk export — not yet needed at MVP volume.
+* Async job pattern for bulk export — not yet needed at current-build volume.
 
 ### 12.4 User / account input-output
 
 * The project has no user accounts. All API endpoints are read-only. The first
   write endpoint will be Layer 09 (`layer_09_user_shapes` POST), which is
-  `coming_soon`. The MVP layer registry already documents the auth and rate-limit
+  `coming_soon`. The PROJECT_CONTROL.md Part 2 �4 layer registry already documents the auth and rate-limit
   requirements for that layer.
 
 ### 12.5 Security / rate limit / auth / authz posture
 
 * No `cors`, `helmet`, `limiter`, or `requireAuth` patterns in the inspected source.
 * The API is unauthenticated and rate-unlimited. This is acceptable for an
-  MVP/local-dev deployment but should be planned before any public exposure.
+  local/dev deployment but should be planned before any public exposure.
 * The rulebook Section 13 "API quality requirements" lists these as design-time
   requirements for new routes. Existing routes predate the rulebook and are
   grandfathered. **Recommend a future work order** to add the missing pieces
@@ -1000,7 +1000,7 @@ the API is exposed beyond localhost.
   rulebook Section 15 says: "Object storage (for large raw evidence or export
   artifacts) may be introduced later through a dedicated work order. Do not
   assume any specific object storage vendor."
-* No object storage is required at MVP volume. Plan a future work order when
+* No object storage is required at current-build volume. Plan a future work order when
   the total raw payload size exceeds local disk budget or when a multi-instance
   deployment requires shared storage.
 
@@ -1174,7 +1174,7 @@ user-level decision) before the recommended repairs are planned.
    retain data? Currently undefined. Affects indexing and partitioning
    decisions. (Database Agent + Orchestrator.)
 6. **Layer 02 production gate.** Layer 02 (`layer_02_borders_boundaries`) is
-   marked "active (MVP/local-dev)" with a documented India-boundary production
+   marked "active (local/dev)" with a documented India-boundary production
    gate. Is the production gate still the path forward, or is the layer being
    deprecated? Affects whether `002_borders_boundaries_schema.sql` is the
    final schema or a placeholder. (User-level decision per the policy source

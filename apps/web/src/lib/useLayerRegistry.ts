@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { LayerRegistryEntry } from '@god-eyes/contracts';
 import { fetchLayerRegistry } from './api';
 
-// Local fallback — mirrors MVP_LAYER_REGISTRY.md exactly.
+// Local fallback — mirrors the canonical layer registry exactly.
 // Used when API is offline so the UI always renders all 11 layers (00-10).
 // WO-1-4: `category` values now match the canonical CapitalCase values
 // used by the API registry in apps/api/src/routes/layers.ts (Foundation,

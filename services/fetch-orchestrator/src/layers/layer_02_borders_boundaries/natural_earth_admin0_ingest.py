@@ -1,6 +1,6 @@
 """Natural Earth Admin-0 Countries ingestion for WO-078C.
 
-This worker is for MVP/local/dev ingestion only. It does not approve Natural
+This worker is for local/dev ingestion only. It does not approve Natural
 Earth for production, India compliance, or official India boundary depiction use.
 
 Default mode is dry-run. Use --persist explicitly to write to PostGIS.
@@ -105,7 +105,7 @@ def build_source_metadata() -> dict[str, Any]:
         "human_approved_by": None,
         "human_approved_at": None,
         "approval_notes": (
-            "MVP/local/dev only; not production-approved; not India-compliant; "
+            "local/dev only; not production-approved; not India-compliant; "
             "Natural Earth uses de facto boundaries and must not replace Survey of India review."
         ),
     }
@@ -119,7 +119,7 @@ def download_official_zip(cache_dir: Path, timeout: int = 60) -> Path:
 
     request = urllib.request.Request(
         NATURAL_EARTH_ADMIN0_50M_URL,
-        headers={"User-Agent": "GodEyes/0.1 NaturalEarthMVPIngest"},
+        headers={"User-Agent": "GodEyes/0.1 NaturalEarthLocalDevIngest"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = response.read()
@@ -336,7 +336,7 @@ def normalize_boundary_record(attributes: dict[str, Any], geometry_wkt: str) -> 
         "continent": attributes.get("CONTINENT"),
         "region_un": attributes.get("REGION_UN"),
         "subregion": attributes.get("SUBREGION"),
-        "mvp_warning": "Natural Earth MVP/local/dev only; not production-approved; not India-compliant.",
+        "local_dev_warning": "Natural Earth local/dev only; not production-approved; not India-compliant.",
         "dispute_caveat": "Disputed boundary handling remains subject to future compliance review.",
     }
 
@@ -539,7 +539,7 @@ def main() -> None:
     if result["persisted"]:
         print(f"  Source rows written/upserted: {result['source_rows_written']}")
         print(f"  Boundary rows written/upserted: {result['boundary_rows_written']}")
-    print("  Warning: MVP/local/dev only; not production-approved; not India-compliant.")
+    print("  Warning: local/dev only; not production-approved; not India-compliant.")
 
 
 if __name__ == "__main__":

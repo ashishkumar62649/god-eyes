@@ -285,7 +285,7 @@ def build_infrastructure_summary(
 ) -> InfrastructureSummary:
     """Build infrastructure summary from runway data only.
 
-    No OSM geometry used in MVP.
+    No OSM geometry used in the current build.
     """
     if not runway_data:
         return InfrastructureSummary()

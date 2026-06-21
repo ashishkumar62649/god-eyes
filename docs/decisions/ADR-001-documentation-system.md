@@ -39,12 +39,12 @@ The project adopts the following documentation structure and rules:
 
 - The project uses `docs/control/` for **active rules**. These are authoritative
   instructions that all agents must follow. Examples:
-  - `docs/control/ENGINEERING_STRUCTURE_RULES.md`
-  - `docs/control/MVP_LAYER_REGISTRY.md`
-  - `docs/control/LLM_OWNERSHIP_MATRIX.md`
-  - `docs/control/PIPELINE_HANDOFF_RULES.md`
-  - `docs/control/DATA_LOCATION_RULES.md`
-  - `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md`
+  - `docs/control/ENGINEERING_STRUCTURE_RULES.md` (legacy filename; merged into the current single active control file)
+  - The legacy layer-registry filename (retired; canonical layer registry is now in `docs/control/PROJECT_CONTROL.md` Part 2 §4) — this row kept for ADR immutability; the canonical path is `docs/control/PROJECT_CONTROL.md` Part 2 §4
+  - `docs/control/LLM_OWNERSHIP_MATRIX.md` (legacy filename; merged into `docs/control/PROJECT_CONTROL.md`)
+  - `docs/control/PIPELINE_HANDOFF_RULES.md` (legacy filename; merged into `docs/control/PROJECT_CONTROL.md`)
+  - `docs/control/DATA_LOCATION_RULES.md` (legacy filename; merged into `docs/control/PROJECT_CONTROL.md`)
+  - `docs/control/SOURCE_TO_FRONTEND_CONTRACT.md` (legacy filename; merged into `docs/control/PROJECT_CONTROL.md`)
 
 - The project uses `docs/state/` for **current state and timeline**. Two
   classifications:

@@ -60,7 +60,7 @@ def test_uses_official_natural_earth_url_and_no_random_mirrors():
     assert "figshare.com" not in text
 
 
-def test_source_metadata_is_mvp_local_dev_only_and_not_approved():
+def test_source_metadata_is_local_dev_only_and_not_approved():
     module = load_module()
     metadata = module.build_source_metadata()
 
@@ -69,7 +69,7 @@ def test_source_metadata_is_mvp_local_dev_only_and_not_approved():
     assert metadata["approved_for_india"] is False
     assert metadata["approved_for_non_india"] is False
     assert metadata["india_conflict_checked"] is False
-    assert "mvp/local/dev only" in metadata["approval_notes"].lower()
+    assert "local/dev only" in metadata["approval_notes"].lower()
     assert "not production-approved" in metadata["approval_notes"].lower()
     assert "not india-compliant" in metadata["approval_notes"].lower()
 

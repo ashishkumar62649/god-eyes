@@ -51,7 +51,7 @@ def test_aviation_live_aircraft_migration_seeds_required_sources_with_caveats():
         "historical",
         "future",
         "requires application",
-        "not used for mvp live tracking",
+        "not used for current-build live tracking",
     ]
     for term in required_terms:
         assert term in migration

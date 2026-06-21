@@ -12,16 +12,16 @@ Source catalog for the GOD EYES Weather layer. Documents all verified weather da
 |-----------|-------|
 | Layer ID | `layer_07_weather` |
 | Layer Name | Weather / Live Weather |
-| Phase | MVP |
+| Phase | Current build |
 | Status | SOURCE_RESEARCH |
 
 ---
 
-## Primary MVP Source
+## Primary Current-Build Source
 
 | Source | Status | Documentation |
 |--------|--------|---------------|
-| **Open-Meteo** | **PRIMARY_MVP_SOURCE** | [open_meteo_source.md](./open_meteo_source.md) |
+| **Open-Meteo** | **PRIMARY_CURRENT_BUILD_SOURCE** | [open_meteo_source.md](./open_meteo_source.md) |
 
 ---
 
@@ -31,7 +31,7 @@ Source catalog for the GOD EYES Weather layer. Documents all verified weather da
 |------|---------|
 | [open_meteo_source.md](./open_meteo_source.md) | Full source identity, endpoint, auth, licence, limits, variables, response shape |
 | [open_meteo_field_mapping.md](./open_meteo_field_mapping.md) | Field-by-field mapping from Open-Meteo to GOD EYES normalized schema |
-| [open_meteo_request_plan.md](./open_meteo_request_plan.md) | Recommended MVP proof and full fetch request configurations |
+| [open_meteo_request_plan.md](./open_meteo_request_plan.md) | Recommended initial-build proof and full fetch request configurations |
 | [open_meteo_research_summary.md](./open_meteo_research_summary.md) | Final findings, confirmed/corrected assumptions, recommendations |
 | [source_decisions.md](./source_decisions.md) | Source decision table and rationale |
 

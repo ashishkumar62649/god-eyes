@@ -11,7 +11,7 @@ const API_BASE_URL =
  */
 const WEATHER_PUBLIC_SLUG = 'weather';
 
-/** GOD EYES API path for current weather observations (MVP). */
+/** GOD EYES API path for current weather observations. */
 export const WEATHER_CURRENT_PATH = `/api/layers/${WEATHER_PUBLIC_SLUG}/current`;
 
 export interface WeatherCurrentParams {

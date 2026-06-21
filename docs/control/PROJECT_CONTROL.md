@@ -712,9 +712,9 @@ names, or statuses in this registry, pause new layer work until the drift is cor
 |---|----------|-------------|--------|------|-----------|
 | 0 | `layer_00_globe_core` | Globe Core | **active** | static | Always ON |
 | 1 | `layer_01_aviation` | Aviation | **active** | live | ON |
-| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | **active** *(MVP/local-dev only)* | static | ON |
+| 2 | `layer_02_borders_boundaries` | Borders & Boundaries | **active** *(local-dev only)* | static | ON |
 | 3 | `layer_03_earth_events` | Earth Events | **active** | live | ON |
-| 4 | `layer_04_public_military_security` | Public Military & Security | **coming_soon** | static (MVP) | — |
+| 4 | `layer_04_public_military_security` | Public Military & Security | **coming_soon** | static (initial implementation) | — |
 | 5 | `layer_05_space_satellites` | Space & Satellites | **active** *(default OFF)* | live | OFF |
 | 6 | `layer_06_maritime` | Maritime | **active** *(default OFF)* | live | OFF |
 | 7 | `layer_07_weather` | Weather / Live Weather | **active** *(default OFF)* | live | OFF |
@@ -732,7 +732,7 @@ Space uses `layer_05_space_satellites`. Energy uses `layer_10_energy_infrastruct
 | Status | Meaning | UI Behaviour |
 |--------|---------|-------------|
 | `active` | Fully implemented with real data | Toggle enabled; renders on globe |
-| `active (MVP/local-dev)` | Implemented for local dev only; not production-approved | Toggle enabled; renders but carries production warning |
+| `active (local-dev)` | Implemented for local dev only; not production-approved | Toggle enabled; renders but carries production warning |
 | `active (default OFF)` | Implemented; UI toggle defaults to off | Toggle visible and enabled; off by default |
 | `coming_soon` | In registry but not implemented | Toggle visible but disabled; shows "Coming Soon" badge. **Never shows fake/demo data.** |
 | `no_data` | Exists in frontend; no sources configured | Toggle visible; shows "No data sources" indicator |
@@ -747,10 +747,10 @@ Space uses `layer_05_space_satellites`. Energy uses `layer_10_energy_infrastruct
 4. All data layers (1+) depend on Layer 0.
 5. **No fake/demo data.** Live layers with no populated database show an empty state.
 6. **60 FPS safe** at all times across all toggled-on layers.
-7. **layer_04_public_military_security** — public-only, static-only for MVP. No live
+7. **layer_04_public_military_security** — public-only, static-only for the initial implementation. No live
    tracking, no real-time updates, no movement animation. UI disclaimer required:
    "Publicly available information only."
-8. **layer_02_borders_boundaries** — MVP/local-dev only. Not Survey of India compliant.
+8. **layer_02_borders_boundaries** — local-dev only. Not Survey of India compliant.
    All disputed territories require individual review. Not production-approved.
 9. Live layers (type: `live`) render real data only when their worker has populated the
    database. Otherwise they show an empty state.
@@ -861,7 +861,7 @@ Where contract details are not yet recorded, mark them `needs contract detail` �
 |-------|--------------|---------------|-------------|
 | `layer_01_aviation` | OurAirports / aviation reference | `services/fetch-orchestrator/src/layers/layer_01_aviation/`, `services/normalizer/src/layers/layer_01_aviation/` | `GET /api/layers/layer_01_aviation/objects` |
 | `layer_01_aviation` | Aviation live aircraft | `services/fetch-orchestrator/src/layers/layer_01_aviation/aviation_live_aircraft_worker.py` | `GET /api/aviation/aircraft/latest`, `ws://.../ws/aviation/aircraft/live` |
-| `layer_02_borders_boundaries` | Natural Earth Admin-0 (MVP/local-dev) | `services/fetch-orchestrator/src/layers/layer_02_borders_boundaries/` | `GET /api/borders-boundaries/countries` |
+| `layer_02_borders_boundaries` | Natural Earth Admin-0 (local-dev) | `services/fetch-orchestrator/src/layers/layer_02_borders_boundaries/` | `GET /api/borders-boundaries/countries` |
 | `layer_03_earth_events` | USGS earthquakes | `services/fetch-orchestrator/src/layers/layer_03_earth_events/usgs_earthquakes_worker.py` | `GET /api/earth-events/latest` |
 | `layer_05_space_satellites` | CelesTrak / Space-Track TLE feeds | `services/fetch-orchestrator/src/layers/layer_05_space_satellites/` | `GET /api/space/satellites`, `ws://.../ws/space/satellites/live` |
 | `layer_06_maritime` | AIS maritime source family | `services/fetch-orchestrator/src/layers/layer_06_maritime/` | `GET /api/layers/layer_06_maritime/objects` (+ `/stats`, `/vessels/:mmsi/positions`) |

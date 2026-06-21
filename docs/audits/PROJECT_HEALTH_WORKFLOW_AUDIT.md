@@ -62,7 +62,7 @@ python -m pytest tests/data -q (before)  â†’  PASS â€” 1159 passed, 15 skipped, 
 - `AGENTS.md`
 - `docs/state/CURRENT_PROJECT_STATE.md`
 - `docs/state/HANDOFF_LOG.md`
-- `docs/control/MVP_LAYER_REGISTRY.md`
+- `docs/control/the legacy layer-registry filename (now retired; canonical is docs/control/PROJECT_CONTROL.md Part 2 §4)`
 - `docs/control/LAYER_ARCHITECTURE.md`
 - `docs/control/LAYER_ID_CONVENTIONS.md`
 - `docs/control/LLM_OWNERSHIP_MATRIX.md`
@@ -74,8 +74,8 @@ python -m pytest tests/data -q (before)  â†’  PASS â€” 1159 passed, 15 skipped, 
 - `docs/control/BORDERS_BOUNDARIES_IMPLEMENTATION_GATE_REVIEW.md`
 - `docs/control/AIRPORT_PUBLIC_ENRICHMENT_PIPELINE.md`
 - `docs/control/EARTH_EVENTS_LAYER_PLAN.md` (directory listing)
-- `docs/control/layer_05_space_satellites_mvp_contract.md`
-- `docs/control/layer_10_energy_infrastructure_mvp_contract.md`
+- `docs/control/the legacy layer-05 contract filename (now archived)`
+- `docs/control/the legacy layer-10 contract filename (now archived)`
 
 ### Recent Alignment / Audit Docs
 
@@ -267,7 +267,7 @@ No high-severity findings remain. The alignment merge resolved:
 
 - **Severity:** LOW
 - **Category:** Active doc â€” residual tool/product name references
-- **File:** `docs/control/MVP_LAYER_REGISTRY.md` â€” Safety Notes column, row 4
+- **File:** `docs/control/the legacy layer-registry filename (now retired; canonical is docs/control/PROJECT_CONTROL.md Part 2 §4)` â€” Safety Notes column, row 4
   (`layer_04_public_military_security`)
 - **What is wrong:** The safety notes cell for layer 04 reads: *"Any new source requires
   explicit Kiro approval."* All other active control documents were neutralized to role names
@@ -349,7 +349,7 @@ No high-severity findings remain. The alignment merge resolved:
 - **Why it matters:** Onboarding friction for new agents. GitHub shows `AGENTS.md` instead
   of a `README.md` as the landing document.
 - **Recommended action:** Add a minimal `README.md` at root pointing to `AGENTS.md` and
-  `docs/control/MVP_LAYER_REGISTRY.md` as authoritative entry documents.
+  `docs/control/the legacy layer-registry filename (now retired; canonical is docs/control/PROJECT_CONTROL.md Part 2 §4)` as authoritative entry documents.
 - **Blocks next planning/build:** NO
 
 ---
@@ -446,16 +446,16 @@ confusion or weakening compliance rules.
 
 ---
 
-**`docs/control/BORDERS_BOUNDARIES_NATURAL_EARTH_MVP_SOURCE_SELECTION.md`**
-**`docs/control/BORDERS_BOUNDARIES_MVP_BOUNDARY_MODE_DECISION.md`**
+**`docs/control/the legacy borders-source-selection filename (now archived)`**
+**`docs/control/the legacy borders-boundary-mode-decision filename (now archived)`**
 **`docs/control/BORDERS_BOUNDARIES_SOURCE_LICENSE_CLEARANCE_KIT.md`**
 **`docs/control/BORDERS_BOUNDARIES_SOURCE_REVIEW_TRACKER.md`**
 **`docs/control/BORDERS_BOUNDARIES_SURVEY_OF_INDIA_REQUEST_TEMPLATE.md`**
 - Reason they are historical: These are source evaluation and compliance planning documents
   produced during the WO-076 through WO-078 series for Layer 02. They contain author
   attributions referencing a tool/product name. The decisions they document (Natural Earth
-  as MVP source, production compliance deferred) are already encoded in the active
-  `BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md` and `MVP_LAYER_REGISTRY.md`.
+  as initial-build source, production compliance deferred) are already encoded in the active
+  `BORDERS_BOUNDARIES_POLICY_SOURCE_PLAN.md` and `the legacy layer-registry filename (now retired; canonical is docs/control/PROJECT_CONTROL.md Part 2 §4)`.
 - Why agents do not need to change them: The Layer 02 source decision is settled. These
   files serve as historical background and compliance evidence, not active instructions.
   The production compliance gates are enforced by the policy plan, not these decision docs.
@@ -473,15 +473,15 @@ confusion or weakening compliance rules.
 
 ---
 
-**`docs/control/layer_05_space_satellites_mvp_contract.md`**
+**`docs/control/the legacy layer-05 contract filename (now archived)`**
 - Reason it is historical/completed: The alignment pass added a status note at the top of
   this file marking it as "historical/completed". Layer 05 is fully implemented.
-- Why agents do not need to change it: Active agents read `MVP_LAYER_REGISTRY.md` and
+- Why agents do not need to change it: Active agents read `the legacy layer-registry filename (now retired; canonical is docs/control/PROJECT_CONTROL.md Part 2 §4)` and
   current code/contracts, not this lane contract. The document is self-labeled historical.
 
 ---
 
-**`docs/control/layer_10_energy_infrastructure_mvp_contract.md`**
+**`docs/control/the legacy layer-10 contract filename (now archived)`**
 - Reason it is historical/completed: Layer 10 is fully implemented. This contract document
   was the planning-phase spec.
 - Why agents do not need to change it: Same as layer 05 contract above. Active API
@@ -562,7 +562,7 @@ The following cross-cutting checks were performed to detect agent boundary viola
 
 | Check | Result |
 |-------|--------|
-| `MVP_LAYER_REGISTRY.md` has 11 rows (00â€“10) | PASS |
+| `the legacy layer-registry filename (now retired; canonical is docs/control/PROJECT_CONTROL.md Part 2 §4)` has 11 rows (00â€“10) | PASS |
 | `apps/api/src/routes/layers.ts` `LAYER_REGISTRY` has 11 entries | PASS |
 | `apps/web/src/lib/useLayerRegistry.ts` `LOCAL_LAYER_REGISTRY` has 11 entries | PASS |
 | All three registries agree on `layer_07_weather` (not `layer_07_infrastructure`) | PASS |

@@ -22,7 +22,7 @@ Data quality rules enforced:
   - If Wikipedia is unavailable, continue with local DB only
   - If source confidence is low, mark low_confidence instead of ok
 
-Sources used for MVP:
+Sources used for the current build:
   1. Local aviation_airports / runway / frequency / navaid data
   2. Existing airport_public_profiles cache
   3. Wikipedia REST

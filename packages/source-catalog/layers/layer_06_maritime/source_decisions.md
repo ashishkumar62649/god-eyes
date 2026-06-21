@@ -10,12 +10,12 @@
 | Source | Decision | Rationale |
 |--------|----------|-----------|
 | **AISStream** | **READY_FOR_FETCH_PROOF** | Free API key, WebSocket real-time, global coverage, docs verified |
-| **BarentsWatch** | **FUTURE_SOURCE** | Regional (Norway), not global enough for MVP |
+| **BarentsWatch** | **FUTURE_SOURCE** | Regional (Norway), not global enough for the current build |
 | **AISHub** | **FUTURE_SOURCE** | Requires AIS hardware/data contribution |
 | **Danish Maritime Authority** | **FUTURE_ANALYSIS_SOURCE** | Historical only, not live |
 | **NOAA AccessAIS** | **FUTURE_ANALYSIS_SOURCE** | Historical only, US waters |
 | **Global Fishing Watch** | **FUTURE_ANALYSIS_SOURCE** | Delayed (5+ days), fishing-vessel focus |
-| **MarineTraffic** | **REJECT_FOR_MVP** | Paid API required, no free tier |
+| **MarineTraffic** | **REJECT_FOR_CURRENT_BUILD** | Paid API required, no free tier |
 
 ---
 
@@ -53,7 +53,7 @@
 | 4 | ETA is object (not ISO string) | Reconstruct ISO datetime, year unknown |
 | 5 | Field names differ (Sog/Cog vs Speed/Course) | Map accordingly in normalizer |
 
-### Risks Accepted for MVP
+### Risks Accepted for current build
 
 1. BETA service — no SLA, no uptime guarantee
 2. Unstable API — object models may change
@@ -72,7 +72,7 @@
 
 ## BarentsWatch — FUTURE_SOURCE
 
-### Why Not MVP
+### Why Not for the current build
 
 - Regional coverage only (Norwegian waters)
 - Docs URL returned 404 (uncertain availability)
@@ -88,7 +88,7 @@
 
 ## AISHub — FUTURE_SOURCE
 
-### Why Not MVP
+### Why Not for the current build
 
 - Requires contributing AIS data (hardware receiver)
 - Coverage depends on contributors
@@ -103,7 +103,7 @@
 
 ## Danish Maritime Authority — FUTURE_ANALYSIS_SOURCE
 
-### Why Not MVP
+### Why Not for the current build
 
 - Historical only (bulk downloads)
 - Not real-time
@@ -118,7 +118,7 @@
 
 ## NOAA AccessAIS — FUTURE_ANALYSIS_SOURCE
 
-### Why Not MVP
+### Why Not for the current build
 
 - Historical only
 - US waters primarily
@@ -133,7 +133,7 @@
 
 ## Global Fishing Watch — FUTURE_ANALYSIS_SOURCE
 
-### Why Not MVP
+### Why Not for the current build
 
 - Delayed data (5+ days)
 - Fishing-vessel focus
@@ -146,7 +146,7 @@
 
 ---
 
-## MarineTraffic — REJECT_FOR_MVP
+## MarineTraffic — REJECT_FOR_CURRENT_BUILD
 
 ### Why Rejected
 
