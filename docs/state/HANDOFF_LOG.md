@@ -1,3 +1,43 @@
+### 2026-06-23T00:00:00Z - god-eyes-data-runner
+
+- Work order: project-wide (GOD EYES Data Runner — local dev data orchestration)
+- Agent: Fetcher Agent
+- Worktree folder: `E:\god-eyes`
+- Branch: `frontend/bugfix/cesium-globe-flash-picking` (current branch)
+- Base commit: `c4663cb Add new aviation data sources and update existing configurations`
+- Reviewer decision: PENDING
+- Reason: The existing Python data scripts are one-shot commands that fetch, normalize, and ingest only once then stop. This makes the website look alive only at the moment a script is run. We need one central runner so the user can run one command and keep the database refreshed for all enabled layers.
+- Goal: Build a local development "GOD EYES Data Runner" that supervises existing Python fetch/normalize/ingest scripts. Does not rewrite layer workers; connects existing scripts together, schedules them, restarts long-running jobs if needed, and keeps layer data fresh.
+- Approach: Created `services/fetch-orchestrator/src/data_runner/` module (5 files) plus `services/fetch-orchestrator/src/god_eyes_data_runner.py` entry point and `tests/data/test_god_eyes_data_runner.py` (31 tests, all pass). Standard-library Python only (no external scheduler dependency). Uses subprocess management with thread-based continuous mode and time-based interval scheduling.
+- New files (7):
+  - `services/fetch-orchestrator/src/data_runner/__init__.py` — module docstring
+  - `services/fetch-orchestrator/src/data_runner/jobs.py` — job registry with JobDef dataclass, JobMode/RestartPolicy enums, env validation, command display (secret masking)
+  - `services/fetch-orchestrator/src/data_runner/processes.py` — ProcessManager: start continuous subprocesses, run-once with timeout, backoff restart, graceful stop/kill
+  - `services/fetch-orchestrator/src/data_runner/scheduler.py` — Runner class: CLI dispatch, interval scheduling, startup_once, status table, signal handling, shutdown summary
+  - `services/fetch-orchestrator/src/data_runner/main.py` — CLI entry point: --list-jobs, --dry-run, --run-once, --jobs, --profile, --include-disabled, --status-interval
+  - `services/fetch-orchestrator/src/god_eyes_data_runner.py` — top-level entry point (thin wrapper)
+  - `tests/data/test_god_eyes_data_runner.py` — 31 unit tests covering registry, env validation, secret masking, filtering, process management, CLI, scheduler dry-run
+- Jobs implemented (8 total):
+  - `aviation_live_aircraft` — continuous, 5s loop, Airplanes.live global-web-json, always-on (most important live job)
+  - `earth_events` — interval, 120s, USGS earthquakes, --persist
+  - `weather` — interval, 600s, Open-Meteo proof grid, --proof --forecast-days 3
+  - `news_osint` — interval, 300s, GDACS proof+normalize+ingest-db
+  - `space_satellites` — interval, 120s, refresh positions from cached TLEs
+  - `maritime` — disabled unless AISSTREAM_API_KEY exists
+  - `borders_boundaries` — manual, disabled
+  - `energy_infrastructure` — manual, disabled
+- Validation:
+  - `python services/fetch-orchestrator/src/god_eyes_data_runner.py --list-jobs` → 8 jobs listed, 5 enabled
+  - `python services/fetch-orchestrator/src/god_eyes_data_runner.py --dry-run` → all commands printed, no execution
+  - `python services/fetch-orchestrator/src/god_eyes_data_runner.py --run-once --jobs earth_events` → ran once, exited 0
+  - `python -m pytest tests/data/test_god_eyes_data_runner.py -v` → 31/31 PASS
+  - `python -m pytest tests/data/test_scope_guard.py -v` → 32/32 PASS (scope guard helper tests unaffected)
+- Known issues:
+  - Per-layer scope guard tests (`test_aviation_live_aircraft_work_order_changes_stay_in_allowed_paths` etc.) will fail because the dirty worktree now contains files under `services/`. This is by design — the scope guards are not weakened. These tests pass again once the branch is clean or merged.
+  - `space_satellites` position refresh requires a prior `--download-only` + `--normalize-only` + `--persist-from-cache` run to populate the cache dir. The runner assumes the cache exists; if it doesn't, the job will fail and retry next interval.
+  - `DATABASE_URL` must be set for DB-writing jobs; the runner prints a warning at startup if it's missing.
+- Forbidden folders touched: none (only `services/fetch-orchestrator/src/` and `tests/data/` modified)
+- Secrets added: none
 
 ### 2026-06-21T12:00:00Z - aviation-source-registry-initial-consolidation
 

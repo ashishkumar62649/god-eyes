@@ -2,7 +2,7 @@
 
 Classification: ROLLING_CONTEXT
 
-Last updated: 2026-06-21 - Aviation Source Registry Initial Consolidation
+Last updated: 2026-06-23 - GOD EYES Data Runner
 
 This file is the short rolling context for agents.
 
@@ -30,6 +30,15 @@ receive the **complete** handoff entry after every completed task.
 - Validation: [pass/fail summary]
 - Known issues: [one line or None]
 - Next: [one line - what the next agent/task should do]
+
+## 2026-06-23 - GOD EYES Data Runner
+
+- Agent: Fetcher Agent
+- Branch: `frontend/bugfix/cesium-globe-flash-picking` (current branch)
+- What changed: Created `services/fetch-orchestrator/src/data_runner/` (5 files) + `god_eyes_data_runner.py` entry point + `tests/data/test_god_eyes_data_runner.py` (31 tests). Central runner supervises all existing layer workers with continuous/interval/manual modes. 5 jobs enabled by default (aviation_live_aircraft continuous 5s, earth_events 120s, weather 600s, news_osint 300s, space_satellites 120s). Maritime disabled unless AISSTREAM_API_KEY. Borders/energy manual.
+- Validation: `--list-jobs` shows 8 jobs/5 enabled; `--dry-run` prints all commands; `--run-once` ran earth_events successfully; 31/31 unit tests pass; scope guard helper tests 32/32 pass.
+- Known issues: Per-layer scope guard tests fail due to `services/` dirty paths (by design, not weakened). Space satellites requires prior cache population.
+- Next: Start database, start data runner, start API, start web, verify live aircraft refresh and website data freshness.
 
 ## 2026-06-21 - Aviation Source Registry Initial Consolidation
 
@@ -76,11 +85,3 @@ receive the **complete** handoff entry after every completed task.
 - Known issues: None. Wave 3 ran in parallel and the three individual agents each wrote their own RECENT_CONTEXT/HANDOFF_LOG entries at PR time; this closeout consolidates those into a single Wave 3 outcome section in `CURRENT_PROJECT_STATE.md` and trims the rolling context window so future agents see one clean Wave 3 entry rather than three near-duplicate per-PR entries.
 - Next: Start Wave 4 — frontend CesiumGlobe split planning. `apps/web/src/components/CesiumGlobe.tsx` is the largest remaining frontend file flagged in the Spec 008 cleanup lane and is the recommended next target per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
 
-## 2026-06-19 - Wave 2 DISC-1E Energy Placeholder Decision
-
-- Agent: Energy Decision Record Agent
-- Branch: `docs/wave-2-energy-decision-record`
-- What changed: Recorded the DISC-1E product decision: **KEEP** `apps/web/src/layers/layer_10_energy_infrastructure/infrastructure/energyInfrastructureApi.ts`. The file is intentionally retained as a tested static-layer placeholder / future typed-client seed (zero production runtime callers, but covered by frontend tests as the static-data-layer contract placeholder). **No code changes required** — the barrel re-export in `apps/web/src/layers/layer_10_energy_infrastructure/index.ts` and the test file stay as-is. Wave 2 dead-code cleanup is now complete (Batch A+B deletions merged to `main` + DISC-1E decision recorded).
-- Validation: pre-edit clean (PASS); `git diff --check` clean (PASS); no merge conflict markers (PASS); 3 `docs/state/` files updated only; `git diff --name-only` confirms zero hits for `apps/`, `services/`, `database/`, `packages/`, `tests/`, `specs/`, lockfile, or `.env*`. No `pnpm` build/test runs needed (docs-only state sync).
-- Known issues: None. `energyInfrastructureApi.ts` is a documented tested placeholder, not dead-by-accident; the test file relies on its existence, so the decision to keep it is the correct outcome of DISC-1E.
-- Next: Wave 2 closes. Next wave moves to the remaining Spec 008 cleanup lane / API route structure cleanup items per `docs/control/PROJECT_CONTROL.md` and `specs/008-structure-remediation-roadmap/`.
